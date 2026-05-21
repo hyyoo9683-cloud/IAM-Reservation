@@ -10,7 +10,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-  import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
     onSnapshot, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL }
@@ -34,15 +34,15 @@
   const db      = getFirestore(app);
   const storage = getStorage(app);
 
-  // 허용 도메인 (이 도메인의 Google 계정만 로그인 가능)
+  // 기본 허용 도메인 (이 도메인은 별도 승인 없이 로그인 가능)
   const ALLOWED_DOMAIN = "suwoncca.org";
-  // 관리자 이메일 목록
-  const ADMIN_EMAILS   = ["admin@suwoncca.org"];
+  // 관리자 이메일 목록 (도메인 무관하게 관리자 권한 부여)
+  const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
 
   window._fb = {
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-    collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
+    collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
     ref, uploadBytes, getDownloadURL,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
@@ -249,6 +249,8 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('list')"><span class="icon">📋</span>예약 목록</button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
+      <div class="nav-section">사용자 관리</div>
+      <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <div class="nav-section">사용자 뷰</div>
       <button class="nav-btn" onclick="go('spaces')"><span class="icon">🏠</span>공간 안내</button>
       <button class="nav-btn" onclick="go('public')"><span class="icon">📅</span>예약 현황</button>
@@ -415,6 +417,35 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="space-grid" id="manage-spaces-grid"></div>
     </div>
 
+    <!-- 관리자: 외부 사용자 관리 -->
+    <div class="page" id="p-ext-users">
+      <div style="max-width:560px">
+        <div class="card">
+          <div class="card-title">외부 사용자 추가</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;background:var(--blue-lt);border-radius:7px;padding:8px 12px">
+            <b>suwoncca.org</b> 도메인이 아닌 Gmail 계정도 이곳에 등록하면 예약 신청이 가능합니다.
+          </div>
+          <div class="fl" style="align-items:flex-end">
+            <div class="fg" style="flex:2;margin-bottom:0">
+              <div class="lbl">이메일 주소 <span class="req">*</span></div>
+              <input id="ext-email" placeholder="example@gmail.com" type="email">
+            </div>
+            <div class="fg" style="flex:1;margin-bottom:0">
+              <div class="lbl">이름 (메모용)</div>
+              <input id="ext-name" placeholder="홍길동">
+            </div>
+            <button class="btn btn-primary" style="flex-shrink:0;margin-bottom:0" onclick="addExtUser()">추가</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>이메일</th><th>이름</th><th>추가일</th><th>액션</th></tr></thead>
+            <tbody id="ext-users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- 관리자: 리포트 -->
     <div class="page" id="p-report">
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
@@ -541,7 +572,7 @@ const fb = window._fb;
 const {
   auth, db, storage,
   GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
+  collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
   ref, uploadBytes, getDownloadURL,
   ALLOWED_DOMAIN, ADMIN_EMAILS
 } = fb;
@@ -649,20 +680,35 @@ window.enterPublic = () => {
 };
 
 onAuthStateChanged(auth, async user => {
-  if (user && user.email.endsWith('@' + ALLOWED_DOMAIN)) {
+  if (!user) return;
+
+  const email = user.email;
+  const isDomainUser = email.endsWith('@' + ALLOWED_DOMAIN);
+  const isAdminUser  = ADMIN_EMAILS.includes(email);
+
+  // 도메인 외 계정은 Firestore 허용 목록 확인
+  let isExtAllowed = false;
+  if (!isDomainUser && !isAdminUser) {
+    try {
+      const snap = await getDocs(collection(db, 'allowedUsers'));
+      isExtAllowed = snap.docs.some(d => d.id === email);
+    } catch (_) {}
+  }
+
+  if (isDomainUser || isAdminUser || isExtAllowed) {
     curUser = user;
-    isAdmin = ADMIN_EMAILS.includes(user.email);
+    isAdmin = isAdminUser;
     document.getElementById('view-login').style.display = 'none';
     document.getElementById('view-app').style.display = 'flex';
-    document.getElementById('user-email-display').textContent = user.email;
+    document.getElementById('user-email-display').textContent = email;
     document.getElementById('sb-role').textContent = isAdmin ? '관리자' : '사용자';
     document.getElementById('nav-user-links').style.display  = isAdmin ? 'none' : '';
     document.getElementById('nav-admin-links').style.display = isAdmin ? '' : 'none';
     await loadData();
     go(isAdmin ? 'dashboard' : 'spaces');
-  } else if (user) {
+  } else {
     await signOut(auth);
-    showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+    showLoginMsg('접근 권한이 없습니다. 관리자에게 문의하세요.');
   }
 });
 
@@ -739,7 +785,8 @@ window.go = (page) => {
 
   const titles = {
     spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
-    dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트'
+    dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
+    'ext-users': '외부 사용자 관리'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -762,6 +809,7 @@ window.go = (page) => {
   if (page === 'list')           renderList();
   if (page === 'manage-spaces')  renderManageSpaces();
   if (page === 'report')         renderReport();
+  if (page === 'ext-users')      renderExtUsers();
 };
 
 function refresh() {
@@ -1282,6 +1330,7 @@ function renderReport() {
   data.forEach(r => { if (byT[r.type]) { byT[r.type].total++; if (r.status === '확정') byT[r.type].ok++; if (r.status === '반려') byT[r.type].no++; } });
 
   document.getElementById('report-orgs').innerHTML =
+
     `<table class="tbl"><thead><tr><th>기관 분류</th><th>총 예약</th><th>확정</th><th>반려</th></tr></thead><tbody>
       ${ORGS.map(t => {
         const d = byT[t];
@@ -1289,6 +1338,45 @@ function renderReport() {
       }).join('')}
     </tbody></table>`;
 }
+
+// ── 외부 사용자 관리 ─────────────────────────────────────────────
+async function renderExtUsers() {
+  const snap = await getDocs(collection(db, 'allowedUsers'));
+  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const tbody = document.getElementById('ext-users-body');
+  tbody.innerHTML = !users.length
+    ? `<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">등록된 외부 사용자가 없습니다</td></tr>`
+    : users.map(u =>
+        `<tr>
+          <td style="color:var(--blue);font-weight:500">${u.id}</td>
+          <td>${u.name || '–'}</td>
+          <td style="color:var(--text3);font-size:11px">${u.addedAt || '–'}</td>
+          <td>
+            <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeExtUser('${u.id}')">삭제</button>
+          </td>
+        </tr>`
+      ).join('');
+}
+
+window.addExtUser = async () => {
+  const email = document.getElementById('ext-email').value.trim().toLowerCase();
+  const name  = document.getElementById('ext-name').value.trim();
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  if (email.endsWith('@' + ALLOWED_DOMAIN)) { T('suwoncca.org 계정은 기본 허용됩니다', '#854F0B'); return; }
+  if (ADMIN_EMAILS.includes(email)) { T('관리자 계정은 이미 허용되어 있습니다', '#854F0B'); return; }
+  await setDoc(doc(db, 'allowedUsers', email), { name, addedBy: curUser.email, addedAt: nowStr() });
+  document.getElementById('ext-email').value = '';
+  document.getElementById('ext-name').value  = '';
+  T(`${email} 추가 완료`, '#3B6D11');
+  renderExtUsers();
+};
+
+window.removeExtUser = async (email) => {
+  if (!confirm(`${email} 을(를) 삭제하시겠습니까?`)) return;
+  await deleteDoc(doc(db, 'allowedUsers', email));
+  T('삭제됐습니다', '#A32D2D');
+  renderExtUsers();
+};
 </script>
 </body>
 </html>
