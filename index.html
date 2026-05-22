@@ -533,16 +533,23 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fg"><div class="lbl">설명</div><input id="sp-desc" placeholder="간단한 공간 설명"></div>
     <div class="fg">
+      <div class="lbl">의자 / 책상 수량</div>
+      <div class="fl" style="margin-bottom:10px">
+        <div class="fg" style="margin-bottom:0">
+          <div class="lbl">의자 수</div>
+          <input type="number" id="sp-chairs" placeholder="0개" min="0">
+        </div>
+        <div class="fg" style="margin-bottom:0">
+          <div class="lbl">책상 수</div>
+          <input type="number" id="sp-desks" placeholder="0개" min="0">
+        </div>
+      </div>
       <div class="lbl">시설 / 비품</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px" id="amenity-checks">
-        <div class="check-row"><input type="checkbox" id="a-chair"><label for="a-chair">의자</label></div>
-        <div class="check-row"><input type="checkbox" id="a-desk"><label for="a-desk">책상</label></div>
         <div class="check-row"><input type="checkbox" id="a-tv"><label for="a-tv">TV</label></div>
-        <div class="check-row"><input type="checkbox" id="a-proj"><label for="a-proj">빔프로젝터</label></div>
         <div class="check-row"><input type="checkbox" id="a-wifi"><label for="a-wifi">Wi-Fi</label></div>
         <div class="check-row"><input type="checkbox" id="a-ac"><label for="a-ac">냉난방</label></div>
         <div class="check-row"><input type="checkbox" id="a-mic"><label for="a-mic">마이크/음향</label></div>
-        <div class="check-row"><input type="checkbox" id="a-whiteboard"><label for="a-whiteboard">화이트보드</label></div>
       </div>
     </div>
     <div class="fg">
@@ -730,14 +737,14 @@ async function loadData() {
 
 async function seedDefaultSpaces() {
   const defaults = [
-    { name: '아론홀', floor: '2층', cap: 200, desc: '대형 강당', amenities: ['의자', 'TV', '빔프로젝터', '마이크/음향', '냉난방', 'Wi-Fi'], photos: [] },
-    { name: '505호',  floor: '5층', cap: 25,  desc: '소회의실',  amenities: ['의자', '책상', 'TV', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '506호',  floor: '5층', cap: 25,  desc: '소회의실',  amenities: ['의자', '책상', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '507호',  floor: '5층', cap: 25,  desc: '소회의실',  amenities: ['의자', '책상', '빔프로젝터', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '508호',  floor: '5층', cap: 25,  desc: '소모임실',  amenities: ['의자', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '509호',  floor: '5층', cap: 25,  desc: '소모임실',  amenities: ['의자', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '510호',  floor: '5층', cap: 25,  desc: '소모임실',  amenities: ['의자', 'Wi-Fi', '냉난방'], photos: [] },
-    { name: '511호',  floor: '5층', cap: 25,  desc: '소모임실',  amenities: ['의자', 'Wi-Fi', '냉난방'], photos: [] },
+    { name: '아론홀', floor: '2층', cap: 200, desc: '대형 강당', chairs: 0, desks: 0, amenities: ['TV', '마이크/음향', '냉난방', 'Wi-Fi'], photos: [] },
+    { name: '505호',  floor: '5층', cap: 25,  desc: '소회의실',  chairs: 0, desks: 0, amenities: ['TV', 'Wi-Fi', '냉난방'], photos: [] },
+    { name: '506호',  floor: '5층', cap: 25,  desc: '소회의실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
+    { name: '507호',  floor: '5층', cap: 25,  desc: '소회의실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
+    { name: '508호',  floor: '5층', cap: 25,  desc: '소모임실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
+    { name: '509호',  floor: '5층', cap: 25,  desc: '소모임실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
+    { name: '510호',  floor: '5층', cap: 25,  desc: '소모임실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
+    { name: '511호',  floor: '5층', cap: 25,  desc: '소모임실',  chairs: 0, desks: 0, amenities: ['Wi-Fi', '냉난방'], photos: [] },
   ];
   for (const s of defaults) {
     const r = await addDoc(collection(db, 'spaces'), { ...s, createdAt: serverTimestamp() });
@@ -869,7 +876,11 @@ function spaceCardHtml(sp, adminMode = false) {
   const imgHtml = sp.photos && sp.photos.length
     ? `<div class="space-img"><img src="${sp.photos[0]}" alt="${sp.name}" loading="lazy"></div>`
     : `<div class="space-img">📷 사진 없음</div>`;
-  const tags = (sp.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('');
+  const countTags = [
+    sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
+    sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
+  ].filter(Boolean).map(t => `<span class="amenity-tag">${t}</span>`).join('');
+  const tags = countTags + (sp.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('');
   const adminBtns = adminMode
     ? `<div class="space-actions">
         <button class="btn btn-ghost" style="font-size:11px" onclick="openSpaceModal('${sp.id}')">✏️ 편집</button>
@@ -893,18 +904,21 @@ function renderManageSpaces() { document.getElementById('manage-spaces-grid').in
 window.openSpaceModal = (id = null) => {
   spaceEditId = id; newPhotoFiles = [];
   document.getElementById('photo-preview').innerHTML = '';
-  const amenityKeys = ['chair', 'desk', 'tv', 'proj', 'wifi', 'ac', 'mic', 'whiteboard'];
-  amenityKeys.forEach(a => document.getElementById('a-' + a).checked = false);
+  ['a-tv', 'a-wifi', 'a-ac', 'a-mic'].forEach(id2 => document.getElementById(id2).checked = false);
+  document.getElementById('sp-chairs').value = '';
+  document.getElementById('sp-desks').value  = '';
 
   if (id) {
     const sp = spaces.find(s => s.id === id); if (!sp) return;
     document.getElementById('space-modal-title').textContent = '공간 편집: ' + sp.name;
-    document.getElementById('sp-name').value  = sp.name;
-    document.getElementById('sp-floor').value = sp.floor || '';
-    document.getElementById('sp-cap').value   = sp.cap || '';
-    document.getElementById('sp-desc').value  = sp.desc || '';
-    const aMap = { '의자': 'chair', '책상': 'desk', 'TV': 'tv', '빔프로젝터': 'proj', 'Wi-Fi': 'wifi', '냉난방': 'ac', '마이크/음향': 'mic', '화이트보드': 'whiteboard' };
-    (sp.amenities || []).forEach(a => { if (aMap[a]) document.getElementById('a-' + aMap[a]).checked = true; });
+    document.getElementById('sp-name').value   = sp.name;
+    document.getElementById('sp-floor').value  = sp.floor || '';
+    document.getElementById('sp-cap').value    = sp.cap || '';
+    document.getElementById('sp-desc').value   = sp.desc || '';
+    document.getElementById('sp-chairs').value = sp.chairs || '';
+    document.getElementById('sp-desks').value  = sp.desks  || '';
+    const aMap = { 'TV': 'a-tv', 'Wi-Fi': 'a-wifi', '냉난방': 'a-ac', '마이크/음향': 'a-mic' };
+    (sp.amenities || []).forEach(a => { if (aMap[a]) document.getElementById(aMap[a]).checked = true; });
     existingPhotos = [...(sp.photos || [])];
     renderExistingPhotos();
   } else {
@@ -943,8 +957,10 @@ window.submitSpace = async () => {
   const floor = document.getElementById('sp-floor').value.trim();
   const cap   = parseInt(document.getElementById('sp-cap').value) || 0;
   const desc  = document.getElementById('sp-desc').value.trim();
-  const aMap  = { chair: '의자', desk: '책상', tv: 'TV', proj: '빔프로젝터', wifi: 'Wi-Fi', ac: '냉난방', mic: '마이크/음향', whiteboard: '화이트보드' };
-  const amenities = Object.entries(aMap).filter(([k]) => document.getElementById('a-' + k).checked).map(([, v]) => v);
+  const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
+  const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
+  const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
+  const amenities = Object.entries(aMap).filter(([k]) => document.getElementById(k).checked).map(([, v]) => v);
 
   let photoUrls = [...existingPhotos];
   for (const file of newPhotoFiles) {
@@ -953,7 +969,7 @@ window.submitSpace = async () => {
     photoUrls.push(await getDownloadURL(snap.ref));
   }
 
-  const data = { name, floor, cap, desc, amenities, photos: photoUrls };
+  const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
   if (spaceEditId) {
     await updateDoc(doc(db, 'spaces', spaceEditId), data);
     spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
