@@ -219,23 +219,6 @@ textarea { resize: vertical; min-height: 60px; }
     </button>
     <div class="public-link" onclick="enterPublic()">로그인 없이 예약 현황 보기</div>
     <div id="login-msg" style="margin-top:14px;font-size:11px;color:var(--red);display:none"></div>
-
-    <!-- 관리자 비밀번호 영역 (토글) -->
-    <div id="admin-pass-area" style="display:none;margin-top:14px;border-top:1px solid var(--border2);padding-top:14px;text-align:left">
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:500">관리자 비밀번호</div>
-      <div style="display:flex;gap:8px">
-        <input type="password" id="admin-pass-input" placeholder="비밀번호 입력"
-          style="flex:1" onkeydown="if(event.key==='Enter')checkAdminPass()">
-        <button class="btn btn-ghost" onclick="checkAdminPass()" style="flex-shrink:0">확인</button>
-      </div>
-      <div id="admin-pass-msg" style="font-size:11px;margin-top:7px"></div>
-    </div>
-
-    <!-- 관리자 모드 버튼 (우하단) -->
-    <button onclick="toggleAdminPass()"
-      style="position:absolute;bottom:12px;right:14px;background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;padding:4px;font-family:var(--font)">
-      🔐 관리자 모드
-    </button>
   </div>
 </div>
 
@@ -595,28 +578,7 @@ const {
 } = fb;
 
 // ── 전역 상태 ──────────────────────────────────────────────────
-let curUser = null, isAdmin = false, pendingAdmin = false;
-
-window.toggleAdminPass = () => {
-  const area = document.getElementById('admin-pass-area');
-  const show = area.style.display === 'none';
-  area.style.display = show ? 'block' : 'none';
-  if (show) document.getElementById('admin-pass-input').focus();
-};
-window.checkAdminPass = () => {
-  const pass = document.getElementById('admin-pass-input').value;
-  const msg  = document.getElementById('admin-pass-msg');
-  if (pass === '0501') {
-    pendingAdmin = true;
-    msg.style.color = 'var(--green)';
-    msg.textContent = '✓ 관리자 모드 활성화. Google로 로그인하세요.';
-    document.getElementById('admin-pass-input').disabled = true;
-  } else {
-    pendingAdmin = false;
-    msg.style.color = 'var(--red)';
-    msg.textContent = '비밀번호가 올바르지 않습니다.';
-  }
-};
+let curUser = null, isAdmin = false;
 let reservations = [], spaces = [];
 let curPage = 'spaces';
 let editId = null;
@@ -735,7 +697,7 @@ onAuthStateChanged(auth, async user => {
 
   if (isDomainUser || isAdminUser || isExtAllowed) {
     curUser = user;
-    isAdmin = isAdminUser && pendingAdmin;
+    isAdmin = isAdminUser;
     document.getElementById('view-login').style.display = 'none';
     document.getElementById('view-app').style.display = 'flex';
     document.getElementById('user-email-display').textContent = email;
