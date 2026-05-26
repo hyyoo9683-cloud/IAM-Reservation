@@ -563,7 +563,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="upload-preview" id="existing-photos" style="margin-top:8px"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px">
-      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitSpace()">저장</button>
+      <button id="space-submit-btn" class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitSpace()">저장</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-space')">취소</button>
     </div>
   </div>
@@ -962,7 +962,7 @@ window.submitSpace = async () => {
   const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
   const amenities = Object.entries(aMap).filter(([k]) => document.getElementById(k).checked).map(([, v]) => v);
 
-  const btn = document.querySelector('#modal-space .btn-primary');
+  const btn = document.getElementById('space-submit-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
 
   try {
