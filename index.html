@@ -964,6 +964,10 @@ window.submitSpace = async () => {
   const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
   const amenities = Object.entries(aMap).filter(([k]) => document.getElementById(k).checked).map(([, v]) => v);
 
+  const cu = auth.currentUser;
+  console.log('Auth state at save:', cu ? cu.email : 'NOT LOGGED IN');
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+
   const btn = document.getElementById('space-submit-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
 
@@ -973,6 +977,8 @@ window.submitSpace = async () => {
   ]);
 
   try {
+    await cu.getIdToken(true); // force token refresh before writes
+
     let photoUrls = [...existingPhotos];
     for (const file of newPhotoFiles) {
       const storageRef = ref(storage, `spaces/${Date.now()}_${file.name}`);
