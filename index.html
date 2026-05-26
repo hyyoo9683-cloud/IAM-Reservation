@@ -954,33 +954,43 @@ window.previewPhotos = (input) => {
 window.submitSpace = async () => {
   const name = document.getElementById('sp-name').value.trim();
   if (!name) { T('공간 이름을 입력해주세요', '#A32D2D'); return; }
-  const floor = document.getElementById('sp-floor').value.trim();
-  const cap   = parseInt(document.getElementById('sp-cap').value) || 0;
-  const desc  = document.getElementById('sp-desc').value.trim();
+  const floor  = document.getElementById('sp-floor').value.trim();
+  const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
+  const desc   = document.getElementById('sp-desc').value.trim();
   const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
   const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
   const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
   const amenities = Object.entries(aMap).filter(([k]) => document.getElementById(k).checked).map(([, v]) => v);
 
-  let photoUrls = [...existingPhotos];
-  for (const file of newPhotoFiles) {
-    const storageRef = ref(storage, `spaces/${Date.now()}_${file.name}`);
-    const snap = await uploadBytes(storageRef, file);
-    photoUrls.push(await getDownloadURL(snap.ref));
-  }
+  const btn = document.querySelector('#modal-space .btn-primary');
+  btn.disabled = true; btn.textContent = '저장 중...';
 
-  const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
-  if (spaceEditId) {
-    await updateDoc(doc(db, 'spaces', spaceEditId), data);
-    spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
-    T('공간이 수정됐습니다', '#3B6D11');
-  } else {
-    const r = await addDoc(collection(db, 'spaces'), { ...data, createdAt: serverTimestamp() });
-    spaces.push({ id: r.id, ...data });
-    T('공간이 추가됐습니다', '#3B6D11');
+  try {
+    let photoUrls = [...existingPhotos];
+    for (const file of newPhotoFiles) {
+      const storageRef = ref(storage, `spaces/${Date.now()}_${file.name}`);
+      const snap = await uploadBytes(storageRef, file);
+      photoUrls.push(await getDownloadURL(snap.ref));
+    }
+
+    const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
+    if (spaceEditId) {
+      await updateDoc(doc(db, 'spaces', spaceEditId), data);
+      spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
+      T('공간이 수정됐습니다', '#3B6D11');
+    } else {
+      const r = await addDoc(collection(db, 'spaces'), { ...data, createdAt: serverTimestamp() });
+      spaces.push({ id: r.id, ...data });
+      T('공간이 추가됐습니다', '#3B6D11');
+    }
+    buildRoomChips(); populateRoomFilter(); renderManageSpaces();
+    closeModal('modal-space');
+  } catch (e) {
+    console.error(e);
+    T('저장 실패: ' + (e.code || e.message), '#A32D2D');
+  } finally {
+    btn.disabled = false; btn.textContent = '저장';
   }
-  buildRoomChips(); populateRoomFilter(); renderManageSpaces();
-  closeModal('modal-space');
 };
 window.deleteSpace = async (id, name) => {
   if (!confirm(`'${name}' 공간을 삭제하시겠습니까?`)) return;
