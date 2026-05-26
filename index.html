@@ -907,6 +907,8 @@ window.openSpaceModal = (id = null) => {
   ['a-tv', 'a-wifi', 'a-ac', 'a-mic'].forEach(id2 => document.getElementById(id2).checked = false);
   document.getElementById('sp-chairs').value = '';
   document.getElementById('sp-desks').value  = '';
+  const btn0 = document.getElementById('space-submit-btn');
+  btn0.disabled = false; btn0.textContent = '저장';
 
   if (id) {
     const sp = spaces.find(s => s.id === id); if (!sp) return;
@@ -965,29 +967,37 @@ window.submitSpace = async () => {
   const btn = document.getElementById('space-submit-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
 
+  const withTimeout = (promise, ms) => Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+  ]);
+
   try {
     let photoUrls = [...existingPhotos];
     for (const file of newPhotoFiles) {
       const storageRef = ref(storage, `spaces/${Date.now()}_${file.name}`);
-      const snap = await uploadBytes(storageRef, file);
+      const snap = await withTimeout(uploadBytes(storageRef, file), 30000);
       photoUrls.push(await getDownloadURL(snap.ref));
     }
 
     const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
-      await updateDoc(doc(db, 'spaces', spaceEditId), data);
+      await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
       spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
       T('공간이 수정됐습니다', '#3B6D11');
     } else {
-      const r = await addDoc(collection(db, 'spaces'), { ...data, createdAt: serverTimestamp() });
+      const r = await withTimeout(addDoc(collection(db, 'spaces'), { ...data, createdAt: serverTimestamp() }), 15000);
       spaces.push({ id: r.id, ...data });
       T('공간이 추가됐습니다', '#3B6D11');
     }
     buildRoomChips(); populateRoomFilter(); renderManageSpaces();
     closeModal('modal-space');
   } catch (e) {
-    console.error(e);
-    T('저장 실패: ' + (e.code || e.message), '#A32D2D');
+    console.error('Space save error:', e.code, e.message, e);
+    const msg = e.message === 'timeout' ? '저장 시간 초과 (네트워크 또는 권한 문제)'
+              : e.code === 'permission-denied' ? '권한 없음 — Firebase Storage/Firestore 규칙 확인 필요'
+              : (e.code || e.message);
+    T('저장 실패: ' + msg, '#A32D2D');
   } finally {
     btn.disabled = false; btn.textContent = '저장';
   }
