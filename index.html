@@ -371,6 +371,7 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="card-title">공간 선택 <span class="req">*</span></div>
             <div id="apply-room-chips"></div>
             <input type="hidden" id="m-room">
+            <div id="m-room-notice" style="display:none;margin-top:10px"></div>
           </div>
 
           <div class="card">
@@ -1081,10 +1082,18 @@ window.openSpaceDetail = (id) => {
     sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
   ].filter(Boolean).map(t => `<span class="amenity-tag">${t}</span>`).join('');
   const amenityTags = (sp.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('');
+  const extraNotes = [];
+  if (sp.name === '아론홀') {
+    extraNotes.push(`<div style="margin-top:10px;background:var(--blue-lt,#EFF6FF);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue-mid,#1D4ED8);font-weight:600">📞 예약관리자와 상담 후 예약 확정이 가능합니다. (최소 20명)</div>`);
+  }
+  if (sp.name === '506호') {
+    extraNotes.push(`<div style="margin-top:10px;background:var(--amber-lt);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);font-weight:600">⚠️ 506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.</div>`);
+  }
   document.getElementById('sd-body').innerHTML = `
     <div style="margin-bottom:8px"><span style="font-size:13px;color:var(--text2)">최대 수용 인원</span> <strong>${sp.cap || '-'}명</strong></div>
     ${sp.desc ? `<div style="margin-bottom:10px;font-size:13px;color:var(--text2)">${sp.desc}</div>` : ''}
     ${countTags || amenityTags ? `<div class="space-amenity" style="margin-top:4px">${countTags}${amenityTags}</div>` : ''}
+    ${extraNotes.join('')}
   `;
   openModal('modal-space-detail');
 };
@@ -1235,7 +1244,40 @@ window.selApplyRoom = (name) => {
   applyRoom = name;
   document.getElementById('m-room').value = name;
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
-  const el = document.getElementById('arc-' + name); if (el) el.classList.add('sel');
+  const chip = document.getElementById('arc-' + name); if (chip) chip.classList.add('sel');
+
+  // 공간별 안내 메시지
+  const notice = document.getElementById('m-room-notice');
+  const ROOM_NOTICES = {
+    '506호': { color: 'amber', icon: '⚠️', msg: '506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.' },
+    '아론홀': { color: 'blue', icon: '📞', msg: '아론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다.' },
+  };
+  const n = ROOM_NOTICES[name];
+  if (n) {
+    const bg  = n.color === 'amber' ? 'var(--amber-lt)' : 'var(--blue-lt, #EFF6FF)';
+    const col = n.color === 'amber' ? 'var(--amber)'    : 'var(--blue-mid, #1D4ED8)';
+    notice.style.display = '';
+    notice.innerHTML = `<div style="background:${bg};border-radius:8px;padding:10px 12px;font-size:12px;color:${col};font-weight:600;line-height:1.6">${n.icon} ${n.msg}</div>`;
+  } else {
+    notice.style.display = 'none'; notice.innerHTML = '';
+  }
+
+  // TV 체크박스: 505·507·508·509호만 활성화
+  const TV_ROOMS  = ['505호', '507호', '508호', '509호'];
+  const MIC_ROOMS = ['아론홀'];
+  const tvCb  = document.getElementById('m-need-tv');
+  const micCb = document.getElementById('m-need-mic');
+  if (tvCb) {
+    const tvOn = TV_ROOMS.includes(name);
+    tvCb.disabled = !tvOn; if (!tvOn) tvCb.checked = false;
+    tvCb.closest('label').style.opacity = tvOn ? '' : '0.35';
+  }
+  if (micCb) {
+    const micOn = MIC_ROOMS.includes(name);
+    micCb.disabled = !micOn; if (!micOn) micCb.checked = false;
+    micCb.closest('label').style.opacity = micOn ? '' : '0.35';
+  }
+
   checkAvail(); updateApplySummary();
 };
 window.toggleRecur = () => {
@@ -1308,6 +1350,7 @@ window.checkAvail = () => {
     if (sp.name === room) return false;
     if (conflictDates.some(d => !noConflict(sp.name, d, start, end))) return false;
     if (people && sp.cap < people) return false;
+    if (sp.name === '아론홀' && people < 20) return false; // 아론홀 최소 20인
     if (needTV  && !sp.amenities?.includes('TV')) return false;
     if (needMic && !sp.amenities?.includes('마이크/음향')) return false;
     return true;
@@ -1363,6 +1406,13 @@ window.resetApply = () => {
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
   document.getElementById('m-room').value = '';
   document.getElementById('m-avail').innerHTML = '';
+  const notice = document.getElementById('m-room-notice');
+  if (notice) { notice.style.display = 'none'; notice.innerHTML = ''; }
+  // 체크박스 활성화 복구
+  ['m-need-tv', 'm-need-mic'].forEach(id => {
+    const cb = document.getElementById(id); if (!cb) return;
+    cb.disabled = false; cb.closest('label').style.opacity = '';
+  });
   updateApplySummary();
 };
 window.submitApply = async () => {
