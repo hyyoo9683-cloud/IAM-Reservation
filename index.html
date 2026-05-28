@@ -291,6 +291,7 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="fg" style="margin-bottom:0">
             <div class="lbl">정기 모임</div>
             <select id="avail-recur" oninput="clearAvailResult()">
+              <option value="once">1회</option>
               <option value="weekly">매 주</option>
               <option value="biweekly">격 주</option>
               <option value="monthly">매 달 동일 요일</option>
@@ -376,9 +377,10 @@ textarea { resize: vertical; min-height: 60px; }
 
           <div class="card">
             <div class="card-title">일정</div>
-            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;margin-bottom:12px;font-weight:600;color:var(--green)">
-              <input type="checkbox" id="m-is-recur" onchange="toggleRecur();checkAvail();updateApplySummary()"> 정기 예약 (반복)
-            </label>
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:12px">
+              <input type="checkbox" id="m-is-recur" onchange="toggleRecur();checkAvail();updateApplySummary()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+              <label for="m-is-recur" style="font-size:13px;font-weight:600;color:var(--green);cursor:pointer;margin:0">정기 예약 (반복)</label>
+            </div>
             <div class="fl">
               <div class="fg">
                 <div class="lbl" id="m-date-lbl">날짜 <span class="req">*</span></div>
@@ -412,13 +414,15 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="fg">
               <div class="lbl">필요 시설</div>
-              <div style="display:flex;gap:16px;margin-top:4px">
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                  <input type="checkbox" id="m-need-tv" onchange="checkAvail()"> TV 사용
-                </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
-                  <input type="checkbox" id="m-need-mic" onchange="checkAvail()"> 마이크 사용
-                </label>
+              <div style="display:flex;flex-direction:row;gap:20px;margin-top:6px;flex-wrap:wrap">
+                <div id="cb-wrap-tv" style="display:flex;align-items:center;gap:6px">
+                  <input type="checkbox" id="m-need-tv" onchange="checkAvail()" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+                  <label for="m-need-tv" style="font-size:13px;cursor:pointer;margin:0">TV 사용</label>
+                </div>
+                <div id="cb-wrap-mic" style="display:flex;align-items:center;gap:6px">
+                  <input type="checkbox" id="m-need-mic" onchange="checkAvail()" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+                  <label for="m-need-mic" style="font-size:13px;cursor:pointer;margin:0">마이크 사용</label>
+                </div>
               </div>
             </div>
             <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="m-memo"></textarea></div>
@@ -1013,6 +1017,22 @@ function spaceCardHtml(sp, adminMode = false) {
     </div>
   </div>`;
 }
+function flexRoomCardHtml() {
+  const availBadge = spaceAvailResult !== null
+    ? `<div><span class="avail-ok">✓ 신청 가능</span></div>` : '';
+  return `<div class="space-card" onclick="goApply('공실 희망')" style="cursor:pointer;border:2px solid var(--green)">
+    <div class="space-img" style="background:var(--green-lt);display:flex;align-items:center;justify-content:center;font-size:42px">🏢</div>
+    <div class="space-info">
+      <div class="space-name">공실 희망 <span style="font-size:10px;color:var(--green);font-weight:600">관리자 배정</span></div>
+      <div class="space-cap">원하는 공간이 불확실할 때 · 관리자가 배정</div>
+      <div class="space-amenity"><span class="amenity-tag">관리자 직접 배정</span></div>
+      ${availBadge}
+      <div class="space-actions">
+        <button class="btn btn-primary" style="font-size:12px;flex:1;justify-content:center;background:var(--green);border-color:var(--green)" onclick="event.stopPropagation();goApply('공실 희망')">신청하기</button>
+      </div>
+    </div>
+  </div>`;
+}
 function renderSpaces() {
   let list = [...spaces];
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
@@ -1025,7 +1045,7 @@ function renderSpaces() {
       return aOk - bOk;
     });
   }
-  document.getElementById('spaces-grid').innerHTML = list.map(s => spaceCardHtml(s, false)).join('');
+  document.getElementById('spaces-grid').innerHTML = flexRoomCardHtml() + list.map(s => spaceCardHtml(s, false)).join('');
 }
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
 
@@ -1049,6 +1069,7 @@ window.resetAvailSearch = () => {
   renderSpaces();
 };
 function generateAvailDates(sd, ed, recur) {
+  if (recur === 'once') return [sd];
   const s = new Date(sd + 'T00:00:00'), e = new Date(ed + 'T00:00:00'), dates = [];
   let d = new Date(s);
   if (recur === 'daily')    { while (d <= e) { dates.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); } }
@@ -1070,15 +1091,17 @@ function generateAvailDates(sd, ed, recur) {
   return dates;
 }
 window.runAvailSearch = () => {
-  const sd = document.getElementById('avail-s-date').value;
-  const ed = document.getElementById('avail-e-date').value;
+  const sd    = document.getElementById('avail-s-date').value;
+  const ed    = document.getElementById('avail-e-date').value;
   const recur = document.getElementById('avail-recur').value;
-  const st = document.getElementById('avail-s-time').value;
-  const et = document.getElementById('avail-e-time').value;
-  if (!sd || !ed || !st || !et) { T('날짜와 시간을 모두 입력해주세요', '#A32D2D'); return; }
-  if (sd > ed) { T('시작 날짜가 종료 날짜보다 늦습니다', '#A32D2D'); return; }
+  const st    = document.getElementById('avail-s-time').value;
+  const et    = document.getElementById('avail-e-time').value;
+  const isOnce = recur === 'once';
+  if (!sd || (!isOnce && !ed) || !st || !et) { T('날짜와 시간을 모두 입력해주세요', '#A32D2D'); return; }
+  if (!isOnce && sd > ed) { T('시작 날짜가 종료 날짜보다 늦습니다', '#A32D2D'); return; }
   if (st >= et) { T('시작 시간이 종료 시간보다 늦습니다', '#A32D2D'); return; }
-  const dates = generateAvailDates(sd, ed, recur);
+  const effectiveEd = isOnce ? sd : ed;
+  const dates = generateAvailDates(sd, effectiveEd, recur);
   if (!dates.length) { T('해당 조건에 맞는 날짜가 없습니다', '#A32D2D'); return; }
   const available = new Set();
   spaces.forEach(sp => {
@@ -1088,9 +1111,10 @@ window.runAvailSearch = () => {
     if (!conflict) available.add(sp.id);
   });
   spaceAvailResult = available;
-  const recurLabel = {weekly:'매 주',biweekly:'격 주',monthly:'매 달 동일 요일'}[recur] || recur;
+  const recurLabel = {once:'1회', weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일'}[recur] || recur;
+  const dateRange  = isOnce ? sd : `${sd} ~ ${effectiveEd}`;
   document.getElementById('avail-summary').innerHTML =
-    `<strong>${sd} ~ ${ed} · ${recurLabel} · ${st}–${et}</strong> (총 ${dates.length}회) — 예약 가능 <strong style="color:var(--green)">${available.size}개</strong> / 전체 ${spaces.length}개`;
+    `<strong>${dateRange} · ${recurLabel} · ${st}–${et}</strong> (총 ${dates.length}회) — 예약 가능 <strong style="color:var(--green)">${available.size}개</strong> / 전체 ${spaces.length}개`;
   renderSpaces();
 };
 
@@ -1299,12 +1323,14 @@ window.selApplyRoom = (name) => {
   if (tvCb) {
     const tvOn = TV_ROOMS.includes(name);
     tvCb.disabled = !tvOn; if (!tvOn) tvCb.checked = false;
-    tvCb.closest('label').style.opacity = tvOn ? '' : '0.35';
+    const tvWrap = document.getElementById('cb-wrap-tv');
+    if (tvWrap) tvWrap.style.opacity = tvOn ? '' : '0.35';
   }
   if (micCb) {
     const micOn = MIC_ROOMS.includes(name);
     micCb.disabled = !micOn; if (!micOn) micCb.checked = false;
-    micCb.closest('label').style.opacity = micOn ? '' : '0.35';
+    const micWrap = document.getElementById('cb-wrap-mic');
+    if (micWrap) micWrap.style.opacity = micOn ? '' : '0.35';
   }
 
   checkAvail(); updateApplySummary();
@@ -1448,7 +1474,10 @@ window.resetApply = () => {
   // 체크박스 활성화 복구
   ['m-need-tv', 'm-need-mic'].forEach(id => {
     const cb = document.getElementById(id); if (!cb) return;
-    cb.disabled = false; cb.closest('label').style.opacity = '';
+    cb.disabled = false;
+  });
+  ['cb-wrap-tv', 'cb-wrap-mic'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.style.opacity = '';
   });
   updateApplySummary();
 };
