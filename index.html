@@ -276,9 +276,9 @@ textarea { resize: vertical; min-height: 60px; }
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;align-items:center">
         <button class="filter-chip" id="fc-cap" onclick="toggleSpaceFilter('cap')">인원 적은 순</button>
         <button class="filter-chip" id="fc-tv"  onclick="toggleSpaceFilter('tv')">TV 있음</button>
-        <button class="filter-chip" id="fc-avail" onclick="toggleAvailPanel()">📅 예약 가능 검색</button>
+        <button class="filter-chip active" id="fc-avail" onclick="toggleAvailPanel()">📅 예약 가능 검색</button>
       </div>
-      <div id="avail-panel" style="display:none;background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--border2)">
+      <div id="avail-panel" style="background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--border2)">
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
           <div class="fg" style="margin-bottom:0;min-width:130px">
             <div class="lbl">시작 날짜</div>
@@ -291,7 +291,6 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="fg" style="margin-bottom:0">
             <div class="lbl">정기 모임</div>
             <select id="avail-recur" oninput="clearAvailResult()">
-              <option value="daily">매일 (연속)</option>
               <option value="weekly">매 주</option>
               <option value="biweekly">격 주</option>
               <option value="monthly">매 달 동일 요일</option>
@@ -862,7 +861,15 @@ window.go = (page) => {
   ta.innerHTML = (page === 'list' && isAdmin)
     ? `<button class="btn btn-primary" onclick="openEditModal(null)">+ 예약 추가</button>` : '';
 
-  if (page === 'spaces')         renderSpaces();
+  if (page === 'spaces') {
+    renderSpaces();
+    const st = document.getElementById('avail-s-time');
+    if (st && !st.options.length) {
+      st.innerHTML = SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+      document.getElementById('avail-e-time').innerHTML = SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+      st.value = '09:00'; document.getElementById('avail-e-time').value = '10:00';
+    }
+  }
   if (page === 'public')        { pubWeekOffset = 0; renderPubCal(); }
   if (page === 'apply')         { resetApply(); initTimeSelects('m-start', 'm-end'); buildRoomChips(); }
   if (page === 'mylist')         renderMyList();
@@ -940,7 +947,9 @@ function spaceCardHtml(sp, adminMode = false) {
         <button class="btn btn-ghost" style="font-size:11px" onclick="openSpaceModal('${sp.id}')">✏️ 편집</button>
         <button class="btn btn-ghost" style="font-size:11px;color:var(--red)" onclick="deleteSpace('${sp.id}','${sp.name}')">🗑 삭제</button>
        </div>`
-    : '';
+    : `<div class="space-actions">
+        <button class="btn btn-primary" style="font-size:12px;flex:1;justify-content:center" onclick="event.stopPropagation();goApply('${sp.name}')">예약하기</button>
+       </div>`;
   const clickAttr = adminMode ? '' : `onclick="openSpaceDetail('${sp.id}')" style="cursor:pointer"`;
   let availBadge = '';
   if (!adminMode && spaceAvailResult !== null) {
@@ -974,20 +983,14 @@ window.toggleSpaceFilter = (type) => {
 };
 window.toggleAvailPanel = () => {
   const panel = document.getElementById('avail-panel');
-  const open = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  document.getElementById('fc-avail').classList.toggle('active', open);
-  if (open && !document.getElementById('avail-s-time').options.length) {
-    document.getElementById('avail-s-time').innerHTML = SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
-    document.getElementById('avail-e-time').innerHTML = SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
-    document.getElementById('avail-s-time').value = '09:00';
-    document.getElementById('avail-e-time').value = '10:00';
-  }
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  document.getElementById('fc-avail').classList.toggle('active', isHidden);
 };
 window.clearAvailResult = () => { spaceAvailResult = null; document.getElementById('avail-summary').innerHTML = ''; renderSpaces(); };
 window.resetAvailSearch = () => {
   ['avail-s-date','avail-e-date'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('avail-recur').value = 'daily';
+  document.getElementById('avail-recur').value = 'weekly';
   spaceAvailResult = null;
   document.getElementById('avail-summary').innerHTML = '';
   renderSpaces();
@@ -1032,7 +1035,7 @@ window.runAvailSearch = () => {
     if (!conflict) available.add(sp.id);
   });
   spaceAvailResult = available;
-  const recurLabel = {daily:'매일',weekly:'매 주',biweekly:'격 주',monthly:'매 달 동일 요일'}[recur];
+  const recurLabel = {weekly:'매 주',biweekly:'격 주',monthly:'매 달 동일 요일'}[recur] || recur;
   document.getElementById('avail-summary').innerHTML =
     `<strong>${sd} ~ ${ed} · ${recurLabel} · ${st}–${et}</strong> (총 ${dates.length}회) — 예약 가능 <strong style="color:var(--green)">${available.size}개</strong> / 전체 ${spaces.length}개`;
   renderSpaces();
@@ -1174,6 +1177,7 @@ window.deleteSpace = async (id, name) => {
 };
 
 // ── 예약 신청 ────────────────────────────────────────────────────
+window.goApply = (name) => { go('apply'); setTimeout(() => selApplyRoom(name), 50); };
 window.selApplyRoom = (name) => {
   applyRoom = name;
   document.getElementById('m-room').value = name;
