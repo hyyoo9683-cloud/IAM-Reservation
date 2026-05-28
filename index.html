@@ -540,6 +540,18 @@ textarea { resize: vertical; min-height: 60px; }
 </div><!-- /app -->
 
 <!-- ════════════ 예약 상세 모달 ════════════ -->
+<!-- ════════════ 알림 팝업 모달 ════════════ -->
+<div class="modal-bg" id="modal-info">
+  <div class="modal" style="max-width:400px;width:92%;text-align:center">
+    <div style="font-size:32px;margin-bottom:12px" id="info-icon">✅</div>
+    <div class="modal-title" id="info-title" style="justify-content:center"></div>
+    <div id="info-body" style="font-size:13px;color:var(--text2);line-height:1.7;margin-top:8px"></div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" style="justify-content:center;min-width:80px" onclick="closeModal('modal-info')">확인</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
     <div class="modal-title" id="detail-title">예약 상세</div>
@@ -851,7 +863,9 @@ function buildRoomChips() {
 
   const applyC = document.getElementById('apply-room-chips');
   const editC  = document.getElementById('e-room-chips');
-  if (applyC) applyC.innerHTML = chipsHtml('arc-', 'selApplyRoom');
+  if (applyC) applyC.innerHTML =
+    `<span class="rc" id="arc-공실 희망" onclick="selApplyRoom('공실 희망')" style="background:var(--green);color:#fff;font-weight:700;border-color:var(--green)">공실 희망</span><br>` +
+    chipsHtml('arc-', 'selApplyRoom');
   if (editC)  editC.innerHTML  = chipsHtml('erc-', 'selEditRoom');
 }
 
@@ -1096,6 +1110,9 @@ window.openSpaceDetail = (id) => {
   if (sp.name === '아론홀') {
     extraNotes.push(`<div style="margin-top:10px;background:var(--blue-lt,#EFF6FF);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue-mid,#1D4ED8);font-weight:600">📞 예약관리자와 상담 후 예약 확정이 가능합니다. (최소 20명)</div>`);
   }
+  if (sp.name === '샤론홀') {
+    extraNotes.push(`<div style="margin-top:10px;background:var(--blue-lt,#EFF6FF);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--blue-mid,#1D4ED8);font-weight:600">📞 예약관리자와 상담 후 예약 확정이 가능합니다. (최소 50명)</div>`);
+  }
   if (sp.name === '506호') {
     extraNotes.push(`<div style="margin-top:10px;background:var(--amber-lt);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--amber);font-weight:600">⚠️ 506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.</div>`);
   }
@@ -1259,22 +1276,24 @@ window.selApplyRoom = (name) => {
   // 공간별 안내 메시지
   const notice = document.getElementById('m-room-notice');
   const ROOM_NOTICES = {
-    '506호': { color: 'amber', icon: '⚠️', msg: '506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.' },
-    '아론홀': { color: 'blue', icon: '📞', msg: '아론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다.' },
+    '506호':   { color: 'amber', icon: '⚠️', msg: '506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.' },
+    '아론홀':  { color: 'blue',  icon: '📞', msg: '아론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다. (최소 20명)' },
+    '샤론홀':  { color: 'blue',  icon: '📞', msg: '샤론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다. (최소 50명)' },
+    '공실 희망': { color: 'green', icon: '🏢', msg: '공실 희망으로 신청하시면 관리자가 조건에 맞는 공간을 직접 배정해드립니다.' },
   };
   const n = ROOM_NOTICES[name];
   if (n) {
-    const bg  = n.color === 'amber' ? 'var(--amber-lt)' : 'var(--blue-lt, #EFF6FF)';
-    const col = n.color === 'amber' ? 'var(--amber)'    : 'var(--blue-mid, #1D4ED8)';
+    const bg  = { amber:'var(--amber-lt)', blue:'var(--blue-lt,#EFF6FF)', green:'var(--green-lt)' }[n.color] || 'var(--bg2)';
+    const col = { amber:'var(--amber)', blue:'var(--blue-mid,#1D4ED8)', green:'var(--green)' }[n.color] || 'var(--text2)';
     notice.style.display = '';
     notice.innerHTML = `<div style="background:${bg};border-radius:8px;padding:10px 12px;font-size:12px;color:${col};font-weight:600;line-height:1.6">${n.icon} ${n.msg}</div>`;
   } else {
     notice.style.display = 'none'; notice.innerHTML = '';
   }
 
-  // TV 체크박스: 505·507·508·509호만 활성화
+  // TV 체크박스: 505·507·508·509호만 활성화, 마이크: 아론홀만
   const TV_ROOMS  = ['505호', '507호', '508호', '509호'];
-  const MIC_ROOMS = ['아론홀'];
+  const MIC_ROOMS = ['아론홀', '샤론홀'];
   const tvCb  = document.getElementById('m-need-tv');
   const micCb = document.getElementById('m-need-mic');
   if (tvCb) {
@@ -1304,6 +1323,12 @@ window.checkAvail = () => {
   const end   = document.getElementById('m-end').value;
   const el    = document.getElementById('m-avail');
   if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
+
+  // 공실 희망은 가용성 체크 불필요
+  if (room === '공실 희망') {
+    el.innerHTML = `<div class="avail-ok">🏢 공실 희망으로 신청하시면 관리자가 적합한 공간을 배정해드립니다</div>`;
+    return;
+  }
 
   const needTV  = document.getElementById('m-need-tv')?.checked;
   const needMic = document.getElementById('m-need-mic')?.checked;
@@ -1360,7 +1385,9 @@ window.checkAvail = () => {
     if (sp.name === room) return false;
     if (conflictDates.some(d => !noConflict(sp.name, d, start, end))) return false;
     if (people && sp.cap < people) return false;
-    if (sp.name === '아론홀' && people < 20) return false; // 아론홀 최소 20인
+    if (sp.name === '아론홀' && people < 20) return false;  // 아론홀 최소 20인
+    if (sp.name === '샤론홀' && people < 50) return false;  // 샤론홀 최소 50인
+    if (sp.name === '공실 희망') return false;
     if (needTV  && !sp.amenities?.includes('TV')) return false;
     if (needMic && !sp.amenities?.includes('마이크/음향')) return false;
     return true;
@@ -1448,13 +1475,16 @@ window.submitApply = async () => {
   if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
 
+  const isFlexRoom = (room === '공실 희망');
   const sp = spaces.find(s => s.name === room);
   if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
 
   const dates = isRecur ? generateAvailDates(date, endDate, recur) : [date];
-  const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
-  if (conflictDates.length > 0) {
-    T(`다음 날짜에 이미 예약이 있습니다: ${conflictDates.join(', ')}`, '#A32D2D'); return;
+  if (!isFlexRoom) {
+    const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
+    if (conflictDates.length > 0) {
+      T(`다음 날짜에 이미 예약이 있습니다: ${conflictDates.join(', ')}`, '#A32D2D'); return;
+    }
   }
 
   const recurGroup = isRecur ? `recur_${Date.now()}` : null;
@@ -1471,14 +1501,23 @@ window.submitApply = async () => {
     await addDoc(collection(db, 'reservations'), {
       ...baseData,
       date: dates[i],
-      history: [{ time: nowStr(), msg: isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
+      history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : (isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수') }]
     });
   }
 
-  T(isRecur
-    ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
-    : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
   resetApply(); go('mylist');
+
+  if (isFlexRoom) {
+    // 공실 희망 전용 팝업
+    document.getElementById('info-icon').textContent  = '🏢';
+    document.getElementById('info-title').textContent = '신청이 접수되었습니다';
+    document.getElementById('info-body').textContent  = '관리자의 확인 후에 알맞는 실을 배정해드리겠습니다.\n신청 후 담당자가 별도로 안내드립니다.';
+    openModal('modal-info');
+  } else {
+    T(isRecur
+      ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
+      : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+  }
 };
 
 // ── 상세 모달 ────────────────────────────────────────────────────
@@ -1512,6 +1551,22 @@ window.openDetail = (id) => {
         </div>`).join('')}
     </div>`;
 
+  // 공실 희망 → 관리자 배정 UI
+  let assignHtml = '';
+  if (isAdmin && r.room === '공실 희망') {
+    const roomOpts = spaces.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    assignHtml = `
+      <div style="margin-top:14px;padding:12px;background:var(--green-lt);border-radius:8px;border:1px solid var(--green)">
+        <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">🏢 공실 배정</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="assign-room-sel" style="flex:1;min-width:120px">
+            <option value="">공간 선택</option>${roomOpts}
+          </select>
+          <button class="btn btn-green" style="white-space:nowrap" onclick="assignRoom('${r.id}')">배정하기</button>
+        </div>
+      </div>`;
+  }
+
   let btns = '';
   if (isAdmin) {
     if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">반려</button>`;
@@ -1520,8 +1575,31 @@ window.openDetail = (id) => {
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   }
   btns += `<button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal('modal-detail')">닫기</button>`;
+
+  // 배정 UI를 detail-body 끝에 추가
+  document.getElementById('detail-body').innerHTML += assignHtml;
   document.getElementById('detail-actions').innerHTML = btns;
   openModal('modal-detail');
+};
+
+window.assignRoom = async (id) => {
+  const newRoom = document.getElementById('assign-room-sel')?.value;
+  if (!newRoom) { T('배정할 공간을 선택해주세요', '#A32D2D'); return; }
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  try {
+    await cu.getIdToken(true);
+    await updateDoc(doc(db, 'reservations', id), {
+      room: newRoom,
+      history: [...(r.history || []), { time: nowStr(), msg: `공실 배정: ${newRoom} (관리자)` }]
+    });
+    T(`${newRoom} 으로 배정했습니다`, '#3B6D11');
+    closeModal('modal-detail');
+  } catch (e) {
+    console.error('assignRoom error:', e);
+    T('배정 실패: ' + e.message, '#A32D2D');
+  }
 };
 
 // ── 승인 / 반려 / 삭제 ───────────────────────────────────────────
