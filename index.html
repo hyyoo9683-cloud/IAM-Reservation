@@ -971,13 +971,15 @@ function spaceCardHtml(sp, adminMode = false) {
     sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
   ].filter(Boolean).map(t => `<span class="amenity-tag">${t}</span>`).join('');
   const tags = countTags + (sp.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('');
+  const isUnavail = !adminMode && spaceAvailResult !== null && !spaceAvailResult.has(sp.id);
   const adminBtns = adminMode
     ? `<div class="space-actions">
         <button class="btn btn-ghost" style="font-size:11px" onclick="openSpaceModal('${sp.id}')">✏️ 편집</button>
         <button class="btn btn-ghost" style="font-size:11px;color:var(--red)" onclick="deleteSpace('${sp.id}','${sp.name}')">🗑 삭제</button>
        </div>`
     : `<div class="space-actions">
-        <button class="btn btn-primary" style="font-size:12px;flex:1;justify-content:center" onclick="event.stopPropagation();goApply('${sp.name}')">예약하기</button>
+        <button class="btn btn-primary" style="font-size:12px;flex:1;justify-content:center${isUnavail ? ';opacity:0.35;pointer-events:none;cursor:not-allowed' : ''}"
+          ${isUnavail ? '' : `onclick="event.stopPropagation();goApply('${sp.name}')"`}>예약하기</button>
        </div>`;
   const clickAttr = adminMode ? '' : `onclick="openSpaceDetail('${sp.id}')" style="cursor:pointer"`;
   let availBadge = '';
@@ -1001,6 +1003,14 @@ function renderSpaces() {
   let list = [...spaces];
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
   if (spaceFilterCap) list.sort((a, b) => (a.cap || 0) - (b.cap || 0));
+  // 검색 결과 있으면 예약 가능 공간 먼저
+  if (spaceAvailResult !== null) {
+    list.sort((a, b) => {
+      const aOk = spaceAvailResult.has(a.id) ? 0 : 1;
+      const bOk = spaceAvailResult.has(b.id) ? 0 : 1;
+      return aOk - bOk;
+    });
+  }
   document.getElementById('spaces-grid').innerHTML = list.map(s => spaceCardHtml(s, false)).join('');
 }
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
