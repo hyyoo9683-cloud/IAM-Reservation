@@ -1369,28 +1369,52 @@ window.openDetail = (id) => {
 
 // ── 승인 / 반려 / 삭제 ───────────────────────────────────────────
 window.approve = async (id) => {
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
-  await updateDoc(doc(db, 'reservations', id), {
-    status: '확정',
-    history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인' }]
-  });
-  T('승인 완료', '#3B6D11');
+  try {
+    await cu.getIdToken(true);
+    await updateDoc(doc(db, 'reservations', id), {
+      status: '확정',
+      history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인' }]
+    });
+    T('승인 완료', '#3B6D11');
+  } catch (e) {
+    console.error('approve error:', e);
+    T('승인 실패: ' + e.message, '#A32D2D');
+  }
 };
 window.rejectR = async (id) => {
   const reason = prompt('반려 사유:', '');
   if (reason === null) return;
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
-  await updateDoc(doc(db, 'reservations', id), {
-    status: '반려', rejectReason: reason || '사유 미입력',
-    history: [...(r.history || []), { time: nowStr(), msg: `반려: ${reason || '사유 미입력'}` }]
-  });
-  T('반려 처리됐습니다', '#A32D2D');
+  try {
+    await cu.getIdToken(true);
+    await updateDoc(doc(db, 'reservations', id), {
+      status: '반려', rejectReason: reason || '사유 미입력',
+      history: [...(r.history || []), { time: nowStr(), msg: `반려: ${reason || '사유 미입력'}` }]
+    });
+    T('반려 처리됐습니다', '#A32D2D');
+  } catch (e) {
+    console.error('rejectR error:', e);
+    T('반려 실패: ' + e.message, '#A32D2D');
+  }
 };
 window.deleteR = async (id, fromDetail = false) => {
   if (!confirm('예약을 삭제하시겠습니까?')) return;
-  await deleteDoc(doc(db, 'reservations', id));
-  if (fromDetail) closeModal('modal-detail');
-  T('삭제됐습니다', '#A32D2D');
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  try {
+    await cu.getIdToken(true);
+    await deleteDoc(doc(db, 'reservations', id));
+    if (fromDetail) closeModal('modal-detail');
+    T('삭제됐습니다', '#A32D2D');
+  } catch (e) {
+    console.error('deleteR error:', e);
+    T('삭제 실패: ' + e.message, '#A32D2D');
+  }
 };
 
 // ── 수정 모달 ────────────────────────────────────────────────────
@@ -1467,21 +1491,29 @@ window.submitEdit = async () => {
     type, managerName: manager, stewardName: sName, stewardTel: sTel,
     room, date, start, end, people: parseInt(people), purpose, memo
   };
-  if (editId) {
-    const r = reservations.find(x => x.id === editId); if (!r) return;
-    if (isAdmin) data.status = document.getElementById('e-status').value;
-    data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
-    await updateDoc(doc(db, 'reservations', editId), data);
-    T('예약이 수정됐습니다', '#3B6D11');
-  } else {
-    data.status     = document.getElementById('e-status').value || '확정';
-    data.userEmail  = curUser?.email || 'admin';
-    data.history    = [{ time: nowStr(), msg: '관리자 추가' }];
-    data.createdAt  = serverTimestamp();
-    await addDoc(collection(db, 'reservations'), data);
-    T('예약이 추가됐습니다', '#3B6D11');
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  try {
+    await cu.getIdToken(true);
+    if (editId) {
+      const r = reservations.find(x => x.id === editId); if (!r) return;
+      if (isAdmin) data.status = document.getElementById('e-status').value;
+      data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
+      await updateDoc(doc(db, 'reservations', editId), data);
+      T('예약이 수정됐습니다', '#3B6D11');
+    } else {
+      data.status     = document.getElementById('e-status').value || '확정';
+      data.userEmail  = cu.email || 'admin';
+      data.history    = [{ time: nowStr(), msg: '관리자 추가' }];
+      data.createdAt  = serverTimestamp();
+      await addDoc(collection(db, 'reservations'), data);
+      T('예약이 추가됐습니다', '#3B6D11');
+    }
+    closeModal('modal-edit');
+  } catch (e) {
+    console.error('submitEdit error:', e);
+    T('저장 실패: ' + e.message, '#A32D2D');
   }
-  closeModal('modal-edit');
 };
 
 // ── 페이지 렌더링 ────────────────────────────────────────────────
