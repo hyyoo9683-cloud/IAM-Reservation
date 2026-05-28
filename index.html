@@ -375,13 +375,30 @@ textarea { resize: vertical; min-height: 60px; }
 
           <div class="card">
             <div class="card-title">일정</div>
-            <div class="fg">
-              <div class="lbl">날짜 <span class="req">*</span></div>
-              <input type="date" id="m-date" onchange="checkAvail();updateApplySummary()">
+            <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;margin-bottom:12px;font-weight:600;color:var(--green)">
+              <input type="checkbox" id="m-is-recur" onchange="toggleRecur();checkAvail();updateApplySummary()"> 정기 예약 (반복)
+            </label>
+            <div class="fl">
+              <div class="fg">
+                <div class="lbl" id="m-date-lbl">날짜 <span class="req">*</span></div>
+                <input type="date" id="m-date" onchange="checkAvail();updateApplySummary()">
+              </div>
+              <div class="fg" id="m-end-date-wrap" style="display:none">
+                <div class="lbl">종료 날짜 <span class="req">*</span></div>
+                <input type="date" id="m-end-date" onchange="checkAvail();updateApplySummary()">
+              </div>
+            </div>
+            <div class="fg" id="m-recur-wrap" style="display:none">
+              <div class="lbl">반복 유형</div>
+              <select id="m-recur" onchange="checkAvail();updateApplySummary()">
+                <option value="weekly">매 주</option>
+                <option value="biweekly">격 주</option>
+                <option value="monthly">매 달 동일 요일</option>
+              </select>
             </div>
             <div class="fl">
-              <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="m-start" onchange="onStartChange()"></select></div>
-              <div class="fg"><div class="lbl">종료 <span class="req">*</span></div><select id="m-end"   onchange="checkAvail();updateApplySummary()"></select></div>
+              <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="m-start" onchange="onStartChange()"></select></div>
+              <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="m-end"   onchange="checkAvail();updateApplySummary()"></select></div>
             </div>
             <div id="m-avail"></div>
           </div>
@@ -1188,7 +1205,32 @@ window.deleteSpace = async (id, name) => {
 };
 
 // ── 예약 신청 ────────────────────────────────────────────────────
-window.goApply = (name) => { go('apply'); setTimeout(() => selApplyRoom(name), 50); };
+window.goApply = (name) => {
+  go('apply');
+  setTimeout(() => {
+    selApplyRoom(name);
+    // 검색 패널 값이 있으면 신청서에 자동 채우기
+    const sd  = document.getElementById('avail-s-date')?.value;
+    const ed  = document.getElementById('avail-e-date')?.value;
+    const recur = document.getElementById('avail-recur')?.value;
+    const st  = document.getElementById('avail-s-time')?.value;
+    const et  = document.getElementById('avail-e-time')?.value;
+    if (sd && st && et) {
+      document.getElementById('m-date').value  = sd;
+      document.getElementById('m-start').value = st;
+      // m-end select는 onStartChange 이후에 옵션이 채워지므로 직접 세팅
+      const endSel = document.getElementById('m-end');
+      if ([...endSel.options].some(o => o.value === et)) endSel.value = et;
+      if (ed && ed !== sd) {
+        document.getElementById('m-is-recur').checked  = true;
+        document.getElementById('m-end-date').value    = ed;
+        document.getElementById('m-recur').value       = recur || 'weekly';
+        toggleRecur();
+      }
+      checkAvail(); updateApplySummary();
+    }
+  }, 80);
+};
 window.selApplyRoom = (name) => {
   applyRoom = name;
   document.getElementById('m-room').value = name;
@@ -1196,61 +1238,83 @@ window.selApplyRoom = (name) => {
   const el = document.getElementById('arc-' + name); if (el) el.classList.add('sel');
   checkAvail(); updateApplySummary();
 };
+window.toggleRecur = () => {
+  const on = document.getElementById('m-is-recur').checked;
+  document.getElementById('m-end-date-wrap').style.display = on ? '' : 'none';
+  document.getElementById('m-recur-wrap').style.display    = on ? '' : 'none';
+  document.getElementById('m-date-lbl').innerHTML =
+    (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+};
 window.checkAvail = () => {
-  const room = applyRoom, date = document.getElementById('m-date').value,
-        start = document.getElementById('m-start').value, end = document.getElementById('m-end').value;
-  const el = document.getElementById('m-avail');
+  const room  = applyRoom;
+  const date  = document.getElementById('m-date').value;
+  const start = document.getElementById('m-start').value;
+  const end   = document.getElementById('m-end').value;
+  const el    = document.getElementById('m-avail');
   if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
 
   const needTV  = document.getElementById('m-need-tv')?.checked;
   const needMic = document.getElementById('m-need-mic')?.checked;
   const people  = parseInt(document.getElementById('m-people')?.value) || 0;
+  const isRecur = document.getElementById('m-is-recur')?.checked;
+  const endDate = document.getElementById('m-end-date')?.value;
+  const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
-  if (noConflict(room, date, start, end)) {
-    el.innerHTML = `<div class="avail-ok">✓ ${room} 해당 시간 사용 가능합니다</div>`;
+  // 정기 예약이면 모든 날짜 생성, 아니면 단일 날짜
+  const dates = (isRecur && endDate && endDate >= date)
+    ? generateAvailDates(date, endDate, recur)
+    : [date];
+
+  const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
+
+  if (conflictDates.length === 0) {
+    const label = dates.length > 1
+      ? `✓ ${room} 전체 ${dates.length}회 모두 사용 가능합니다`
+      : `✓ ${room} 해당 시간 사용 가능합니다`;
+    el.innerHTML = `<div class="avail-ok">${label}</div>`;
     return;
   }
 
-  // Find next available slot for the selected room on that date
+  // 충돌 있음 — 첫 번째 충돌 날짜 기준으로 다음 가능 시간 안내
+  const firstConflict = conflictDates[0];
   let nextSlot = '';
   const startIdx = SLOTS.indexOf(start);
   if (startIdx >= 0) {
     for (let i = startIdx; i < SLOTS.length - 1; i++) {
       const s = SLOTS[i], e = SLOTS[i + 1];
-      if (noConflict(room, date, s, e)) {
-        // extend to find the full free block matching requested duration
+      if (noConflict(room, firstConflict, s, e)) {
         const durSlots = SLOTS.indexOf(end) - startIdx;
         const blockEnd = SLOTS[Math.min(i + durSlots, SLOTS.length - 1)];
-        if (blockEnd && noConflict(room, date, s, blockEnd)) {
-          nextSlot = `${s} ~ ${blockEnd}`;
-        } else {
-          nextSlot = `${s}부터`;
-        }
+        nextSlot = (blockEnd && noConflict(room, firstConflict, s, blockEnd))
+          ? `${s} ~ ${blockEnd}` : `${s}부터`;
         break;
       }
     }
   }
 
-  // Find alternative spaces
+  let html = dates.length > 1
+    ? `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
+       <div style="margin-top:5px;font-size:11px;color:var(--red)">${conflictDates.join(', ')}</div>`
+    : `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`;
+
+  if (nextSlot) {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${firstConflict} 가능 시간: <strong>${nextSlot}</strong></div>`;
+  } else {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${firstConflict}은(는) 남은 시간 중 가능한 슬롯이 없습니다</div>`;
+  }
+
+  // 대체 공간: 모든 충돌 날짜에서 가능한 공간만
   const alts = spaces.filter(sp => {
     if (sp.name === room) return false;
-    if (!noConflict(sp.name, date, start, end)) return false;
+    if (conflictDates.some(d => !noConflict(sp.name, d, start, end))) return false;
     if (people && sp.cap < people) return false;
     if (needTV  && !sp.amenities?.includes('TV')) return false;
     if (needMic && !sp.amenities?.includes('마이크/음향')) return false;
     return true;
   });
 
-  let html = `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`;
-
-  if (nextSlot) {
-    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${room} 당일 가능 시간: <strong>${nextSlot}</strong></div>`;
-  } else {
-    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${room}은(는) 당일 남은 시간 중 가능한 슬롯이 없습니다</div>`;
-  }
-
   if (alts.length > 0) {
-    html += `<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">💡 같은 시간 예약 가능한 다른 공간</div>`;
+    html += `<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">💡 같은 일정 예약 가능한 다른 공간</div>`;
     html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">`;
     alts.forEach(sp => {
       const tags = (sp.amenities || []).filter(a => ['TV','마이크/음향'].includes(a))
@@ -1264,7 +1328,7 @@ window.checkAvail = () => {
     });
     html += `</div>`;
   } else {
-    html += `<div style="margin-top:6px;font-size:12px;color:var(--text3)">같은 시간에 조건에 맞는 다른 공간이 없습니다</div>`;
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text3)">조건에 맞는 다른 공간이 없습니다</div>`;
   }
 
   el.innerHTML = html;
@@ -1272,21 +1336,30 @@ window.checkAvail = () => {
 window.updateApplySummary = () => {
   const g = id => document.getElementById(id)?.value || '';
   const el = document.getElementById('apply-summary'); if (!el) return;
+  const isRecur = document.getElementById('m-is-recur')?.checked;
+  const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[g('m-recur')] || '';
+  const dateVal = isRecur
+    ? (g('m-date') && g('m-end-date') ? `${g('m-date')} ~ ${g('m-end-date')} (${recurLabel})` : g('m-date') || '–')
+    : (g('m-date') || '–');
   const rows = [
     ['기관', g('m-type')], ['담당자', g('m-manager')], ['실사용자', g('m-steward-name')],
     ['연락처', g('m-steward-tel')], ['공간', applyRoom || '–'],
-    ['날짜', g('m-date')], ['시간', `${g('m-start')}–${g('m-end')}`],
+    ['일정', dateVal], ['시간', `${g('m-start')}–${g('m-end')}`],
     ['인원', g('m-people') ? g('m-people') + '명' : '–'], ['목적', g('m-purpose')]
   ];
   el.innerHTML = rows.map(([k, v]) =>
-    `<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">${k}</span><span>${v || '–'}</span></div>`
+    `<div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--text3);flex-shrink:0">${k}</span><span style="text-align:right;font-size:11px">${v || '–'}</span></div>`
   ).join('');
 };
 window.resetApply = () => {
   applyRoom = '';
-  ['m-type', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-people', 'm-purpose', 'm-memo']
+  ['m-type', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['m-need-tv', 'm-need-mic'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  ['m-need-tv', 'm-need-mic', 'm-is-recur'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  document.getElementById('m-recur').value = 'weekly';
+  document.getElementById('m-end-date-wrap').style.display = 'none';
+  document.getElementById('m-recur-wrap').style.display    = 'none';
+  document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
   document.getElementById('m-room').value = '';
   document.getElementById('m-avail').innerHTML = '';
@@ -1304,23 +1377,47 @@ window.submitApply = async () => {
   const people  = document.getElementById('m-people').value;
   const purpose = document.getElementById('m-purpose').value.trim();
   const memo    = document.getElementById('m-memo').value.trim();
+  const isRecur = document.getElementById('m-is-recur')?.checked;
+  const endDate = document.getElementById('m-end-date')?.value;
+  const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
   if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose) {
     T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
+  if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+  if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
+
   const sp = spaces.find(s => s.name === room);
   if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
-  if (!noConflict(room, date, start, end)) { T('해당 시간에 이미 예약이 있습니다', '#A32D2D'); return; }
 
-  await addDoc(collection(db, 'reservations'), {
+  const dates = isRecur ? generateAvailDates(date, endDate, recur) : [date];
+  const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
+  if (conflictDates.length > 0) {
+    T(`다음 날짜에 이미 예약이 있습니다: ${conflictDates.join(', ')}`, '#A32D2D'); return;
+  }
+
+  const recurGroup = isRecur ? `recur_${Date.now()}` : null;
+  const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
+  const baseData = {
     type, managerName: manager, stewardName: sName, stewardTel: sTel,
-    room, date, start, end, people: parseInt(people), purpose, memo,
+    room, start, end, people: parseInt(people), purpose, memo,
     status: '대기', userEmail: curUser.email,
-    history: [{ time: nowStr(), msg: '예약 신청 접수' }],
     createdAt: serverTimestamp()
-  });
-  T('신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+  };
+  if (recurGroup) { baseData.recurGroup = recurGroup; baseData.recurType = recurLabel; baseData.recurTotal = dates.length; }
+
+  for (let i = 0; i < dates.length; i++) {
+    await addDoc(collection(db, 'reservations'), {
+      ...baseData,
+      date: dates[i],
+      history: [{ time: nowStr(), msg: isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
+    });
+  }
+
+  T(isRecur
+    ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
+    : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
   resetApply(); go('mylist');
 };
 
