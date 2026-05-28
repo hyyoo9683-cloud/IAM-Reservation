@@ -389,8 +389,19 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="card">
             <div class="card-title">사용 목적 &amp; 인원</div>
             <div class="fl">
-              <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="m-people" placeholder="명" min="1" oninput="updateApplySummary()"></div>
+              <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="m-people" placeholder="명" min="1" oninput="updateApplySummary();checkAvail()"></div>
               <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="m-purpose" placeholder="소모임, 제자훈련 등" oninput="updateApplySummary()"></div>
+            </div>
+            <div class="fg">
+              <div class="lbl">필요 시설</div>
+              <div style="display:flex;gap:16px;margin-top:4px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                  <input type="checkbox" id="m-need-tv" onchange="checkAvail()"> TV 사용
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+                  <input type="checkbox" id="m-need-mic" onchange="checkAvail()"> 마이크 사용
+                </label>
+              </div>
             </div>
             <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="m-memo"></textarea></div>
           </div>
@@ -1188,11 +1199,75 @@ window.selApplyRoom = (name) => {
 window.checkAvail = () => {
   const room = applyRoom, date = document.getElementById('m-date').value,
         start = document.getElementById('m-start').value, end = document.getElementById('m-end').value;
-  const el = document.getElementById('m-avail'); if (!room || !date) { el.innerHTML = ''; return; }
-  const ok = noConflict(room, date, start, end);
-  el.innerHTML = ok
-    ? `<div class="avail-ok">✓ ${room} 해당 시간 사용 가능</div>`
-    : `<div class="avail-no">✗ 해당 시간 이미 예약이 있습니다</div>`;
+  const el = document.getElementById('m-avail');
+  if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
+
+  const needTV  = document.getElementById('m-need-tv')?.checked;
+  const needMic = document.getElementById('m-need-mic')?.checked;
+  const people  = parseInt(document.getElementById('m-people')?.value) || 0;
+
+  if (noConflict(room, date, start, end)) {
+    el.innerHTML = `<div class="avail-ok">✓ ${room} 해당 시간 사용 가능합니다</div>`;
+    return;
+  }
+
+  // Find next available slot for the selected room on that date
+  let nextSlot = '';
+  const startIdx = SLOTS.indexOf(start);
+  if (startIdx >= 0) {
+    for (let i = startIdx; i < SLOTS.length - 1; i++) {
+      const s = SLOTS[i], e = SLOTS[i + 1];
+      if (noConflict(room, date, s, e)) {
+        // extend to find the full free block matching requested duration
+        const durSlots = SLOTS.indexOf(end) - startIdx;
+        const blockEnd = SLOTS[Math.min(i + durSlots, SLOTS.length - 1)];
+        if (blockEnd && noConflict(room, date, s, blockEnd)) {
+          nextSlot = `${s} ~ ${blockEnd}`;
+        } else {
+          nextSlot = `${s}부터`;
+        }
+        break;
+      }
+    }
+  }
+
+  // Find alternative spaces
+  const alts = spaces.filter(sp => {
+    if (sp.name === room) return false;
+    if (!noConflict(sp.name, date, start, end)) return false;
+    if (people && sp.cap < people) return false;
+    if (needTV  && !sp.amenities?.includes('TV')) return false;
+    if (needMic && !sp.amenities?.includes('마이크/음향')) return false;
+    return true;
+  });
+
+  let html = `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`;
+
+  if (nextSlot) {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${room} 당일 가능 시간: <strong>${nextSlot}</strong></div>`;
+  } else {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${room}은(는) 당일 남은 시간 중 가능한 슬롯이 없습니다</div>`;
+  }
+
+  if (alts.length > 0) {
+    html += `<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">💡 같은 시간 예약 가능한 다른 공간</div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">`;
+    alts.forEach(sp => {
+      const tags = (sp.amenities || []).filter(a => ['TV','마이크/음향'].includes(a))
+        .map(a => `<span style="font-size:10px;background:var(--green-lt);color:var(--green);border-radius:4px;padding:1px 5px">${a}</span>`).join('');
+      html += `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;font-size:12px">
+        <div style="font-weight:700">${sp.name}</div>
+        <div style="color:var(--text3);margin:2px 0">최대 ${sp.cap}명 ${sp.floor ? '· ' + sp.floor : ''}</div>
+        ${tags ? `<div style="margin:4px 0">${tags}</div>` : ''}
+        <button class="btn btn-primary" style="margin-top:6px;font-size:11px;padding:3px 10px" onclick="selApplyRoom('${sp.name}')">이 공간으로 선택</button>
+      </div>`;
+    });
+    html += `</div>`;
+  } else {
+    html += `<div style="margin-top:6px;font-size:12px;color:var(--text3)">같은 시간에 조건에 맞는 다른 공간이 없습니다</div>`;
+  }
+
+  el.innerHTML = html;
 };
 window.updateApplySummary = () => {
   const g = id => document.getElementById(id)?.value || '';
@@ -1211,6 +1286,7 @@ window.resetApply = () => {
   applyRoom = '';
   ['m-type', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['m-need-tv', 'm-need-mic'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
   document.getElementById('m-room').value = '';
   document.getElementById('m-avail').innerHTML = '';
