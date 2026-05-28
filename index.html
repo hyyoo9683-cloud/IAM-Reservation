@@ -522,6 +522,18 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 공간 상세 모달 ════════════ -->
+<div class="modal-bg" id="modal-space-detail">
+  <div class="modal" style="max-width:480px;width:92%">
+    <div class="modal-title" id="sd-title"></div>
+    <div id="sd-photos" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px"></div>
+    <div id="sd-body"></div>
+    <div style="margin-top:16px;display:flex;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('modal-space-detail')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 공간 관리 모달 ════════════ -->
 <div class="modal-bg" id="modal-space">
   <div class="modal">
@@ -887,7 +899,8 @@ function spaceCardHtml(sp, adminMode = false) {
         <button class="btn btn-ghost" style="font-size:11px;color:var(--red)" onclick="deleteSpace('${sp.id}','${sp.name}')">🗑 삭제</button>
        </div>`
     : '';
-  return `<div class="space-card">
+  const clickAttr = adminMode ? '' : `onclick="openSpaceDetail('${sp.id}')" style="cursor:pointer"`;
+  return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
       <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span></div>
@@ -899,6 +912,26 @@ function spaceCardHtml(sp, adminMode = false) {
 }
 function renderSpaces()       { document.getElementById('spaces-grid').innerHTML       = spaces.map(s => spaceCardHtml(s, false)).join(''); }
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
+
+window.openSpaceDetail = (id) => {
+  const sp = spaces.find(s => s.id === id); if (!sp) return;
+  document.getElementById('sd-title').textContent = sp.name + (sp.floor ? ' · ' + sp.floor : '');
+  const photos = sp.photos && sp.photos.length
+    ? sp.photos.map(url => `<img src="${url}" alt="" style="height:160px;border-radius:8px;flex-shrink:0;object-fit:cover">`).join('')
+    : '<span style="color:var(--text3);font-size:13px">등록된 사진 없음</span>';
+  document.getElementById('sd-photos').innerHTML = photos;
+  const countTags = [
+    sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
+    sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
+  ].filter(Boolean).map(t => `<span class="amenity-tag">${t}</span>`).join('');
+  const amenityTags = (sp.amenities || []).map(a => `<span class="amenity-tag">${a}</span>`).join('');
+  document.getElementById('sd-body').innerHTML = `
+    <div style="margin-bottom:8px"><span style="font-size:13px;color:var(--text2)">최대 수용 인원</span> <strong>${sp.cap || '-'}명</strong></div>
+    ${sp.desc ? `<div style="margin-bottom:10px;font-size:13px;color:var(--text2)">${sp.desc}</div>` : ''}
+    ${countTags || amenityTags ? `<div class="space-amenity" style="margin-top:4px">${countTags}${amenityTags}</div>` : ''}
+  `;
+  openModal('modal-space-detail');
+};
 
 // ── 공간 모달 ────────────────────────────────────────────────────
 window.openSpaceModal = (id = null) => {
