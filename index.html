@@ -2029,13 +2029,20 @@ window.submitApply = async () => {
   const sp = spaces.find(s => s.name === room);
   if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
 
-  const dates = isRecur ? generateAvailDates(date, endDate, recur) : [date];
+  let dates = isRecur ? generateAvailDates(date, endDate, recur) : [date];
 
-  // 차단일 검증
-  const blockedInDates = dates.filter(d => isBlockedDate(d));
-  if (blockedInDates.length > 0) {
-    const infos = blockedInDates.map(d => { const b = getBlockedInfo(d); return `${d}(${b?.reason || '차단'})` ; }).join(', ');
-    T(`다음 날짜는 예약 불가 날짜입니다: ${infos}`, '#A32D2D'); return;
+  // 차단일: 단일 날짜면 차단, 정기 예약이면 해당 날짜만 제외하고 계속
+  if (!isRecur) {
+    const bd = getBlockedInfo(dates[0]);
+    if (bd) { T(`${dates[0]}은(는) 예약 불가 날짜입니다 (${bd.reason})`, '#A32D2D'); return; }
+  } else {
+    const blocked = dates.filter(d => isBlockedDate(d));
+    if (blocked.length > 0) {
+      const skippedReasons = [...new Set(blocked.map(d => getBlockedInfo(d)?.reason || '차단'))].join(', ');
+      dates = dates.filter(d => !isBlockedDate(d));
+      if (dates.length === 0) { T('모든 날짜가 차단일입니다. 날짜를 다시 확인해주세요.', '#A32D2D'); return; }
+      if (!confirm(`공휴일·차단일 ${blocked.length}건(${skippedReasons})은 자동으로 제외됩니다.\n나머지 ${dates.length}건으로 신청하시겠습니까?`)) return;
+    }
   }
 
   if (!isFlexRoom) {
@@ -2044,6 +2051,9 @@ window.submitApply = async () => {
       T(`다음 날짜에 이미 예약이 있습니다: ${conflictDates.join(', ')}`, '#A32D2D'); return;
     }
   }
+
+  const submitBtn = document.querySelector('#p-apply .btn-primary');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '신청 중...'; }
 
   const recurGroup = isRecur ? `recur_${Date.now()}` : null;
   const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
@@ -2055,18 +2065,23 @@ window.submitApply = async () => {
   };
   if (recurGroup) { baseData.recurGroup = recurGroup; baseData.recurType = recurLabel; baseData.recurTotal = dates.length; }
 
-  for (let i = 0; i < dates.length; i++) {
-    await addDoc(collection(db, 'reservations'), {
-      ...baseData,
-      date: dates[i],
-      history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : (isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수') }]
-    });
+  try {
+    for (let i = 0; i < dates.length; i++) {
+      await addDoc(collection(db, 'reservations'), {
+        ...baseData,
+        date: dates[i],
+        history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : (isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수') }]
+      });
+    }
+  } catch(e) {
+    T('신청 실패: ' + e.message, '#A32D2D');
+    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '신청 제출'; }
+    return;
   }
 
   resetApply(); go('mylist');
 
   if (isFlexRoom) {
-    // 공실 희망 전용 팝업
     document.getElementById('info-icon').textContent  = '🏢';
     document.getElementById('info-title').textContent = '신청이 접수되었습니다';
     document.getElementById('info-body').textContent  = '관리자의 확인 후에 알맞는 실을 배정해드리겠습니다.\n신청 후 담당자가 별도로 안내드립니다.';
