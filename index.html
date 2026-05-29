@@ -544,6 +544,27 @@ textarea { resize: vertical; min-height: 60px; }
 </div><!-- /app -->
 
 <!-- ════════════ 예약 상세 모달 ════════════ -->
+<!-- ════════════ CSV 가져오기 모달 ════════════ -->
+<div class="modal-bg" id="modal-import">
+  <div class="modal" style="max-width:740px;width:96%">
+    <div class="modal-title">📥 예약 데이터 CSV 가져오기</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px">
+      Google Sheets에서 <strong>파일 → 다운로드 → CSV(.csv)</strong>로 내보낸 파일을 선택하세요.<br>
+      헤더 자동 인식 후 미리보기를 확인하고 가져올 수 있습니다.
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <input type="file" id="import-file" accept=".csv" onchange="previewImport(this)" style="font-size:12px;flex:1">
+      <button class="btn btn-ghost" onclick="document.getElementById('import-file').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
+    </div>
+    <div id="import-preview"></div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-primary" id="import-submit-btn" style="display:none" onclick="runImport()">가져오기</button>
+      <div id="import-progress" style="font-size:12px;color:var(--text2)"></div>
+      <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal('modal-import')">닫기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 알림 팝업 모달 ════════════ -->
 <div class="modal-bg" id="modal-info">
   <div class="modal" style="max-width:400px;width:92%;text-align:center">
@@ -906,7 +927,8 @@ window.go = (page) => {
   // 상단바 액션
   const ta = document.getElementById('topbar-action');
   ta.innerHTML = (page === 'list' && isAdmin)
-    ? `<button class="btn btn-primary" onclick="openEditModal(null)">+ 예약 추가</button>` : '';
+    ? `<button class="btn btn-ghost" onclick="openModal('modal-import')">📥 CSV 가져오기</button>
+       <button class="btn btn-primary" onclick="openEditModal(null)">+ 예약 추가</button>` : '';
 
   if (page === 'spaces') {
     renderSpaces();
@@ -1546,6 +1568,219 @@ window.submitApply = async () => {
     T(isRecur
       ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
       : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+  }
+};
+
+// ── CSV 가져오기 ────────────────────────────────────────────────
+let _importRows = [];
+
+function parseCSV(text) {
+  const rows = [];
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = []; let field = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(field.trim()); field = ''; }
+      else { field += ch; }
+    }
+    cols.push(field.trim());
+    rows.push(cols);
+  }
+  return rows;
+}
+
+function detectCols(headers) {
+  const m = {};
+  headers.forEach((h, i) => {
+    const s = h.trim().toLowerCase();
+    if (s.includes('이메일'))                              m.email     = i;
+    if ((s.includes('책임자') || s.includes('담당자')) && !m.manager)  m.manager   = i;
+    if (s.includes('청지기') && !s.includes('연락'))      m.steward   = i;
+    if (s.includes('청지기') && s.includes('연락'))       m.stewardTel= i;
+    if (s.includes('연락처') && m.stewardTel === undefined) m.stewardTel= i;
+    if (s.includes('장소'))                                m.room      = i;
+    if (s.includes('날짜'))                                m.date      = i;
+    if (s.includes('시작') && s.includes('시간'))          m.start     = i;
+    if ((s.includes('종료') || s.includes('종료 시간')) && s.includes('시간')) m.end = i;
+    if (s.includes('1회') || (s.includes('반복') && !s.includes('종료'))) m.recur = i;
+    if (s.includes('종료') && !s.includes('시간') && !s.includes('1회')) m.endDate= i;
+    if (s.includes('목적'))                                m.purpose   = i;
+    if (s.includes('인원'))                                m.people    = i;
+    if (s.includes('승인') || s.includes('취소') || s.includes('상태')) m.status = i;
+  });
+  return m;
+}
+
+function parseKorDate(s) {
+  if (!s) return '';
+  const m = s.match(/(\d{4})[.\-\/]\s*(\d{1,2})[.\-\/]\s*(\d{1,2})/);
+  if (!m) return '';
+  return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+}
+
+function parseKorTime(s) {
+  if (!s) return '';
+  s = s.trim();
+  let m = s.match(/(오전|오후)\s*(\d{1,2}):(\d{2})/);
+  if (m) {
+    let h = parseInt(m[2]); const min = m[3];
+    if (m[1] === '오후' && h < 12) h += 12;
+    if (m[1] === '오전' && h === 12) h = 0;
+    return `${h.toString().padStart(2,'0')}:${min}`;
+  }
+  m = s.match(/(\d{1,2}):(\d{2})/);
+  if (m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+  return '';
+}
+
+function parseRoom(s) {
+  if (!s) return '';
+  s = s.replace(/\(.*?\)/g, '').trim();
+  const m = s.match(/[Ii]-?(\d{3,})/);
+  if (m) return m[1] + '호';
+  return s;
+}
+
+function parsePeople(s) {
+  const m = (s || '').match(/\d+/);
+  return m ? parseInt(m[0]) : 0;
+}
+
+function parseStatus(s) {
+  s = (s || '').trim();
+  if (s === '승인') return '확정';
+  if (s === '취소' || s === '반려') return '반려';
+  return '대기';
+}
+
+function parseRecur(s) {
+  s = (s || '').trim().toLowerCase();
+  if (s.includes('격주') || s.includes('격 주')) return 'biweekly';
+  if (s.includes('매주') || s.includes('매 주')) return 'weekly';
+  if (s.includes('매달') || s.includes('매 달') || s.includes('동일 요일')) return 'monthly';
+  return 'once';
+}
+
+window.previewImport = (input) => {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    let text = e.target.result;
+    // BOM 제거
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const rows = parseCSV(text);
+    if (rows.length < 2) { document.getElementById('import-preview').innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
+    const headers = rows[0];
+    const cols = detectCols(headers);
+
+    // 필수 컬럼 확인
+    const missing = ['room','date','start','end'].filter(k => cols[k] === undefined);
+    if (missing.length) {
+      document.getElementById('import-preview').innerHTML =
+        `<div style="color:var(--red);font-size:12px">⚠️ 필수 컬럼을 찾지 못했습니다: ${missing.join(', ')}<br>
+         인식된 헤더: ${headers.join(' | ')}</div>`;
+      return;
+    }
+
+    _importRows = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i]; if (!r || r.every(c => !c)) continue;
+      const room    = parseRoom(r[cols.room] || '');
+      const dateRaw = r[cols.date] || '';
+      const date    = parseKorDate(dateRaw) || parseKorDate(r[0] || '');
+      const startRaw= cols.start !== undefined ? (r[cols.start] || '') : '';
+      const endRaw  = cols.end   !== undefined ? (r[cols.end]   || '') : '';
+      // 날짜 컬럼에 시간이 포함된 경우 fallback
+      const start   = parseKorTime(startRaw) || parseKorTime(dateRaw);
+      const end     = parseKorTime(endRaw);
+      if (!room || !date || !start || !end) continue;
+
+      const recur   = parseRecur(cols.recur   !== undefined ? r[cols.recur]   : '');
+      const endDate = parseKorDate(cols.endDate!== undefined ? r[cols.endDate] : '');
+      const status  = parseStatus(cols.status  !== undefined ? r[cols.status]  : '');
+      const manager = cols.manager   !== undefined ? (r[cols.manager]   || '') : '';
+      const steward = cols.steward   !== undefined ? (r[cols.steward]   || '') : manager;
+      const tel     = cols.stewardTel!== undefined ? (r[cols.stewardTel]|| '') : '';
+      const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
+      const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
+      const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
+
+      // 반복 날짜 생성
+      const dates = (recur !== 'once' && endDate && endDate >= date)
+        ? generateAvailDates(date, endDate, recur) : [date];
+
+      dates.forEach(d => {
+        _importRows.push({ room, date: d, start, end, status, managerName: manager,
+          stewardName: steward, stewardTel: tel, purpose, people, email, recur, endDate });
+      });
+    }
+
+    if (!_importRows.length) {
+      document.getElementById('import-preview').innerHTML = '<div style="color:var(--red);font-size:12px">파싱된 데이터가 없습니다. 날짜·시간·장소 컬럼을 확인해주세요.</div>';
+      return;
+    }
+
+    // 미리보기 (최대 10행)
+    const preview = _importRows.slice(0, 10);
+    const total = _importRows.length;
+    let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">총 ${total}건 인식됨 (아래 최대 10건 미리보기)</div>`;
+    html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
+      <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>상태</th></tr></thead><tbody>`;
+    preview.forEach(r => {
+      const statusColor = r.status === '확정' ? 'var(--green)' : r.status === '반려' ? 'var(--red)' : 'var(--amber)';
+      html += `<tr>
+        <td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
+        <td>${r.managerName}</td><td>${r.people}명</td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
+        <td style="color:${statusColor};font-weight:600">${r.status}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+    if (total > 10) html += `<div style="font-size:11px;color:var(--text3);margin-top:6px">... 외 ${total - 10}건</div>`;
+    document.getElementById('import-preview').innerHTML = html;
+    const btn = document.getElementById('import-submit-btn');
+    btn.style.display = ''; btn.textContent = `가져오기 (${total}건)`;
+  };
+  reader.readAsText(file, 'UTF-8');
+};
+
+window.runImport = async () => {
+  if (!_importRows.length) return;
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
+  const btn = document.getElementById('import-submit-btn');
+  const prog = document.getElementById('import-progress');
+  btn.disabled = true; btn.textContent = '가져오는 중...';
+  try {
+    await cu.getIdToken(true);
+    let done = 0;
+    for (const r of _importRows) {
+      await addDoc(collection(db, 'reservations'), {
+        room: r.room, date: r.date, start: r.start, end: r.end,
+        status: r.status, managerName: r.managerName,
+        stewardName: r.stewardName, stewardTel: r.stewardTel,
+        purpose: r.purpose, people: r.people,
+        type: '', memo: '', userEmail: r.email,
+        history: [{ time: nowStr(), msg: 'CSV 가져오기' }],
+        createdAt: serverTimestamp()
+      });
+      done++;
+      if (done % 10 === 0) prog.textContent = `${done} / ${_importRows.length}건 완료...`;
+    }
+    prog.textContent = '';
+    T(`${done}건 가져오기 완료!`, '#3B6D11');
+    closeModal('modal-import');
+    _importRows = [];
+    document.getElementById('import-file').value = '';
+    document.getElementById('import-preview').innerHTML = '';
+    btn.style.display = 'none';
+  } catch(e) {
+    console.error('import error:', e);
+    T('가져오기 실패: ' + e.message, '#A32D2D');
+    btn.disabled = false; btn.textContent = `가져오기 (${_importRows.length}건)`;
   }
 };
 
