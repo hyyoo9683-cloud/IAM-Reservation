@@ -806,17 +806,21 @@ let listStatusTab = '';
 let newPhotoFiles = [], existingPhotos = [];
 let blockedDates = [];   // { id, date, reason, type:'holiday'|'custom' }
 
-// 공간 고정 정렬 순서 (없는 공간은 뒤로)
+// 공간 고정 정렬 순서 (캘린더·기본 공간 안내: 505→511→아론→샤론)
 const SPACE_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
-function spaceSort(list) {
-  return [...list].sort((a, b) => {
-    const ai = SPACE_ORDER.indexOf(a.name), bi = SPACE_ORDER.indexOf(b.name);
+// 공간 안내 검색 결과 순서 (508-511 → 505·507 → 506 → 아론홀 → 샤론홀)
+const SEARCH_SPACE_ORDER = ['508호','509호','510호','511호','505호','507호','506호','아론홀','샤론홀'];
+function makeSorter(order) {
+  return (list) => [...list].sort((a, b) => {
+    const ai = order.indexOf(a.name), bi = order.indexOf(b.name);
     if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
     if (ai === -1) return 1;
     if (bi === -1) return -1;
     return ai - bi;
   });
 }
+const spaceSort       = makeSorter(SPACE_ORDER);
+const searchSpaceSort = makeSorter(SEARCH_SPACE_ORDER);
 // 탭별 공간 목록
 const PUB_TABS = {
   '5f':     { label: '5층 예약 현황',  rooms: ['505호','506호','507호','508호','509호','510호','511호'] },
@@ -1380,15 +1384,22 @@ function flexRoomCardHtml() {
   </div>`;
 }
 function renderSpaces() {
-  let list = spaceSort(spaces);  // 항상 505→511→아론→샤론 고정 순서
+  // 검색 전: 505→511→아론→샤론 / 검색 후: 508→511→505→507→506→아론→샤론
+  const sortFn = spaceAvailResult !== null ? searchSpaceSort : spaceSort;
+  let list = sortFn(spaces);
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
   if (spaceFilterCap) list.sort((a, b) => (a.cap || 0) - (b.cap || 0));
-  // 검색 결과 있으면 예약 가능 공간 먼저 (순서 내에서)
+  // 검색 결과 있으면 예약 가능 공간 먼저 (검색 순서 내에서)
   if (spaceAvailResult !== null) {
     list.sort((a, b) => {
+      const ai = SEARCH_SPACE_ORDER.indexOf(a.name), bi = SEARCH_SPACE_ORDER.indexOf(b.name);
       const aOk = spaceAvailResult.has(a.id) ? 0 : 1;
       const bOk = spaceAvailResult.has(b.id) ? 0 : 1;
-      return aOk - bOk;
+      if (aOk !== bOk) return aOk - bOk;
+      // 같은 가용성 그룹 안에서는 SEARCH_SPACE_ORDER 유지
+      if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+      if (ai === -1) return 1; if (bi === -1) return -1;
+      return ai - bi;
     });
   }
   // 공실 희망은 항상 맨 앞
