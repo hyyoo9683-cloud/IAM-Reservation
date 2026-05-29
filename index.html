@@ -319,7 +319,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="page" id="p-public">
       <div class="pub-header">
         <div>
-          <div style="font-size:16px;font-weight:700">예약 현황</div>
+          <div style="font-size:16px;font-weight:700" id="pub-cal-title">5층 예약 현황</div>
           <div style="font-size:11px;opacity:.8;margin-top:2px" id="pub-week-label"></div>
         </div>
         <div class="pub-nav" style="margin-left:auto">
@@ -327,6 +327,11 @@ textarea { resize: vertical; min-height: 60px; }
           <button onclick="pubWeek(0)">오늘</button>
           <button onclick="pubWeek(1)">다음 ▶</button>
         </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="filter-chip active" id="pub-tab-5f"   onclick="setPubTab('5f')">5층 (505–511호)</button>
+        <button class="filter-chip"        id="pub-tab-aaron" onclick="setPubTab('aaron')">아론홀</button>
+        <button class="filter-chip"        id="pub-tab-sharon" onclick="setPubTab('sharon')">샤론홀</button>
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#EAF3DE;border:1px solid #3B6D11"></div>확정</div>
@@ -731,8 +736,26 @@ let editId = null;
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null;
 let applyRoom = '', editRoom = '';
-let pubWeekOffset = 0;
+let pubWeekOffset = 0, pubTab = '5f';
 let newPhotoFiles = [], existingPhotos = [];
+
+// 공간 고정 정렬 순서 (없는 공간은 뒤로)
+const SPACE_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
+function spaceSort(list) {
+  return [...list].sort((a, b) => {
+    const ai = SPACE_ORDER.indexOf(a.name), bi = SPACE_ORDER.indexOf(b.name);
+    if (ai === -1 && bi === -1) return a.name.localeCompare(b.name);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
+// 탭별 공간 목록
+const PUB_TABS = {
+  '5f':     { label: '5층 예약 현황',  rooms: ['505호','506호','507호','508호','509호','510호','511호'] },
+  'aaron':  { label: '아론홀 예약 현황', rooms: ['아론홀'] },
+  'sharon': { label: '샤론홀 예약 현황', rooms: ['샤론홀'] },
+};
 
 // ── 시간 슬롯 (07:00 ~ 22:00, 30분 단위) ──────────────────────
 const SLOTS = [];
@@ -1015,8 +1038,19 @@ function getWeekDays(offset = 0) {
   return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
 }
 window.pubWeek = (dir) => { pubWeekOffset = dir === 0 ? 0 : pubWeekOffset + dir; renderPubCal(); };
+window.setPubTab = (tab) => {
+  pubTab = tab;
+  Object.keys(PUB_TABS).forEach(k => document.getElementById('pub-tab-' + k)?.classList.toggle('active', k === tab));
+  renderPubCal();
+};
 
 function renderPubCal() {
+  const tabCfg  = PUB_TABS[pubTab] || PUB_TABS['5f'];
+  document.getElementById('pub-cal-title').textContent = tabCfg.label;
+
+  // 탭에 해당하는 공간만, Firestore에 없는 공간도 이름만으로 행 표시
+  const tabSpaces = tabCfg.rooms.map(name => spaces.find(s => s.name === name) || { name, cap: '' });
+
   const days = getWeekDays(pubWeekOffset);
   const fmt = d => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
   document.getElementById('pub-week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
@@ -1030,8 +1064,8 @@ function renderPubCal() {
     return `<th style="${isT ? 'background:var(--blue-lt);color:var(--blue)' : ''}">${dows[i]}<br><span style="font-size:12px;font-weight:700">${d.getDate()}</span></th>`;
   }).join('')}</tr></thead><tbody>`;
 
-  spaces.forEach(sp => {
-    html += `<tr><td class="room-label">${sp.name}<br><span style="font-size:9px;font-weight:400;color:var(--text3)">${sp.cap}명</span></td>`;
+  tabSpaces.forEach(sp => {
+    html += `<tr><td class="room-label">${sp.name}${sp.cap ? `<br><span style="font-size:9px;font-weight:400;color:var(--text3)">${sp.cap}명</span>` : ''}</td>`;
     days.forEach(d => {
       const ds = d.toISOString().slice(0, 10);
       const isT = ds === todayStr;
@@ -1104,10 +1138,10 @@ function flexRoomCardHtml() {
   </div>`;
 }
 function renderSpaces() {
-  let list = [...spaces];
+  let list = spaceSort(spaces);  // 항상 505→511→아론→샤론 고정 순서
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
   if (spaceFilterCap) list.sort((a, b) => (a.cap || 0) - (b.cap || 0));
-  // 검색 결과 있으면 예약 가능 공간 먼저
+  // 검색 결과 있으면 예약 가능 공간 먼저 (순서 내에서)
   if (spaceAvailResult !== null) {
     list.sort((a, b) => {
       const aOk = spaceAvailResult.has(a.id) ? 0 : 1;
@@ -1115,6 +1149,7 @@ function renderSpaces() {
       return aOk - bOk;
     });
   }
+  // 공실 희망은 항상 맨 앞
   document.getElementById('spaces-grid').innerHTML = flexRoomCardHtml() + list.map(s => spaceCardHtml(s, false)).join('');
 }
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
