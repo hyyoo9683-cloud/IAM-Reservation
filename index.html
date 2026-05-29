@@ -1135,7 +1135,7 @@ function buildRoomChips() {
 
 function populateRoomFilter() {
   const sel = document.getElementById('fr'); if (!sel) return;
-  sel.innerHTML = '<option value="">전체 공간</option>' + spaces.map(s => `<option>${s.name}</option>`).join('');
+  sel.innerHTML = '<option value="">전체 공간</option>' + spaceSort(spaces).map(s => `<option>${s.name}</option>`).join('');
 }
 
 function buildReportYearSelect() {
