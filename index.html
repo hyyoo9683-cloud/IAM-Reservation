@@ -244,6 +244,10 @@ textarea { resize: vertical; min-height: 60px; }
   /* 로그인 카드 모바일 */
   .login-card { padding: 28px 20px; margin: 0 16px; }
 
+  /* 공간 검색 날짜: 세로 스택 */
+  #avail-dates { flex-direction: column; flex: 1 1 100%; }
+  #avail-dates .fg { min-width: 0 !important; }
+
   /* 공간 카드 2열 */
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .space-img  { height: 90px; font-size: 10px; }
@@ -339,13 +343,15 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div id="avail-panel" style="background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--border2)">
         <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
-          <div class="fg" style="margin-bottom:0;min-width:130px">
-            <div class="lbl">시작 날짜</div>
-            <input type="date" id="avail-s-date" oninput="clearAvailResult()">
-          </div>
-          <div class="fg" style="margin-bottom:0;min-width:130px">
-            <div class="lbl">종료 날짜</div>
-            <input type="date" id="avail-e-date" oninput="clearAvailResult()">
+          <div id="avail-dates" style="display:flex;gap:10px;flex:1 1 auto">
+            <div class="fg" style="margin-bottom:0;min-width:120px;flex:1">
+              <div class="lbl">시작 날짜</div>
+              <input type="date" id="avail-s-date" oninput="clearAvailResult()">
+            </div>
+            <div class="fg" style="margin-bottom:0;min-width:120px;flex:1">
+              <div class="lbl">종료 날짜</div>
+              <input type="date" id="avail-e-date" oninput="clearAvailResult()">
+            </div>
           </div>
           <div class="fg" style="margin-bottom:0">
             <div class="lbl">정기 모임</div>
