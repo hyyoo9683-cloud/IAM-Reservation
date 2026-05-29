@@ -550,11 +550,12 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-        <input id="fname" placeholder="🔍 책임자명 검색" style="width:160px;font-weight:500" oninput="renderList()">
-        <select id="fr" onchange="renderList()" style="width:130px"><option value="">전체 공간</option></select>
-        <select id="ft" onchange="renderList()" style="width:170px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
-        <input id="fsearch" placeholder="목적 검색" style="width:130px" oninput="renderList()">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <input id="fname"   placeholder="책임자명" style="width:120px" onkeydown="if(event.key==='Enter')renderList()">
+        <input id="fsearch" placeholder="목적"     style="width:110px" onkeydown="if(event.key==='Enter')renderList()">
+        <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
+        <select id="fr" onchange="renderList()" style="width:120px"><option value="">전체 공간</option></select>
+        <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
