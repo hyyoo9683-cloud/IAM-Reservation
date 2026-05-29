@@ -1286,7 +1286,6 @@ window.submitSpace = async () => {
   ]);
 
   try {
-    await cu.getIdToken(true); // force token refresh before writes
 
     let photoUrls = [...existingPhotos];
     for (const file of newPhotoFiles) {
@@ -1808,7 +1807,6 @@ window.deleteAllReservations = async () => {
   const prog = document.getElementById('import-progress');
   prog.textContent = '삭제 중...';
   try {
-    await cu.getIdToken(true);
     const snap = await getDocs(collection(db, 'reservations'));
     const total = snap.docs.length;
     let done = 0;
@@ -1835,7 +1833,6 @@ window.runImport = async () => {
   const prog = document.getElementById('import-progress');
   btn.disabled = true; btn.textContent = '가져오는 중...';
   try {
-    await cu.getIdToken(true);
     let done = 0;
     const BATCH = 5; // 5건씩 병렬 처리
     for (let i = 0; i < _importRows.length; i += BATCH) {
@@ -1938,7 +1935,6 @@ window.assignRoom = async (id) => {
   if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
-    await cu.getIdToken(true);
     await updateDoc(doc(db, 'reservations', id), {
       room: newRoom,
       history: [...(r.history || []), { time: nowStr(), msg: `공실 배정: ${newRoom} (관리자)` }]
@@ -1957,7 +1953,6 @@ window.approve = async (id) => {
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
-    await cu.getIdToken(true);
     await updateDoc(doc(db, 'reservations', id), {
       status: '확정',
       history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인' }]
@@ -1975,7 +1970,6 @@ window.rejectR = async (id) => {
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
-    await cu.getIdToken(true);
     await updateDoc(doc(db, 'reservations', id), {
       status: '반려', rejectReason: reason || '사유 미입력',
       history: [...(r.history || []), { time: nowStr(), msg: `반려: ${reason || '사유 미입력'}` }]
@@ -1991,7 +1985,6 @@ window.deleteR = async (id, fromDetail = false) => {
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   try {
-    await cu.getIdToken(true);
     await deleteDoc(doc(db, 'reservations', id));
     if (fromDetail) closeModal('modal-detail');
     T('삭제됐습니다', '#A32D2D');
@@ -2078,7 +2071,6 @@ window.submitEdit = async () => {
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   try {
-    await cu.getIdToken(true);
     if (editId) {
       const r = reservations.find(x => x.id === editId); if (!r) return;
       if (isAdmin) data.status = document.getElementById('e-status').value;
