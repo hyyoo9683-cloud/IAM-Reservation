@@ -921,8 +921,10 @@ function T(msg, col = '#185FA5') {
 function sBadge(s) {
   return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no', '취소': 'b-cancel' }[s] || ''}">${s}</span>`;
 }
-function oBadge(t) {
-  return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait' }[t] || ''}">${t}</span>`;
+const TYPE_SHORT = { '아이엠센터 내부기관': '아이엠', '중앙기독학교': '학교', '원천침례교회': '교회' };
+function oBadge(t, short = false) {
+  const label = short ? (TYPE_SHORT[t] || t) : t;
+  return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait' }[t] || ''}" title="${t}">${label}</span>`;
 }
 const tsToday = () => new Date().toISOString().slice(0, 10);
 function nowStr() {
@@ -2633,7 +2635,7 @@ function renderList() {
     : data.map(r =>
         `<tr class="row" onclick="openDetail('${r.id}')">
           <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-          <td>${oBadge(r.type)}</td><td>${r.managerName}</td>
+          <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
           <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
           <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
           <td onclick="event.stopPropagation()" style="white-space:nowrap">
@@ -2660,7 +2662,7 @@ function renderMyList() {
     : data.map(r =>
         `<tr class="row" onclick="openDetail('${r.id}')">
           <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-          <td>${oBadge(r.type)}</td><td>${r.room}</td>
+          <td>${oBadge(r.type, true)}</td><td>${r.room}</td>
           <td>${r.date} ${r.start}–${r.end}</td><td>${r.purpose}</td>
           <td style="font-weight:500">${r.managerName}<br><span style="font-size:10px;color:var(--text3)">${r.stewardName} ${r.stewardTel}</span></td>
           <td>${sBadge(r.status)}</td>
