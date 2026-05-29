@@ -547,16 +547,23 @@ textarea { resize: vertical; min-height: 60px; }
 <!-- ════════════ CSV 가져오기 모달 ════════════ -->
 <div class="modal-bg" id="modal-import">
   <div class="modal" style="max-width:740px;width:96%">
-    <div class="modal-title">📥 예약 데이터 CSV 가져오기</div>
-    <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px">
-      Google Sheets에서 <strong>파일 → 다운로드 → CSV(.csv)</strong>로 내보낸 파일을 선택하세요.<br>
-      헤더 자동 인식 후 미리보기를 확인하고 가져올 수 있습니다.
+    <div class="modal-title">📥 예약 데이터 가져오기</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">
+      <strong>① Google Sheets</strong>에서 데이터 전체 선택(Ctrl+A) → 복사(Ctrl+C)<br>
+      <strong>② 아래 칸</strong>에 붙여넣기(Ctrl+V) → <strong>③ 분석</strong> 버튼 클릭
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <input type="file" id="import-file" onchange="previewImport(this)" style="font-size:12px;flex:1">
-      <button class="btn btn-ghost" onclick="document.getElementById('import-file').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
+    <textarea id="import-text" rows="6"
+      placeholder="Google Sheets에서 복사한 내용을 여기에 붙여넣으세요 (CSV 또는 탭 구분값 모두 가능)"
+      style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);background:var(--bg2)"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="previewImportText()">🔍 분석</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('import-text').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
+      <label style="font-size:11px;color:var(--text3);margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+        파일로 가져오기:
+        <input type="file" id="import-file" onchange="previewImport(this)" style="font-size:11px;max-width:180px">
+      </label>
     </div>
-    <div id="import-preview"></div>
+    <div id="import-preview" style="margin-top:14px"></div>
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-primary" id="import-submit-btn" style="display:none" onclick="runImport()">가져오기</button>
       <div id="import-progress" style="font-size:12px;color:var(--text2)"></div>
@@ -1600,17 +1607,24 @@ let _importRows = [];
 function parseCSV(text) {
   const rows = [];
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  // Google Sheets 직접 복사(Ctrl+C)는 탭 구분자 사용 → 자동 감지
+  const firstLine = lines.find(l => l.trim()) || '';
+  const delim = firstLine.split('\t').length > firstLine.split(',').length ? '\t' : ',';
   for (const line of lines) {
     if (!line.trim()) continue;
-    const cols = []; let field = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { cols.push(field.trim()); field = ''; }
-      else { field += ch; }
+    if (delim === '\t') {
+      rows.push(line.split('\t').map(c => c.trim()));
+    } else {
+      const cols = []; let field = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(field.trim()); field = ''; }
+        else { field += ch; }
+      }
+      cols.push(field.trim());
+      rows.push(cols);
     }
-    cols.push(field.trim());
-    rows.push(cols);
   }
   return rows;
 }
@@ -1687,20 +1701,14 @@ function parseRecur(s) {
   return 'once';
 }
 
-window.previewImport = async (input) => {
-  const file = input.files[0]; if (!file) return;
+async function _runPreviewFromText(text) {
   const previewEl = document.getElementById('import-preview');
   const btn = document.getElementById('import-submit-btn');
   btn.style.display = 'none'; _importRows = [];
-  previewEl.innerHTML = '<div style="font-size:12px;color:var(--text2)">⏳ 파일 분석 중... 잠시 기다려주세요</div>';
-
-  // 50ms 후에 처리 시작 (UI 업데이트 반영 후)
+  previewEl.innerHTML = '<div style="font-size:12px;color:var(--text2)">⏳ 분석 중... 잠시 기다려주세요</div>';
   await new Promise(r => setTimeout(r, 50));
 
-  let text;
-  try { text = await file.text(); } catch(e) { text = await new Promise((res,rej) => { const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsText(file,'UTF-8'); }); }
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-
   const rows = parseCSV(text);
   if (rows.length < 2) { previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
 
@@ -1712,14 +1720,12 @@ window.previewImport = async (input) => {
     return;
   }
 
-  const MAX_DATES_PER_ROW = 55; // 매주 1년치 최대
+  const MAX_DATES_PER_ROW = 55;
   const MAX_TOTAL = 800;
   let truncated = false;
 
   for (let i = 1; i < rows.length; i++) {
-    // 20행마다 브라우저에 제어권 양보 (응답없음 방지)
     if (i % 20 === 0) await new Promise(r => setTimeout(r, 0));
-
     const r = rows[i]; if (!r || r.every(c => !c)) continue;
     const room    = parseRoom(r[cols.room] || '');
     const dateRaw = r[cols.date] || '';
@@ -1729,7 +1735,6 @@ window.previewImport = async (input) => {
     const start   = parseKorTime(startRaw) || parseKorTime(dateRaw);
     const end     = parseKorTime(endRaw);
     if (!room || !date || !start || !end) continue;
-
     const recur   = parseRecur(cols.recur   !== undefined ? r[cols.recur]   : '');
     const endDate = parseKorDate(cols.endDate!== undefined ? r[cols.endDate] : '');
     const status  = parseStatus(cols.status  !== undefined ? r[cols.status]  : '');
@@ -1739,11 +1744,8 @@ window.previewImport = async (input) => {
     const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
     const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
     const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
-
-    // 반복 날짜 생성 — 최대 55개로 제한
     const dates = (recur !== 'once' && endDate && endDate >= date)
       ? generateAvailDates(date, endDate, recur).slice(0, MAX_DATES_PER_ROW) : [date];
-
     for (const d of dates) {
       if (_importRows.length >= MAX_TOTAL) { truncated = true; break; }
       _importRows.push({ room, date: d, start, end, status, managerName: manager,
@@ -1773,6 +1775,20 @@ window.previewImport = async (input) => {
   if (total > 10) html += `<div style="font-size:11px;color:var(--text3);margin-top:6px">... 외 ${total - 10}건</div>`;
   previewEl.innerHTML = html;
   btn.style.display = ''; btn.textContent = `가져오기 (${total}건)`;
+}
+
+window.previewImportText = async () => {
+  const text = document.getElementById('import-text').value.trim();
+  if (!text) { T('붙여넣을 내용이 없습니다', '#A32D2D'); return; }
+  await _runPreviewFromText(text);
+};
+
+window.previewImport = async (input) => {
+  const file = input.files[0]; if (!file) return;
+  let text;
+  try { text = await file.text(); }
+  catch(e) { text = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsText(file, 'UTF-8'); }); }
+  await _runPreviewFromText(text);
 };
 
 window.runImport = async () => {
