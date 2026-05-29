@@ -376,7 +376,7 @@ textarea { resize: vertical; min-height: 60px; }
           <button onclick="pubWeek(1)">다음 ▶</button>
         </div>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;margin-top:14px;margin-bottom:12px;flex-wrap:wrap">
         <button class="filter-chip active" id="pub-tab-5f"   onclick="setPubTab('5f')">5층 (505–511호)</button>
         <button class="filter-chip"        id="pub-tab-aaron" onclick="setPubTab('aaron')">아론홀</button>
         <button class="filter-chip"        id="pub-tab-sharon" onclick="setPubTab('sharon')">샤론홀</button>
@@ -1230,16 +1230,52 @@ function renderPubCal() {
   const tabCfg  = PUB_TABS[pubTab] || PUB_TABS['5f'];
   document.getElementById('pub-cal-title').textContent = tabCfg.label;
 
-  // 탭에 해당하는 공간만, Firestore에 없는 공간도 이름만으로 행 표시
   const tabSpaces = tabCfg.rooms.map(name => spaces.find(s => s.name === name) || { name, cap: '' });
-
   const days = getWeekDays(pubWeekOffset);
   const fmt = d => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
   document.getElementById('pub-week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
-
   const dows = ['월', '화', '수', '목', '금', '토', '일'];
   const todayStr = tsToday();
 
+  // 단일 홀(아론홀·샤론홀) — 날짜를 세로(행)로 표시
+  if (tabSpaces.length === 1) {
+    const sp = tabSpaces[0];
+    const capLabel = sp.cap ? ` · ${sp.cap}명` : '';
+    let html = `<thead><tr>
+      <th style="min-width:80px">날짜</th>
+      <th>${sp.name}${capLabel}</th>
+    </tr></thead><tbody>`;
+    days.forEach((d, i) => {
+      const ds = d.toISOString().slice(0, 10);
+      const isT = ds === todayStr;
+      const bd = blockedDates.find(b => b.date === ds);
+      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status !== '반려');
+      const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
+      const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
+      const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
+      html += `<tr>
+        <td class="room-label" style="${dateBg};white-space:nowrap">
+          ${dows[i]} · ${d.getMonth()+1}/${d.getDate()}${bdLabel}
+        </td>
+        <td style="${rowBg};min-height:44px">`;
+      if (bd) {
+        html += `<div style="font-size:9px;color:#999;padding:3px 2px">예약불가</div>`;
+      } else if (res.length === 0) {
+        html += `<div style="font-size:10px;color:var(--text3);padding:4px 2px">없음</div>`;
+      } else {
+        res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
+          const ok = r.status === '확정';
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;margin-right:6px;margin-bottom:3px">${r.start}–${r.end} · ${r.managerName}</div>`;
+        });
+      }
+      html += `</td></tr>`;
+    });
+    html += '</tbody>';
+    document.getElementById('pub-cal-table').innerHTML = html;
+    return;
+  }
+
+  // 다중 공간(5층) — 기존 가로 레이아웃
   let html = `<thead><tr><th style="min-width:72px">공간</th>${days.map((d, i) => {
     const s = d.toISOString().slice(0, 10);
     const isT = s === todayStr;
