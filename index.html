@@ -453,7 +453,6 @@ textarea { resize: vertical; min-height: 60px; }
     <!-- 내 예약 -->
     <div class="page" id="p-mylist">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <input id="mylist-name" placeholder="예약 책임자명으로 검색" style="flex:1;min-width:180px;max-width:320px" oninput="renderMyList()">
         <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option></select>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
@@ -1008,11 +1007,7 @@ window.go = (page) => {
   }
   if (page === 'public')        { pubWeekOffset = 0; renderPubCal(); }
   if (page === 'apply')         { resetApply(); initTimeSelects('m-start', 'm-end'); buildRoomChips(); }
-  if (page === 'mylist') {
-    const ni = document.getElementById('mylist-name');
-    if (ni && !ni.value && curUser?.displayName) ni.value = '';
-    renderMyList();
-  }
+  if (page === 'mylist') renderMyList();
   if (page === 'dashboard')      renderDashboard();
   if (page === 'list')           renderList();
   if (page === 'manage-spaces')  renderManageSpaces();
@@ -2200,25 +2195,16 @@ function renderList() {
 }
 
 function renderMyList() {
-  const nameInput = document.getElementById('mylist-name');
-  const statusInput = document.getElementById('mylist-status');
-  const nameQ  = (nameInput?.value  || '').toLowerCase().trim();
-  const statusQ = statusInput?.value || '';
+  const statusQ = document.getElementById('mylist-status')?.value || '';
 
-  let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
+  let data = [...reservations]
+    .filter(r => curUser ? r.userEmail === curUser.email : false)
+    .sort((a, b) => b.date.localeCompare(a.date));
 
-  // 책임자명 검색: 입력값이 있으면 managerName/stewardName으로 필터, 없으면 내 이메일로 필터
-  if (nameQ) {
-    data = data.filter(r => (r.managerName + ' ' + r.stewardName).toLowerCase().includes(nameQ));
-  } else if (curUser) {
-    data = data.filter(r => r.userEmail === curUser.email);
-  }
   if (statusQ) data = data.filter(r => r.status === statusQ);
 
-  const empty = nameQ
-    ? `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">"${nameQ}" 이름으로 예약이 없습니다</td></tr>`
-    : `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">신청한 예약이 없습니다<br>
-        <button class="btn btn-primary" style="margin-top:12px" onclick="go('apply')">예약 신청하기</button></td></tr>`;
+  const empty = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">신청한 예약이 없습니다<br>
+      <button class="btn btn-primary" style="margin-top:12px" onclick="go('apply')">예약 신청하기</button></td></tr>`;
 
   document.getElementById('mylist-body').innerHTML = !data.length ? empty
     : data.map(r =>
