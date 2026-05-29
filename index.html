@@ -551,8 +551,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <input id="fname"   placeholder="책임자명" style="width:120px" onkeydown="if(event.key==='Enter')renderList()">
-        <input id="fsearch" placeholder="목적"     style="width:110px" onkeydown="if(event.key==='Enter')renderList()">
+        <input id="fname" placeholder="이름 또는 목적 검색" style="width:190px" onkeydown="if(event.key==='Enter')renderList()">
         <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
         <select id="fr" onchange="renderList()" style="width:120px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
@@ -2619,16 +2618,17 @@ function renderDashboard() {
 }
 
 function renderList() {
-  const fn = (document.getElementById('fname')?.value   || '').toLowerCase();
+  const fq = (document.getElementById('fname')?.value   || '').toLowerCase();
   const fr = document.getElementById('fr')?.value   || '';
   const ft = document.getElementById('ft')?.value   || '';
-  const fq = (document.getElementById('fsearch')?.value || '').toLowerCase();
   let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
-  if (fn) data = data.filter(r => (r.managerName + ' ' + r.stewardName).toLowerCase().includes(fn));
+  if (fq) data = data.filter(r =>
+    (r.managerName + ' ' + r.stewardName).toLowerCase().includes(fq) ||
+    (r.purpose || '').toLowerCase().includes(fq)
+  );
   if (listStatusTab) data = data.filter(r => r.status === listStatusTab);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
-  if (fq) data = data.filter(r => r.purpose.toLowerCase().includes(fq));
 
   document.getElementById('list-body').innerHTML = !data.length
     ? `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`
