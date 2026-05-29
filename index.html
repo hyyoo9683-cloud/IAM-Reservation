@@ -556,9 +556,27 @@ textarea { resize: vertical; min-height: 60px; }
         <select id="fr" onchange="renderList()" style="width:120px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
       </div>
+      <!-- 일괄 액션 바 (선택 시 노출) -->
+      <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
+        <span id="bulk-count" style="font-size:12px;font-weight:600;color:var(--blue)">0개 선택</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <select id="bulk-type-sel" style="width:160px;font-size:12px">
+            <option value="">기관 변경 선택</option>
+            <option value="아이엠센터 내부기관">아이엠센터 내부기관</option>
+            <option value="중앙기독학교">중앙기독학교</option>
+            <option value="원천침례교회">원천침례교회</option>
+          </select>
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
+          <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px" onclick="clearBulkSelect()">선택 해제</button>
+        </div>
+      </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
-          <thead><tr><th>#</th><th>기관</th><th>담당자</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>상태</th><th>액션</th></tr></thead>
+          <thead><tr>
+            <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleSelectAll(this)" style="cursor:pointer;width:14px;height:14px"></th>
+            <th>#</th><th>기관</th><th>담당자</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>상태</th><th>액션</th>
+          </tr></thead>
           <tbody id="list-body"></tbody>
         </table>
       </div>
@@ -2630,10 +2648,17 @@ window.renderList = function renderList() {
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
 
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) chkAll.checked = false;
+  updateBulkBar();
+
   document.getElementById('list-body').innerHTML = !data.length
-    ? `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`
+    ? `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`
     : data.map(r =>
         `<tr class="row" onclick="openDetail('${r.id}')">
+          <td onclick="event.stopPropagation()" style="text-align:center">
+            <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
+          </td>
           <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
           <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
           <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
@@ -2645,6 +2670,55 @@ window.renderList = function renderList() {
         </tr>`
       ).join('');
 }
+
+function getSelectedIds() {
+  return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+}
+function updateBulkBar() {
+  const ids = getSelectedIds();
+  const bar = document.getElementById('bulk-bar');
+  if (!bar) return;
+  bar.style.display = ids.length ? 'flex' : 'none';
+  const countEl = document.getElementById('bulk-count');
+  if (countEl) countEl.textContent = `${ids.length}개 선택됨`;
+}
+window.onRowCheck = () => {
+  const all = document.querySelectorAll('.row-chk');
+  const checked = document.querySelectorAll('.row-chk:checked');
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) chkAll.checked = all.length === checked.length && all.length > 0;
+  updateBulkBar();
+};
+window.toggleSelectAll = (chk) => {
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = chk.checked; });
+  updateBulkBar();
+};
+window.clearBulkSelect = () => {
+  document.querySelectorAll('.row-chk').forEach(c => { c.checked = false; });
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) chkAll.checked = false;
+  updateBulkBar();
+};
+window.bulkDelete = async () => {
+  const ids = getSelectedIds();
+  if (!ids.length) return;
+  if (!confirm(`선택한 예약 ${ids.length}건을 삭제하시겠습니까?`)) return;
+  try {
+    await Promise.all(ids.map(id => deleteDoc(doc(db, 'reservations', id))));
+    T(`${ids.length}건 삭제 완료`, '#777');
+  } catch(e) { T('삭제 실패: ' + e.message, '#A32D2D'); }
+};
+window.bulkChangeType = async () => {
+  const ids = getSelectedIds();
+  const type = document.getElementById('bulk-type-sel').value;
+  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
+  if (!type) { T('변경할 기관을 선택해주세요', '#A32D2D'); return; }
+  if (!confirm(`선택한 ${ids.length}건의 기관을 "${type}"으로 변경하시겠습니까?`)) return;
+  try {
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type })));
+    T(`${ids.length}건 기관 변경 완료`, '#3B6D11');
+  } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
+};
 
 function renderMyList() {
   const statusQ = document.getElementById('mylist-status')?.value || '';
