@@ -550,7 +550,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="modal-title">📥 예약 데이터 가져오기</div>
     <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">
       <strong>① Google Sheets</strong>에서 데이터 전체 선택(Ctrl+A) → 복사(Ctrl+C)<br>
-      <strong>② 아래 칸</strong>에 붙여넣기(Ctrl+V) → <strong>③ 분석</strong> 버튼 클릭
+      <strong>② 아래 칸</strong>에 붙여넣기(Ctrl+V) → <strong>③ 분석</strong> 버튼 클릭 → 미리보기 확인 후 <strong>④ 가져오기</strong>
     </div>
     <textarea id="import-text" rows="6"
       placeholder="Google Sheets에서 복사한 내용을 여기에 붙여넣으세요 (CSV 또는 탭 구분값 모두 가능)"
@@ -564,7 +564,12 @@ textarea { resize: vertical; min-height: 60px; }
       </label>
     </div>
     <div id="import-preview" style="margin-top:14px"></div>
-    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;align-items:center">
+    <div style="background:var(--red-lt);border:1px solid #f5c2c2;border-radius:6px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:12px;color:var(--red);font-weight:600">⚠️ 기존 예약 전체 삭제</span>
+      <span style="font-size:11px;color:var(--text2);flex:1">새로 가져오기 전에 기존 데이터를 모두 지웁니다</span>
+      <button class="btn btn-red" style="font-size:11px;padding:4px 12px" onclick="deleteAllReservations()">전체 삭제</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-primary" id="import-submit-btn" style="display:none" onclick="runImport()">가져오기</button>
       <div id="import-progress" style="font-size:12px;color:var(--text2)"></div>
       <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal('modal-import')">닫기</button>
@@ -1712,19 +1717,21 @@ async function _runPreviewFromText(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) { previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
 
-  const headers = rows[0];
+  // 헤더 행 자동 탐지: 앞 60행 중 인식된 컬럼이 가장 많은 행을 헤더로 사용
+  let headerIdx = 0, maxFound = 0;
+  for (let i = 0; i < Math.min(rows.length, 60); i++) {
+    const found = Object.keys(detectCols(rows[i])).length;
+    if (found > maxFound) { maxFound = found; headerIdx = i; }
+  }
+  const headers = rows[headerIdx];
   const cols = detectCols(headers);
   const missing = ['room','date','start','end'].filter(k => cols[k] === undefined);
   if (missing.length) {
-    previewEl.innerHTML = `<div style="color:var(--red);font-size:12px">⚠️ 필수 컬럼을 찾지 못했습니다: ${missing.join(', ')}<br>인식된 헤더: ${headers.slice(0,10).join(' | ')}</div>`;
+    previewEl.innerHTML = `<div style="color:var(--red);font-size:12px">⚠️ 필수 컬럼을 찾지 못했습니다: ${missing.join(', ')}<br>인식된 헤더(${headerIdx+1}행): ${headers.slice(0,10).join(' | ')}</div>`;
     return;
   }
 
-  const MAX_DATES_PER_ROW = 55;
-  const MAX_TOTAL = 800;
-  let truncated = false;
-
-  for (let i = 1; i < rows.length; i++) {
+  for (let i = headerIdx + 1; i < rows.length; i++) {
     if (i % 20 === 0) await new Promise(r => setTimeout(r, 0));
     const r = rows[i]; if (!r || r.every(c => !c)) continue;
     const room    = parseRoom(r[cols.room] || '');
@@ -1735,8 +1742,6 @@ async function _runPreviewFromText(text) {
     const start   = parseKorTime(startRaw) || parseKorTime(dateRaw);
     const end     = parseKorTime(endRaw);
     if (!room || !date || !start || !end) continue;
-    const recur   = parseRecur(cols.recur   !== undefined ? r[cols.recur]   : '');
-    const endDate = parseKorDate(cols.endDate!== undefined ? r[cols.endDate] : '');
     const status  = parseStatus(cols.status  !== undefined ? r[cols.status]  : '');
     const manager = cols.manager   !== undefined ? (r[cols.manager]   || '') : '';
     const steward = cols.steward   !== undefined ? (r[cols.steward]   || '') : manager;
@@ -1744,14 +1749,9 @@ async function _runPreviewFromText(text) {
     const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
     const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
     const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
-    const dates = (recur !== 'once' && endDate && endDate >= date)
-      ? generateAvailDates(date, endDate, recur).slice(0, MAX_DATES_PER_ROW) : [date];
-    for (const d of dates) {
-      if (_importRows.length >= MAX_TOTAL) { truncated = true; break; }
-      _importRows.push({ room, date: d, start, end, status, managerName: manager,
-        stewardName: steward, stewardTel: tel, purpose, people, email });
-    }
-    if (truncated) break;
+    // 기존 데이터 가져오기: 각 행은 이미 개별 날짜 → 반복 확장 안 함
+    _importRows.push({ room, date, start, end, status, managerName: manager,
+      stewardName: steward, stewardTel: tel, purpose, people, email });
   }
 
   if (!_importRows.length) {
@@ -1760,8 +1760,8 @@ async function _runPreviewFromText(text) {
   }
 
   const total = _importRows.length;
-  let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">총 ${total}건 인식됨 (아래 최대 10건 미리보기)</div>`;
-  if (truncated) html += `<div style="font-size:11px;color:var(--amber);margin-bottom:8px">⚠️ ${MAX_TOTAL}건 초과분은 잘렸습니다. 나눠서 가져오세요.</div>`;
+  let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">
+    총 ${total}건 인식됨 (헤더: ${headerIdx+1}행, 데이터 시작: ${headerIdx+2}행) — 아래 최대 10건 미리보기</div>`;
   html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
     <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>상태</th></tr></thead><tbody>`;
   _importRows.slice(0, 10).forEach(r => {
@@ -1789,6 +1789,32 @@ window.previewImport = async (input) => {
   try { text = await file.text(); }
   catch(e) { text = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsText(file, 'UTF-8'); }); }
   await _runPreviewFromText(text);
+};
+
+window.deleteAllReservations = async () => {
+  if (!confirm('⚠️ 정말로 모든 예약 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
+  const prog = document.getElementById('import-progress');
+  prog.textContent = '삭제 중...';
+  try {
+    await cu.getIdToken(true);
+    const snap = await getDocs(collection(db, 'reservations'));
+    const total = snap.docs.length;
+    let done = 0;
+    const BATCH = 10;
+    for (let i = 0; i < snap.docs.length; i += BATCH) {
+      await Promise.all(snap.docs.slice(i, i + BATCH).map(d => deleteDoc(doc(db, 'reservations', d.id))));
+      done += Math.min(BATCH, snap.docs.length - i);
+      prog.textContent = `삭제 중 ${done}/${total}...`;
+      await new Promise(r => setTimeout(r, 0));
+    }
+    prog.textContent = '';
+    T(`${total}건 전체 삭제 완료`, '#3B6D11');
+  } catch(e) {
+    prog.textContent = '';
+    T('삭제 실패: ' + e.message, '#A32D2D');
+  }
 };
 
 window.runImport = async () => {
@@ -1822,7 +1848,7 @@ window.runImport = async () => {
     T(`${done}건 가져오기 완료!`, '#3B6D11');
     closeModal('modal-import');
     _importRows = [];
-    document.getElementById('import-file').value = '';
+    document.getElementById('import-text').value = '';
     document.getElementById('import-preview').innerHTML = '';
     btn.style.display = 'none';
   } catch(e) {
