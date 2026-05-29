@@ -425,6 +425,7 @@ textarea { resize: vertical; min-height: 60px; }
                   <option value="">선택하세요</option>
                   <option>중앙기독학교</option>
                   <option>원천침례교회</option>
+                  <option>외부 예약</option>
                   <option>아이엠센터 내부기관</option>
                 </select>
               </div>
@@ -554,7 +555,7 @@ textarea { resize: vertical; min-height: 60px; }
         <input id="fname" placeholder="이름 또는 목적 검색" style="width:190px" onkeydown="if(event.key==='Enter')renderList()">
         <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
         <select id="fr" onchange="renderList()" style="width:120px"><option value="">전체 공간</option></select>
-        <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
+        <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
       </div>
       <!-- 일괄 액션 바 (선택 시 노출) -->
       <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
@@ -565,6 +566,7 @@ textarea { resize: vertical; min-height: 60px; }
             <option value="아이엠센터 내부기관">아이엠센터 내부기관</option>
             <option value="중앙기독학교">중앙기독학교</option>
             <option value="원천침례교회">원천침례교회</option>
+            <option value="외부 예약">외부 예약</option>
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
@@ -747,7 +749,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div id="edit-recur-banner" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6"></div>
     <div class="fg">
       <div class="lbl">기관 분류 <span class="req">*</span></div>
-      <select id="e-type"><option value="">선택</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
+      <select id="e-type"><option value="">선택</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
@@ -938,10 +940,10 @@ function T(msg, col = '#185FA5') {
 function sBadge(s) {
   return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no', '취소': 'b-cancel' }[s] || ''}">${s}</span>`;
 }
-const TYPE_SHORT = { '아이엠센터 내부기관': '아이엠', '중앙기독학교': '학교', '원천침례교회': '교회' };
+const TYPE_SHORT = { '아이엠센터 내부기관': '아이엠', '중앙기독학교': '학교', '원천침례교회': '교회', '외부 예약': '외부' };
 function oBadge(t, short = false) {
   const label = short ? (TYPE_SHORT[t] || t) : t;
-  return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait' }[t] || ''}" title="${t}">${label}</span>`;
+  return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait', '외부 예약': 'b-cancel' }[t] || ''}" title="${t}">${label}</span>`;
 }
 const tsToday = () => new Date().toISOString().slice(0, 10);
 function nowStr() {
