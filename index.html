@@ -447,9 +447,13 @@ textarea { resize: vertical; min-height: 60px; }
 
     <!-- 내 예약 -->
     <div class="page" id="p-mylist">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <input id="mylist-name" placeholder="예약 책임자명으로 검색" style="flex:1;min-width:180px;max-width:320px" oninput="renderMyList()">
+        <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option></select>
+      </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
-          <thead><tr><th>#</th><th>기관</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>실사용자</th><th>상태</th><th>액션</th></tr></thead>
+          <thead><tr><th>#</th><th>기관</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>책임자</th><th>상태</th><th>액션</th></tr></thead>
           <tbody id="mylist-body"></tbody>
         </table>
       </div>
@@ -469,10 +473,11 @@ textarea { resize: vertical; min-height: 60px; }
     <!-- 관리자: 예약 목록 -->
     <div class="page" id="p-list">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="fname" placeholder="🔍 책임자명 검색" style="width:160px;font-weight:500" oninput="renderList()">
         <select id="fs" onchange="renderList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option></select>
         <select id="fr" onchange="renderList()" style="width:130px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="renderList()" style="width:170px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
-        <input id="fsearch" placeholder="담당자·목적 검색" style="width:160px" oninput="renderList()">
+        <input id="fsearch" placeholder="목적 검색" style="width:130px" oninput="renderList()">
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
@@ -980,7 +985,11 @@ window.go = (page) => {
   }
   if (page === 'public')        { pubWeekOffset = 0; renderPubCal(); }
   if (page === 'apply')         { resetApply(); initTimeSelects('m-start', 'm-end'); buildRoomChips(); }
-  if (page === 'mylist')         renderMyList();
+  if (page === 'mylist') {
+    const ni = document.getElementById('mylist-name');
+    if (ni && !ni.value && curUser?.displayName) ni.value = '';
+    renderMyList();
+  }
   if (page === 'dashboard')      renderDashboard();
   if (page === 'list')           renderList();
   if (page === 'manage-spaces')  renderManageSpaces();
@@ -2127,15 +2136,17 @@ function renderDashboard() {
 }
 
 function renderList() {
-  const fs = document.getElementById('fs')?.value || '';
-  const fr = document.getElementById('fr')?.value || '';
-  const ft = document.getElementById('ft')?.value || '';
+  const fn = (document.getElementById('fname')?.value   || '').toLowerCase();
+  const fs = document.getElementById('fs')?.value   || '';
+  const fr = document.getElementById('fr')?.value   || '';
+  const ft = document.getElementById('ft')?.value   || '';
   const fq = (document.getElementById('fsearch')?.value || '').toLowerCase();
   let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
+  if (fn) data = data.filter(r => (r.managerName + ' ' + r.stewardName).toLowerCase().includes(fn));
   if (fs) data = data.filter(r => r.status === fs);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
-  if (fq) data = data.filter(r => (r.managerName + r.purpose + r.stewardName).toLowerCase().includes(fq));
+  if (fq) data = data.filter(r => r.purpose.toLowerCase().includes(fq));
 
   document.getElementById('list-body').innerHTML = !data.length
     ? `<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`
@@ -2154,19 +2165,33 @@ function renderList() {
 }
 
 function renderMyList() {
-  const myR = [...reservations]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .filter(r => !curUser || r.userEmail === curUser.email);
+  const nameInput = document.getElementById('mylist-name');
+  const statusInput = document.getElementById('mylist-status');
+  const nameQ  = (nameInput?.value  || '').toLowerCase().trim();
+  const statusQ = statusInput?.value || '';
 
-  document.getElementById('mylist-body').innerHTML = !myR.length
-    ? `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">신청한 예약이 없습니다<br>
-        <button class="btn btn-primary" style="margin-top:12px" onclick="go('apply')">예약 신청하기</button></td></tr>`
-    : myR.map(r =>
+  let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
+
+  // 책임자명 검색: 입력값이 있으면 managerName/stewardName으로 필터, 없으면 내 이메일로 필터
+  if (nameQ) {
+    data = data.filter(r => (r.managerName + ' ' + r.stewardName).toLowerCase().includes(nameQ));
+  } else if (curUser) {
+    data = data.filter(r => r.userEmail === curUser.email);
+  }
+  if (statusQ) data = data.filter(r => r.status === statusQ);
+
+  const empty = nameQ
+    ? `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">"${nameQ}" 이름으로 예약이 없습니다</td></tr>`
+    : `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">신청한 예약이 없습니다<br>
+        <button class="btn btn-primary" style="margin-top:12px" onclick="go('apply')">예약 신청하기</button></td></tr>`;
+
+  document.getElementById('mylist-body').innerHTML = !data.length ? empty
+    : data.map(r =>
         `<tr class="row" onclick="openDetail('${r.id}')">
           <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
           <td>${oBadge(r.type)}</td><td>${r.room}</td>
           <td>${r.date} ${r.start}–${r.end}</td><td>${r.purpose}</td>
-          <td>${r.stewardName}<br><span style="font-size:10px;color:var(--blue)">${r.stewardTel}</span></td>
+          <td style="font-weight:500">${r.managerName}<br><span style="font-size:10px;color:var(--text3)">${r.stewardName} ${r.stewardTel}</span></td>
           <td>${sBadge(r.status)}</td>
           <td onclick="event.stopPropagation()" style="white-space:nowrap">
             ${r.status === '대기'
