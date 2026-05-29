@@ -8,7 +8,7 @@
 <!-- Firebase SDK (v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
     onSnapshot, serverTimestamp }
@@ -41,7 +41,7 @@
 
   window._fb = {
     auth, db, storage,
-    GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+    GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
     collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
     ref, uploadBytes, getDownloadURL,
     ALLOWED_DOMAIN, ADMIN_EMAILS
@@ -696,7 +696,7 @@ textarea { resize: vertical; min-height: 60px; }
 const fb = window._fb;
 const {
   auth, db, storage,
-  GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
   collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
   ref, uploadBytes, getDownloadURL,
   ALLOWED_DOMAIN, ADMIN_EMAILS
@@ -779,14 +779,23 @@ document.querySelectorAll('.modal-bg').forEach(m =>
 );
 
 // ── 인증 ────────────────────────────────────────────────────────
+function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+         (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
+}
+
 window.googleLogin = async () => {
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ hd: ALLOWED_DOMAIN });
-    const result = await signInWithPopup(auth, provider);
-    if (!result.user.email.endsWith('@' + ALLOWED_DOMAIN)) {
-      await signOut(auth);
-      showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+    if (isMobileBrowser()) {
+      await signInWithRedirect(auth, provider);
+    } else {
+      const result = await signInWithPopup(auth, provider);
+      if (!result.user.email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(result.user.email)) {
+        await signOut(auth);
+        showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+      }
     }
   } catch (e) {
     showLoginMsg('로그인 실패: ' + e.message);
@@ -804,6 +813,20 @@ window.enterPublic = () => {
   document.getElementById('nav-admin-links').style.display = 'none';
   go('public');
 };
+
+// 모바일 리다이렉트 로그인 완료 처리
+getRedirectResult(auth).then(result => {
+  if (!result?.user) return;
+  const email = result.user.email;
+  if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
+    signOut(auth);
+    showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+  }
+}).catch(e => {
+  if (e.code !== 'auth/no-current-user' && e.code !== 'auth/null-user') {
+    console.warn('redirect login:', e.message);
+  }
+});
 
 onAuthStateChanged(auth, async user => {
   if (!user) return;
