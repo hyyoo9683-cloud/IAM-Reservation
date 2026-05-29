@@ -194,13 +194,40 @@ textarea { resize: vertical; min-height: 60px; }
 .preview-img    { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
 
 /* ── 반응형 ── */
+/* ── 햄버거 버튼 (데스크톱에선 숨김) ── */
+#mobile-hamburger { display: none; }
+/* ── 사이드바 오버레이 배경 ── */
+#sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 199; }
+
 @media (max-width: 640px) {
-  :root { --sidebar: 48px; }
-  .nav-btn .icon { margin: 0 auto; }
-  .nav-btn span:not(.icon):not(.nav-badge) { display: none; }
-  .nav-section { display: none; }
-  .logo-name, .logo-sub { display: none; }
-  .logo-area { padding: 8px 0; }
+  :root { --sidebar: 0px; }
+
+  /* 사이드바: 슬라이드인 드로어로 변환 */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 240px;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+    overflow-y: auto;
+    padding: 14px 10px;
+    /* 기존 디자인 그대로 유지 */
+  }
+  .sidebar.open { transform: translateX(0); }
+  #sidebar-overlay.open { display: block; }
+
+  /* 드로어 안에서는 텍스트·섹션 모두 표시 (아이콘 전용 모드 해제) */
+  .nav-btn span:not(.nav-badge) { display: inline !important; }
+  .nav-btn .icon { margin: 0 !important; }
+  .nav-section { display: block !important; }
+  .logo-name, .logo-sub { display: block !important; }
+  .logo-area { padding: 8px 10px 14px; }
+  .nav-btn { font-size: 13px; padding: 9px 12px; }
+
+  /* 탑바에 햄버거 버튼 표시 */
+  #mobile-hamburger { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; background: none; cursor: pointer; font-size: 20px; color: var(--blue); padding: 0; flex-shrink: 0; }
 
   /* 공개 캘린더 모바일 */
   .pub-header { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
@@ -281,9 +308,13 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
   </div>
 
+  <!-- 사이드바 오버레이 배경 -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- 메인 영역 -->
   <div class="main">
     <div class="topbar">
+      <button id="mobile-hamburger" onclick="toggleSidebar()" aria-label="메뉴">☰</button>
       <span class="topbar-title" id="page-title">공간 안내</span>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center" id="topbar-action"></div>
     </div>
@@ -1075,8 +1106,19 @@ function buildReportYearSelect() {
   sel.innerHTML = [yr - 1, yr, yr + 1].map(y => `<option value="${y}"${y === yr ? ' selected' : ''}>${y}년</option>`).join('');
 }
 
+// ── 모바일 사이드바 드로어 ─────────────────────────────────────────
+window.toggleSidebar = () => {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+};
+window.closeSidebar = () => {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+};
+
 // ── 내비게이션 ───────────────────────────────────────────────────
 window.go = (page) => {
+  closeSidebar();
   curPage = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const el = document.getElementById('p-' + page); if (el) el.classList.add('active');
