@@ -105,9 +105,10 @@ body { font-family: var(--font); font-size: 14px; color: var(--text); background
 .btn-amber   { background: var(--amber); color: #fff; }
 .btn-ghost   { background: var(--bg2);   color: var(--text2); border: 1px solid var(--border); }
 .badge       { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 10px; font-weight: 600; }
-.b-wait { background: var(--amber-lt); color: var(--amber); }
-.b-ok   { background: var(--green-lt); color: var(--green); }
-.b-no   { background: var(--red-lt);   color: var(--red);   }
+.b-wait   { background: var(--amber-lt); color: var(--amber); }
+.b-ok     { background: var(--green-lt); color: var(--green); }
+.b-no     { background: var(--red-lt);   color: var(--red);   }
+.b-cancel { background: #EFEFEF;         color: #777;         }
 .b-blue { background: var(--blue-lt);  color: var(--blue);  }
 .stat-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; flex: 1; }
 .stat-num { font-size: 26px; font-weight: 700; color: var(--blue); line-height: 1; }
@@ -453,7 +454,7 @@ textarea { resize: vertical; min-height: 60px; }
     <!-- 내 예약 -->
     <div class="page" id="p-mylist">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option></select>
+        <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option><option>취소</option></select>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
@@ -476,9 +477,15 @@ textarea { resize: vertical; min-height: 60px; }
 
     <!-- 관리자: 예약 목록 -->
     <div class="page" id="p-list">
+      <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+        <button class="filter-chip active" id="lst-tab-" onclick="setListTab('')">전체</button>
+        <button class="filter-chip" id="lst-tab-대기"  onclick="setListTab('대기')">대기</button>
+        <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
+        <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
+        <button class="filter-chip" id="lst-tab-취소"  onclick="setListTab('취소')">취소</button>
+      </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <input id="fname" placeholder="🔍 책임자명 검색" style="width:160px;font-weight:500" oninput="renderList()">
-        <select id="fs" onchange="renderList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option></select>
         <select id="fr" onchange="renderList()" style="width:130px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="renderList()" style="width:170px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
         <input id="fsearch" placeholder="목적 검색" style="width:130px" oninput="renderList()">
@@ -736,6 +743,7 @@ let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null;
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
+let listStatusTab = '';
 let newPhotoFiles = [], existingPhotos = [];
 
 // 공간 고정 정렬 순서 (없는 공간은 뒤로)
@@ -799,7 +807,7 @@ function T(msg, col = '#185FA5') {
   T._tm = setTimeout(() => t.style.opacity = 0, 3200);
 }
 function sBadge(s) {
-  return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no' }[s] || ''}">${s}</span>`;
+  return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no', '취소': 'b-cancel' }[s] || ''}">${s}</span>`;
 }
 function oBadge(t) {
   return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait' }[t] || ''}">${t}</span>`;
@@ -1037,6 +1045,13 @@ window.setPubTab = (tab) => {
   pubTab = tab;
   Object.keys(PUB_TABS).forEach(k => document.getElementById('pub-tab-' + k)?.classList.toggle('active', k === tab));
   renderPubCal();
+};
+window.setListTab = (status) => {
+  listStatusTab = status;
+  ['', '대기', '확정', '반려', '취소'].forEach(s =>
+    document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === status)
+  );
+  renderList();
 };
 
 function renderPubCal() {
@@ -1736,7 +1751,8 @@ function parsePeople(s) {
 function parseStatus(s) {
   s = (s || '').trim();
   if (s === '승인') return '확정';
-  if (s === '취소' || s === '반려') return '반려';
+  if (s === '반려') return '반려';
+  if (s === '취소') return '취소';
   return '대기';
 }
 
@@ -1956,8 +1972,9 @@ window.openDetail = (id) => {
   if (isAdmin) {
     if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">반려</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
-  } else if (r.status === '대기') {
-    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
+  } else {
+    if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
+    if (r.status === '대기' || r.status === '확정') btns += `<button class="btn btn-ghost" style="color:var(--red)" onclick="cancelR('${r.id}',true)">예약 취소</button>`;
   }
   btns += `<button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal('modal-detail')">닫기</button>`;
 
@@ -2018,6 +2035,19 @@ window.rejectR = async (id) => {
     console.error('rejectR error:', e);
     T('반려 실패: ' + e.message, '#A32D2D');
   }
+};
+window.cancelR = async (id, fromDetail = false) => {
+  if (!confirm('예약을 취소하시겠습니까?')) return;
+  const cu = curUser; if (!cu) return;
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  try {
+    await updateDoc(doc(db, 'reservations', id), {
+      status: '취소',
+      history: [...(r.history || []), { time: nowStr(), msg: '예약 취소 (사용자)' }]
+    });
+    T('예약이 취소되었습니다', '#777');
+    if (fromDetail) closeModal('modal-detail');
+  } catch(e) { T('취소 실패: ' + e.message, '#A32D2D'); }
 };
 window.deleteR = async (id, fromDetail = false) => {
   if (!confirm('예약을 삭제하시겠습니까?')) return;
@@ -2167,13 +2197,12 @@ function renderDashboard() {
 
 function renderList() {
   const fn = (document.getElementById('fname')?.value   || '').toLowerCase();
-  const fs = document.getElementById('fs')?.value   || '';
   const fr = document.getElementById('fr')?.value   || '';
   const ft = document.getElementById('ft')?.value   || '';
   const fq = (document.getElementById('fsearch')?.value || '').toLowerCase();
   let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
   if (fn) data = data.filter(r => (r.managerName + ' ' + r.stewardName).toLowerCase().includes(fn));
-  if (fs) data = data.filter(r => r.status === fs);
+  if (listStatusTab) data = data.filter(r => r.status === listStatusTab);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
   if (fq) data = data.filter(r => r.purpose.toLowerCase().includes(fq));
@@ -2217,7 +2246,9 @@ function renderMyList() {
           <td onclick="event.stopPropagation()" style="white-space:nowrap">
             ${r.status === '대기'
               ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
-                 <button class="btn btn-red"   style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="deleteR('${r.id}')">삭제</button>`
+                 <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:4px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
+              : r.status === '확정'
+              ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
               : '<span style="font-size:10px;color:var(--text3)">–</span>'}
           </td>
         </tr>`
