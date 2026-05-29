@@ -2617,7 +2617,7 @@ function renderDashboard() {
        </tbody></table>`;
 }
 
-function renderList() {
+window.renderList = function renderList() {
   const fq = (document.getElementById('fname')?.value   || '').toLowerCase();
   const fr = document.getElementById('fr')?.value   || '';
   const ft = document.getElementById('ft')?.value   || '';
