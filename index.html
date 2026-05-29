@@ -639,6 +639,7 @@ textarea { resize: vertical; min-height: 60px; }
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
     <div class="modal-title" id="edit-modal-title">예약 수정</div>
+    <div id="edit-recur-banner" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6"></div>
     <div class="fg">
       <div class="lbl">기관 분류 <span class="req">*</span></div>
       <select id="e-type"><option value="">선택</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option></select>
@@ -1095,6 +1096,39 @@ window.setListTab = (status) => {
     document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === status)
   );
   renderList();
+};
+// 정기 예약 시리즈 전체를 관리자 목록에서 필터링
+window.filterBySeries = (recurGroup) => {
+  closeModal('modal-detail');
+  go('list');
+  // 잠시 후 검색창에 시리즈 첫 번째 예약의 담당자명을 채우고 렌더링
+  setTimeout(() => {
+    const first = reservations.find(r => r.recurGroup === recurGroup);
+    if (first) {
+      const nameEl = document.getElementById('fname');
+      if (nameEl) { nameEl.value = first.managerName; }
+    }
+    listStatusTab = '';
+    ['', '대기', '확정', '반려', '취소'].forEach(s =>
+      document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === '')
+    );
+    // 시리즈 ID로 직접 필터링
+    const seriesIds = new Set(reservations.filter(r => r.recurGroup === recurGroup).map(r => r.id));
+    const tbody = document.getElementById('list-body');
+    if (tbody) {
+      const allRows = [...document.querySelectorAll('#list-body tr.row')];
+      // renderList 후 시리즈 강조 배너 삽입
+      renderList();
+      setTimeout(() => {
+        const banner = document.createElement('tr');
+        banner.innerHTML = `<td colspan="8" style="background:var(--blue-lt);color:var(--blue);font-size:11px;font-weight:600;padding:8px 12px">
+          🔁 정기 예약 시리즈 전체 (${seriesIds.size}회) — 아래 목록에서 수정할 회차를 클릭하세요
+          <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:8px" onclick="document.getElementById('fname').value='';renderList()">필터 해제</button>
+        </td>`;
+        if (tbody.firstChild) tbody.insertBefore(banner, tbody.firstChild);
+      }, 50);
+    }
+  }, 100);
 };
 
 function renderPubCal() {
@@ -1969,10 +2003,25 @@ window.runImport = async () => {
 window.openDetail = (id) => {
   const r = reservations.find(x => x.id === id); if (!r) return;
 
+  // 정기 예약 시리즈 정보
+  let seriesInfo = '';
+  if (r.recurGroup) {
+    const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+    const idx = series.findIndex(x => x.id === r.id) + 1;
+    const total = r.recurTotal || series.length;
+    seriesInfo = `<div style="background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div>
+        <span style="font-size:11px;font-weight:700;color:var(--blue)">🔁 정기 예약</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:6px">${r.recurType || ''} · ${idx}/${total}회차</span>
+      </div>
+      ${isAdmin ? `<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="filterBySeries('${r.recurGroup}')">시리즈 전체 보기</button>` : ''}
+    </div>`;
+  }
+
   document.getElementById('detail-title').innerHTML =
     `예약 상세 <span style="font-size:11px;color:var(--text3)">#${r.id?.slice(-6)}</span> ${sBadge(r.status)}`;
 
-  document.getElementById('detail-body').innerHTML = `
+  document.getElementById('detail-body').innerHTML = seriesInfo + `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${r.room}</div></div>
@@ -2131,6 +2180,18 @@ window.openEditModal = (id) => {
 
   if (id) {
     const r = reservations.find(x => x.id === id); if (!r) return;
+    // 정기 예약 회차 안내
+    const recurBanner = document.getElementById('edit-recur-banner');
+    if (r.recurGroup) {
+      const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+      const idx = series.findIndex(x => x.id === r.id) + 1;
+      const total = r.recurTotal || series.length;
+      recurBanner.style.display = '';
+      recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})<br>
+        <span style="font-size:11px">날짜·시간을 변경하면 <u>이 회차만</u> 변경되고 나머지 일정은 그대로 유지됩니다.</span>`;
+    } else {
+      recurBanner.style.display = 'none';
+    }
     document.getElementById('edit-modal-title').textContent  = '예약 수정';
     document.getElementById('edit-submit-btn').textContent   = '수정 저장';
     document.getElementById('e-type').value         = r.type || '';
