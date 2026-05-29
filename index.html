@@ -549,7 +549,6 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-대기"  onclick="setListTab('대기')">대기</button>
         <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
-        <button class="filter-chip" id="lst-tab-취소"  onclick="setListTab('취소')">취소</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
         <input id="fname" placeholder="🔍 책임자명 검색" style="width:160px;font-weight:500" oninput="renderList()">
@@ -1206,7 +1205,7 @@ window.setPubTab = (tab) => {
 };
 window.setListTab = (status) => {
   listStatusTab = status;
-  ['', '대기', '확정', '반려', '취소'].forEach(s =>
+  ['', '대기', '확정', '반려'].forEach(s =>
     document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === status)
   );
   renderList();
