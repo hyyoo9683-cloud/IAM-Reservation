@@ -2122,6 +2122,15 @@ function parseCSV(text) {
   return rows;
 }
 
+function parseRecurType(val) {
+  const v = (val || '').trim();
+  if (!v || v === '1회' || v === '없음' || v === '-') return null;
+  if (v.includes('격 주') || v.includes('격주') || v === 'biweekly') return '격 주';
+  if (v.includes('매 주') || v.includes('매주') || v === 'weekly')   return '매 주';
+  if (v.includes('매 달') || v.includes('매달') || v.includes('매월') || v === 'monthly') return '매 달 동일 요일';
+  return null; // 기타 값은 1회로 처리
+}
+
 function detectCols(headers) {
   const m = {};
   headers.forEach((h, i) => {
@@ -2241,9 +2250,10 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
     const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
     const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
-    // 기존 데이터 가져오기: 각 행은 이미 개별 날짜 → 반복 확장 안 함
+    const recurRaw= cols.recur     !== undefined ? (r[cols.recur]     || '') : '';
+    const recurType = parseRecurType(recurRaw);
     _importRows.push({ room, date, start, end, status, managerName: manager,
-      stewardName: steward, stewardTel: tel, purpose, people, email });
+      stewardName: steward, stewardTel: tel, purpose, people, email, recurType });
   }
 
   if (!_importRows.length) {
@@ -2254,13 +2264,16 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
   const total = _importRows.length;
   let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">
     총 ${total}건 인식됨 (헤더: ${headerIdx+1}행, 데이터 시작: ${headerIdx+2}행) — 아래 최대 10건 미리보기</div>`;
+  const seriesCount = new Set(_importRows.filter(r => r.recurType).map(r => `${r.managerName}|${r.room}|${r.start}|${r.end}|${r.recurType}`)).size;
+  if (seriesCount > 0) html += `<div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:6px">🔁 정기 예약 시리즈 ${seriesCount}개 감지됨 — 자동으로 묶어서 등록합니다</div>`;
   html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
-    <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>상태</th></tr></thead><tbody>`;
+    <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>반복</th><th>상태</th></tr></thead><tbody>`;
   _importRows.slice(0, 10).forEach(r => {
     const sc = r.status === '확정' ? 'var(--green)' : r.status === '반려' ? 'var(--red)' : 'var(--amber)';
     html += `<tr><td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
       <td>${r.managerName}</td><td>${r.people}명</td>
-      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
+      <td style="color:var(--green);font-size:10px">${r.recurType || '–'}</td>
       <td style="color:${sc};font-weight:600">${r.status}</td></tr>`;
   });
   html += `</tbody></table></div>`;
@@ -2319,8 +2332,22 @@ window.runImport = async () => {
   const prog = document.getElementById('import-progress');
   btn.disabled = true; btn.textContent = '가져오는 중...';
   try {
+    // 정기 예약 시리즈 묶기: 같은 (담당자+공간+시간+반복유형) → 동일 recurGroup
+    const seriesMap = {};
+    _importRows.forEach(r => {
+      if (!r.recurType) return;
+      const key = `${r.managerName}|${r.room}|${r.start}|${r.end}|${r.recurType}`;
+      if (!seriesMap[key]) seriesMap[key] = { group: `recur_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, rows: [] };
+      seriesMap[key].rows.push(r);
+    });
+    // recurGroup / recurTotal 부여
+    Object.values(seriesMap).forEach(({ group, rows }) => {
+      rows.sort((a, b) => a.date.localeCompare(b.date));
+      rows.forEach(r => { r.recurGroup = group; r.recurTotal = rows.length; });
+    });
+
     let done = 0;
-    const BATCH = 5; // 5건씩 병렬 처리
+    const BATCH = 5;
     for (let i = 0; i < _importRows.length; i += BATCH) {
       const chunk = _importRows.slice(i, i + BATCH);
       await Promise.all(chunk.map(r => addDoc(collection(db, 'reservations'), {
@@ -2329,12 +2356,12 @@ window.runImport = async () => {
         stewardName: r.stewardName, stewardTel: r.stewardTel,
         purpose: r.purpose, people: r.people,
         type: '', memo: '', userEmail: r.email,
-        history: [{ time: nowStr(), msg: 'CSV 가져오기' }],
+        ...(r.recurGroup ? { recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: r.recurTotal } : {}),
+        history: [{ time: nowStr(), msg: r.recurGroup ? `CSV 가져오기 (정기 예약 ${r.recurType})` : 'CSV 가져오기' }],
         createdAt: serverTimestamp()
       })));
       done += chunk.length;
       prog.textContent = `${done} / ${_importRows.length}건 완료...`;
-      // 매 배치마다 브라우저에 제어권 양보
       await new Promise(r => setTimeout(r, 0));
     }
     prog.textContent = '';
