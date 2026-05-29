@@ -1639,14 +1639,37 @@ function renderExistingPhotos() {
 }
 
 window.removeExistingPhoto = (i) => { existingPhotos.splice(i, 1); renderExistingPhotos(); };
-window.previewPhotos = (input) => {
-  newPhotoFiles = [...input.files];
+
+// Canvas로 리사이즈+JPEG 압축 (maxDim: 최대 가로/세로 px, quality: 0~1)
+function compressImage(file, maxDim = 1000, quality = 0.80) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+        else       { w = Math.round(w * maxDim / h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(resolve, 'image/jpeg', quality);
+    };
+    img.src = url;
+  });
+}
+
+window.previewPhotos = async (input) => {
   const prev = document.getElementById('photo-preview');
+  prev.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:4px">이미지 압축 중...</div>';
+  newPhotoFiles = await Promise.all([...input.files].map(f => compressImage(f)));
   prev.innerHTML = '';
-  newPhotoFiles.forEach(f => {
+  newPhotoFiles.forEach(blob => {
     const reader = new FileReader();
     reader.onload = e => { prev.innerHTML += `<img class="preview-img" src="${e.target.result}">`; };
-    reader.readAsDataURL(f);
+    reader.readAsDataURL(blob);
   });
 };
 window.submitSpace = async () => {
