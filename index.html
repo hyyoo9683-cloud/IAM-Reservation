@@ -267,6 +267,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('list')"><span class="icon">📋</span>예약 목록</button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
+      <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <div class="nav-section">사용자 뷰</div>
@@ -574,6 +575,45 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
       <div class="card"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
     </div>
+    <!-- 관리자: 차단일 관리 -->
+    <div class="page" id="p-blocked">
+      <div style="max-width:680px">
+        <div class="card">
+          <div class="card-title">날짜 차단 추가</div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:12px;background:var(--amber-lt);border-radius:7px;padding:8px 12px">
+            차단된 날짜에는 <strong>예약 신청이 불가능</strong>합니다. 공휴일·교회 행사 등에 사용하세요.
+          </div>
+          <div class="fl" style="align-items:flex-end;flex-wrap:wrap;gap:8px">
+            <div class="fg" style="flex:0 0 140px;margin-bottom:0">
+              <div class="lbl">날짜 <span class="req">*</span></div>
+              <input id="bd-date" type="date">
+            </div>
+            <div class="fg" style="flex:1;min-width:160px;margin-bottom:0">
+              <div class="lbl">사유 <span class="req">*</span></div>
+              <input id="bd-reason" placeholder="예) 성탄절, 교회 특별 집회">
+            </div>
+            <div class="fg" style="flex:0 0 110px;margin-bottom:0">
+              <div class="lbl">구분</div>
+              <select id="bd-type">
+                <option value="holiday">공휴일</option>
+                <option value="custom">기타 차단</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="flex-shrink:0;margin-bottom:0" onclick="addBlockedDate()">추가</button>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--text3)">
+            <button class="btn btn-ghost" style="font-size:11px" onclick="seedHolidays()">🇰🇷 한국 공휴일 자동 등록 (2025–2026)</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>날짜</th><th>사유</th><th>구분</th><th>액션</th></tr></thead>
+            <tbody id="blocked-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -764,6 +804,7 @@ let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '';
 let newPhotoFiles = [], existingPhotos = [];
+let blockedDates = [];   // { id, date, reason, type:'holiday'|'custom' }
 
 // 공간 고정 정렬 순서 (없는 공간은 뒤로)
 const SPACE_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
@@ -967,6 +1008,13 @@ async function loadData() {
     refresh();
   });
 
+  onSnapshot(collection(db, 'blockedDates'), snap => {
+    blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    blockedDates.sort((a, b) => a.date.localeCompare(b.date));
+    if (curPage === 'blocked') renderBlockedDates();
+    renderPubCal();
+  });
+
   buildRoomChips();
   populateRoomFilter();
   buildReportYearSelect();
@@ -1032,7 +1080,7 @@ window.go = (page) => {
   const titles = {
     spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
-    'ext-users': '외부 사용자 관리'
+    'ext-users': '외부 사용자 관리', blocked: '차단일 관리'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -1065,6 +1113,7 @@ window.go = (page) => {
   if (page === 'manage-spaces')  renderManageSpaces();
   if (page === 'report')         renderReport();
   if (page === 'ext-users')      renderExtUsers();
+  if (page === 'blocked')        renderBlockedDates();
 };
 
 function refresh() {
@@ -1148,7 +1197,10 @@ function renderPubCal() {
   let html = `<thead><tr><th style="min-width:72px">공간</th>${days.map((d, i) => {
     const s = d.toISOString().slice(0, 10);
     const isT = s === todayStr;
-    return `<th style="${isT ? 'background:var(--blue-lt);color:var(--blue)' : ''}">${dows[i]}<br><span style="font-size:12px;font-weight:700">${d.getDate()}</span></th>`;
+    const bd = blockedDates.find(b => b.date === s);
+    const bdStyle = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
+    const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
+    return `<th style="${bdStyle}">${dows[i]}<br><span style="font-size:12px;font-weight:700">${d.getDate()}</span>${bdLabel}</th>`;
   }).join('')}</tr></thead><tbody>`;
 
   tabSpaces.forEach(sp => {
@@ -1156,12 +1208,17 @@ function renderPubCal() {
     days.forEach(d => {
       const ds = d.toISOString().slice(0, 10);
       const isT = ds === todayStr;
+      const bd = blockedDates.find(b => b.date === ds);
       const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status !== '반려');
-      html += `<td style="${isT ? 'background:#F8FBFF' : ''}">`;
-      res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
-        const ok = r.status === '확정';
-        html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.start}–${r.end}<br>${r.managerName}</div>`;
-      });
+      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}">`;
+      if (bd) {
+        html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
+      } else {
+        res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
+          const ok = r.status === '확정';
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.start}–${r.end}<br>${r.managerName}</div>`;
+        });
+      }
       html += `</td>`;
     });
     html += `</tr>`;
@@ -1169,6 +1226,103 @@ function renderPubCal() {
   html += '</tbody>';
   document.getElementById('pub-cal-table').innerHTML = html;
 }
+
+// ── 차단일 ────────────────────────────────────────────────────────
+function isBlockedDate(dateStr) {
+  return blockedDates.some(b => b.date === dateStr);
+}
+function getBlockedInfo(dateStr) {
+  return blockedDates.find(b => b.date === dateStr) || null;
+}
+
+function renderBlockedDates() {
+  const tbody = document.getElementById('blocked-body');
+  if (!tbody) return;
+  if (blockedDates.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px">등록된 차단일이 없습니다</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = blockedDates.map(b => {
+    const typeLabel = b.type === 'holiday' ? '<span style="background:var(--amber-lt);color:var(--amber);border-radius:4px;padding:2px 6px;font-size:10px">공휴일</span>'
+                                           : '<span style="background:var(--red-lt);color:var(--red);border-radius:4px;padding:2px 6px;font-size:10px">기타 차단</span>';
+    return `<tr>
+      <td style="font-weight:600">${b.date}</td>
+      <td>${b.reason}</td>
+      <td>${typeLabel}</td>
+      <td><button class="btn btn-ghost" style="font-size:11px;color:var(--red);padding:3px 8px" onclick="removeBlockedDate('${b.id}')">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+window.addBlockedDate = async () => {
+  const date   = document.getElementById('bd-date').value;
+  const reason = document.getElementById('bd-reason').value.trim();
+  const type   = document.getElementById('bd-type').value;
+  if (!date || !reason) { T('날짜와 사유를 입력해주세요', '#A32D2D'); return; }
+  if (blockedDates.some(b => b.date === date)) { T('이미 등록된 날짜입니다', '#A32D2D'); return; }
+  try {
+    await setDoc(doc(db, 'blockedDates', date), { date, reason, type, createdAt: serverTimestamp() });
+    document.getElementById('bd-date').value   = '';
+    document.getElementById('bd-reason').value = '';
+    T('차단일이 추가되었습니다', '#3B6D11');
+  } catch(e) { T('추가 실패: ' + e.message, '#A32D2D'); }
+};
+
+window.removeBlockedDate = async (id) => {
+  if (!confirm('이 차단일을 삭제하시겠습니까?')) return;
+  try {
+    await deleteDoc(doc(db, 'blockedDates', id));
+    T('삭제되었습니다', '#777');
+  } catch(e) { T('삭제 실패: ' + e.message, '#A32D2D'); }
+};
+
+window.seedHolidays = async () => {
+  if (!confirm('2025–2026년 한국 공휴일을 자동 등록하시겠습니까?\n이미 등록된 날짜는 건너뜁니다.')) return;
+  const holidays = [
+    // 2025년
+    { date: '2025-01-01', reason: '신정' },
+    { date: '2025-01-28', reason: '설날 연휴' },
+    { date: '2025-01-29', reason: '설날' },
+    { date: '2025-01-30', reason: '설날 연휴' },
+    { date: '2025-03-01', reason: '3·1절' },
+    { date: '2025-05-05', reason: '어린이날' },
+    { date: '2025-05-06', reason: '대체공휴일 (어린이날)' },
+    { date: '2025-06-06', reason: '현충일' },
+    { date: '2025-08-15', reason: '광복절' },
+    { date: '2025-10-03', reason: '개천절' },
+    { date: '2025-10-05', reason: '추석 연휴' },
+    { date: '2025-10-06', reason: '추석' },
+    { date: '2025-10-07', reason: '추석 연휴' },
+    { date: '2025-10-08', reason: '대체공휴일 (추석)' },
+    { date: '2025-10-09', reason: '한글날' },
+    { date: '2025-12-25', reason: '성탄절' },
+    // 2026년
+    { date: '2026-01-01', reason: '신정' },
+    { date: '2026-02-16', reason: '설날 연휴' },
+    { date: '2026-02-17', reason: '설날' },
+    { date: '2026-02-18', reason: '설날 연휴' },
+    { date: '2026-03-01', reason: '3·1절' },
+    { date: '2026-03-02', reason: '대체공휴일 (3·1절)' },
+    { date: '2026-05-05', reason: '어린이날' },
+    { date: '2026-05-25', reason: '부처님 오신 날' },
+    { date: '2026-06-06', reason: '현충일' },
+    { date: '2026-08-15', reason: '광복절' },
+    { date: '2026-09-24', reason: '추석 연휴' },
+    { date: '2026-09-25', reason: '추석' },
+    { date: '2026-09-26', reason: '추석 연휴' },
+    { date: '2026-10-03', reason: '개천절' },
+    { date: '2026-10-05', reason: '대체공휴일 (개천절)' },
+    { date: '2026-10-09', reason: '한글날' },
+    { date: '2026-12-25', reason: '성탄절' },
+  ];
+  let added = 0;
+  for (const h of holidays) {
+    if (blockedDates.some(b => b.date === h.date)) continue;
+    await setDoc(doc(db, 'blockedDates', h.date), { date: h.date, reason: h.reason, type: 'holiday', createdAt: serverTimestamp() });
+    added++;
+  }
+  T(`공휴일 ${added}건 등록 완료`, '#3B6D11');
+};
 
 // ── 공간 카드 ────────────────────────────────────────────────────
 function spaceCardHtml(sp, adminMode = false) {
@@ -1542,6 +1696,13 @@ window.checkAvail = () => {
   const el    = document.getElementById('m-avail');
   if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
 
+  // 차단일 확인 (단일 날짜)
+  const bd = getBlockedInfo(date);
+  if (bd) {
+    el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${bd.reason})</div>`;
+    return;
+  }
+
   // 공실 희망은 가용성 체크 불필요
   if (room === '공실 희망') {
     el.innerHTML = `<div class="avail-ok">🏢 공실 희망으로 신청하시면 관리자가 적합한 공간을 배정해드립니다</div>`;
@@ -1559,6 +1720,14 @@ window.checkAvail = () => {
   const dates = (isRecur && endDate && endDate >= date)
     ? generateAvailDates(date, endDate, recur)
     : [date];
+
+  // 차단일 포함 여부 체크 (정기 예약)
+  const blockedInRange = dates.filter(d => isBlockedDate(d));
+  if (blockedInRange.length > 0) {
+    const infos = blockedInRange.map(d => { const b = getBlockedInfo(d); return `${d} (${b?.reason || '차단'})`; }).join(', ');
+    el.innerHTML = `<div class="avail-no">🚫 다음 날짜는 예약이 불가능합니다: ${infos}</div>`;
+    return;
+  }
 
   const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
 
@@ -1701,6 +1870,14 @@ window.submitApply = async () => {
   if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
 
   const dates = isRecur ? generateAvailDates(date, endDate, recur) : [date];
+
+  // 차단일 검증
+  const blockedInDates = dates.filter(d => isBlockedDate(d));
+  if (blockedInDates.length > 0) {
+    const infos = blockedInDates.map(d => { const b = getBlockedInfo(d); return `${d}(${b?.reason || '차단'})` ; }).join(', ');
+    T(`다음 날짜는 예약 불가 날짜입니다: ${infos}`, '#A32D2D'); return;
+  }
+
   if (!isFlexRoom) {
     const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
     if (conflictDates.length > 0) {
