@@ -569,6 +569,7 @@ textarea { resize: vertical; min-height: 60px; }
             <option value="외부 예약">외부 예약</option>
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px" onclick="clearBulkSelect()">선택 해제</button>
         </div>
@@ -2735,6 +2736,41 @@ window.bulkChangeType = async () => {
     await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type })));
     T(`${ids.length}건 기관 변경 완료`, '#3B6D11');
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
+};
+window.bulkGroupRecur = async () => {
+  const ids = getSelectedIds();
+  if (ids.length < 2) { T('2건 이상 선택해야 묶을 수 있습니다', '#A32D2D'); return; }
+
+  // 선택된 예약들의 날짜 정렬해서 보여주기
+  const selected = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const datePreview = selected.map(r => r.date).join(', ');
+
+  const typeLabel = prompt(
+    `선택한 ${ids.length}건을 정기 예약 시리즈로 묶습니다.\n` +
+    `날짜: ${datePreview}\n\n` +
+    `반복 유형을 입력하세요:\n1 = 매 주\n2 = 격 주\n3 = 매 달\n4 = 기타\n\n번호 입력:`
+  );
+  if (typeLabel === null) return;
+  const recurTypeMap = { '1': '매 주', '2': '격 주', '3': '매 달 동일 요일', '4': '기타' };
+  const recurType = recurTypeMap[typeLabel?.trim()] || '기타';
+
+  // 이미 다른 시리즈에 속한 항목 확인
+  const alreadyGrouped = selected.filter(r => r.recurGroup);
+  if (alreadyGrouped.length > 0) {
+    if (!confirm(`이미 다른 시리즈에 속한 항목 ${alreadyGrouped.length}건이 포함되어 있습니다. 새 시리즈로 재지정하시겠습니까?`)) return;
+  }
+
+  const recurGroup = `recur_${Date.now()}`;
+  try {
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), {
+      recurGroup,
+      recurType,
+      recurTotal: ids.length
+    })));
+    T(`${ids.length}건이 정기 예약 시리즈로 묶였습니다 (${recurType})`, '#3B6D11');
+    clearBulkSelect();
+  } catch(e) { T('묶기 실패: ' + e.message, '#A32D2D'); }
 };
 
 function renderMyList() {
