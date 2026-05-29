@@ -549,15 +549,19 @@ textarea { resize: vertical; min-height: 60px; }
   <div class="modal" style="max-width:740px;width:96%">
     <div class="modal-title">📥 예약 데이터 가져오기</div>
     <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">
-      <strong>① Google Sheets</strong>에서 데이터 전체 선택(Ctrl+A) → 복사(Ctrl+C)<br>
-      <strong>② 아래 칸</strong>에 붙여넣기(Ctrl+V) → <strong>③ 분석</strong> 버튼 클릭 → 미리보기 확인 후 <strong>④ 가져오기</strong>
+      <strong>① 컬럼 헤더 행(1행)</strong>을 복사해서 아래 <em>헤더</em> 칸에 붙여넣기<br>
+      <strong>② 데이터 행</strong>을 복사해서 아래 <em>데이터</em> 칸에 붙여넣기 → <strong>③ 분석</strong> → 확인 후 <strong>④ 가져오기</strong>
     </div>
+    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">헤더 행 (시트 1행 — 컬럼명)</div>
+    <input type="text" id="import-header" placeholder="예) 장소	날짜	시작 시간	종료 시간	담당자 …  (Google Sheets 1행 복사 후 붙여넣기)"
+      style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);background:var(--bg2);margin-bottom:10px">
+    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">데이터 행 (시트에서 가져올 행 범위 선택 후 복사)</div>
     <textarea id="import-text" rows="6"
-      placeholder="Google Sheets에서 복사한 내용을 여기에 붙여넣으세요 (CSV 또는 탭 구분값 모두 가능)"
+      placeholder="데이터 행만 선택해서 붙여넣으세요 (헤더 행 제외 가능)"
       style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);background:var(--bg2)"></textarea>
     <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="previewImportText()">🔍 분석</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('import-text').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('import-header').value='';document.getElementById('import-text').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
       <label style="font-size:11px;color:var(--text3);margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
         파일로 가져오기:
         <input type="file" id="import-file" onchange="previewImport(this)" style="font-size:11px;max-width:180px">
@@ -1706,7 +1710,7 @@ function parseRecur(s) {
   return 'once';
 }
 
-async function _runPreviewFromText(text) {
+async function _runPreviewFromText(text, headerIsFirst = false) {
   const previewEl = document.getElementById('import-preview');
   const btn = document.getElementById('import-submit-btn');
   btn.style.display = 'none'; _importRows = [];
@@ -1717,11 +1721,14 @@ async function _runPreviewFromText(text) {
   const rows = parseCSV(text);
   if (rows.length < 2) { previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
 
-  // 헤더 행 자동 탐지: 앞 60행 중 인식된 컬럼이 가장 많은 행을 헤더로 사용
-  let headerIdx = 0, maxFound = 0;
-  for (let i = 0; i < Math.min(rows.length, 60); i++) {
-    const found = Object.keys(detectCols(rows[i])).length;
-    if (found > maxFound) { maxFound = found; headerIdx = i; }
+  // 헤더 행 탐지: headerIsFirst=true면 항상 0행, 아니면 앞 60행 중 컬럼 가장 많은 행
+  let headerIdx = 0;
+  if (!headerIsFirst) {
+    let maxFound = 0;
+    for (let i = 0; i < Math.min(rows.length, 60); i++) {
+      const found = Object.keys(detectCols(rows[i])).length;
+      if (found > maxFound) { maxFound = found; headerIdx = i; }
+    }
   }
   const headers = rows[headerIdx];
   const cols = detectCols(headers);
@@ -1778,9 +1785,12 @@ async function _runPreviewFromText(text) {
 }
 
 window.previewImportText = async () => {
-  const text = document.getElementById('import-text').value.trim();
-  if (!text) { T('붙여넣을 내용이 없습니다', '#A32D2D'); return; }
-  await _runPreviewFromText(text);
+  const header = document.getElementById('import-header').value.trim();
+  const data   = document.getElementById('import-text').value.trim();
+  if (!data) { T('데이터를 붙여넣어 주세요', '#A32D2D'); return; }
+  // 헤더 칸이 채워진 경우 헤더+데이터 합치기, 아니면 데이터만 (내부에서 자동 탐지)
+  const text = header ? header + '\n' + data : data;
+  await _runPreviewFromText(text, !!header);
 };
 
 window.previewImport = async (input) => {
@@ -1848,6 +1858,7 @@ window.runImport = async () => {
     T(`${done}건 가져오기 완료!`, '#3B6D11');
     closeModal('modal-import');
     _importRows = [];
+    document.getElementById('import-header').value = '';
     document.getElementById('import-text').value = '';
     document.getElementById('import-preview').innerHTML = '';
     btn.style.display = 'none';
