@@ -347,6 +347,9 @@ textarea { resize: vertical; min-height: 60px; }
 
     <!-- 예약 신청 -->
     <div class="page" id="p-apply">
+      <div style="margin-bottom:14px">
+        <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;display:inline-flex;align-items:center;gap:6px" onclick="history.go(-1)||go('spaces')">← 뒤로</button>
+      </div>
       <div style="display:flex;gap:16px;max-width:880px;flex-wrap:wrap">
         <div style="flex:2;min-width:280px">
           <div class="card">
@@ -1116,8 +1119,9 @@ function spaceCardHtml(sp, adminMode = false) {
   const clickAttr = adminMode ? '' : `onclick="openSpaceDetail('${sp.id}')" style="cursor:pointer"`;
   let availBadge = '';
   if (!adminMode && spaceAvailResult !== null) {
+    const CONSULT_ROOMS = ['아론홀', '샤론홀'];
     availBadge = spaceAvailResult.has(sp.id)
-      ? `<div><span class="avail-ok">✓ 예약 가능</span></div>`
+      ? `<div><span class="avail-ok">✓ 예약 가능${CONSULT_ROOMS.includes(sp.name) ? '<span style="font-size:9px;font-weight:400;margin-left:4px;opacity:.8">(관리자 상담 필요)</span>' : ''}</span></div>`
       : `<div><span class="avail-no">✗ 예약 불가</span></div>`;
   }
   return `<div class="space-card" ${clickAttr}>
