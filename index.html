@@ -1664,87 +1664,92 @@ function parseRecur(s) {
   return 'once';
 }
 
-window.previewImport = (input) => {
+window.previewImport = async (input) => {
   const file = input.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    let text = e.target.result;
-    // BOM 제거
-    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-    const rows = parseCSV(text);
-    if (rows.length < 2) { document.getElementById('import-preview').innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
-    const headers = rows[0];
-    const cols = detectCols(headers);
+  const previewEl = document.getElementById('import-preview');
+  const btn = document.getElementById('import-submit-btn');
+  btn.style.display = 'none'; _importRows = [];
+  previewEl.innerHTML = '<div style="font-size:12px;color:var(--text2)">⏳ 파일 분석 중... 잠시 기다려주세요</div>';
 
-    // 필수 컬럼 확인
-    const missing = ['room','date','start','end'].filter(k => cols[k] === undefined);
-    if (missing.length) {
-      document.getElementById('import-preview').innerHTML =
-        `<div style="color:var(--red);font-size:12px">⚠️ 필수 컬럼을 찾지 못했습니다: ${missing.join(', ')}<br>
-         인식된 헤더: ${headers.join(' | ')}</div>`;
-      return;
+  // 50ms 후에 처리 시작 (UI 업데이트 반영 후)
+  await new Promise(r => setTimeout(r, 50));
+
+  let text;
+  try { text = await file.text(); } catch(e) { text = await new Promise((res,rej) => { const fr = new FileReader(); fr.onload = e => res(e.target.result); fr.onerror = rej; fr.readAsText(file,'UTF-8'); }); }
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  const rows = parseCSV(text);
+  if (rows.length < 2) { previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">데이터를 인식할 수 없습니다.</div>'; return; }
+
+  const headers = rows[0];
+  const cols = detectCols(headers);
+  const missing = ['room','date','start','end'].filter(k => cols[k] === undefined);
+  if (missing.length) {
+    previewEl.innerHTML = `<div style="color:var(--red);font-size:12px">⚠️ 필수 컬럼을 찾지 못했습니다: ${missing.join(', ')}<br>인식된 헤더: ${headers.slice(0,10).join(' | ')}</div>`;
+    return;
+  }
+
+  const MAX_DATES_PER_ROW = 55; // 매주 1년치 최대
+  const MAX_TOTAL = 800;
+  let truncated = false;
+
+  for (let i = 1; i < rows.length; i++) {
+    // 20행마다 브라우저에 제어권 양보 (응답없음 방지)
+    if (i % 20 === 0) await new Promise(r => setTimeout(r, 0));
+
+    const r = rows[i]; if (!r || r.every(c => !c)) continue;
+    const room    = parseRoom(r[cols.room] || '');
+    const dateRaw = r[cols.date] || '';
+    const date    = parseKorDate(dateRaw) || parseKorDate(r[0] || '');
+    const startRaw= cols.start !== undefined ? (r[cols.start] || '') : '';
+    const endRaw  = cols.end   !== undefined ? (r[cols.end]   || '') : '';
+    const start   = parseKorTime(startRaw) || parseKorTime(dateRaw);
+    const end     = parseKorTime(endRaw);
+    if (!room || !date || !start || !end) continue;
+
+    const recur   = parseRecur(cols.recur   !== undefined ? r[cols.recur]   : '');
+    const endDate = parseKorDate(cols.endDate!== undefined ? r[cols.endDate] : '');
+    const status  = parseStatus(cols.status  !== undefined ? r[cols.status]  : '');
+    const manager = cols.manager   !== undefined ? (r[cols.manager]   || '') : '';
+    const steward = cols.steward   !== undefined ? (r[cols.steward]   || '') : manager;
+    const tel     = cols.stewardTel!== undefined ? (r[cols.stewardTel]|| '') : '';
+    const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
+    const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
+    const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
+
+    // 반복 날짜 생성 — 최대 55개로 제한
+    const dates = (recur !== 'once' && endDate && endDate >= date)
+      ? generateAvailDates(date, endDate, recur).slice(0, MAX_DATES_PER_ROW) : [date];
+
+    for (const d of dates) {
+      if (_importRows.length >= MAX_TOTAL) { truncated = true; break; }
+      _importRows.push({ room, date: d, start, end, status, managerName: manager,
+        stewardName: steward, stewardTel: tel, purpose, people, email });
     }
+    if (truncated) break;
+  }
 
-    _importRows = [];
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i]; if (!r || r.every(c => !c)) continue;
-      const room    = parseRoom(r[cols.room] || '');
-      const dateRaw = r[cols.date] || '';
-      const date    = parseKorDate(dateRaw) || parseKorDate(r[0] || '');
-      const startRaw= cols.start !== undefined ? (r[cols.start] || '') : '';
-      const endRaw  = cols.end   !== undefined ? (r[cols.end]   || '') : '';
-      // 날짜 컬럼에 시간이 포함된 경우 fallback
-      const start   = parseKorTime(startRaw) || parseKorTime(dateRaw);
-      const end     = parseKorTime(endRaw);
-      if (!room || !date || !start || !end) continue;
+  if (!_importRows.length) {
+    previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">파싱된 데이터가 없습니다. 날짜·시간·장소 컬럼을 확인해주세요.</div>';
+    return;
+  }
 
-      const recur   = parseRecur(cols.recur   !== undefined ? r[cols.recur]   : '');
-      const endDate = parseKorDate(cols.endDate!== undefined ? r[cols.endDate] : '');
-      const status  = parseStatus(cols.status  !== undefined ? r[cols.status]  : '');
-      const manager = cols.manager   !== undefined ? (r[cols.manager]   || '') : '';
-      const steward = cols.steward   !== undefined ? (r[cols.steward]   || '') : manager;
-      const tel     = cols.stewardTel!== undefined ? (r[cols.stewardTel]|| '') : '';
-      const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
-      const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
-      const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
-
-      // 반복 날짜 생성
-      const dates = (recur !== 'once' && endDate && endDate >= date)
-        ? generateAvailDates(date, endDate, recur) : [date];
-
-      dates.forEach(d => {
-        _importRows.push({ room, date: d, start, end, status, managerName: manager,
-          stewardName: steward, stewardTel: tel, purpose, people, email, recur, endDate });
-      });
-    }
-
-    if (!_importRows.length) {
-      document.getElementById('import-preview').innerHTML = '<div style="color:var(--red);font-size:12px">파싱된 데이터가 없습니다. 날짜·시간·장소 컬럼을 확인해주세요.</div>';
-      return;
-    }
-
-    // 미리보기 (최대 10행)
-    const preview = _importRows.slice(0, 10);
-    const total = _importRows.length;
-    let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">총 ${total}건 인식됨 (아래 최대 10건 미리보기)</div>`;
-    html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
-      <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>상태</th></tr></thead><tbody>`;
-    preview.forEach(r => {
-      const statusColor = r.status === '확정' ? 'var(--green)' : r.status === '반려' ? 'var(--red)' : 'var(--amber)';
-      html += `<tr>
-        <td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
-        <td>${r.managerName}</td><td>${r.people}명</td>
-        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
-        <td style="color:${statusColor};font-weight:600">${r.status}</td>
-      </tr>`;
-    });
-    html += `</tbody></table></div>`;
-    if (total > 10) html += `<div style="font-size:11px;color:var(--text3);margin-top:6px">... 외 ${total - 10}건</div>`;
-    document.getElementById('import-preview').innerHTML = html;
-    const btn = document.getElementById('import-submit-btn');
-    btn.style.display = ''; btn.textContent = `가져오기 (${total}건)`;
-  };
-  reader.readAsText(file, 'UTF-8');
+  const total = _importRows.length;
+  let html = `<div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--green)">총 ${total}건 인식됨 (아래 최대 10건 미리보기)</div>`;
+  if (truncated) html += `<div style="font-size:11px;color:var(--amber);margin-bottom:8px">⚠️ ${MAX_TOTAL}건 초과분은 잘렸습니다. 나눠서 가져오세요.</div>`;
+  html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
+    <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>상태</th></tr></thead><tbody>`;
+  _importRows.slice(0, 10).forEach(r => {
+    const sc = r.status === '확정' ? 'var(--green)' : r.status === '반려' ? 'var(--red)' : 'var(--amber)';
+    html += `<tr><td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
+      <td>${r.managerName}</td><td>${r.people}명</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
+      <td style="color:${sc};font-weight:600">${r.status}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+  if (total > 10) html += `<div style="font-size:11px;color:var(--text3);margin-top:6px">... 외 ${total - 10}건</div>`;
+  previewEl.innerHTML = html;
+  btn.style.display = ''; btn.textContent = `가져오기 (${total}건)`;
 };
 
 window.runImport = async () => {
@@ -1757,8 +1762,10 @@ window.runImport = async () => {
   try {
     await cu.getIdToken(true);
     let done = 0;
-    for (const r of _importRows) {
-      await addDoc(collection(db, 'reservations'), {
+    const BATCH = 5; // 5건씩 병렬 처리
+    for (let i = 0; i < _importRows.length; i += BATCH) {
+      const chunk = _importRows.slice(i, i + BATCH);
+      await Promise.all(chunk.map(r => addDoc(collection(db, 'reservations'), {
         room: r.room, date: r.date, start: r.start, end: r.end,
         status: r.status, managerName: r.managerName,
         stewardName: r.stewardName, stewardTel: r.stewardTel,
@@ -1766,9 +1773,11 @@ window.runImport = async () => {
         type: '', memo: '', userEmail: r.email,
         history: [{ time: nowStr(), msg: 'CSV 가져오기' }],
         createdAt: serverTimestamp()
-      });
-      done++;
-      if (done % 10 === 0) prog.textContent = `${done} / ${_importRows.length}건 완료...`;
+      })));
+      done += chunk.length;
+      prog.textContent = `${done} / ${_importRows.length}건 완료...`;
+      // 매 배치마다 브라우저에 제어권 양보
+      await new Promise(r => setTimeout(r, 0));
     }
     prog.textContent = '';
     T(`${done}건 가져오기 완료!`, '#3B6D11');
