@@ -6,6 +6,12 @@
       ".firebaserc",
       ".git/**",
       "README.md"
+    ],
+    "rewrites": [
+      {
+        "source": "/discount/registration",
+        "destination": "/discount/registration/index.html"
+      }
     ]
   }
 }
