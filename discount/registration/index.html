@@ -94,6 +94,36 @@
     margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  .contact-box {
+    display: none;
+    margin-top: 20px;
+    background: #f8f9ff;
+    border: 1px solid #dde3ff;
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .contact-box .contact-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #444;
+    margin-bottom: 12px;
+  }
+  .contact-box a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #333;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 8px;
+    transition: background .15s;
+  }
+  .contact-box a:hover { background: #eef0ff; }
+  .contact-box a + a { margin-top: 6px; }
+  .contact-box .ci { font-size: 20px; }
 </style>
 </head>
 <body>
@@ -120,6 +150,16 @@
   </div>
 
   <button class="btn" id="btn" onclick="doVerify()">확인</button>
+
+  <div class="contact-box" id="contact-box">
+    <div class="contact-title">관리자에게 문의하기</div>
+    <a href="tel:07070181439">
+      <span class="ci">📞</span> 070-7018-1439
+    </a>
+    <a href="https://pf.kakao.com/_xixoxoxl" target="_blank">
+      <span class="ci">💬</span> 카카오톡 채널 '아이엠센터'
+    </a>
+  </div>
 </div>
 
 <script type="module">
@@ -165,6 +205,7 @@
 
       if (!found) {
         show('입력하신 정보와 일치하는 청지기 정보를 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
+        showContact();
         return;
       }
 
@@ -174,6 +215,7 @@
     } catch (e) {
       console.error(e);
       show('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      showContact();
     } finally {
       if (btn.innerHTML.includes('확인 중')) {
         btn.disabled = false;
@@ -186,6 +228,10 @@
     const el = document.getElementById('alert');
     el.style.display = '';
     el.textContent = msg;
+  }
+
+  function showContact() {
+    document.getElementById('contact-box').style.display = '';
   }
 
   document.getElementById('inp-phone').addEventListener('input', e => {
