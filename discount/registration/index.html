@@ -177,7 +177,19 @@
   });
   const db = getFirestore(app);
 
-  const REDIRECT_URL = "https://a12299.parkingweb.kr/discount/registration";
+  const REDIRECT_URL  = "https://a12299.parkingweb.kr/discount/registration";
+  const SESSION_KEY   = 'parking_verified_at';
+  const EXPIRE_MS     = 2 * 60 * 1000; // 2분
+
+  // 이미 인증된 세션이면 바로 이동
+  (function checkSession() {
+    const t = sessionStorage.getItem(SESSION_KEY);
+    if (t && Date.now() - Number(t) < EXPIRE_MS) {
+      location.href = REDIRECT_URL;
+    } else {
+      sessionStorage.removeItem(SESSION_KEY);
+    }
+  })();
 
   window.doVerify = async function () {
     const name  = document.getElementById('inp-name').value.trim();
@@ -209,6 +221,7 @@
         return;
       }
 
+      sessionStorage.setItem(SESSION_KEY, String(Date.now()));
       btn.innerHTML = '✅ 확인되었습니다. 이동 중...';
       location.href = REDIRECT_URL;
 
