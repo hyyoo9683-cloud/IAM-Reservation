@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주차 할인 등록 — 아이엠센터</title>
+<title>주차 할인 — 본인 확인</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -22,41 +22,19 @@
     border-radius: 16px;
     box-shadow: 0 4px 24px rgba(0,0,0,.10);
     width: 100%;
-    max-width: 440px;
-    padding: 40px 36px;
+    max-width: 400px;
+    padding: 40px 32px;
   }
 
   .logo {
     text-align: center;
-    margin-bottom: 28px;
+    margin-bottom: 32px;
   }
-  .logo .icon {
-    font-size: 40px;
-    margin-bottom: 8px;
-  }
-  .logo h1 {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1a1a2e;
-  }
-  .logo p {
-    font-size: 13px;
-    color: #888;
-    margin-top: 4px;
-  }
+  .logo .icon { font-size: 44px; margin-bottom: 10px; }
+  .logo h1   { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+  .logo p    { font-size: 13px; color: #999; margin-top: 6px; }
 
-  .section-title {
-    font-size: 15px;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 18px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #eee;
-  }
-
-  .field {
-    margin-bottom: 16px;
-  }
+  .field { margin-bottom: 16px; }
   .field label {
     display: block;
     font-size: 13px;
@@ -64,29 +42,18 @@
     color: #555;
     margin-bottom: 6px;
   }
-  .field input, .field select {
+  .field input {
     width: 100%;
-    padding: 11px 14px;
+    padding: 12px 14px;
     border: 1.5px solid #ddd;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 16px;
     color: #222;
     transition: border-color .2s;
-    background: #fff;
   }
-  .field input:focus, .field select:focus {
-    outline: none;
-    border-color: #4f6ef7;
-  }
-  .field input.error {
-    border-color: #e53e3e;
-  }
+  .field input:focus { outline: none; border-color: #4f6ef7; }
 
-  .hint {
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 5px;
-  }
+  .hint { font-size: 12px; color: #bbb; margin-top: 5px; }
 
   .btn {
     width: 100%;
@@ -95,66 +62,30 @@
     border-radius: 8px;
     font-size: 15px;
     font-weight: 700;
-    cursor: pointer;
-    transition: background .2s, opacity .2s;
-  }
-  .btn-primary {
     background: #4f6ef7;
     color: #fff;
+    cursor: pointer;
     margin-top: 8px;
+    transition: background .2s, opacity .2s;
   }
-  .btn-primary:hover { background: #3b57e0; }
-  .btn-primary:disabled { opacity: .5; cursor: default; }
-  .btn-secondary {
-    background: #f0f0f0;
-    color: #555;
-    margin-top: 10px;
-  }
-  .btn-secondary:hover { background: #e0e0e0; }
+  .btn:hover    { background: #3b57e0; }
+  .btn:disabled { opacity: .5; cursor: default; }
 
   .alert {
+    display: none;
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    color: #c53030;
     border-radius: 8px;
-    padding: 12px 14px;
+    padding: 11px 14px;
     font-size: 13px;
     margin-bottom: 16px;
-    display: none;
-  }
-  .alert.error   { background: #fff5f5; border: 1px solid #fed7d7; color: #c53030; }
-  .alert.success { background: #f0fff4; border: 1px solid #9ae6b4; color: #276749; }
-  .alert.info    { background: #ebf8ff; border: 1px solid #90cdf4; color: #2b6cb0; }
-
-  #screen-verify  { }
-  #screen-form    { display: none; }
-  #screen-done    { display: none; text-align: center; }
-
-  #screen-done .done-icon { font-size: 52px; margin-bottom: 12px; }
-  #screen-done h2 { font-size: 18px; font-weight: 700; color: #276749; margin-bottom: 8px; }
-  #screen-done p  { font-size: 14px; color: #666; line-height: 1.6; }
-
-  .verified-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: #f0fff4;
-    border: 1px solid #9ae6b4;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: #276749;
-    font-weight: 600;
-    margin-bottom: 20px;
-  }
-
-  .car-num-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    line-height: 1.5;
   }
 
   .spinner {
     display: inline-block;
-    width: 16px;
-    height: 16px;
+    width: 15px; height: 15px;
     border: 2px solid rgba(255,255,255,.4);
     border-top-color: #fff;
     border-radius: 50%;
@@ -163,241 +94,105 @@
     margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-
-  @media (max-width: 480px) {
-    .card { padding: 30px 20px; }
-  }
 </style>
 </head>
 <body>
 
 <div class="card">
-
-  <!-- ── 화면 1: 본인 확인 ── -->
-  <div id="screen-verify">
-    <div class="logo">
-      <div class="icon">🅿️</div>
-      <h1>주차 할인 등록</h1>
-      <p>아이엠센터 방문자 주차 할인 신청</p>
-    </div>
-
-    <div class="section-title">본인 확인</div>
-
-    <div id="verify-alert" class="alert error"></div>
-
-    <div class="field">
-      <label for="inp-name">청지기 성함 <span style="color:#e53e3e">*</span></label>
-      <input type="text" id="inp-name" placeholder="예) 홍길동" autocomplete="off">
-    </div>
-
-    <div class="field">
-      <label for="inp-phone">휴대전화 뒷 4자리 <span style="color:#e53e3e">*</span></label>
-      <input type="text" id="inp-phone" placeholder="예) 1234" maxlength="4"
-             inputmode="numeric" pattern="\d{4}" autocomplete="off">
-      <div class="hint">등록된 연락처의 마지막 4자리를 입력해 주세요.</div>
-    </div>
-
-    <button class="btn btn-primary" id="btn-verify" onclick="doVerify()">확인</button>
+  <div class="logo">
+    <div class="icon">🅿️</div>
+    <h1>주차 할인 신청</h1>
+    <p>본인 확인 후 신청 페이지로 이동합니다</p>
   </div>
 
-  <!-- ── 화면 2: 주차 할인 등록 양식 ── -->
-  <div id="screen-form">
-    <div class="logo">
-      <div class="icon">🚗</div>
-      <h1>주차 할인 등록</h1>
-      <p>차량 정보를 입력해 주세요</p>
-    </div>
+  <div id="alert" class="alert"></div>
 
-    <div id="verified-badge" class="verified-badge">
-      ✅ <span id="badge-name"></span>님 본인 확인 완료
-    </div>
-
-    <div class="section-title">차량 정보</div>
-
-    <div id="form-alert" class="alert error"></div>
-
-    <div class="field">
-      <label for="inp-carnum">차량번호 <span style="color:#e53e3e">*</span></label>
-      <input type="text" id="inp-carnum" placeholder="예) 12가 3456" autocomplete="off"
-             style="text-transform:uppercase">
-      <div class="hint">전체 차량번호를 입력해 주세요 (예: 12가 3456, 경기 123가 4567)</div>
-    </div>
-
-    <div class="field">
-      <label for="inp-purpose">방문 목적</label>
-      <select id="inp-purpose">
-        <option value="">선택 (선택사항)</option>
-        <option value="예배">예배</option>
-        <option value="소그룹">소그룹</option>
-        <option value="행사">행사</option>
-        <option value="공간 이용">공간 이용</option>
-        <option value="기타">기타</option>
-      </select>
-    </div>
-
-    <div class="field">
-      <label for="inp-memo">비고</label>
-      <input type="text" id="inp-memo" placeholder="추가 안내 사항이 있으면 입력해 주세요 (선택사항)">
-    </div>
-
-    <button class="btn btn-primary" id="btn-submit" onclick="doSubmit()">주차 할인 신청</button>
-    <button class="btn btn-secondary" onclick="goBack()">← 처음으로</button>
+  <div class="field">
+    <label for="inp-name">청지기 성함 <span style="color:#e53e3e">*</span></label>
+    <input type="text" id="inp-name" placeholder="예) 홍길동" autocomplete="off">
   </div>
 
-  <!-- ── 화면 3: 완료 ── -->
-  <div id="screen-done">
-    <div class="done-icon">✅</div>
-    <h2>신청이 완료되었습니다</h2>
-    <p id="done-msg" style="margin-top: 12px;"></p>
-    <button class="btn btn-secondary" style="margin-top: 28px;" onclick="goBack()">처음으로 돌아가기</button>
+  <div class="field">
+    <label for="inp-phone">휴대전화 뒷 4자리 <span style="color:#e53e3e">*</span></label>
+    <input type="text" id="inp-phone" placeholder="예) 1234" maxlength="4"
+           inputmode="numeric" autocomplete="off">
+    <div class="hint">등록된 연락처의 마지막 4자리를 입력해 주세요.</div>
   </div>
 
+  <button class="btn" id="btn" onclick="doVerify()">확인</button>
 </div>
 
-<!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp }        from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, serverTimestamp }
+  import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getFirestore, collection, getDocs }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-  const firebaseConfig = {
+  const app = initializeApp({
     apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
     authDomain:        "iamreservation.firebaseapp.com",
     projectId:         "iamreservation",
     storageBucket:     "iamreservation.firebasestorage.app",
     messagingSenderId: "634977833386",
     appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
-  };
+  });
+  const db = getFirestore(app);
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+  const REDIRECT_URL = "https://a122299.parkingweb.kr/discount/registration";
 
-  let verifiedName = '';
-  let verifiedTel  = '';
-
-  /* ── 본인 확인 ── */
   window.doVerify = async function () {
     const name  = document.getElementById('inp-name').value.trim();
     const phone = document.getElementById('inp-phone').value.trim();
-    const alert = document.getElementById('verify-alert');
-    const btn   = document.getElementById('btn-verify');
+    const btn   = document.getElementById('btn');
+    const alert = document.getElementById('alert');
 
-    hideAlert('verify-alert');
+    alert.style.display = 'none';
 
-    if (!name)  return showAlert('verify-alert', '청지기 성함을 입력해 주세요.');
-    if (!/^\d{4}$/.test(phone)) return showAlert('verify-alert', '휴대전화 뒷 4자리를 정확히 입력해 주세요.');
+    if (!name)               return show('청지기 성함을 입력해 주세요.');
+    if (!/^\d{4}$/.test(phone)) return show('휴대전화 뒷 4자리를 정확히 입력해 주세요.');
 
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>확인 중...';
 
     try {
-      const snap   = await getDocs(collection(db, 'reservations'));
-      const found  = snap.docs.some(d => {
-        const r = d.data();
-        const nameMatch = (r.stewardName || '').trim() === name;
-        const tel       = (r.stewardTel  || '').replace(/[^0-9]/g, '');
-        const telMatch  = tel.length >= 4 && tel.slice(-4) === phone;
-        return nameMatch && telMatch;
+      const snap  = await getDocs(collection(db, 'reservations'));
+      const found = snap.docs.some(d => {
+        const r       = d.data();
+        const nameOk  = (r.stewardName || '').trim() === name;
+        const tel     = (r.stewardTel  || '').replace(/\D/g, '');
+        const telOk   = tel.length >= 4 && tel.slice(-4) === phone;
+        return nameOk && telOk;
       });
 
       if (!found) {
-        showAlert('verify-alert', '입력하신 정보와 일치하는 청지기 정보를 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
+        show('입력하신 정보와 일치하는 청지기 정보를 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
         return;
       }
 
-      verifiedName = name;
-      verifiedTel  = phone;
-      document.getElementById('badge-name').textContent = name;
-      showScreen('screen-form');
+      btn.innerHTML = '✅ 확인되었습니다. 이동 중...';
+      location.href = REDIRECT_URL;
 
     } catch (e) {
       console.error(e);
-      showAlert('verify-alert', '서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      show('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = '확인';
+      if (btn.innerHTML.includes('확인 중')) {
+        btn.disabled = false;
+        btn.innerHTML = '확인';
+      }
     }
   };
 
-  /* ── 주차 할인 신청 제출 ── */
-  window.doSubmit = async function () {
-    const carNum  = document.getElementById('inp-carnum').value.trim().toUpperCase();
-    const purpose = document.getElementById('inp-purpose').value;
-    const memo    = document.getElementById('inp-memo').value.trim();
-    const btn     = document.getElementById('btn-submit');
-
-    hideAlert('form-alert');
-
-    if (!carNum) return showAlert('form-alert', '차량번호를 입력해 주세요.');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>신청 중...';
-
-    try {
-      await addDoc(collection(db, 'parkingDiscounts'), {
-        stewardName: verifiedName,
-        stewardTel:  verifiedTel,
-        carNum,
-        purpose,
-        memo,
-        status:    '대기',
-        createdAt: serverTimestamp()
-      });
-
-      document.getElementById('done-msg').innerHTML =
-        `차량번호 <strong>${carNum}</strong>으로 주차 할인 신청이 접수되었습니다.<br>` +
-        `처리 후 안내드리겠습니다.`;
-      showScreen('screen-done');
-
-    } catch (e) {
-      console.error(e);
-      showAlert('form-alert', '제출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '주차 할인 신청';
-    }
-  };
-
-  /* ── 처음으로 ── */
-  window.goBack = function () {
-    verifiedName = '';
-    verifiedTel  = '';
-    document.getElementById('inp-name').value  = '';
-    document.getElementById('inp-phone').value = '';
-    document.getElementById('inp-carnum').value  = '';
-    document.getElementById('inp-purpose').value = '';
-    document.getElementById('inp-memo').value    = '';
-    hideAlert('verify-alert');
-    hideAlert('form-alert');
-    showScreen('screen-verify');
-  };
-
-  /* ── 헬퍼 ── */
-  function showScreen(id) {
-    ['screen-verify','screen-form','screen-done'].forEach(s => {
-      document.getElementById(s).style.display = (s === id) ? '' : 'none';
-    });
-  }
-
-  function showAlert(id, msg) {
-    const el = document.getElementById(id);
+  function show(msg) {
+    const el = document.getElementById('alert');
     el.style.display = '';
     el.textContent = msg;
   }
 
-  function hideAlert(id) {
-    document.getElementById(id).style.display = 'none';
-  }
-
-  /* 전화번호 뒷 4자리 — 숫자만 입력 */
   document.getElementById('inp-phone').addEventListener('input', e => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
   });
-
-  /* Enter 키 지원 */
   document.getElementById('inp-name').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('inp-phone').focus(); });
   document.getElementById('inp-phone').addEventListener('keydown', e => { if (e.key === 'Enter') window.doVerify(); });
-  document.getElementById('inp-carnum').addEventListener('keydown', e => { if (e.key === 'Enter') window.doSubmit(); });
 </script>
 
 </body>
