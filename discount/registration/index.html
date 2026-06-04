@@ -310,17 +310,20 @@
     btn.innerHTML = '<span class="spinner"></span>확인 중...';
 
     try {
+      const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
       const snap  = await getDocs(collection(db, 'reservations'));
       const found = snap.docs.some(d => {
-        const r      = d.data();
-        const nameOk = (r.stewardName || '').trim() === name;
-        const tel    = (r.stewardTel  || '').replace(/\D/g, '');
-        const telOk  = tel.length >= 4 && tel.slice(-4) === phone;
-        return nameOk && telOk;
+        const r        = d.data();
+        const nameOk   = (r.stewardName || '').trim() === name;
+        const tel      = (r.stewardTel  || '').replace(/\D/g, '');
+        const telOk    = tel.length >= 4 && tel.slice(-4) === phone;
+        const dateOk   = r.date === today;
+        const statusOk = r.status === '확정';
+        return nameOk && telOk && dateOk && statusOk;
       });
 
       if (!found) {
-        showAlert('입력하신 정보와 일치하는 청지기 정보를 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
+        showAlert('오늘 확정된 예약을 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
         return;
       }
 
