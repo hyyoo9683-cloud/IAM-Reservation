@@ -105,7 +105,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .contact-box {
-    display: none;
     margin-top: 20px;
     background: #f8f9ff;
     border: 1px solid #dde3ff;
@@ -130,6 +129,86 @@
   .contact-box a:hover { background: #eef0ff; }
   .contact-box a + a   { margin-top: 6px; }
   .contact-box .ci     { font-size: 20px; }
+
+  /* 관리자 버튼 — 우측 하단 고정 */
+  #admin-btn {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: rgba(0,0,0,.12);
+    color: #888;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  #admin-btn:hover { background: rgba(0,0,0,.22); color: #555; }
+
+  /* 관리자 모달 */
+  #admin-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 24px;
+  }
+  #admin-modal .modal-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 320px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  }
+  #admin-modal h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 18px;
+    text-align: center;
+  }
+  #admin-modal .modal-alert {
+    display: none;
+    background: #fff5f5;
+    border: 1px solid #fed7d7;
+    color: #c53030;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  #admin-modal input {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #ddd;
+    border-radius: 8px;
+    font-size: 18px;
+    text-align: center;
+    letter-spacing: 6px;
+    color: #222;
+    margin-bottom: 12px;
+  }
+  #admin-modal input:focus { outline: none; border-color: #4f6ef7; }
+  #admin-modal .modal-btns { display: flex; gap: 8px; }
+  #admin-modal .modal-btns button {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #admin-modal .modal-btns .confirm { background: #4f6ef7; color: #fff; }
+  #admin-modal .modal-btns .confirm:hover { background: #3b57e0; }
+  #admin-modal .modal-btns .cancel  { background: #eee; color: #555; }
+  #admin-modal .modal-btns .cancel:hover { background: #ddd; }
 </style>
 </head>
 <body>
@@ -161,7 +240,7 @@
 
   <button class="btn" id="btn" onclick="doVerify()">확인</button>
 
-  <div class="contact-box" id="contact-box">
+  <div class="contact-box">
     <div class="contact-title">관리자에게 문의하기</div>
     <a href="tel:07070181439">
       <span class="ci">📞</span> 070-7018-1439
@@ -169,6 +248,23 @@
     <a href="http://pf.kakao.com/_Yvxaeb" target="_blank">
       <span class="ci">💬</span> 카카오톡 채널 '아이엠센터'
     </a>
+  </div>
+</div>
+
+<!-- 관리자 버튼 -->
+<button id="admin-btn" onclick="openAdminModal()">관리자</button>
+
+<!-- 관리자 모달 -->
+<div id="admin-modal">
+  <div class="modal-card">
+    <h3>🔒 관리자 확인</h3>
+    <div id="modal-alert" class="modal-alert"></div>
+    <input type="password" id="admin-pw" placeholder="••••" maxlength="20"
+           inputmode="numeric" autocomplete="off">
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeAdminModal()">취소</button>
+      <button class="confirm" onclick="doAdminLogin()">확인</button>
+    </div>
   </div>
 </div>
 
@@ -187,17 +283,18 @@
   });
   const db = getFirestore(app);
 
-  const PARKING_URL = "https://a12299.parkingweb.kr/discount/registration";
+  const PARKING_URL  = "https://a12299.parkingweb.kr/discount/registration";
+  const ADMIN_PW     = "1439";
 
   // 뒤로가기로 돌아왔을 때 입력 초기화
   window.addEventListener('pageshow', () => {
     document.getElementById('inp-name').value  = '';
     document.getElementById('inp-phone').value = '';
-    document.getElementById('alert').style.display       = 'none';
-    document.getElementById('contact-box').style.display = 'none';
-    document.getElementById('notice').style.display      = '';
+    document.getElementById('alert').style.display  = 'none';
+    document.getElementById('notice').style.display = '';
   });
 
+  /* ── 본인 확인 ── */
   window.doVerify = async function () {
     const name  = document.getElementById('inp-name').value.trim();
     const phone = document.getElementById('inp-phone').value.trim();
@@ -223,7 +320,6 @@
 
       if (!found) {
         showAlert('입력하신 정보와 일치하는 청지기 정보를 찾을 수 없습니다.\n성함과 휴대전화 번호를 다시 확인해 주세요.');
-        document.getElementById('contact-box').style.display = '';
         return;
       }
 
@@ -233,12 +329,42 @@
     } catch (e) {
       console.error(e);
       showAlert('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
-      document.getElementById('contact-box').style.display = '';
     } finally {
       btn.disabled = false;
       btn.innerHTML = '확인';
     }
   };
+
+  /* ── 관리자 모달 ── */
+  window.openAdminModal = function () {
+    document.getElementById('admin-pw').value      = '';
+    document.getElementById('modal-alert').style.display = 'none';
+    document.getElementById('admin-modal').style.display = 'flex';
+    setTimeout(() => document.getElementById('admin-pw').focus(), 100);
+  };
+
+  window.closeAdminModal = function () {
+    document.getElementById('admin-modal').style.display = 'none';
+  };
+
+  window.doAdminLogin = function () {
+    const pw = document.getElementById('admin-pw').value;
+    if (pw === ADMIN_PW) {
+      closeAdminModal();
+      location.href = PARKING_URL;
+    } else {
+      const el = document.getElementById('modal-alert');
+      el.style.display = '';
+      el.textContent   = '비밀번호가 올바르지 않습니다.';
+      document.getElementById('admin-pw').value = '';
+      document.getElementById('admin-pw').focus();
+    }
+  };
+
+  // 모달 배경 클릭 시 닫기
+  document.getElementById('admin-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('admin-modal')) closeAdminModal();
+  });
 
   function showAlert(msg) {
     const el = document.getElementById('alert');
@@ -251,6 +377,7 @@
   });
   document.getElementById('inp-name').addEventListener('keydown',  e => { if (e.key === 'Enter') document.getElementById('inp-phone').focus(); });
   document.getElementById('inp-phone').addEventListener('keydown', e => { if (e.key === 'Enter') window.doVerify(); });
+  document.getElementById('admin-pw').addEventListener('keydown',  e => { if (e.key === 'Enter') window.doAdminLogin(); });
 </script>
 
 </body>
