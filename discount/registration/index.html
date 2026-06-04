@@ -114,21 +114,17 @@
   .contact-box .contact-title {
     font-size: 13px; font-weight: 700; color: #444; margin-bottom: 12px;
   }
-  .contact-box a {
+  .contact-item {
     display: flex;
     align-items: center;
     gap: 10px;
-    text-decoration: none;
     color: #333;
     font-size: 14px;
     font-weight: 600;
-    padding: 9px 12px;
-    border-radius: 8px;
-    transition: background .15s;
+    padding: 6px 4px;
   }
-  .contact-box a:hover { background: #eef0ff; }
-  .contact-box a + a   { margin-top: 6px; }
-  .contact-box .ci     { font-size: 20px; }
+  .contact-item + .contact-item { margin-top: 4px; }
+  .contact-box .ci { font-size: 18px; }
 
   /* 관리자 버튼 — 우측 하단 고정 */
   #admin-btn {
@@ -242,12 +238,8 @@
 
   <div class="contact-box">
     <div class="contact-title">관리자에게 문의하기</div>
-    <a href="tel:07070181439">
-      <span class="ci">📞</span> 070-7018-1439
-    </a>
-    <a href="http://pf.kakao.com/_Yvxaeb" target="_blank">
-      <span class="ci">💬</span> 카카오톡 채널 '아이엠센터'
-    </a>
+    <div class="contact-item"><span class="ci">📞</span> 070-7018-1439</div>
+    <div class="contact-item"><span class="ci">💬</span> 카카오톡 채널 검색 '아이엠센터'</div>
   </div>
 </div>
 
