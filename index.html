@@ -973,7 +973,7 @@ function isMobileBrowser() {
 window.googleLogin = async () => {
   const btn = document.querySelector('.btn-google');
   const provider = new GoogleAuthProvider();
-  // hd 제한 제거 → gmail 관리자 계정도 모바일에서 선택 가능
+  provider.setCustomParameters({ prompt: 'select_account' });
   try {
     // 팝업 시도 (데스크톱 + 일부 모바일)
     if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
