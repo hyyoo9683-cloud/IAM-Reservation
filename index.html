@@ -2185,7 +2185,7 @@ function detectCols(headers) {
     if (s.includes('날짜'))                                m.date      = i;
     if (s.includes('시작') && s.includes('시간'))          m.start     = i;
     if ((s.includes('종료') || s.includes('종료 시간')) && s.includes('시간')) m.end = i;
-    if (s.includes('1회') || (s.includes('반복') && !s.includes('종료'))) m.recur = i;
+    if (s.includes('1회') || (s.includes('반복') && !s.includes('종료')) || (s.includes('기간') && !s.includes('종료'))) m.recur = i;
     if (s.includes('종료') && !s.includes('시간') && !s.includes('1회')) m.endDate= i;
     if (s.includes('목적'))                                m.purpose   = i;
     if (s.includes('인원'))                                m.people    = i;
