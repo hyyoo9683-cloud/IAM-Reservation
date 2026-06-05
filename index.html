@@ -244,10 +244,10 @@ textarea { resize: vertical; min-height: 60px; }
   /* 로그인 카드 모바일 */
   .login-card { padding: 28px 20px; margin: 0 16px; }
 
-  /* 공간 검색 패널: 모바일에서 세로 스택 */
+  /* 공간 검색 패널: 모바일 레이아웃 */
   #avail-fields { flex-direction: column; }
-  #avail-dates  { flex-direction: column; }
-  #avail-dates .fg { min-width: 0 !important; }
+  #avail-dates, #avail-times { flex: 1 1 100%; }
+  #avail-dates .fg, #avail-times .fg { min-width: 0 !important; }
 
   /* 공간 카드 2열 */
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -368,13 +368,15 @@ textarea { resize: vertical; min-height: 60px; }
               <option value="monthly">매 달 동일 요일</option>
             </select>
           </div>
-          <div class="fg" style="margin-bottom:0">
-            <div class="lbl">시작 시간</div>
-            <select id="avail-s-time" oninput="clearAvailResult()"></select>
-          </div>
-          <div class="fg" style="margin-bottom:0">
-            <div class="lbl">종료 시간</div>
-            <select id="avail-e-time" oninput="clearAvailResult()"></select>
+          <div id="avail-times" style="display:flex;gap:10px;flex:1 1 auto">
+            <div class="fg" style="margin-bottom:0;flex:1">
+              <div class="lbl">시작 시간</div>
+              <select id="avail-s-time" oninput="clearAvailResult()"></select>
+            </div>
+            <div class="fg" style="margin-bottom:0;flex:1">
+              <div class="lbl">종료 시간</div>
+              <select id="avail-e-time" oninput="clearAvailResult()"></select>
+            </div>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
@@ -1136,9 +1138,9 @@ function buildRoomChips() {
     APPLY_ROOM_GROUPS.forEach(({ label, rooms }) => {
       const sps = rooms.map(n => spaces.find(s => s.name === n)).filter(Boolean);
       if (!sps.length) return;
-      html += labelTag(label) + '<br>';
-      sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')">${lbl}</span>`; grouped.add(s.name); });
-      html += '<br>';
+      html += `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px">${labelTag(label)}`;
+      sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')" style="margin:0">${lbl}</span>`; grouped.add(s.name); });
+      html += '</div>';
     });
     // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로
     const rest = spaceSort(spaces).filter(s => !grouped.has(s.name));
@@ -1168,7 +1170,7 @@ function buildRoomChips() {
   const applyC = document.getElementById('apply-room-chips');
   const editC  = document.getElementById('e-room-chips');
   if (applyC) applyC.innerHTML =
-    `<span class="rc" id="arc-공실 희망" onclick="selApplyRoom('공실 희망')" style="background:var(--green);color:#fff;font-weight:700;border-color:var(--green)">공실 희망</span><br>` +
+    `<div style="margin-bottom:8px"><span class="rc" id="arc-공실 희망" onclick="selApplyRoom('공실 희망')" style="background:var(--green);color:#fff;font-weight:700;border-color:var(--green);margin:0">공실 희망</span></div>` +
     applyChipsHtml();
   if (editC) editC.innerHTML = editChipsHtml();
 }
