@@ -1114,15 +1114,47 @@ async function seedDefaultSpaces() {
 }
 
 // ── 공간 칩 ─────────────────────────────────────────────────────
-function buildRoomChips() {
-  const floors = {};
-  spaces.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
+const APPLY_ROOM_GROUPS = [
+  { label: '12-16명 이하', rooms: ['508호','509호','510호','511호'] },
+  { label: '24명 이하',    rooms: ['505호','507호'] },
+  { label: '활동 중심(10명)', rooms: ['506호'] },
+];
 
-  function chipsHtml(prefix, clickFn) {
+function buildRoomChips() {
+  const labelTag = (text, color = 'var(--blue-mid)', bg = 'var(--blue-lt)') =>
+    `<span style="font-size:10px;color:${color};padding:2px 8px;background:${bg};border-radius:5px;margin-right:4px;display:inline-block;margin-bottom:6px">${text}</span>`;
+
+  // 신청 폼: 사용자 정의 그룹
+  function applyChipsHtml() {
+    let html = '';
+    const grouped = new Set();
+    APPLY_ROOM_GROUPS.forEach(({ label, rooms }) => {
+      const sps = rooms.map(n => spaces.find(s => s.name === n)).filter(Boolean);
+      if (!sps.length) return;
+      html += labelTag(label) + '<br>';
+      sps.forEach(s => { html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')">${s.name}</span>`; grouped.add(s.name); });
+      html += '<br>';
+    });
+    // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로
+    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name));
+    const floors = {};
+    rest.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
+    Object.entries(floors).forEach(([fl, sps]) => {
+      html += labelTag(fl);
+      sps.forEach(s => { html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')">${s.name}</span>`; });
+      html += '<br>';
+    });
+    return html;
+  }
+
+  // 편집 모달: 층별 그룹 유지
+  function editChipsHtml() {
+    const floors = {};
+    spaceSort(spaces).forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
     let html = '';
     Object.entries(floors).forEach(([fl, sps]) => {
-      html += `<span style="font-size:10px;color:var(--blue-mid);padding:2px 8px;background:var(--blue-lt);border-radius:5px;margin-right:4px;display:inline-block;margin-bottom:6px">${fl}</span>`;
-      sps.forEach(s => { html += `<span class="rc" id="${prefix}${s.name}" onclick="${clickFn}('${s.name}')">${s.name}</span>`; });
+      html += labelTag(fl);
+      sps.forEach(s => { html += `<span class="rc" id="erc-${s.name}" onclick="selEditRoom('${s.name}')">${s.name}</span>`; });
       html += '<br>';
     });
     return html;
@@ -1132,8 +1164,8 @@ function buildRoomChips() {
   const editC  = document.getElementById('e-room-chips');
   if (applyC) applyC.innerHTML =
     `<span class="rc" id="arc-공실 희망" onclick="selApplyRoom('공실 희망')" style="background:var(--green);color:#fff;font-weight:700;border-color:var(--green)">공실 희망</span><br>` +
-    chipsHtml('arc-', 'selApplyRoom');
-  if (editC)  editC.innerHTML  = chipsHtml('erc-', 'selEditRoom');
+    applyChipsHtml();
+  if (editC) editC.innerHTML = editChipsHtml();
 }
 
 function populateRoomFilter() {
