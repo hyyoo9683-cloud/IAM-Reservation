@@ -252,12 +252,17 @@ textarea { resize: vertical; min-height: 60px; }
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .space-img  { height: 90px; font-size: 10px; }
   .space-info { padding: 8px; }
-  .space-name { font-size: 12px; margin-bottom: 2px; }
+  .space-name { font-size: 14px; margin-bottom: 2px; }
   .space-cap  { font-size: 10px; margin-bottom: 5px; }
   .space-amenity { gap: 2px; }
   .amenity-tag { font-size: 9px; padding: 1px 5px; }
   .space-actions { margin-top: 6px; }
-  .space-actions .btn { font-size: 11px; padding: 5px 8px; justify-content: center; width: 100%; }
+  .space-actions .btn { font-size: 13px; padding: 6px 8px; justify-content: center; width: 100%; }
+
+  /* 예약 신청 일정 - 날짜 세로 쌓기, 시간은 같은 줄 유지 */
+  #m-date-row { flex-wrap: wrap; }
+  #m-date-row > .fg { flex: 1 1 100%; }
+  #m-time-row { flex-wrap: nowrap; }
 }
 </style>
 </head>
@@ -400,7 +405,6 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#EAF3DE;border:1px solid #3B6D11"></div>확정</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#FAEEDA;border:1px solid #854F0B"></div>대기</div>
       </div>
       <div class="cal-wrap">
         <div class="cal-grid">
@@ -455,7 +459,7 @@ textarea { resize: vertical; min-height: 60px; }
               <input type="checkbox" id="m-is-recur" onchange="toggleRecur();checkAvail();updateApplySummary()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
               <label for="m-is-recur" style="font-size:13px;font-weight:600;color:var(--green);cursor:pointer;margin:0">정기 예약 (반복)</label>
             </div>
-            <div class="fl">
+            <div class="fl" id="m-date-row">
               <div class="fg">
                 <div class="lbl" id="m-date-lbl">날짜 <span class="req">*</span></div>
                 <input type="date" id="m-date" onchange="checkAvail();updateApplySummary()">
@@ -473,7 +477,7 @@ textarea { resize: vertical; min-height: 60px; }
                 <option value="monthly">매 달 동일 요일</option>
               </select>
             </div>
-            <div class="fl">
+            <div class="fl" id="m-time-row">
               <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="m-start" onchange="onStartChange()"></select></div>
               <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="m-end"   onchange="checkAvail();updateApplySummary()"></select></div>
             </div>
@@ -524,12 +528,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option><option>취소</option></select>
       </div>
-      <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl">
-          <thead><tr><th>#</th><th>기관</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>책임자</th><th>상태</th><th>액션</th></tr></thead>
-          <tbody id="mylist-body"></tbody>
-        </table>
-      </div>
+      <div id="mylist-body"></div>
     </div>
 
     <!-- 관리자: 대시보드 -->
@@ -1288,7 +1287,7 @@ function renderPubCal() {
       const ds = d.toISOString().slice(0, 10);
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status !== '반려');
+      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
       const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
       const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
       const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
@@ -1330,7 +1329,7 @@ function renderPubCal() {
       const ds = d.toISOString().slice(0, 10);
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status !== '반려');
+      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
       html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}">`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
@@ -2809,27 +2808,32 @@ function renderMyList() {
 
   if (statusQ) data = data.filter(r => r.status === statusQ);
 
-  const empty = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">신청한 예약이 없습니다<br>
-      <button class="btn btn-primary" style="margin-top:12px" onclick="go('apply')">예약 신청하기</button></td></tr>`;
+  if (!data.length) {
+    document.getElementById('mylist-body').innerHTML =
+      `<div class="card" style="text-align:center;padding:28px;color:var(--text3)">신청한 예약이 없습니다<br>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="go('apply')">예약 신청하기</button></div>`;
+    return;
+  }
 
-  document.getElementById('mylist-body').innerHTML = !data.length ? empty
-    : data.map(r =>
-        `<tr class="row" onclick="openDetail('${r.id}')">
-          <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-          <td>${oBadge(r.type, true)}</td><td>${r.room}</td>
-          <td>${r.date} ${r.start}–${r.end}</td><td>${r.purpose}</td>
-          <td style="font-weight:500">${r.managerName}<br><span style="font-size:10px;color:var(--text3)">${r.stewardName} ${r.stewardTel}</span></td>
-          <td>${sBadge(r.status)}</td>
-          <td onclick="event.stopPropagation()" style="white-space:nowrap">
-            ${r.status === '대기'
-              ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
-                 <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:4px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
-              : r.status === '확정'
-              ? `<button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
-              : '<span style="font-size:10px;color:var(--text3)">–</span>'}
-          </td>
-        </tr>`
-      ).join('');
+  document.getElementById('mylist-body').innerHTML = data.map(r => {
+    const actions = r.status === '대기'
+      ? `<button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openEditModal('${r.id}')">수정</button>
+         <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
+      : r.status === '확정'
+      ? `<button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
+      : '';
+    return `<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${r.date} ${r.start}–${r.end}</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:3px">${r.room}</div>
+        <div style="font-size:11px;color:var(--text3)">${r.purpose}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        ${sBadge(r.status)}
+        ${actions ? `<div onclick="event.stopPropagation()" style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${actions}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderReport() {
