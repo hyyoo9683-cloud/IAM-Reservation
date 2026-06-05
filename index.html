@@ -73,7 +73,7 @@
   --font:     'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font); font-size: 14px; color: var(--text); background: var(--bg); overflow: hidden; height: 100vh; }
+body { font-family: var(--font); font-size: 16px; color: var(--text); background: var(--bg); overflow: hidden; height: 100vh; }
 
 /* ── 레이아웃 ── */
 .shell   { display: flex; height: 100vh; }
@@ -85,68 +85,68 @@ body { font-family: var(--font); font-size: 14px; color: var(--text); background
 
 /* ── 사이드바 ── */
 .logo-area  { padding: 8px 10px 14px; border-bottom: 1px solid #B5D4F4; margin-bottom: 10px; }
-.logo-name  { font-size: 13px; font-weight: 700; color: var(--blue); letter-spacing: -.3px; }
-.logo-sub   { font-size: 10px; color: var(--blue-mid); margin-top: 2px; }
-.nav-section { font-size: 9px; color: var(--text3); padding: 8px 10px 3px; letter-spacing: .08em; text-transform: uppercase; }
-.nav-btn    { width: 100%; padding: 7px 10px; border-radius: 8px; font-size: 12px; color: var(--blue-mid); cursor: pointer; display: flex; align-items: center; gap: 7px; border: none; background: none; font-family: var(--font); text-align: left; transition: all .15s; }
-.nav-btn .icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+.logo-name  { font-size: 15px; font-weight: 700; color: var(--blue); letter-spacing: -.3px; }
+.logo-sub   { font-size: 12px; color: var(--blue-mid); margin-top: 2px; }
+.nav-section { font-size: 10px; color: var(--text3); padding: 8px 10px 3px; letter-spacing: .08em; text-transform: uppercase; }
+.nav-btn    { width: 100%; padding: 9px 10px; border-radius: 8px; font-size: 14px; color: var(--blue-mid); cursor: pointer; display: flex; align-items: center; gap: 7px; border: none; background: none; font-family: var(--font); text-align: left; transition: all .15s; }
+.nav-btn .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
 .nav-btn.active { background: var(--blue); color: #fff; font-weight: 600; }
 .nav-btn:hover:not(.active) { background: #B5D4F4; color: var(--blue); }
-.nav-badge  { margin-left: auto; background: #E24B4A; color: #fff; border-radius: 10px; font-size: 9px; padding: 1px 5px; font-weight: 700; display: none; }
+.nav-badge  { margin-left: auto; background: #E24B4A; color: #fff; border-radius: 10px; font-size: 11px; padding: 1px 6px; font-weight: 700; display: none; }
 
 /* ── 공통 컴포넌트 ── */
 .card       { background: var(--bg); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
-.card-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
-.btn        { padding: 7px 16px; border-radius: 8px; font-size: 12px; font-family: var(--font); cursor: pointer; border: none; font-weight: 600; transition: all .15s; display: inline-flex; align-items: center; gap: 5px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.btn        { padding: 9px 18px; border-radius: 8px; font-size: 14px; font-family: var(--font); cursor: pointer; border: none; font-weight: 600; transition: all .15s; display: inline-flex; align-items: center; gap: 5px; }
 .btn:hover  { filter: brightness(.92); }
 .btn-primary { background: var(--blue);  color: #fff; }
 .btn-green   { background: var(--green); color: #fff; }
 .btn-red     { background: var(--red);   color: #fff; }
 .btn-amber   { background: var(--amber); color: #fff; }
 .btn-ghost   { background: var(--bg2);   color: var(--text2); border: 1px solid var(--border); }
-.badge       { display: inline-block; padding: 2px 9px; border-radius: 10px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.badge       { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .b-wait   { background: var(--amber-lt); color: var(--amber); }
 .b-ok     { background: var(--green-lt); color: var(--green); }
 .b-no     { background: var(--red-lt);   color: var(--red);   }
 .b-cancel { background: #EFEFEF;         color: #777;         }
 .b-blue { background: var(--blue-lt);  color: var(--blue);  }
 .stat-box { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; flex: 1; }
-.stat-num { font-size: 26px; font-weight: 700; color: var(--blue); line-height: 1; }
-.stat-lbl { font-size: 10px; color: var(--blue-mid); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.stat-num { font-size: 28px; font-weight: 700; color: var(--blue); line-height: 1; }
+.stat-lbl { font-size: 12px; color: var(--blue-mid); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 .fl   { display: flex; gap: 12px; }
 .fl>* { flex: 1; }
 .fg  { margin-bottom: 12px; }
-.lbl { font-size: 11px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+.lbl { font-size: 13px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
 .req { color: var(--red); }
-input, select, textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-family: var(--font); background: var(--bg); color: var(--text); outline: none; transition: border .15s; }
+input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px; font-family: var(--font); background: var(--bg); color: var(--text); outline: none; transition: border .15s; }
 input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(24,95,165,.1); }
 textarea { resize: vertical; min-height: 60px; }
 .divider  { height: 1px; background: var(--border2); margin: 14px 0; }
-.tbl      { width: 100%; border-collapse: collapse; font-size: 12px; }
-.tbl th   { padding: 9px 12px; text-align: left; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border2); background: var(--bg2); font-size: 11px; }
-.tbl td   { padding: 9px 12px; border-bottom: 1px solid var(--border2); color: var(--text); vertical-align: middle; }
+.tbl      { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th   { padding: 10px 12px; text-align: left; font-weight: 600; color: var(--text2); border-bottom: 1px solid var(--border2); background: var(--bg2); font-size: 13px; }
+.tbl td   { padding: 10px 12px; border-bottom: 1px solid var(--border2); color: var(--text); vertical-align: middle; }
 .tbl tr:last-child td { border-bottom: none; }
 .tbl tr.row:hover td  { background: var(--bg3); cursor: pointer; }
-.rc     { display: inline-block; padding: 5px 12px; border-radius: 14px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); color: var(--text2); background: var(--bg2); margin: 2px; user-select: none; transition: all .15s; font-weight: 500; }
+.rc     { display: inline-block; padding: 7px 14px; border-radius: 14px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); color: var(--text2); background: var(--bg2); margin: 2px; user-select: none; transition: all .15s; font-weight: 500; }
 .rc.sel { background: var(--blue-lt); color: var(--blue); border-color: #85B7EB; font-weight: 600; }
-.toast  { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; padding: 11px 24px; border-radius: 10px; font-size: 12px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
-.avail-ok { background: var(--green-lt); color: var(--green); border-radius: 7px; padding: 6px 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-top: 6px; }
-.avail-no { background: var(--red-lt);   color: var(--red);   border-radius: 7px; padding: 6px 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-top: 6px; }
+.toast  { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; padding: 13px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+.avail-ok { background: var(--green-lt); color: var(--green); border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 600; display: inline-block; margin-top: 6px; }
+.avail-no { background: var(--red-lt);   color: var(--red);   border-radius: 7px; padding: 7px 14px; font-size: 13px; font-weight: 600; display: inline-block; margin-top: 6px; }
 
 /* ── 모달 ── */
 .modal-bg          { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 1000; align-items: center; justify-content: center; }
 .modal-bg.open     { display: flex; }
 .modal             { background: var(--bg); border-radius: 14px; padding: 24px; width: 520px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 12px 48px rgba(0,0,0,.2); }
-.modal-title       { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: var(--text); }
+.modal-title       { font-size: 17px; font-weight: 700; margin-bottom: 18px; color: var(--text); }
 
 /* ── 로그인 ── */
 .login-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, var(--bg3) 0%, var(--bg) 60%); }
 .login-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; width: 380px; text-align: center; box-shadow: 0 4px 24px rgba(24,95,165,.08); }
-.login-logo { font-size: 22px; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
-.login-sub  { font-size: 12px; color: var(--text3); margin-bottom: 32px; }
-.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg); font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text); transition: all .2s; font-family: var(--font); }
+.login-logo { font-size: 26px; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
+.login-sub  { font-size: 14px; color: var(--text3); margin-bottom: 32px; }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 14px; border: 1.5px solid var(--border); border-radius: 10px; background: var(--bg); font-size: 15px; font-weight: 600; cursor: pointer; color: var(--text); transition: all .2s; font-family: var(--font); }
 .btn-google:hover { background: var(--bg2); border-color: var(--blue); }
-.public-link { margin-top: 16px; font-size: 11px; color: var(--blue-mid); cursor: pointer; text-decoration: underline; }
+.public-link { margin-top: 16px; font-size: 13px; color: var(--blue-mid); cursor: pointer; text-decoration: underline; }
 
 /* ── 공개 캘린더 ── */
 #p-public { padding: 0; }
@@ -157,14 +157,14 @@ textarea { resize: vertical; min-height: 60px; }
 .cal-wrap    { padding: 16px; }
 .cal-grid    { overflow-x: auto; }
 .cal-table   { width: 100%; border-collapse: collapse; min-width: 620px; }
-.cal-table th { padding: 8px 6px; font-size: 10px; font-weight: 700; border-bottom: 1px solid var(--border); background: var(--bg2); text-align: center; color: var(--text2); }
-.cal-table td { padding: 4px 5px; border-right: 1px solid var(--border2); border-bottom: 1px solid var(--border2); vertical-align: top; min-height: 60px; }
-.cal-table td.room-label { font-size: 11px; font-weight: 700; color: var(--blue); background: var(--bg2); border-right: 1px solid var(--border); padding: 6px 10px; white-space: nowrap; }
-.cal-bar { border-radius: 5px; padding: 3px 7px; font-size: 9px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.cal-table th { padding: 9px 6px; font-size: 12px; font-weight: 700; border-bottom: 1px solid var(--border); background: var(--bg2); text-align: center; color: var(--text2); }
+.cal-table td { padding: 5px 5px; border-right: 1px solid var(--border2); border-bottom: 1px solid var(--border2); vertical-align: top; min-height: 60px; }
+.cal-table td.room-label { font-size: 13px; font-weight: 700; color: var(--blue); background: var(--bg2); border-right: 1px solid var(--border); padding: 7px 10px; white-space: nowrap; }
+.cal-bar { border-radius: 5px; padding: 4px 7px; font-size: 11px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
 .cal-bar.confirmed { background: var(--green-lt); color: var(--green); }
 .cal-bar.pending   { background: var(--amber-lt); color: var(--amber); }
 .legend { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border2); }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
 .legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
 
 /* ── 공간 카드 ── */
@@ -173,12 +173,12 @@ textarea { resize: vertical; min-height: 60px; }
 .space-img     { width: 100%; height: 140px; object-fit: cover; background: var(--bg3); display: flex; align-items: center; justify-content: center; color: var(--text3); font-size: 12px; }
 .space-img img { width: 100%; height: 100%; object-fit: cover; }
 .space-info    { padding: 12px; }
-.space-name    { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
-.space-cap     { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.space-name    { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.space-cap     { font-size: 13px; color: var(--text3); margin-bottom: 8px; }
 .space-amenity { display: flex; flex-wrap: wrap; gap: 4px; }
-.amenity-tag   { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--blue-lt); color: var(--blue); font-weight: 500; }
+.amenity-tag   { font-size: 12px; padding: 3px 9px; border-radius: 10px; background: var(--blue-lt); color: var(--blue); font-weight: 500; }
 .space-actions { display: flex; gap: 6px; margin-top: 10px; }
-.filter-chip { padding: 5px 14px; border-radius: 20px; border: 1.5px solid var(--border2); background: var(--bg); font-size: 12px; color: var(--text2); cursor: pointer; font-weight: 500; }
+.filter-chip { padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border2); background: var(--bg); font-size: 14px; color: var(--text2); cursor: pointer; font-weight: 500; }
 .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
 /* ── 체크박스 ── */
@@ -231,15 +231,15 @@ textarea { resize: vertical; min-height: 60px; }
 
   /* 공개 캘린더 모바일 */
   .pub-header { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
-  .pub-nav button { padding: 4px 9px; font-size: 11px; }
+  .pub-nav button { padding: 5px 10px; font-size: 12px; }
   .cal-wrap { padding: 6px 4px; }
   .cal-grid { -webkit-overflow-scrolling: touch; }
   .cal-table { min-width: 460px; }
-  .cal-table th { padding: 6px 3px; font-size: 9px; }
+  .cal-table th { padding: 6px 3px; font-size: 11px; }
   .cal-table td { padding: 3px 2px; min-height: 40px; }
-  .cal-table td.room-label { font-size: 10px; padding: 4px 6px; }
-  .cal-bar { font-size: 8px; padding: 2px 3px; }
-  #p-public .filter-chip { padding: 4px 10px; font-size: 11px; }
+  .cal-table td.room-label { font-size: 12px; padding: 5px 6px; }
+  .cal-bar { font-size: 10px; padding: 3px 4px; }
+  #p-public .filter-chip { padding: 5px 12px; font-size: 12px; }
 
   /* 로그인 카드 모바일 */
   .login-card { padding: 28px 20px; margin: 0 16px; }
@@ -253,12 +253,12 @@ textarea { resize: vertical; min-height: 60px; }
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .space-img  { height: 90px; font-size: 10px; }
   .space-info { padding: 8px; }
-  .space-name { font-size: 14px; margin-bottom: 2px; }
-  .space-cap  { font-size: 10px; margin-bottom: 5px; }
+  .space-name { font-size: 15px; margin-bottom: 2px; }
+  .space-cap  { font-size: 12px; margin-bottom: 5px; }
   .space-amenity { gap: 2px; }
-  .amenity-tag { font-size: 9px; padding: 1px 5px; }
+  .amenity-tag { font-size: 11px; padding: 2px 6px; }
   .space-actions { margin-top: 6px; }
-  .space-actions .btn { font-size: 13px; padding: 6px 8px; justify-content: center; width: 100%; }
+  .space-actions .btn { font-size: 14px; padding: 7px 8px; justify-content: center; width: 100%; }
 
   /* 예약 신청 일정 - 날짜 세로 쌓기, 시간은 같은 줄 유지 */
   #m-date-row { flex-wrap: wrap; }
