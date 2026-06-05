@@ -445,7 +445,7 @@ textarea { resize: vertical; min-height: 60px; }
                 </select>
               </div>
               <div class="fg">
-                <div class="lbl">예약 책임자 이름 <span class="req">*</span></div>
+                <div class="lbl">예약 책임자 성함 <span class="req">*</span></div>
                 <input id="m-manager" placeholder="홍길동" oninput="updateApplySummary()">
               </div>
             </div>
@@ -454,7 +454,7 @@ textarea { resize: vertical; min-height: 60px; }
             <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">청지기(실사용자)</div>
             <div style="font-size:11px;color:var(--text3);margin-bottom:10px">청지기는 실제로 예약 공간을 사용하시는 분입니다.</div>
             <div class="fl">
-              <div class="fg"><div class="lbl">이름 <span class="req">*</span></div><input id="m-steward-name" placeholder="김철수" oninput="updateApplySummary()"></div>
+              <div class="fg"><div class="lbl">성함 <span class="req">*</span></div><input id="m-steward-name" placeholder="김철수" oninput="updateApplySummary()"></div>
               <div class="fg"><div class="lbl">연락처 <span class="req">*</span></div><input id="m-steward-tel" placeholder="010-0000-0000" oninput="updateApplySummary()"></div>
             </div>
           </div>
@@ -1547,6 +1547,11 @@ function spaceCardHtml(sp, adminMode = false) {
     (sp.amenities || []).includes('TV') ? 'TV' : null,
   ].filter(Boolean).join(' · ');
 
+  const detailBtn = !adminMode
+    ? `<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;font-size:13px"
+         onclick="event.stopPropagation();openSpaceDetail('${sp.id}')">자세히...</button>`
+    : '';
+
   return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
@@ -1556,6 +1561,7 @@ function spaceCardHtml(sp, adminMode = false) {
       <div class="space-amenity desk-only">${tags}</div>
       ${availBadge}
       <div class="desk-only">${adminBtns}</div>
+      ${detailBtn}
     </div>
   </div>`;
 }
