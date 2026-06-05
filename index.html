@@ -434,12 +434,14 @@ textarea { resize: vertical; min-height: 60px; }
                 </select>
               </div>
               <div class="fg">
-                <div class="lbl">예약 담당자 이름 <span class="req">*</span></div>
+                <div class="lbl">예약 책임자 이름 <span class="req">*</span></div>
                 <input id="m-manager" placeholder="홍길동" oninput="updateApplySummary()">
               </div>
             </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:-4px;margin-bottom:12px">예약 책임자는 각 기관의 예약을 진행하고 담당하시는 분입니다.</div>
             <div class="divider"></div>
-            <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">실사용자</div>
+            <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:4px">청지기(실사용자)</div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">청지기는 실제로 예약 공간을 사용하시는 분입니다.</div>
             <div class="fl">
               <div class="fg"><div class="lbl">이름 <span class="req">*</span></div><input id="m-steward-name" placeholder="김철수" oninput="updateApplySummary()"></div>
               <div class="fg"><div class="lbl">연락처 <span class="req">*</span></div><input id="m-steward-tel" placeholder="010-0000-0000" oninput="updateApplySummary()"></div>
