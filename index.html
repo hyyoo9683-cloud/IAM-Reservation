@@ -193,7 +193,10 @@ textarea { resize: vertical; min-height: 60px; }
 .upload-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .preview-img    { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
 
-/* ── 반응형 ── */
+/* ── 반응형 표시 제어 ── */
+.mob-only  { display: none; }
+.desk-only { display: block; }
+
 /* ── 햄버거 버튼 (데스크톱에선 숨김) ── */
 #mobile-hamburger { display: none; }
 /* ── 사이드바 오버레이 배경 ── */
@@ -227,7 +230,9 @@ textarea { resize: vertical; min-height: 60px; }
   .nav-btn { font-size: 13px; padding: 9px 12px; }
 
   /* 탑바에 햄버거 버튼 표시 */
-  #mobile-hamburger { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: none; background: none; cursor: pointer; font-size: 20px; color: var(--blue); padding: 0; flex-shrink: 0; }
+  .mob-only  { display: block; }
+  .desk-only { display: none !important; }
+  #mobile-hamburger { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: none; background: var(--blue-lt); border-radius: 10px; cursor: pointer; font-size: 22px; color: var(--blue); padding: 0; flex-shrink: 0; }
 
   /* 공개 캘린더 모바일 */
   .pub-header { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
@@ -245,9 +250,11 @@ textarea { resize: vertical; min-height: 60px; }
   .login-card { padding: 28px 20px; margin: 0 16px; }
 
   /* 공간 검색 패널: 모바일 레이아웃 */
-  #avail-fields { flex-direction: column; }
-  #avail-dates, #avail-times { flex: 1 1 100%; }
-  #avail-dates .fg, #avail-times .fg { min-width: 0 !important; }
+  #avail-fields { flex-direction: column !important; flex-wrap: nowrap !important; }
+  #avail-dates  { flex-direction: row !important; flex: 1 1 auto !important; width: 100%; }
+  #avail-times  { flex-direction: row !important; flex: 1 1 auto !important; width: 100%; }
+  #avail-fields > .fg { width: 100%; }
+  #avail-dates .fg, #avail-times .fg { min-width: 0 !important; flex: 1 !important; }
 
   /* 공간 카드 2열 */
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -797,7 +804,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="modal-title" id="sd-title"></div>
     <div id="sd-photos" style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px"></div>
     <div id="sd-body"></div>
-    <div style="margin-top:16px;display:flex;justify-content:flex-end">
+    <div id="sd-actions" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('modal-space-detail')">닫기</button>
     </div>
   </div>
@@ -974,6 +981,13 @@ function isMobileBrowser() {
 }
 
 window.googleLogin = async () => {
+  // 카카오톡·라인 등 인앱 브라우저는 OAuth 리다이렉트를 처리 못함 → 외부 브라우저 유도
+  const ua = navigator.userAgent || '';
+  const isInApp = /KAKAOTALK|Line\/|FB_IAB|Instagram|NaverApp|DaumApp|Whale/i.test(ua);
+  if (isInApp) {
+    showLoginMsg('카카오톡 내 브라우저에서는 로그인이 제한됩니다.\n우측 하단 ⋯ 메뉴 → "다른 브라우저로 열기"를 눌러 주세요.');
+    return;
+  }
   const btn = document.querySelector('.btn-google');
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
@@ -992,10 +1006,10 @@ window.googleLogin = async () => {
                            'auth/missing-initial-state','auth/popup-closed-by-user',
                            'auth/web-storage-unsupported'];
     if (redirectCodes.includes(e.code) || e.message.includes('initial state')) {
-      showLoginMsg('팝업이 차단됐습니다. 페이지 이동 방식으로 로그인합니다...');
+      showLoginMsg('페이지 이동 방식으로 로그인합니다...');
       try {
         await signInWithRedirect(auth, provider);
-        return; // 리다이렉트 후 페이지가 다시 로드됨
+        return;
       } catch (e2) {
         showLoginMsg('로그인 실패: ' + e2.message);
       }
@@ -1524,14 +1538,23 @@ function spaceCardHtml(sp, adminMode = false) {
       ? `<div><span class="avail-ok">✓ 예약 가능${CONSULT_ROOMS.includes(sp.name) ? '<span style="font-size:9px;font-weight:400;margin-left:4px;opacity:.8">(관리자 상담 필요)</span>' : ''}</span></div>`
       : `<div><span class="avail-no">✗ 예약 불가</span></div>`;
   }
+  // 모바일 카드용 간략 정보 (최대인원 + 의자/책상/TV)
+  const mobileInfo = [
+    sp.cap ? `최대 ${sp.cap}명` : null,
+    sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
+    sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
+    (sp.amenities || []).includes('TV') ? 'TV' : null,
+  ].filter(Boolean).join(' · ');
+
   return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
       <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span></div>
-      <div class="space-cap">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
-      <div class="space-amenity">${tags}</div>
+      <div class="space-cap desk-only">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
+      <div class="space-cap mob-only" style="font-size:12px;line-height:1.5">${mobileInfo}</div>
+      <div class="space-amenity desk-only">${tags}</div>
       ${availBadge}
-      ${adminBtns}
+      <div class="desk-only">${adminBtns}</div>
     </div>
   </div>`;
 }
@@ -1672,6 +1695,18 @@ window.openSpaceDetail = (id) => {
     ${countTags || amenityTags ? `<div class="space-amenity" style="margin-top:4px">${countTags}${amenityTags}</div>` : ''}
     ${extraNotes.join('')}
   `;
+  // 예약하기 버튼 (비로그인·예약불가 상태 제외)
+  const isUnavail = spaceAvailResult !== null && !spaceAvailResult.has(sp.id);
+  const actions = document.getElementById('sd-actions');
+  const existingReserveBtn = actions.querySelector('.btn-primary');
+  if (existingReserveBtn) existingReserveBtn.remove();
+  if (!isUnavail) {
+    const reserveBtn = document.createElement('button');
+    reserveBtn.className = 'btn btn-primary';
+    reserveBtn.textContent = '예약하기';
+    reserveBtn.onclick = () => { closeModal('modal-space-detail'); goApply(sp.name); };
+    actions.prepend(reserveBtn);
+  }
   openModal('modal-space-detail');
 };
 
