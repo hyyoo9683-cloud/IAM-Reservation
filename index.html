@@ -984,18 +984,17 @@ function isMobileBrowser() {
 }
 
 window.googleLogin = async () => {
-  // 카카오톡·라인 등 인앱 브라우저는 OAuth 리다이렉트를 처리 못함 → 외부 브라우저 유도
+  // 카카오톡·라인 등 인앱 브라우저 감지 → 외부 브라우저 유도
   const ua = navigator.userAgent || '';
-  const isInApp = /KAKAOTALK|Line\/|FB_IAB|Instagram|NaverApp|DaumApp|Whale/i.test(ua);
+  const isInApp = /KAKAOTALK|Line\/|FB_IAB|Instagram|NaverApp|DaumApp/i.test(ua);
   if (isInApp) {
-    showLoginMsg('카카오톡 내 브라우저에서는 로그인이 제한됩니다.\n우측 하단 ⋯ 메뉴 → "다른 브라우저로 열기"를 눌러 주세요.');
+    showLoginMsg('카카오톡 안에서는 로그인이 제한됩니다. 우측 하단 ⋯ → "다른 브라우저로 열기"를 눌러 주세요.');
     return;
   }
   const btn = document.querySelector('.btn-google');
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
   try {
-    // 팝업 시도 (데스크톱 + 일부 모바일)
     if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
     const result = await signInWithPopup(auth, provider);
     const email = result.user.email;
@@ -1004,20 +1003,12 @@ window.googleLogin = async () => {
       showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
     }
   } catch (e) {
-    // 팝업 차단 / ITP 세션 오류 → 리다이렉트로 재시도
-    const redirectCodes = ['auth/popup-blocked','auth/cancelled-popup-request',
-                           'auth/missing-initial-state','auth/popup-closed-by-user',
-                           'auth/web-storage-unsupported'];
-    if (redirectCodes.includes(e.code) || e.message.includes('initial state')) {
-      showLoginMsg('페이지 이동 방식으로 로그인합니다...');
-      try {
-        await signInWithRedirect(auth, provider);
-        return;
-      } catch (e2) {
-        showLoginMsg('로그인 실패: ' + e2.message);
-      }
-    } else if (e.code !== 'auth/popup-closed-by-user') {
-      showLoginMsg('로그인 실패: ' + e.message);
+    if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+      // 사용자가 직접 팝업 닫음 — 안내 불필요
+    } else if (e.code === 'auth/popup-blocked') {
+      showLoginMsg('팝업이 차단되었습니다. 브라우저 주소창 오른쪽의 팝업 차단 아이콘을 눌러 허용한 후 다시 시도해 주세요.');
+    } else {
+      showLoginMsg('로그인 실패: ' + (e.message || e.code));
     }
   } finally {
     if (btn) {
@@ -1052,11 +1043,8 @@ getRedirectResult(auth).then(result => {
     signOut(auth);
     showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
   }
-}).catch(e => {
-  const ignore = ['auth/no-current-user','auth/null-user','auth/missing-initial-state'];
-  if (!ignore.includes(e.code)) {
-    showLoginMsg('로그인 오류: ' + e.message);
-  }
+}).catch(() => {
+  // 리다이렉트 잔존 상태(missing initial state 등) — 무시
 });
 
 onAuthStateChanged(auth, async user => {
