@@ -8,7 +8,7 @@
 <!-- Firebase SDK (v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc,
     onSnapshot, serverTimestamp }
@@ -41,7 +41,7 @@
 
   window._fb = {
     auth, db, storage,
-    GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
+    GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
     collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
     ref, uploadBytes, getDownloadURL,
     ALLOWED_DOMAIN, ADMIN_EMAILS
@@ -253,11 +253,12 @@ textarea { resize: vertical; min-height: 60px; }
 
   /* 공간 검색 패널: 모바일 레이아웃 */
   #avail-fields { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; }
-  #avail-dates  { flex-direction: column !important; width: 100%; }
+  #avail-dates  { display: block !important; width: 100% !important; }
+  #avail-dates .fg { display: block !important; width: 100% !important; max-width: 100% !important; margin-bottom: 8px !important; }
+  #avail-dates input[type="date"] { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; font-size: 13px !important; padding: 7px 6px !important; }
   #avail-times  { flex-direction: row !important; width: 100%; }
   #avail-fields > .fg { width: 100%; }
-  #avail-dates .fg, #avail-times .fg { min-width: 0 !important; flex: 1 !important; }
-  #avail-dates input[type="date"] { font-size: 13px !important; padding: 7px 6px !important; }
+  #avail-times .fg { min-width: 0 !important; flex: 1 !important; }
 
   /* 공간 카드 2열 */
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -869,7 +870,7 @@ textarea { resize: vertical; min-height: 60px; }
 const fb = window._fb;
 const {
   auth, db, storage,
-  GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged,
+  GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
   collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
   ref, uploadBytes, getDownloadURL,
   ALLOWED_DOMAIN, ADMIN_EMAILS
@@ -985,42 +986,43 @@ function isMobileBrowser() {
 
 window.googleLogin = async () => {
   const ua = navigator.userAgent || '';
-  const isKakao = /KAKAOTALK/i.test(ua);
-  const isIOS   = /iPhone|iPad|iPod/i.test(ua);
+  const isKakao  = /KAKAOTALK/i.test(ua);
+  const isIOS    = /iPhone|iPad|iPod/i.test(ua);
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
 
-  // iOS 카카오톡: WKWebView는 팝업·리다이렉트 모두 불안정 → Safari로 강제 오픈
+  // iOS 카카오톡 → Safari로 강제 이동
   if (isKakao && isIOS) {
     showLoginMsg('로그인을 위해 Safari로 이동합니다...');
-    setTimeout(() => {
-      location.href = 'x-safari-https://' + location.host + location.pathname;
-    }, 800);
+    setTimeout(() => { location.href = 'x-safari-https://' + location.host + location.pathname; }, 800);
     return;
   }
 
   const btn = document.querySelector('.btn-google');
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
+
+  if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
+
   try {
-    if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
-    const result = await signInWithPopup(auth, provider);
-    const email = result.user.email;
-    if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
-      await signOut(auth);
-      showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+    if (isMobile) {
+      // 모바일: 리다이렉트 방식 (팝업은 iOS/Android에서 불안정)
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithRedirect(auth, provider);
+      // 이후 페이지 새로고침 → getRedirectResult 에서 처리
+    } else {
+      // 데스크톱: 팝업 방식
+      const result = await signInWithPopup(auth, provider);
+      const email = result.user.email;
+      if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
+        await signOut(auth);
+        showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
+      }
     }
   } catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-      // 사용자가 직접 닫음 — 안내 불필요
+      // 사용자가 직접 닫음
     } else if (e.code === 'auth/popup-blocked') {
-      const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgA/i.test(ua);
-      if (isSafari) {
-        // Safari는 리다이렉트 시 sessionStorage 문제 → 팝업 허용 안내만
-        showLoginMsg('팝업이 차단되었습니다. Safari 설정에서 팝업을 허용하거나, Chrome으로 열어주세요.');
-      } else {
-        // Android 등 → 리다이렉트 시도
-        try { await signInWithRedirect(auth, provider); }
-        catch { showLoginMsg('로그인 실패. Chrome 브라우저로 열어주세요.'); }
-      }
+      showLoginMsg('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해 주세요.');
     } else {
       showLoginMsg('로그인 실패: ' + (e.message || e.code));
     }
