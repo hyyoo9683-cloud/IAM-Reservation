@@ -257,7 +257,7 @@ textarea { resize: vertical; min-height: 60px; }
   #avail-times  { flex-direction: row !important; width: 100%; }
   #avail-fields > .fg { width: 100%; }
   #avail-dates .fg, #avail-times .fg { min-width: 0 !important; flex: 1 !important; }
-  #avail-dates input[type="date"] { width: 50% !important; max-width: 180px; }
+  #avail-dates input[type="date"] { font-size: 13px !important; padding: 7px 6px !important; }
 
   /* 공간 카드 2열 */
   .space-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -984,13 +984,19 @@ function isMobileBrowser() {
 }
 
 window.googleLogin = async () => {
-  // 카카오톡·라인 등 인앱 브라우저 감지 → 외부 브라우저 유도
   const ua = navigator.userAgent || '';
-  const isInApp = /KAKAOTALK|Line\/|FB_IAB|Instagram|NaverApp|DaumApp/i.test(ua);
-  if (isInApp) {
-    showLoginMsg('카카오톡 안에서는 로그인이 제한됩니다. 우측 하단 ⋯ → "다른 브라우저로 열기"를 눌러 주세요.');
+  const isKakao = /KAKAOTALK/i.test(ua);
+  const isIOS   = /iPhone|iPad|iPod/i.test(ua);
+
+  // iOS 카카오톡: WKWebView는 팝업·리다이렉트 모두 불안정 → Safari로 강제 오픈
+  if (isKakao && isIOS) {
+    showLoginMsg('로그인을 위해 Safari로 이동합니다...');
+    setTimeout(() => {
+      location.href = 'x-safari-https://' + location.host + location.pathname;
+    }, 800);
     return;
   }
+
   const btn = document.querySelector('.btn-google');
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
@@ -1004,9 +1010,14 @@ window.googleLogin = async () => {
     }
   } catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-      // 사용자가 직접 팝업 닫음 — 안내 불필요
+      // 사용자가 직접 닫음 — 안내 불필요
     } else if (e.code === 'auth/popup-blocked') {
-      showLoginMsg('팝업이 차단되었습니다. 브라우저 주소창 오른쪽의 팝업 차단 아이콘을 눌러 허용한 후 다시 시도해 주세요.');
+      // Android 카카오톡 등 팝업 차단 환경 → 리다이렉트 시도
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch {
+        showLoginMsg('로그인 실패. 브라우저에서 직접 열어주세요: ' + location.href);
+      }
     } else {
       showLoginMsg('로그인 실패: ' + (e.message || e.code));
     }
@@ -1043,8 +1054,12 @@ getRedirectResult(auth).then(result => {
     signOut(auth);
     showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
   }
-}).catch(() => {
-  // 리다이렉트 잔존 상태(missing initial state 등) — 무시
+}).catch(e => {
+  // missing-initial-state 등 잔존 리다이렉트 오류 — 무시
+  if (e.code && !['auth/missing-initial-state','auth/no-current-user','auth/null-user'].includes(e.code)
+      && !e.message?.includes('initial state')) {
+    showLoginMsg('로그인 오류: ' + e.message);
+  }
 });
 
 onAuthStateChanged(auth, async user => {
@@ -1529,13 +1544,15 @@ function spaceCardHtml(sp, adminMode = false) {
       ? `<div><span class="avail-ok">✓ 예약 가능${CONSULT_ROOMS.includes(sp.name) ? '<span style="font-size:9px;font-weight:400;margin-left:4px;opacity:.8">(관리자 상담 필요)</span>' : ''}</span></div>`
       : `<div><span class="avail-no">✗ 예약 불가</span></div>`;
   }
-  // 모바일 카드용 간략 정보 (최대인원 + 의자/책상/TV)
-  const mobileInfo = [
-    sp.cap ? `최대 ${sp.cap}명` : null,
+  // 모바일 카드용 구조화 정보
+  const mobEquip = [
     sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
     sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
     (sp.amenities || []).includes('TV') ? 'TV' : null,
   ].filter(Boolean).join(' · ');
+  const mobBlock = `
+    <div style="font-weight:700;font-size:14px;margin:3px 0">최대 ${sp.cap || '-'}명</div>
+    ${mobEquip ? `<div style="font-size:12px;color:var(--text2);flex-wrap:wrap">${mobEquip}</div>` : ''}`;
 
   const detailBtn = !adminMode
     ? `<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px;font-size:13px"
@@ -1547,7 +1564,7 @@ function spaceCardHtml(sp, adminMode = false) {
     <div class="space-info">
       <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span></div>
       <div class="space-cap desk-only">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
-      <div class="space-cap mob-only" style="font-size:12px;line-height:1.5">${mobileInfo}</div>
+      <div class="mob-only">${mobBlock}</div>
       <div class="space-amenity desk-only">${tags}</div>
       ${availBadge}
       <div class="desk-only">${adminBtns}</div>
