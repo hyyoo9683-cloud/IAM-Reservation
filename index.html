@@ -251,12 +251,16 @@ textarea { resize: vertical; min-height: 60px; }
   /* 로그인 카드 모바일 */
   .login-card { padding: 28px 20px; margin: 0 16px; }
 
+  /* 모바일 전체 가로 스크롤 차단 */
+  .page { overflow-x: hidden !important; }
+
   /* 공간 검색 패널: 모바일 레이아웃 */
-  #avail-fields { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; }
-  #avail-dates  { display: block !important; width: 100% !important; }
-  #avail-dates .fg { display: block !important; width: 100% !important; max-width: 100% !important; margin-bottom: 8px !important; }
+  #avail-panel  { overflow: hidden !important; }
+  #avail-fields { flex-direction: column !important; flex-wrap: nowrap !important; align-items: stretch !important; overflow: hidden !important; }
+  #avail-dates  { display: block !important; width: 100% !important; overflow: hidden !important; }
+  #avail-dates .fg { display: block !important; width: 100% !important; max-width: 100% !important; overflow: hidden !important; margin-bottom: 8px !important; }
   #avail-dates input[type="date"] { display: block !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box !important; font-size: 13px !important; padding: 7px 6px !important; }
-  #avail-times  { flex-direction: row !important; width: 100%; }
+  #avail-times  { flex-direction: row !important; width: 100%; overflow: hidden !important; }
   #avail-fields > .fg { width: 100%; }
   #avail-times .fg { min-width: 0 !important; flex: 1 !important; }
 
