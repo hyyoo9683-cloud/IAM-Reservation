@@ -1012,11 +1012,14 @@ window.googleLogin = async () => {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
       // 사용자가 직접 닫음 — 안내 불필요
     } else if (e.code === 'auth/popup-blocked') {
-      // Android 카카오톡 등 팝업 차단 환경 → 리다이렉트 시도
-      try {
-        await signInWithRedirect(auth, provider);
-      } catch {
-        showLoginMsg('로그인 실패. 브라우저에서 직접 열어주세요: ' + location.href);
+      const isSafari = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS|EdgA/i.test(ua);
+      if (isSafari) {
+        // Safari는 리다이렉트 시 sessionStorage 문제 → 팝업 허용 안내만
+        showLoginMsg('팝업이 차단되었습니다. Safari 설정에서 팝업을 허용하거나, Chrome으로 열어주세요.');
+      } else {
+        // Android 등 → 리다이렉트 시도
+        try { await signInWithRedirect(auth, provider); }
+        catch { showLoginMsg('로그인 실패. Chrome 브라우저로 열어주세요.'); }
       }
     } else {
       showLoginMsg('로그인 실패: ' + (e.message || e.code));
@@ -1054,13 +1057,7 @@ getRedirectResult(auth).then(result => {
     signOut(auth);
     showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
   }
-}).catch(e => {
-  // missing-initial-state 등 잔존 리다이렉트 오류 — 무시
-  if (e.code && !['auth/missing-initial-state','auth/no-current-user','auth/null-user'].includes(e.code)
-      && !e.message?.includes('initial state')) {
-    showLoginMsg('로그인 오류: ' + e.message);
-  }
-});
+}).catch(() => { /* 잔존 리다이렉트 오류 모두 무시 */ });
 
 onAuthStateChanged(auth, async user => {
   if (!user) return;
