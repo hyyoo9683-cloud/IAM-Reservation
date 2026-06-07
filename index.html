@@ -986,14 +986,21 @@ function isMobileBrowser() {
 
 window.googleLogin = async () => {
   const ua = navigator.userAgent || '';
-  const isKakao  = /KAKAOTALK/i.test(ua);
-  const isIOS    = /iPhone|iPad|iPod/i.test(ua);
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+  const isKakao   = /KAKAOTALK/i.test(ua);
+  const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  // Safari 감지: Chrome/CriOS(iOS Chrome) 제외
+  const isSafari  = /Safari/i.test(ua) && !/Chrome|CriOS|FxiOS/i.test(ua);
 
-  // iOS 카카오톡 → Safari로 강제 이동
+  // iOS 카카오톡 → 네이티브 Safari로 강제 이동
   if (isKakao && isIOS) {
     showLoginMsg('로그인을 위해 Safari로 이동합니다...');
     setTimeout(() => { location.href = 'x-safari-https://' + location.host + location.pathname; }, 800);
+    return;
+  }
+  // Android 카카오톡 → 외부 브라우저 안내
+  if (isKakao && isAndroid) {
+    showLoginMsg('카카오톡 내에서는 로그인이 제한됩니다. 우측 상단 ⋮ 메뉴 → 외부 브라우저로 열기를 눌러주세요.');
     return;
   }
 
@@ -1004,13 +1011,14 @@ window.googleLogin = async () => {
   if (btn) { btn.disabled = true; btn.textContent = '로그인 중...'; }
 
   try {
-    if (isMobile) {
-      // 모바일: 리다이렉트 방식 (팝업은 iOS/Android에서 불안정)
+    // Safari(iOS·macOS)는 ITP로 인해 redirect 시 sessionStorage가 초기화됨 → popup 사용
+    // Android 비-Safari 브라우저는 redirect가 더 안정적
+    if (isAndroid && !isSafari) {
       await setPersistence(auth, browserLocalPersistence);
       await signInWithRedirect(auth, provider);
       // 이후 페이지 새로고침 → getRedirectResult 에서 처리
     } else {
-      // 데스크톱: 팝업 방식
+      // Safari(iOS 포함), 데스크톱: popup 방식
       const result = await signInWithPopup(auth, provider);
       const email = result.user.email;
       if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
