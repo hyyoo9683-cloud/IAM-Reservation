@@ -310,6 +310,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
       <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
+      <button class="nav-btn" onclick="go('parking-logs')"><span class="icon">🅿️</span>주차 할인 통계</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <div class="nav-section">사용자 뷰</div>
@@ -642,6 +643,33 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
       <div class="card"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
+    </div>
+    <!-- 관리자: 주차 할인 통계 -->
+    <div class="page" id="p-parking-logs">
+      <div style="max-width:720px">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          <select id="pl-year"  onchange="renderParkingLogs()" style="width:90px"></select>
+          <select id="pl-month" onchange="renderParkingLogs()" style="width:80px">
+            <option value="">전체 월</option>
+            <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
+            <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
+            <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
+            <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+          <div class="stat-box"><div class="stat-lbl">총 접속 횟수</div><div class="stat-num" id="pl-total">0</div></div>
+          <div class="stat-box"><div class="stat-lbl">이용 청지기 수</div><div class="stat-num" id="pl-unique">0</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">날짜별 현황</div>
+          <div id="pl-by-date"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">청지기별 현황</div>
+          <div id="pl-by-name"></div>
+        </div>
+      </div>
     </div>
     <!-- 관리자: 차단일 관리 -->
     <div class="page" id="p-blocked">
@@ -1199,6 +1227,7 @@ window.go = (page) => {
   if (page === 'report')         renderReport();
   if (page === 'ext-users')      renderExtUsers();
   if (page === 'blocked')        renderBlockedDates();
+  if (page === 'parking-logs')   renderParkingLogs();
 };
 
 function refresh() {
@@ -2830,6 +2859,60 @@ function renderMyList() {
           </td>
         </tr>`
       ).join('');
+}
+
+async function renderParkingLogs() {
+  const { db, collection, getDocs } = window._fb;
+
+  // 연도 셀렉트 초기화
+  const yrEl = document.getElementById('pl-year');
+  if (yrEl && !yrEl.options.length) {
+    const cur = new Date().getFullYear();
+    for (let y = cur; y >= cur - 2; y--) {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y + '년';
+      yrEl.appendChild(o);
+    }
+  }
+
+  const yr = document.getElementById('pl-year')?.value || '';
+  const mo = document.getElementById('pl-month')?.value || '';
+
+  const snap = await getDocs(collection(db, 'parkingDiscountLogs'));
+  let logs = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+
+  if (yr) logs = logs.filter(l => l.date?.startsWith(yr));
+  if (mo) logs = logs.filter(l => l.date?.slice(5, 7) === mo);
+
+  // 통계
+  document.getElementById('pl-total').textContent  = logs.length;
+  document.getElementById('pl-unique').textContent = new Set(logs.map(l => l.stewardName)).size;
+
+  // 날짜별
+  const byDate = {};
+  logs.forEach(l => { byDate[l.date] = (byDate[l.date] || 0) + 1; });
+  const dateRows = Object.entries(byDate).sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([d, c]) => `<tr><td>${d}</td><td>${c}회</td></tr>`).join('');
+  document.getElementById('pl-by-date').innerHTML = dateRows
+    ? `<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid #eee;font-size:12px;color:#888">
+          <th style="text-align:left;padding:6px 4px">날짜</th>
+          <th style="text-align:left;padding:6px 4px">접속 횟수</th>
+        </tr></thead><tbody>${dateRows}</tbody></table>`
+    : '<p style="color:#aaa;font-size:13px;padding:12px 0">데이터가 없습니다.</p>';
+
+  // 청지기별
+  const byName = {};
+  logs.forEach(l => { byName[l.stewardName] = (byName[l.stewardName] || 0) + 1; });
+  const nameRows = Object.entries(byName).sort((a, b) => b[1] - a[1])
+    .map(([n, c]) => `<tr><td>${n}</td><td>${c}회</td></tr>`).join('');
+  document.getElementById('pl-by-name').innerHTML = nameRows
+    ? `<table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid #eee;font-size:12px;color:#888">
+          <th style="text-align:left;padding:6px 4px">청지기 성함</th>
+          <th style="text-align:left;padding:6px 4px">접속 횟수</th>
+        </tr></thead><tbody>${nameRows}</tbody></table>`
+    : '<p style="color:#aaa;font-size:13px;padding:12px 0">데이터가 없습니다.</p>';
 }
 
 function renderReport() {
