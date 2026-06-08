@@ -310,7 +310,8 @@
     btn.innerHTML = '<span class="spinner"></span>확인 중...';
 
     try {
-      const today = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+      const now   = new Date();
+      const today = now.toLocaleDateString('sv-SE'); // YYYY-MM-DD
       const snap  = await getDocs(collection(db, 'reservations'));
       const found = snap.docs.some(d => {
         const r        = d.data();
@@ -319,7 +320,12 @@
         const telOk    = tel.length >= 4 && tel.slice(-4) === phone;
         const dateOk   = r.date === today;
         const statusOk = r.status === '확정';
-        return nameOk && telOk && dateOk && statusOk;
+        if (!nameOk || !telOk || !dateOk || !statusOk) return false;
+        // 종료 시간 + 3시간 이내 확인
+        const [endH, endM] = (r.end || '00:00').split(':').map(Number);
+        const endLimit = new Date(now);
+        endLimit.setHours(endH + 3, endM, 0, 0);
+        return now <= endLimit;
       });
 
       if (!found) {
