@@ -2351,10 +2351,21 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
     const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
     const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
-    const recurRaw= cols.recur     !== undefined ? (r[cols.recur]     || '') : '';
+    const recurRaw = cols.recur   !== undefined ? (r[cols.recur]   || '') : '';
+    const endDateRaw= cols.endDate !== undefined ? (r[cols.endDate] || '') : '';
     const recurType = parseRecurType(recurRaw);
-    _importRows.push({ room, date, start, end, status, managerName: manager,
-      stewardName: steward, stewardTel: tel, purpose, people, email, recurType });
+    const recurEndDate = endDateRaw ? parseKorDate(endDateRaw) : '';
+
+    // 정기 예약 행: 시작날짜 ~ 종료날짜 범위를 모두 확장해서 등록
+    if (recurType && recurEndDate && recurEndDate >= date) {
+      const recurCode = recurType.includes('격') ? 'biweekly' : recurType.includes('달') ? 'monthly' : 'weekly';
+      const allDates = generateAvailDates(date, recurEndDate, recurCode);
+      allDates.forEach(d => _importRows.push({ room, date: d, start, end, status, managerName: manager,
+        stewardName: steward, stewardTel: tel, purpose, people, email, recurType }));
+    } else {
+      _importRows.push({ room, date, start, end, status, managerName: manager,
+        stewardName: steward, stewardTel: tel, purpose, people, email, recurType: recurType || null });
+    }
   }
 
   if (!_importRows.length) {
