@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마더와이즈 Motherwise — 어머니를 위한 교육·양육 지원</title>
+  <meta name="description" content="마더와이즈는 어머니들이 지혜롭고 건강하게 자녀를 양육할 수 있도록 돕는 교육·양육 지원 단체입니다." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --cream:    #fdf6ee;
+      --beige:    #f5e6d3;
+      --blush:    #f2c4b0;
+      --rose:     #d97b6c;
+      --rose-dark:#b85c4e;
+      --brown:    #7a4a3a;
+      --text:     #3d2b1f;
+      --text-mid: #6b4c3b;
+      --text-light:#a07060;
+      --white:    #ffffff;
+      --shadow:   0 4px 24px rgba(120,70,50,0.10);
+      --radius:   18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* ── Typography ── */
+    h1, h2, h3 { font-family: 'Noto Serif KR', serif; line-height: 1.35; }
+    h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--brown); }
+    h3 { font-size: clamp(1.1rem, 2.5vw, 1.35rem); }
+    p  { color: var(--text-mid); }
+
+    /* ── Navigation ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(253,246,238,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(210,150,120,0.18);
+      padding: 0 clamp(1.5rem, 5vw, 4rem);
+      height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blush), var(--rose));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .nav-logo-text {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 1.15rem; font-weight: 700;
+      color: var(--brown);
+    }
+    .nav-logo-sub {
+      font-size: 0.7rem; font-weight: 300;
+      color: var(--text-light); letter-spacing: 0.08em;
+    }
+
+    .nav-links {
+      display: flex; align-items: center; gap: 2rem; list-style: none;
+    }
+    .nav-links a {
+      text-decoration: none; color: var(--text-mid);
+      font-size: 0.92rem; font-weight: 500;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--rose); }
+
+    .nav-cta {
+      background: var(--rose);
+      color: var(--white) !important;
+      padding: 0.45rem 1.15rem;
+      border-radius: 50px;
+      font-size: 0.88rem !important;
+      transition: background .2s !important;
+    }
+    .nav-cta:hover { background: var(--rose-dark) !important; }
+
+    .nav-toggle {
+      display: none;
+      flex-direction: column; gap: 5px; cursor: pointer;
+      background: none; border: none; padding: 4px;
+    }
+    .nav-toggle span {
+      display: block; width: 24px; height: 2px;
+      background: var(--brown); border-radius: 2px;
+      transition: all .3s;
+    }
+
+    /* ── Hero ── */
+    #hero {
+      min-height: 100vh;
+      padding: 120px clamp(1.5rem, 6vw, 8rem) 80px;
+      display: flex; align-items: center;
+      background:
+        radial-gradient(ellipse 80% 60% at 70% 40%, rgba(242,196,176,0.35) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 20% 80%, rgba(245,230,211,0.5) 0%, transparent 60%),
+        var(--cream);
+      position: relative; overflow: hidden;
+    }
+
+    .hero-deco {
+      position: absolute; border-radius: 50%; pointer-events: none;
+      opacity: 0.18;
+    }
+    .hero-deco-1 {
+      width: 480px; height: 480px;
+      background: var(--blush);
+      top: -80px; right: -80px;
+    }
+    .hero-deco-2 {
+      width: 260px; height: 260px;
+      background: var(--rose);
+      bottom: 40px; right: 200px;
+      opacity: 0.09;
+    }
+
+    .hero-content {
+      max-width: 620px; position: relative; z-index: 1;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(217,123,108,0.12);
+      color: var(--rose-dark);
+      font-size: 0.82rem; font-weight: 500;
+      padding: 0.35rem 0.9rem; border-radius: 50px;
+      border: 1px solid rgba(217,123,108,0.25);
+      margin-bottom: 1.4rem;
+    }
+    .hero-badge::before { content: '🌿'; }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 6vw, 3.6rem);
+      color: var(--brown); font-weight: 700;
+      margin-bottom: 1.2rem;
+      word-break: keep-all;
+    }
+    .hero-title span { color: var(--rose); }
+
+    .hero-desc {
+      font-size: clamp(1rem, 2vw, 1.15rem);
+      color: var(--text-mid); margin-bottom: 2.2rem;
+      word-break: keep-all; max-width: 520px;
+    }
+
+    .hero-buttons {
+      display: flex; flex-wrap: wrap; gap: 0.9rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 0.8rem 1.7rem; border-radius: 50px;
+      font-size: 0.96rem; font-weight: 500;
+      text-decoration: none; transition: all .25s;
+      cursor: pointer; border: none;
+    }
+    .btn-primary {
+      background: var(--rose); color: var(--white);
+      box-shadow: 0 4px 16px rgba(217,123,108,0.35);
+    }
+    .btn-primary:hover {
+      background: var(--rose-dark);
+      box-shadow: 0 6px 22px rgba(217,123,108,0.45);
+      transform: translateY(-2px);
+    }
+    .btn-outline {
+      background: transparent; color: var(--brown);
+      border: 2px solid rgba(120,74,58,0.3);
+    }
+    .btn-outline:hover {
+      border-color: var(--rose); color: var(--rose);
+      transform: translateY(-2px);
+    }
+
+    .hero-stats {
+      display: flex; flex-wrap: wrap; gap: 2rem; margin-top: 3.5rem;
+      padding-top: 2rem; border-top: 1px solid rgba(160,112,96,0.15);
+    }
+    .stat-item {}
+    .stat-num {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 1.8rem; font-weight: 700; color: var(--rose-dark);
+    }
+    .stat-label { font-size: 0.82rem; color: var(--text-light); margin-top: 2px; }
+
+    /* ── Section commons ── */
+    section {
+      padding: clamp(60px, 10vw, 110px) clamp(1.5rem, 6vw, 8rem);
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--rose);
+      margin-bottom: 0.7rem;
+    }
+
+    .section-title { margin-bottom: 0.8rem; word-break: keep-all; }
+    .section-desc {
+      font-size: 1.02rem; color: var(--text-light);
+      max-width: 560px; word-break: keep-all; margin-bottom: 3rem;
+    }
+
+    /* ── About ── */
+    #about { background: var(--white); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: center;
+    }
+
+    .about-image-wrap {
+      position: relative;
+    }
+    .about-img-placeholder {
+      width: 100%; aspect-ratio: 4/5;
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, var(--beige), var(--blush));
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1rem; color: var(--text-light);
+      font-size: 0.9rem; text-align: center; padding: 2rem;
+    }
+    .about-img-placeholder .big-icon { font-size: 4rem; }
+
+    .about-card {
+      position: absolute;
+      bottom: -20px; right: -20px;
+      background: var(--white);
+      border-radius: 14px;
+      padding: 1rem 1.4rem;
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 0.8rem;
+    }
+    .about-card-icon { font-size: 1.8rem; }
+    .about-card-text { font-size: 0.82rem; color: var(--text-mid); }
+    .about-card-text strong { display: block; color: var(--brown); font-size: 1rem; }
+
+    .about-content {}
+    .about-values {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1rem; margin-top: 2rem;
+    }
+    .value-item {
+      background: var(--cream);
+      border-radius: 12px; padding: 1.1rem;
+      border-left: 3px solid var(--blush);
+    }
+    .value-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .value-title { font-size: 0.92rem; font-weight: 700; color: var(--brown); }
+    .value-desc { font-size: 0.82rem; color: var(--text-light); margin-top: 0.2rem; }
+
+    /* ── Programs ── */
+    #programs { background: var(--cream); }
+
+    .programs-header {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem;
+    }
+
+    .programs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .program-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform .25s, box-shadow .25s;
+    }
+    .program-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 36px rgba(120,70,50,0.15);
+    }
+
+    .program-thumb {
+      height: 180px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3.5rem;
+    }
+    .program-thumb-1 { background: linear-gradient(135deg, #fde8d8, #f5c0a8); }
+    .program-thumb-2 { background: linear-gradient(135deg, #fde8d8, #e8c4d8); }
+    .program-thumb-3 { background: linear-gradient(135deg, #d8ede8, #c4d8e8); }
+    .program-thumb-4 { background: linear-gradient(135deg, #f5f0d8, #f0d8c4); }
+
+    .program-body { padding: 1.4rem; }
+    .program-tag {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      background: rgba(217,123,108,0.12); color: var(--rose-dark);
+      padding: 0.2rem 0.65rem; border-radius: 50px; margin-bottom: 0.6rem;
+    }
+    .program-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--brown);
+      margin-bottom: 0.5rem;
+    }
+    .program-desc { font-size: 0.88rem; color: var(--text-light); line-height: 1.6; }
+    .program-meta {
+      display: flex; gap: 1rem; margin-top: 1rem;
+      font-size: 0.8rem; color: var(--text-light);
+    }
+    .program-meta span::before { margin-right: 3px; }
+
+    /* ── News ── */
+    #news { background: var(--white); }
+
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .news-card {
+      border-radius: var(--radius);
+      border: 1px solid rgba(200,160,140,0.18);
+      padding: 1.6rem;
+      transition: border-color .2s, box-shadow .2s;
+      cursor: pointer;
+    }
+    .news-card:hover {
+      border-color: var(--blush);
+      box-shadow: var(--shadow);
+    }
+
+    .news-date {
+      font-size: 0.78rem; color: var(--text-light);
+      margin-bottom: 0.6rem; letter-spacing: 0.05em;
+    }
+    .news-category {
+      display: inline-block;
+      font-size: 0.72rem; font-weight: 700;
+      color: var(--rose); background: rgba(217,123,108,0.08);
+      padding: 0.15rem 0.6rem; border-radius: 50px;
+      margin-bottom: 0.7rem;
+    }
+    .news-title {
+      font-size: 1rem; font-weight: 700; color: var(--brown);
+      margin-bottom: 0.5rem; line-height: 1.5; word-break: keep-all;
+    }
+    .news-excerpt { font-size: 0.87rem; color: var(--text-light); line-height: 1.65; }
+    .news-more {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.82rem; color: var(--rose);
+      font-weight: 600; margin-top: 1rem;
+      text-decoration: none;
+    }
+    .news-more:hover { gap: 8px; }
+
+    /* ── Contact ── */
+    #contact {
+      background: linear-gradient(160deg, var(--beige) 0%, var(--cream) 100%);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: clamp(2rem, 5vw, 5rem);
+      align-items: start;
+    }
+
+    .contact-info {}
+    .contact-info-item {
+      display: flex; align-items: flex-start; gap: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+    .contact-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: rgba(217,123,108,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .contact-info-text {}
+    .contact-info-label { font-size: 0.78rem; color: var(--text-light); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    .contact-info-value { font-size: 0.95rem; color: var(--brown); font-weight: 500; margin-top: 2px; }
+
+    .contact-form {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: clamp(1.5rem, 4vw, 2.5rem);
+      box-shadow: var(--shadow);
+    }
+    .form-title {
+      font-size: 1.2rem; font-weight: 700; color: var(--brown);
+      margin-bottom: 1.5rem;
+    }
+    .form-group { margin-bottom: 1.1rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    label {
+      display: block; font-size: 0.82rem; font-weight: 600;
+      color: var(--text-mid); margin-bottom: 0.4rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid rgba(180,130,110,0.25);
+      border-radius: 10px;
+      background: var(--cream);
+      color: var(--text);
+      font-family: inherit; font-size: 0.92rem;
+      transition: border-color .2s, box-shadow .2s;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--rose);
+      box-shadow: 0 0 0 3px rgba(217,123,108,0.12);
+    }
+    textarea { resize: vertical; min-height: 110px; }
+    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a07060' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.9rem center; background-size: 16px; padding-right: 2.5rem; }
+
+    .form-submit {
+      width: 100%; padding: 0.9rem;
+      background: var(--rose); color: var(--white);
+      border: none; border-radius: 50px;
+      font-family: inherit; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: background .2s, transform .2s;
+      margin-top: 0.5rem;
+    }
+    .form-submit:hover { background: var(--rose-dark); transform: translateY(-2px); }
+
+    .form-notice {
+      font-size: 0.78rem; color: var(--text-light);
+      text-align: center; margin-top: 0.8rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--brown);
+      color: rgba(255,255,255,0.75);
+      padding: 3rem clamp(1.5rem, 6vw, 8rem) 2rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr;
+      gap: 3rem; margin-bottom: 2.5rem;
+    }
+
+    .footer-brand-name {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 1.2rem; font-weight: 700;
+      color: var(--white); margin-bottom: 0.6rem;
+    }
+    .footer-brand-desc { font-size: 0.85rem; line-height: 1.7; }
+
+    .footer-col-title {
+      font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: rgba(255,255,255,0.5);
+      margin-bottom: 1rem;
+    }
+    .footer-links { list-style: none; }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a {
+      text-decoration: none; color: rgba(255,255,255,0.7);
+      font-size: 0.88rem; transition: color .2s;
+    }
+    .footer-links a:hover { color: var(--blush); }
+
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-top: 1.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    /* ── Mobile nav ── */
+    .mobile-menu {
+      display: none;
+      position: fixed; top: 68px; left: 0; right: 0; z-index: 99;
+      background: rgba(253,246,238,0.97);
+      backdrop-filter: blur(12px);
+      padding: 1.5rem clamp(1.5rem, 5vw, 4rem) 2rem;
+      border-bottom: 1px solid rgba(210,150,120,0.18);
+      flex-direction: column; gap: 0.5rem;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      text-decoration: none; color: var(--text-mid);
+      font-size: 1rem; font-weight: 500;
+      padding: 0.6rem 0; border-bottom: 1px solid rgba(160,112,96,0.1);
+    }
+    .mobile-menu a:last-child { border-bottom: none; }
+
+    /* ── Animations ── */
+    .fade-up {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .about-grid, .contact-grid { grid-template-columns: 1fr; }
+      .about-image-wrap { max-width: 420px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-toggle { display: flex; }
+      .about-values { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr; gap: 2rem; }
+      .hero-stats { gap: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav>
+    <a class="nav-logo" href="#hero">
+      <div class="nav-logo-icon">🌿</div>
+      <div>
+        <div class="nav-logo-text">마더와이즈</div>
+        <div class="nav-logo-sub">MOTHERWISE</div>
+      </div>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#about">단체 소개</a></li>
+      <li><a href="#programs">프로그램</a></li>
+      <li><a href="#news">소식</a></li>
+      <li><a href="#contact" class="nav-cta">문의하기</a></li>
+    </ul>
+    <button class="nav-toggle" id="navToggle" aria-label="메뉴 열기">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#about" onclick="closeMobileMenu()">단체 소개</a>
+    <a href="#programs" onclick="closeMobileMenu()">프로그램</a>
+    <a href="#news" onclick="closeMobileMenu()">소식</a>
+    <a href="#contact" onclick="closeMobileMenu()">문의하기</a>
+  </div>
+
+  <!-- Hero -->
+  <section id="hero">
+    <div class="hero-deco hero-deco-1"></div>
+    <div class="hero-deco hero-deco-2"></div>
+    <div class="hero-content fade-up">
+      <div class="hero-badge">어머니를 위한 교육·양육 지원 단체</div>
+      <h1 class="hero-title">
+        지혜로운 어머니가<br />
+        <span>건강한 가정</span>을<br />
+        만듭니다
+      </h1>
+      <p class="hero-desc">
+        마더와이즈는 어머니들이 말씀 위에서 자녀를 지혜롭게 양육하고,
+        서로를 격려하며 성장하는 공동체를 세워갑니다.
+      </p>
+      <div class="hero-buttons">
+        <a href="#programs" class="btn btn-primary">프로그램 알아보기 →</a>
+        <a href="#about" class="btn btn-outline">단체 소개</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-num">20+</div>
+          <div class="stat-label">운영 년수</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">1,000+</div>
+          <div class="stat-label">수료 어머니</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">전국</div>
+          <div class="stat-label">지역 운영</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about">
+    <div class="about-grid">
+      <div class="about-image-wrap fade-up">
+        <div class="about-img-placeholder">
+          <div class="big-icon">👩‍👧‍👦</div>
+          <p>어머니와 아이가 함께하는<br />따뜻한 공동체 사진이 들어갈 자리예요</p>
+        </div>
+        <div class="about-card">
+          <div class="about-card-icon">💛</div>
+          <div class="about-card-text">
+            <strong>1,000명+</strong>
+            함께한 어머니들
+          </div>
+        </div>
+      </div>
+      <div class="about-content fade-up">
+        <span class="section-label">About</span>
+        <h2 class="section-title">마더와이즈는<br />어떤 단체인가요?</h2>
+        <p style="color: var(--text-mid); line-height: 1.9; word-break: keep-all;">
+          마더와이즈(Motherwise)는 어머니들이 성경적 가치관 위에서 자녀를 양육하고,
+          건강한 가정을 세울 수 있도록 교육과 공동체를 지원하는 단체입니다.
+        </p>
+        <p style="color: var(--text-mid); line-height: 1.9; margin-top: 0.8rem; word-break: keep-all;">
+          소그룹 스터디, 강의, 수련회 등 다양한 프로그램을 통해
+          어머니들이 서로 배우고 격려하며 성장하는 자리를 마련합니다.
+        </p>
+        <div class="about-values">
+          <div class="value-item">
+            <div class="value-icon">📖</div>
+            <div class="value-title">말씀 기반 양육</div>
+            <div class="value-desc">성경적 원리로 자녀를 양육합니다</div>
+          </div>
+          <div class="value-item">
+            <div class="value-icon">🤝</div>
+            <div class="value-title">공동체 성장</div>
+            <div class="value-desc">함께 배우고 서로 격려합니다</div>
+          </div>
+          <div class="value-item">
+            <div class="value-icon">🌱</div>
+            <div class="value-title">실제적 교육</div>
+            <div class="value-desc">일상에서 적용 가능한 내용을 다룹니다</div>
+          </div>
+          <div class="value-item">
+            <div class="value-icon">🏠</div>
+            <div class="value-title">가정 회복</div>
+            <div class="value-desc">건강한 가정을 세우는 것이 목표입니다</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Programs -->
+  <section id="programs">
+    <div class="programs-header fade-up">
+      <div>
+        <span class="section-label">Programs</span>
+        <h2 class="section-title">함께하는 프로그램</h2>
+        <p class="section-desc">어머니로서 성장하고 싶은 모든 분들을 환영합니다.</p>
+      </div>
+    </div>
+    <div class="programs-grid">
+      <div class="program-card fade-up">
+        <div class="program-thumb program-thumb-1">📚</div>
+        <div class="program-body">
+          <span class="program-tag">정규 과정</span>
+          <div class="program-title">마더와이즈 스터디</div>
+          <p class="program-desc">소그룹으로 함께 모여 성경적 양육 원리를 공부하는 핵심 과정입니다. 매주 1회, 약 10주간 진행됩니다.</p>
+          <div class="program-meta">
+            <span>📅 매 학기 운영</span>
+            <span>👥 소그룹 8~12명</span>
+          </div>
+        </div>
+      </div>
+      <div class="program-card fade-up">
+        <div class="program-thumb program-thumb-2">🎤</div>
+        <div class="program-body">
+          <span class="program-tag">특별 강의</span>
+          <div class="program-title">어머니 특강</div>
+          <p class="program-desc">양육, 교육, 정서, 관계 등 다양한 주제로 전문 강사의 강의를 듣는 시간입니다.</p>
+          <div class="program-meta">
+            <span>📅 비정기 개최</span>
+            <span>👥 제한 없음</span>
+          </div>
+        </div>
+      </div>
+      <div class="program-card fade-up">
+        <div class="program-thumb program-thumb-3">🌿</div>
+        <div class="program-body">
+          <span class="program-tag">수련회</span>
+          <div class="program-title">어머니 수련회</div>
+          <p class="program-desc">일상에서 벗어나 깊이 쉬고 새로운 힘을 얻는 1박 2일 수련회입니다. 어머니만을 위한 특별한 시간.</p>
+          <div class="program-meta">
+            <span>📅 연 1~2회</span>
+            <span>👥 선착순 등록</span>
+          </div>
+        </div>
+      </div>
+      <div class="program-card fade-up">
+        <div class="program-thumb program-thumb-4">👑</div>
+        <div class="program-body">
+          <span class="program-tag">리더 훈련</span>
+          <div class="program-title">리더십 트레이닝</div>
+          <p class="program-desc">마더와이즈 소그룹을 이끌어갈 리더를 세우는 과정입니다. 수료 후 각 지역 소그룹 리더로 활동합니다.</p>
+          <div class="program-meta">
+            <span>📅 연 1회</span>
+            <span>👥 지원자 심사</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- News -->
+  <section id="news">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem; margin-bottom:3rem;" class="fade-up">
+      <div>
+        <span class="section-label">News</span>
+        <h2 class="section-title">마더와이즈 소식</h2>
+        <p class="section-desc">새로운 프로그램 일정과 단체 소식을 전합니다.</p>
+      </div>
+      <a href="#" class="btn btn-outline" style="font-size:0.88rem; padding:0.6rem 1.3rem;">전체 보기</a>
+    </div>
+    <div class="news-grid">
+      <div class="news-card fade-up">
+        <div class="news-date">2025. 03. 10</div>
+        <span class="news-category">공지</span>
+        <div class="news-title">2025년 봄학기 마더와이즈 스터디 참가자를 모집합니다</div>
+        <p class="news-excerpt">4월부터 시작되는 봄학기 스터디 그룹 참가자를 모집합니다. 정원이 한정되어 있으니 서둘러 신청해 주세요.</p>
+        <a href="#" class="news-more">자세히 보기 →</a>
+      </div>
+      <div class="news-card fade-up">
+        <div class="news-date">2025. 02. 20</div>
+        <span class="news-category">후기</span>
+        <div class="news-title">2025 어머니 겨울 수련회 후기</div>
+        <p class="news-excerpt">지난 2월, 40여 명의 어머니들이 함께한 겨울 수련회의 생생한 현장 후기를 전합니다.</p>
+        <a href="#" class="news-more">자세히 보기 →</a>
+      </div>
+      <div class="news-card fade-up">
+        <div class="news-date">2025. 01. 15</div>
+        <span class="news-category">특강</span>
+        <div class="news-title">'자녀의 감정을 어떻게 다룰까' 특강 안내</div>
+        <p class="news-excerpt">아동심리 전문가를 모시고 진행하는 자녀 감정 코칭 특강을 개최합니다. 참가 신청을 받습니다.</p>
+        <a href="#" class="news-more">자세히 보기 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact">
+    <div class="contact-grid">
+      <div class="fade-up">
+        <span class="section-label">Contact</span>
+        <h2 class="section-title">함께하고<br />싶으신가요?</h2>
+        <p class="section-desc" style="margin-bottom:2rem;">
+          프로그램 참가 문의, 소그룹 개설, 강사 초청 등
+          어떤 내용이든 편하게 연락해 주세요.
+        </p>
+        <div class="contact-info">
+          <div class="contact-info-item">
+            <div class="contact-icon">📍</div>
+            <div class="contact-info-text">
+              <div class="contact-info-label">주소</div>
+              <div class="contact-info-value">경기도 수원시 영통구 월드컵로 70</div>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">📧</div>
+            <div class="contact-info-text">
+              <div class="contact-info-label">이메일</div>
+              <div class="contact-info-value">itman@suwoncca.org</div>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-icon">📞</div>
+            <div class="contact-info-text">
+              <div class="contact-info-label">전화</div>
+              <div class="contact-info-value">070-7018-1300</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="contact-form fade-up">
+        <div class="form-title">✉️ 문의 / 신청하기</div>
+        <form id="contactForm" onsubmit="handleSubmit(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">이름 *</label>
+              <input type="text" id="name" name="name" placeholder="홍길동" required />
+            </div>
+            <div class="form-group">
+              <label for="phone">연락처 *</label>
+              <input type="tel" id="phone" name="phone" placeholder="010-0000-0000" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">이메일</label>
+            <input type="email" id="email" name="email" placeholder="example@email.com" />
+          </div>
+          <div class="form-group">
+            <label for="subject">문의 유형 *</label>
+            <select id="subject" name="subject" required>
+              <option value="" disabled selected>선택해 주세요</option>
+              <option value="study">스터디 그룹 참가 문의</option>
+              <option value="lecture">특강 / 강사 초청</option>
+              <option value="retreat">수련회 참가 문의</option>
+              <option value="leader">리더 훈련 문의</option>
+              <option value="other">기타 문의</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message">내용 *</label>
+            <textarea id="message" name="message" placeholder="문의하실 내용을 자유롭게 작성해 주세요." required></textarea>
+          </div>
+          <button type="submit" class="form-submit">문의 보내기 🌿</button>
+          <p class="form-notice">영업일 기준 1~2일 내로 답변 드립니다.</p>
+        </form>
+        <div id="formSuccess" style="display:none; text-align:center; padding:2rem 1rem; color:var(--brown);">
+          <div style="font-size:3rem; margin-bottom:1rem;">🌿</div>
+          <div style="font-size:1.1rem; font-weight:700; margin-bottom:0.5rem;">문의가 접수되었습니다!</div>
+          <div style="font-size:0.88rem; color:var(--text-light);">빠른 시일 내에 연락 드리겠습니다.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name">마더와이즈 Motherwise</div>
+        <p class="footer-brand-desc">
+          어머니들이 지혜롭고 건강하게<br />
+          자녀를 양육할 수 있도록 돕는<br />
+          교육·양육 지원 단체입니다.
+        </p>
+      </div>
+      <div>
+        <div class="footer-col-title">바로가기</div>
+        <ul class="footer-links">
+          <li><a href="#about">단체 소개</a></li>
+          <li><a href="#programs">프로그램</a></li>
+          <li><a href="#news">소식</a></li>
+          <li><a href="#contact">문의하기</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">연락처</div>
+        <ul class="footer-links">
+          <li><a href="#">경기도 수원시 영통구 월드컵로 70</a></li>
+          <li><a href="tel:07070181300">070-7018-1300</a></li>
+          <li><a href="mailto:itman@suwoncca.org">itman@suwoncca.org</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2025 마더와이즈(Motherwise). All rights reserved.</span>
+      <span>사업자등록번호 문의: itman@suwoncca.org</span>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    const navToggle = document.getElementById('navToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    navToggle.addEventListener('click', () => {
+      mobileMenu.classList.toggle('open');
+    });
+
+    function closeMobileMenu() {
+      mobileMenu.classList.remove('open');
+    }
+
+    // Scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, entry.target.dataset.delay || 0);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.fade-up').forEach((el, i) => {
+      el.dataset.delay = (i % 4) * 80;
+      observer.observe(el);
+    });
+
+    // Hero immediate reveal
+    document.querySelector('#hero .fade-up').classList.add('visible');
+
+    // Contact form
+    function handleSubmit(e) {
+      e.preventDefault();
+      document.getElementById('contactForm').style.display = 'none';
+      document.getElementById('formSuccess').style.display = 'block';
+    }
+
+    // Smooth close mobile menu on outside click
+    document.addEventListener('click', (e) => {
+      if (!navToggle.contains(e.target) && !mobileMenu.contains(e.target)) {
+        mobileMenu.classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>
