@@ -566,6 +566,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="page" id="p-list">
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
         <button class="filter-chip active" id="lst-tab-" onclick="setListTab('')">전체</button>
+        <button class="filter-chip" id="lst-tab-week"  onclick="setListTab('week')">이번 주</button>
         <button class="filter-chip" id="lst-tab-대기"  onclick="setListTab('대기')">대기</button>
         <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
@@ -597,7 +598,7 @@ textarea { resize: vertical; min-height: 60px; }
         <table class="tbl">
           <thead><tr>
             <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleSelectAll(this)" style="cursor:pointer;width:14px;height:14px"></th>
-            <th>#</th><th>기관</th><th>담당자</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>상태</th><th>액션</th>
+            <th>#</th><th>기관</th><th>담당자</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>상태</th><th style="width:100px">액션</th>
           </tr></thead>
           <tbody id="list-body"></tbody>
         </table>
@@ -806,6 +807,23 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 일정·시간 빠른 수정 모달 ════════════ -->
+<div class="modal-bg" id="modal-quick-edit">
+  <div class="modal" style="max-width:360px;width:92%">
+    <div class="modal-title">일정·시간 수정</div>
+    <div id="qe-series-info" style="font-size:11px;color:var(--blue);background:var(--blue-lt);border-radius:7px;padding:8px 12px;margin-bottom:14px"></div>
+    <div class="fg"><div class="lbl">날짜 <span class="req">*</span></div><input type="date" id="qe-date"></div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="qe-start"></select></div>
+      <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="qe-end"></select></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick-edit')">취소</button>
+      <button class="btn btn-primary" onclick="saveQuickEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 공간 상세 모달 ════════════ -->
 <div class="modal-bg" id="modal-space-detail">
   <div class="modal" style="max-width:480px;width:92%">
@@ -889,7 +907,8 @@ let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null;
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
-let listStatusTab = '';
+let listStatusTab = '', listWeekFilter = false;
+let expandedGroups = new Set();
 let newPhotoFiles = [], existingPhotos = [];
 let blockedDates = [];   // { id, date, reason, type:'holiday'|'custom' }
 
@@ -1296,11 +1315,13 @@ window.setPubTab = (tab) => {
   Object.keys(PUB_TABS).forEach(k => document.getElementById('pub-tab-' + k)?.classList.toggle('active', k === tab));
   renderPubCal();
 };
-window.setListTab = (status) => {
-  listStatusTab = status;
-  ['', '대기', '확정', '반려'].forEach(s =>
-    document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === status)
+window.setListTab = (tab) => {
+  listWeekFilter = (tab === 'week');
+  listStatusTab  = (tab === 'week' ? '' : tab);
+  ['', 'week', '대기', '확정', '반려'].forEach(s =>
+    document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === tab)
   );
+  expandedGroups.clear();
   renderList();
 };
 // 정기 예약 시리즈 전체를 관리자 목록에서 필터링
@@ -1314,8 +1335,8 @@ window.filterBySeries = (recurGroup) => {
       const nameEl = document.getElementById('fname');
       if (nameEl) { nameEl.value = first.managerName; }
     }
-    listStatusTab = '';
-    ['', '대기', '확정', '반려', '취소'].forEach(s =>
+    listStatusTab = ''; listWeekFilter = false;
+    ['', 'week', '대기', '확정', '반려', '취소'].forEach(s =>
       document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === '')
     );
     // 시리즈 ID로 직접 필터링
@@ -2792,16 +2813,34 @@ function renderDashboard() {
        </tbody></table>`;
 }
 
+window.toggleRecurGroup = (groupId) => {
+  if (expandedGroups.has(groupId)) expandedGroups.delete(groupId);
+  else expandedGroups.add(groupId);
+  renderList();
+};
+
 window.renderList = function renderList() {
-  const fq = (document.getElementById('fname')?.value   || '').toLowerCase();
-  const fr = document.getElementById('fr')?.value   || '';
-  const ft = document.getElementById('ft')?.value   || '';
-  let data = [...reservations].sort((a, b) => b.date.localeCompare(a.date));
+  const fq = (document.getElementById('fname')?.value || '').toLowerCase();
+  const fr = document.getElementById('fr')?.value  || '';
+  const ft = document.getElementById('ft')?.value  || '';
+
+  // 이번 주 날짜 범위
+  let weekStart = '', weekEnd = '';
+  if (listWeekFilter) {
+    const today = new Date();
+    const day = today.getDay();
+    const mon = new Date(today); mon.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    weekStart = mon.toISOString().slice(0, 10);
+    weekEnd   = sun.toISOString().slice(0, 10);
+  }
+
+  let data = [...reservations].sort((a, b) => a.date.localeCompare(b.date));
   if (fq) data = data.filter(r =>
-    (r.managerName + ' ' + r.stewardName).toLowerCase().includes(fq) ||
-    (r.purpose || '').toLowerCase().includes(fq)
+    (r.managerName + ' ' + r.stewardName + ' ' + r.room + ' ' + r.purpose).toLowerCase().includes(fq)
   );
   if (listStatusTab) data = data.filter(r => r.status === listStatusTab);
+  if (listWeekFilter) data = data.filter(r => r.date >= weekStart && r.date <= weekEnd);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
 
@@ -2809,24 +2848,129 @@ window.renderList = function renderList() {
   if (chkAll) chkAll.checked = false;
   updateBulkBar();
 
-  document.getElementById('list-body').innerHTML = !data.length
-    ? `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`
-    : data.map(r =>
-        `<tr class="row" onclick="openDetail('${r.id}')">
-          <td onclick="event.stopPropagation()" style="text-align:center">
-            <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
-          </td>
-          <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-          <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
-          <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
-          <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
-          <td onclick="event.stopPropagation()" style="white-space:nowrap">
-            <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
-            <button class="btn btn-red"   style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="deleteR('${r.id}')">삭제</button>
-          </td>
-        </tr>`
-      ).join('');
+  if (!data.length) {
+    document.getElementById('list-body').innerHTML =
+      `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`;
+    return;
+  }
+
+  // 정기 예약 그룹화
+  const groups = new Map();  // recurGroup → [rows]
+  const singles = [];
+  data.forEach(r => {
+    if (r.recurGroup) {
+      if (!groups.has(r.recurGroup)) groups.set(r.recurGroup, []);
+      groups.get(r.recurGroup).push(r);
+    } else {
+      singles.push(r);
+    }
+  });
+
+  const singleRow = r => `
+    <tr class="row" onclick="openDetail('${r.id}')">
+      <td onclick="event.stopPropagation()" style="text-align:center">
+        <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
+      </td>
+      <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
+      <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
+      <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
+      <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
+      <td onclick="event.stopPropagation()" style="white-space:nowrap">
+        <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
+        <button class="btn btn-red"   style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="deleteR('${r.id}')">삭제</button>
+      </td>
+    </tr>`;
+
+  const groupRows = (groupId, rows) => {
+    rows.sort((a, b) => a.date.localeCompare(b.date));
+    const first = rows[0], last = rows[rows.length - 1];
+    const isOpen = expandedGroups.has(groupId);
+    const statusSet = [...new Set(rows.map(r => r.status))];
+    const statusSummary = statusSet.map(s => sBadge(s)).join(' ');
+    const headerRow = `
+      <tr style="background:var(--blue-lt);cursor:pointer" onclick="toggleRecurGroup('${groupId}')">
+        <td style="text-align:center"><span style="font-size:14px">${isOpen ? '▾' : '▸'}</span></td>
+        <td style="font-size:10px;color:var(--blue);font-weight:700">🔁${rows.length}회</td>
+        <td>${oBadge(first.type, true)}</td>
+        <td style="font-weight:600">${first.managerName}</td>
+        <td>${first.room}</td>
+        <td style="font-size:11px">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
+        <td style="font-size:11px;color:var(--text2)">${first.purpose}</td>
+        <td>${statusSummary}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="filterBySeries('${groupId}')">전체보기</button>
+        </td>
+      </tr>`;
+    if (!isOpen) return headerRow;
+    const subRows = rows.map(r => `
+      <tr class="row" style="background:#f9fbff" onclick="openDetail('${r.id}')">
+        <td onclick="event.stopPropagation()" style="text-align:center;padding-left:16px">
+          <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
+        </td>
+        <td style="color:var(--text3);font-size:10px;padding-left:12px">└ ${r.id?.slice(-4)}</td>
+        <td></td>
+        <td style="font-size:11px;color:var(--text2)">${r.managerName}</td>
+        <td style="font-size:11px">${r.room}</td>
+        <td style="font-weight:600">${r.date} ${r.start}–${r.end}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.purpose}</td>
+        <td>${sBadge(r.status)}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">
+          <button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:var(--blue)" onclick="openQuickEdit('${r.id}')">일정수정</button>
+          <button class="btn btn-red"   style="padding:2px 6px;font-size:10px;margin-left:3px" onclick="deleteR('${r.id}')">삭제</button>
+        </td>
+      </tr>`).join('');
+    return headerRow + subRows;
+  };
+
+  // 정기 예약은 첫 날짜 기준 정렬, 단건은 날짜 기준 — 섞어서 날짜순 렌더
+  const groupEntries = [...groups.entries()].map(([id, rows]) => ({
+    isGroup: true, id, rows, sortDate: rows.sort((a,b)=>a.date.localeCompare(b.date))[0].date
+  }));
+  const singleEntries = singles.map(r => ({ isGroup: false, r, sortDate: r.date }));
+  const combined = [...groupEntries, ...singleEntries].sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+
+  document.getElementById('list-body').innerHTML = combined.map(item =>
+    item.isGroup ? groupRows(item.id, item.rows) : singleRow(item.r)
+  ).join('');
 }
+
+let _quickEditId = null;
+window.openQuickEdit = (id) => {
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  _quickEditId = id;
+  // 시리즈 정보 표시
+  const info = document.getElementById('qe-series-info');
+  if (r.recurGroup) {
+    const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b)=>a.date.localeCompare(b.date));
+    const idx = series.findIndex(x => x.id === id) + 1;
+    info.textContent = `🔁 정기 예약 ${r.recurType || ''} · ${idx}/${series.length}회차 — 이 회차의 일정만 변경합니다`;
+    info.style.display = '';
+  } else {
+    info.style.display = 'none';
+  }
+  document.getElementById('qe-date').value = r.date;
+  initTimeSelects('qe-start', 'qe-end');
+  document.getElementById('qe-start').value = r.start;
+  document.getElementById('qe-end').value   = r.end;
+  openModal('modal-quick-edit');
+};
+window.saveQuickEdit = async () => {
+  if (!_quickEditId) return;
+  const date  = document.getElementById('qe-date').value;
+  const start = document.getElementById('qe-start').value;
+  const end   = document.getElementById('qe-end').value;
+  if (!date || !start || !end) { T('날짜와 시간을 모두 입력해주세요', '#A32D2D'); return; }
+  if (start >= end) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
+  try {
+    await updateDoc(doc(db, 'reservations', _quickEditId), {
+      date, start, end,
+      history: [...(reservations.find(r => r.id === _quickEditId)?.history || []),
+        { time: nowStr(), msg: `일정 수정: ${date} ${start}–${end}` }]
+    });
+    T('일정이 수정되었습니다', '#3B6D11');
+    closeModal('modal-quick-edit');
+  } catch(e) { T('수정 실패: ' + e.message, '#A32D2D'); }
+};
 
 function getSelectedIds() {
   return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
