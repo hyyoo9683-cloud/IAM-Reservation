@@ -650,7 +650,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">반려</div><div class="stat-num"   id="r-no"   style="color:var(--red)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">이용 기관</div><div class="stat-num" id="r-orgs">0</div></div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <select id="report-year"  onchange="renderReport()" style="width:90px"></select>
         <select id="report-month" onchange="renderReport()" style="width:80px">
           <option value="">전체 월</option>
@@ -659,9 +659,23 @@ textarea { resize: vertical; min-height: 60px; }
           <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
           <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
         </select>
+        <select id="report-status" onchange="renderReport()" style="width:100px">
+          <option value="확정">확정 기준</option>
+          <option value="">전체 포함</option>
+        </select>
+      </div>
+      <!-- 월별 단체 현황 (전체 월 선택 시) -->
+      <div class="card" id="report-trend-card">
+        <div class="card-title">월별 단체 사용 현황</div>
+        <div id="report-trend" style="overflow-x:auto"></div>
+      </div>
+      <!-- 단체별 상세 -->
+      <div class="card">
+        <div class="card-title">단체별 공간 이용 상세</div>
+        <div id="report-org-detail"></div>
       </div>
       <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
-      <div class="card"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
+      <div class="card" style="display:none"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
     </div>
     <!-- 관리자: 차단일 관리 -->
     <div class="page" id="p-blocked">
@@ -3094,24 +3108,134 @@ function renderMyList() {
 }
 
 function renderReport() {
-  const yr = document.getElementById('report-year')?.value;
-  const mo = document.getElementById('report-month')?.value || '';
-  let data = reservations;
-  if (yr) data = data.filter(r => r.date?.startsWith(yr));
-  if (mo) data = data.filter(r => r.date?.slice(5, 7) === mo);
+  const yr  = document.getElementById('report-year')?.value  || '';
+  const mo  = document.getElementById('report-month')?.value || '';
+  const stf = document.getElementById('report-status')?.value;  // '' = 전체, '확정' = 확정만
+  const ORGS = ['중앙기독학교', '원천침례교회', '아이엠센터 내부기관', '외부 예약'];
+  const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
+  // 전체 데이터 (연도 필터만, 월 필터는 섹션마다 다르게 적용)
+  let base = reservations;
+  if (yr) base = base.filter(r => r.date?.startsWith(yr));
+  if (stf) base = base.filter(r => r.status === stf);
+
+  // 월 필터 적용 (통계 카드용)
+  let data = mo ? base.filter(r => r.date?.slice(5,7) === mo) : base;
+
+  // 통계 카드
   document.getElementById('r-total').textContent = data.length;
   document.getElementById('r-ok').textContent    = data.filter(r => r.status === '확정').length;
   document.getElementById('r-no').textContent    = data.filter(r => r.status === '반려').length;
   document.getElementById('r-orgs').textContent  = [...new Set(data.map(r => r.type))].filter(Boolean).length;
 
+  // ── 월별 × 단체 트렌드 테이블 ──────────────────────────────────
+  const trendCard = document.getElementById('report-trend-card');
+  const trendEl   = document.getElementById('report-trend');
+  if (!mo) {
+    trendCard.style.display = '';
+    // [org][month] = count
+    const grid = {};
+    ORGS.forEach(o => { grid[o] = {}; MONTHS.forEach(m => grid[o][m] = 0); });
+    base.forEach(r => {
+      const m = r.date?.slice(5,7);
+      if (grid[r.type] && m) grid[r.type][m]++;
+    });
+    const totals = ORGS.map(o => MONTHS.reduce((s, m) => s + grid[o][m], 0));
+    const maxCell = Math.max(1, ...ORGS.flatMap(o => MONTHS.map(m => grid[o][m])));
+
+    trendEl.innerHTML = `<table class="tbl" style="font-size:12px;min-width:600px">
+      <thead><tr>
+        <th style="min-width:110px">기관</th>
+        ${MONTHS.map(m => `<th style="text-align:center;min-width:36px">${parseInt(m)}월</th>`).join('')}
+        <th style="text-align:center">합계</th>
+      </tr></thead>
+      <tbody>${ORGS.map((o, oi) => `<tr>
+        <td style="font-weight:600;white-space:nowrap">${o}</td>
+        ${MONTHS.map(m => {
+          const n = grid[o][m];
+          const intensity = Math.round((n / maxCell) * 100);
+          const bg = n === 0 ? '' : `background:rgba(24,95,165,${(intensity/100)*0.35 + 0.05})`;
+          return `<td style="text-align:center;${bg};font-weight:${n>0?'600':'400'};color:${n>0?'var(--blue)':'var(--text3)'}">${n || '–'}</td>`;
+        }).join('')}
+        <td style="text-align:center;font-weight:700;color:var(--blue)">${totals[oi]}</td>
+      </tr>`).join('')}
+      <tr style="border-top:2px solid var(--border);font-weight:700">
+        <td>월 합계</td>
+        ${MONTHS.map(m => {
+          const total = ORGS.reduce((s, o) => s + grid[o][m], 0);
+          return `<td style="text-align:center;color:var(--text2)">${total || '–'}</td>`;
+        }).join('')}
+        <td style="text-align:center;color:var(--blue)">${base.length}</td>
+      </tr>
+      </tbody></table>`;
+  } else {
+    trendCard.style.display = 'none';
+  }
+
+  // ── 단체별 공간 이용 상세 ──────────────────────────────────────
+  const orgDetail = document.getElementById('report-org-detail');
+  orgDetail.innerHTML = ORGS.map(org => {
+    const orgData = data.filter(r => r.type === org);
+    if (!orgData.length) return `<div style="margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:6px">${oBadge(org)}</div>
+      <div style="font-size:12px;color:var(--text3)">예약 없음</div></div>`;
+
+    // 공간별 카운트
+    const byRoom = {};
+    orgData.forEach(r => { byRoom[r.room] = (byRoom[r.room] || 0) + 1; });
+    const roomsSorted = Object.entries(byRoom).sort((a,b) => b[1]-a[1]);
+    const maxR = roomsSorted[0]?.[1] || 1;
+
+    // 월별 카운트 (전체 연도 기준)
+    const baseOrg = base.filter(r => r.type === org);
+    const byMon = {};
+    MONTHS.forEach(m => byMon[m] = 0);
+    baseOrg.forEach(r => { const m = r.date?.slice(5,7); if(m) byMon[m]++; });
+
+    return `<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+        ${oBadge(org)}
+        <span style="font-size:13px;font-weight:700;color:var(--blue)">${orgData.length}건</span>
+        ${mo ? '' : `<span style="font-size:11px;color:var(--text2)">(${yr}년 합계: ${baseOrg.length}건)</span>`}
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">자주 사용하는 공간</div>
+          ${roomsSorted.slice(0,5).map(([room, cnt]) => `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <div style="font-size:12px;min-width:60px;font-weight:600">${room}</div>
+              <div style="flex:1;height:8px;background:var(--bg2);border-radius:4px">
+                <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
+              </div>
+              <div style="font-size:11px;min-width:24px;text-align:right;font-weight:700;color:var(--blue)">${cnt}</div>
+            </div>`).join('')}
+        </div>
+        ${!mo ? `<div style="flex:1;min-width:200px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">월별 이용 횟수 (${yr}년)</div>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:48px">
+            ${MONTHS.map(m => {
+              const n = byMon[m], maxM = Math.max(1,...Object.values(byMon));
+              const h = n ? Math.max(4, Math.round(n/maxM*44)) : 2;
+              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="font-size:9px;color:var(--blue);font-weight:700">${n||''}</div>
+                <div style="width:100%;height:${h}px;background:${n?'var(--blue)':'var(--bg2)'};border-radius:2px 2px 0 0"></div>
+                <div style="font-size:9px;color:var(--text3)">${parseInt(m)}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── 공간별 현황 ─────────────────────────────────────────────────
   const byRoom = {};
   spaces.forEach(s => byRoom[s.name] = { total: 0, ok: 0 });
   data.forEach(r => { if (byRoom[r.room]) { byRoom[r.room].total++; if (r.status === '확정') byRoom[r.room].ok++; } });
 
   document.getElementById('report-rooms').innerHTML =
-    `<table class="tbl"><thead><tr><th>공간</th><th>총 예약</th><th>확정</th><th>가동률</th></tr></thead><tbody>
-      ${spaces.map(sp => {
+    `<table class="tbl"><thead><tr><th>공간</th><th>건수</th><th>확정</th><th>가동률</th></tr></thead><tbody>
+      ${spaces.filter(sp => (byRoom[sp.name]?.total || 0) > 0).sort((a,b) => (byRoom[b.name]?.total||0)-(byRoom[a.name]?.total||0)).map(sp => {
         const d = byRoom[sp.name] || { total: 0, ok: 0 };
         const rate = d.total ? Math.round(d.ok / d.total * 100) : 0;
         return `<tr>
@@ -3123,20 +3247,6 @@ function renderReport() {
             </div>
             <span style="font-size:11px;min-width:30px">${rate}%</span>
           </div></td></tr>`;
-      }).join('')}
-    </tbody></table>`;
-
-  const ORGS = ['중앙기독학교', '원천침례교회', '아이엠센터 내부기관'];
-  const byT = {};
-  ORGS.forEach(t => byT[t] = { total: 0, ok: 0, no: 0 });
-  data.forEach(r => { if (byT[r.type]) { byT[r.type].total++; if (r.status === '확정') byT[r.type].ok++; if (r.status === '반려') byT[r.type].no++; } });
-
-  document.getElementById('report-orgs').innerHTML =
-
-    `<table class="tbl"><thead><tr><th>기관 분류</th><th>총 예약</th><th>확정</th><th>반려</th></tr></thead><tbody>
-      ${ORGS.map(t => {
-        const d = byT[t];
-        return `<tr><td>${oBadge(t)}</td><td>${d.total}</td><td style="color:var(--green)">${d.ok}</td><td style="color:var(--red)">${d.no}</td></tr>`;
       }).join('')}
     </tbody></table>`;
 }
