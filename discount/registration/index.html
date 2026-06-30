@@ -11,6 +11,11 @@
     font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     background: #f5f7fa;
     min-height: 100vh;
+  }
+
+  /* ── 본인확인 화면 ── */
+  #screen-verify {
+    min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -126,15 +131,7 @@
   .contact-item + .contact-item { margin-top: 4px; }
   .contact-box .ci { font-size: 18px; }
 
-  .sub-hint {
-    font-size: 12px;
-    color: #aaa;
-    text-align: center;
-    margin-top: 20px;
-    margin-bottom: 8px;
-  }
-
-  /* 관리자 버튼 — 우측 하단 고정 */
+  /* 관리자 버튼 */
   #admin-btn {
     position: fixed;
     bottom: 16px;
@@ -170,11 +167,8 @@
     box-shadow: 0 8px 32px rgba(0,0,0,.18);
   }
   #admin-modal h3 {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1a1a2e;
-    margin-bottom: 18px;
-    text-align: center;
+    font-size: 16px; font-weight: 700; color: #1a1a2e;
+    margin-bottom: 18px; text-align: center;
   }
   #admin-modal .modal-alert {
     display: none;
@@ -201,54 +195,92 @@
   #admin-modal input:focus { outline: none; border-color: #4f6ef7; }
   #admin-modal .modal-btns { display: flex; gap: 8px; }
   #admin-modal .modal-btns button {
-    flex: 1;
-    padding: 11px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
+    flex: 1; padding: 11px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
   }
   #admin-modal .modal-btns .confirm { background: #4f6ef7; color: #fff; }
   #admin-modal .modal-btns .confirm:hover { background: #3b57e0; }
   #admin-modal .modal-btns .cancel  { background: #eee; color: #555; }
   #admin-modal .modal-btns .cancel:hover { background: #ddd; }
+
+  /* ── iframe 화면 ── */
+  #screen-iframe {
+    display: none;
+    position: fixed;
+    inset: 0;
+    flex-direction: column;
+  }
+
+  .iframe-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .iframe-bar .timer { font-weight: 700; font-size: 14px; color: #7dd3fc; }
+  .iframe-bar .timer.warn { color: #fca5a5; }
+
+  #parking-iframe { flex: 1; width: 100%; border: none; }
+
+  /* ── 세션 만료 오버레이 ── */
+  #overlay-expired {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 24px;
+  }
+  #overlay-expired .card { text-align: center; max-width: 360px; }
+  #overlay-expired .icon { font-size: 48px; margin-bottom: 12px; }
+  #overlay-expired h2    { font-size: 18px; font-weight: 700; color: #333; margin-bottom: 8px; }
+  #overlay-expired p     { font-size: 14px; color: #666; }
+  #overlay-expired .btn  { margin-top: 20px; }
 </style>
 </head>
 <body>
 
-<div class="card">
-  <div class="logo">
-    <div class="icon">🅿️</div>
-    <h1>주차 할인 신청</h1>
-    <p>본인 확인 후 신청 페이지로 이동합니다</p>
-  </div>
+<!-- ── 화면 1: 본인 확인 ── -->
+<div id="screen-verify">
+  <div class="card">
+    <div class="logo">
+      <div class="icon">🅿️</div>
+      <h1>주차 할인 신청</h1>
+      <p>본인 확인 후 신청 페이지로 이동합니다</p>
+    </div>
 
-  <div id="notice" class="notice">
-    ✅ 신청 완료 후 <strong>뒤로가기</strong>를 눌러<br>다음 분을 위해 이 페이지로 돌아와 주세요.
-  </div>
+    <div id="notice" class="notice">
+      ✅ 신청 완료 후 <strong>뒤로가기</strong>를 눌러<br>다음 분을 위해 이 페이지로 돌아와 주세요.
+    </div>
 
-  <div id="alert" class="alert"></div>
+    <div id="alert" class="alert"></div>
 
-  <div class="field">
-    <label for="inp-name">청지기(실사용자) 성함 <span style="color:#e53e3e">*</span></label>
-    <input type="text" id="inp-name" placeholder="예) 홍길동" autocomplete="off">
-    <div class="hint">청지기는 예약 완료 문자를 받으신 분입니다.</div>
-  </div>
+    <div class="field">
+      <label for="inp-name">청지기(실사용자) 성함 <span style="color:#e53e3e">*</span></label>
+      <input type="text" id="inp-name" placeholder="예) 홍길동" autocomplete="off">
+      <div class="hint">청지기는 예약 완료 문자를 받으신 분입니다.</div>
+    </div>
 
-  <div class="field">
-    <label for="inp-phone">휴대전화 뒷 4자리 <span style="color:#e53e3e">*</span></label>
-    <input type="text" id="inp-phone" placeholder="예) 1234" maxlength="4"
-           inputmode="numeric" autocomplete="off">
-    <div class="hint">청지기님의 연락처 마지막 4자리를 입력해 주세요.</div>
-  </div>
+    <div class="field">
+      <label for="inp-phone">휴대전화 뒷 4자리 <span style="color:#e53e3e">*</span></label>
+      <input type="text" id="inp-phone" placeholder="예) 1234" maxlength="4"
+             inputmode="numeric" autocomplete="off">
+      <div class="hint">청지기님의 연락처 마지막 4자리를 입력해 주세요.</div>
+    </div>
 
-  <button class="btn" id="btn" onclick="doVerify()">확인</button>
+    <button class="btn" id="btn" onclick="doVerify()">확인</button>
 
-  <div class="contact-box">
-    <div class="contact-title">관리자에게 문의하기</div>
-    <div class="contact-item"><span class="ci">📞</span> 070-7018-1439</div>
-    <div class="contact-item"><span class="ci">💬</span> 카카오톡 채널 검색 '아이엠센터'</div>
+    <div class="contact-box">
+      <div class="contact-title">관리자에게 문의하기</div>
+      <div class="contact-item"><span class="ci">📞</span> 070-7018-1439</div>
+      <div class="contact-item"><span class="ci">💬</span> 카카오톡 채널 검색 '아이엠센터'</div>
+    </div>
   </div>
 </div>
 
@@ -269,6 +301,25 @@
   </div>
 </div>
 
+<!-- ── 화면 2: iframe ── -->
+<div id="screen-iframe">
+  <div class="iframe-bar">
+    <span>🅿️ 주차 할인 신청</span>
+    <span id="timer-label" class="timer"></span>
+  </div>
+  <iframe id="parking-iframe" src="" title="주차 할인 신청"></iframe>
+</div>
+
+<!-- ── 세션 만료 오버레이 ── -->
+<div id="overlay-expired">
+  <div class="card">
+    <div class="icon">⏰</div>
+    <h2>세션이 만료되었습니다</h2>
+    <p>보안을 위해 다시 본인 확인이 필요합니다.</p>
+    <button class="btn" onclick="goBack()">다시 확인하기</button>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp }   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getFirestore, collection, getDocs, addDoc, serverTimestamp }
@@ -284,16 +335,11 @@
   });
   const db = getFirestore(app);
 
-  const PARKING_URL  = "https://a12299.parkingweb.kr/discount/registration";
-  const ADMIN_PW     = "1439";
+  const PARKING_URL = "https://a12299.parkingweb.kr/discount/byUser/dUt6iw8ZvIWkwzVoodYDmg==";
+  const ADMIN_PW    = "1439";
+  const EXPIRE_MS   = 2 * 60 * 1000; // 2분
 
-  // 뒤로가기로 돌아왔을 때 입력 초기화
-  window.addEventListener('pageshow', () => {
-    document.getElementById('inp-name').value  = '';
-    document.getElementById('inp-phone').value = '';
-    document.getElementById('alert').style.display  = 'none';
-    document.getElementById('notice').style.display = '';
-  });
+  let countdownInt = null;
 
   /* ── 본인 확인 ── */
   window.doVerify = async function () {
@@ -311,7 +357,7 @@
 
     try {
       const now   = new Date();
-      const today = now.toLocaleDateString('sv-SE'); // YYYY-MM-DD
+      const today = now.toLocaleDateString('sv-SE');
       const snap  = await getDocs(collection(db, 'reservations'));
       const found = snap.docs.some(d => {
         const r        = d.data();
@@ -321,10 +367,9 @@
         const dateOk   = r.date === today;
         const statusOk = r.status === '확정';
         if (!nameOk || !telOk || !dateOk || !statusOk) return false;
-        // 종료 시간 + 3시간 이내 확인
         const [endH, endM] = (r.end || '00:00').split(':').map(Number);
         const endLimit = new Date(now);
-        endLimit.setHours(endH, endM + 90, 0, 0); // 종료 후 1시간 30분
+        endLimit.setHours(endH, endM + 90, 0, 0);
         return now <= endLimit;
       });
 
@@ -333,15 +378,14 @@
         return;
       }
 
-      // 접속 기록 저장 (통계용)
+      // 접속 기록 저장
       addDoc(collection(db, 'parkingDiscountLogs'), {
         stewardName: name,
         date:        today,
         accessedAt:  serverTimestamp()
       }).catch(() => {});
 
-      btn.innerHTML = '✅ 확인되었습니다. 이동 중...';
-      location.href = PARKING_URL;
+      openIframe();
 
     } catch (e) {
       console.error(e);
@@ -352,9 +396,49 @@
     }
   };
 
+  /* ── iframe 열기 ── */
+  function openIframe() {
+    document.getElementById('parking-iframe').src = PARKING_URL;
+    showScreen('screen-iframe');
+    startCountdown();
+  }
+
+  /* ── 카운트다운 ── */
+  function startCountdown() {
+    clearInterval(countdownInt);
+    const end = Date.now() + EXPIRE_MS;
+
+    countdownInt = setInterval(() => {
+      const left = end - Date.now();
+      if (left <= 0) {
+        clearInterval(countdownInt);
+        document.getElementById('parking-iframe').src = 'about:blank';
+        document.getElementById('overlay-expired').style.display = 'flex';
+        return;
+      }
+      const m = String(Math.floor(left / 60000)).padStart(2, '0');
+      const s = String(Math.floor((left % 60000) / 1000)).padStart(2, '0');
+      const label = document.getElementById('timer-label');
+      label.textContent = `⏱ 남은 시간 ${m}:${s}`;
+      label.className = 'timer' + (left < 30000 ? ' warn' : '');
+    }, 500);
+  }
+
+  /* ── 처음으로 ── */
+  window.goBack = function () {
+    clearInterval(countdownInt);
+    document.getElementById('overlay-expired').style.display = 'none';
+    document.getElementById('parking-iframe').src = 'about:blank';
+    document.getElementById('inp-name').value  = '';
+    document.getElementById('inp-phone').value = '';
+    document.getElementById('alert').style.display  = 'none';
+    document.getElementById('notice').style.display = '';
+    showScreen('screen-verify');
+  };
+
   /* ── 관리자 모달 ── */
   window.openAdminModal = function () {
-    document.getElementById('admin-pw').value      = '';
+    document.getElementById('admin-pw').value = '';
     document.getElementById('modal-alert').style.display = 'none';
     document.getElementById('admin-modal').style.display = 'flex';
     setTimeout(() => document.getElementById('admin-pw').focus(), 100);
@@ -368,20 +452,25 @@
     const pw = document.getElementById('admin-pw').value;
     if (pw === ADMIN_PW) {
       closeAdminModal();
-      location.href = PARKING_URL;
+      openIframe();
     } else {
       const el = document.getElementById('modal-alert');
-      el.style.display = '';
+      el.style.display = 'block';
       el.textContent   = '비밀번호가 올바르지 않습니다.';
       document.getElementById('admin-pw').value = '';
       document.getElementById('admin-pw').focus();
     }
   };
 
-  // 모달 배경 클릭 시 닫기
   document.getElementById('admin-modal').addEventListener('click', e => {
     if (e.target === document.getElementById('admin-modal')) closeAdminModal();
   });
+
+  function showScreen(id) {
+    ['screen-verify','screen-iframe'].forEach(s => {
+      document.getElementById(s).style.display = s === id ? (s === 'screen-iframe' ? 'flex' : '') : 'none';
+    });
+  }
 
   function showAlert(msg) {
     const el = document.getElementById('alert');
