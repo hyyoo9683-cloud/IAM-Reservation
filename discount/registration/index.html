@@ -224,7 +224,20 @@
   .iframe-bar .timer { font-weight: 700; font-size: 14px; color: #7dd3fc; }
   .iframe-bar .timer.warn { color: #fca5a5; }
 
-  #parking-iframe { flex: 1; width: 100%; border: none; }
+  #iframe-wrap {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+  #parking-iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 200%;
+    height: 200%;
+    border: none;
+    transform: scale(0.5);
+    transform-origin: top left;
+  }
 
   /* ── 세션 만료 오버레이 ── */
   #overlay-expired {
@@ -308,7 +321,9 @@
     <span>🅿️ 주차 할인 신청</span>
     <span id="timer-label" class="timer"></span>
   </div>
-  <iframe id="parking-iframe" src="" title="주차 할인 신청"></iframe>
+  <div id="iframe-wrap">
+    <iframe id="parking-iframe" src="" title="주차 할인 신청"></iframe>
+  </div>
 </div>
 
 <!-- ── 세션 만료 오버레이 ── -->
