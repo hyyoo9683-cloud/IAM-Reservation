@@ -224,19 +224,8 @@
   .iframe-bar .timer { font-weight: 700; font-size: 14px; color: #7dd3fc; }
   .iframe-bar .timer.warn { color: #fca5a5; }
 
-  #iframe-wrap {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-  }
-  #parking-iframe {
-    position: absolute;
-    top: -160px;
-    left: 0;
-    width: 100%;
-    height: calc(100% + 160px);
-    border: none;
-  }
+  #iframe-wrap { flex: 1; overflow: auto; }
+  #parking-iframe { width: 100%; height: 100%; border: none; display: block; }
 
   /* ── 세션 만료 오버레이 ── */
   #overlay-expired {
