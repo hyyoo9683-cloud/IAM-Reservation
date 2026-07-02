@@ -709,13 +709,21 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <!-- 모임 목적 카테고리 -->
       <div class="card">
-        <div class="card-title">모임 목적 분류</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-title" style="margin:0">모임 목적 분류</div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="openPurposeCatModal()">카테고리 편집</button>
+        </div>
         <div id="report-purpose"></div>
       </div>
       <!-- 시간대별 현황 -->
       <div class="card">
         <div class="card-title">시간대별 이용 현황</div>
         <div id="report-timeslot"></div>
+      </div>
+      <!-- 요일별 현황 -->
+      <div class="card">
+        <div class="card-title">요일별 이용 현황</div>
+        <div id="report-dayofweek"></div>
       </div>
       <div class="card" style="display:none"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
     </div>
@@ -972,6 +980,21 @@ textarea { resize: vertical; min-height: 60px; }
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" onclick="saveOrg()">저장</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-org')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 모임 목적 카테고리 편집 모달 ════════════ -->
+<div class="modal-bg" id="modal-purpose-cat">
+  <div class="modal" style="max-width:520px;width:96%">
+    <div class="modal-title">모임 목적 카테고리 편집</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">카테고리 이름과 매칭 키워드(쉼표로 구분)를 설정합니다. 예약 목적 텍스트에 키워드가 포함되면 해당 카테고리로 분류됩니다.</div>
+    <div id="purpose-cat-list" style="max-height:400px;overflow-y:auto"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="addPurposeCatRow()">+ 카테고리 추가</button>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="savePurposeCats()">저장</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-purpose-cat')">취소</button>
+      <button class="btn btn-ghost" style="margin-left:auto;color:var(--red)" onclick="resetPurposeCats()">기본값으로 초기화</button>
     </div>
   </div>
 </div>
@@ -3433,20 +3456,68 @@ function renderMyList() {
   }).join('');
 }
 
-// 모임 목적 자동 분류
+// 모임 목적 카테고리 (기본값)
+const DEFAULT_PURPOSE_CATS = [
+  { name: '기도모임',   keywords: ['기도','새벽기도','중보'],                      color: '#7B4FD0' },
+  { name: '예배·찬양',  keywords: ['예배','경배','찬양','워십','worship'],          color: '#D0724F' },
+  { name: '학부모 모임', keywords: ['학부모','부모'],                              color: '#4F9DD0' },
+  { name: '교육·수업',  keywords: ['수업','교육','강의','공부','학습','강습','훈련'],color: '#4FD09D' },
+  { name: '세미나·행사', keywords: ['세미나','컨퍼런스','포럼','강연'],             color: '#D0C14F' },
+  { name: '회의·소그룹', keywords: ['회의','미팅','소그룹','모임','그룹'],          color: 'var(--blue)' },
+  { name: '수련회·캠프', keywords: ['수련회','캠프','retreat'],                    color: '#D04F7B' },
+  { name: '친교·식사',  keywords: ['식사','친교','교제'],                          color: '#8FD04F' },
+];
+let purposeCats = (() => {
+  try { const s = localStorage.getItem('purposeCats'); return s ? JSON.parse(s) : DEFAULT_PURPOSE_CATS; }
+  catch(e) { return DEFAULT_PURPOSE_CATS; }
+})();
+
 function classifyPurpose(p) {
   if (!p) return '기타';
   const t = p.toLowerCase();
-  if (/기도|새벽기도|중보/.test(t))               return '기도모임';
-  if (/예배|경배|찬양|워십|worship/.test(t))       return '예배·찬양';
-  if (/학부모|부모/.test(t))                       return '학부모 모임';
-  if (/수업|교육|강의|공부|학습|강습|훈련/.test(t)) return '교육·수업';
-  if (/세미나|컨퍼런스|포럼|강연/.test(t))          return '세미나·행사';
-  if (/회의|미팅|소그룹|모임|그룹/.test(t))         return '회의·소그룹';
-  if (/수련회|캠프|retreat/.test(t))               return '수련회·캠프';
-  if (/식사|친교|교제/.test(t))                    return '친교·식사';
+  for (const cat of purposeCats) {
+    if (cat.keywords.some(k => t.includes(k.toLowerCase()))) return cat.name;
+  }
   return '기타';
 }
+
+window.openPurposeCatModal = () => {
+  renderPurposeCatList();
+  openModal('modal-purpose-cat');
+};
+function renderPurposeCatList() {
+  document.getElementById('purpose-cat-list').innerHTML = purposeCats.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:var(--bg2);border-radius:7px">
+      <input value="${c.color}" style="width:36px;height:30px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer" type="color"
+             oninput="purposeCatTmp[${i}].color=this.value">
+      <input value="${c.name}" placeholder="카테고리명" style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"
+             oninput="purposeCatTmp[${i}].name=this.value">
+      <input value="${c.keywords.join(',')}" placeholder="키워드1,키워드2,..." style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px"
+             oninput="purposeCatTmp[${i}].keywords=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
+      <button onclick="deletePurposeCatRow(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1">✕</button>
+    </div>`).join('');
+  window.purposeCatTmp = purposeCats.map(c => ({ ...c, keywords: [...c.keywords] }));
+}
+window.addPurposeCatRow = () => {
+  purposeCats.push({ name: '', keywords: [], color: '#4F9DD0' });
+  renderPurposeCatList();
+};
+window.deletePurposeCatRow = (i) => {
+  purposeCats.splice(i, 1);
+  renderPurposeCatList();
+};
+window.savePurposeCats = () => {
+  purposeCats = window.purposeCatTmp || purposeCats;
+  localStorage.setItem('purposeCats', JSON.stringify(purposeCats));
+  closeModal('modal-purpose-cat');
+  renderReport();
+  T('카테고리가 저장됐습니다', '#3B6D11');
+};
+window.resetPurposeCats = () => {
+  purposeCats = DEFAULT_PURPOSE_CATS.map(c => ({ ...c, keywords: [...c.keywords] }));
+  localStorage.removeItem('purposeCats');
+  renderPurposeCatList();
+};
 
 let reportRoomExpanded = new Set();
 window.toggleReportRoom = (group) => {
@@ -3689,12 +3760,12 @@ function renderReport() {
   });
   const catSorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]);
   const maxCat = catSorted[0]?.[1] || 1;
-  const CAT_COLORS = { '기도모임':'#7B4FD0','예배·찬양':'#D0724F','학부모 모임':'#4F9DD0','교육·수업':'#4FD09D',
-    '세미나·행사':'#D0C14F','회의·소그룹':'var(--blue)','수련회·캠프':'#D04F7B','친교·식사':'#8FD04F','기타':'var(--text3)' };
+  const catColorMap = Object.fromEntries(purposeCats.map(c => [c.name, c.color]));
+  catColorMap['기타'] = 'var(--text3)';
 
   document.getElementById('report-purpose').innerHTML = catSorted.length
     ? catSorted.map(([cat, cnt]) => {
-        const color = CAT_COLORS[cat] || 'var(--blue)';
+        const color = catColorMap[cat] || 'var(--blue)';
         const orgBreakdown = Object.entries(catByOrg[cat]||{}).sort((a,b)=>b[1]-a[1])
           .map(([o,n])=>`<span style="font-size:10px;color:var(--text2);margin-right:8px">${o} ${n}건</span>`).join('');
         return `<div style="margin-bottom:10px">
@@ -3753,7 +3824,56 @@ function renderReport() {
           <span style="color:var(--text3)">${Object.entries(slotByOrg[s.key]).sort((a,b)=>b[1]-a[1]).map(([o,n])=>`${o} ${n}건`).join(' · ')}</span>
         </div>`).join('')}
     </div>`;
+
+  // ── 요일별 현황 ──────────────────────────────────────────────────
+  const DAYS = [
+    { key: 0, label: '일' }, { key: 1, label: '월' }, { key: 2, label: '화' },
+    { key: 3, label: '수' }, { key: 4, label: '목' }, { key: 5, label: '금' },
+    { key: 6, label: '토' },
+  ];
+  const dayCount = {}; DAYS.forEach(d => dayCount[d.key] = 0);
+  const dayByOrg = {}; DAYS.forEach(d => { dayByOrg[d.key] = {}; });
+  data.forEach(r => {
+    if (!r.date) return;
+    const dt = new Date(r.date + 'T00:00:00');
+    const dw = dt.getDay();
+    dayCount[dw]++;
+    dayByOrg[dw][r.type||'미분류'] = (dayByOrg[dw][r.type||'미분류']||0)+1;
+  });
+  const maxDay = Math.max(1, ...Object.values(dayCount));
+
+  document.getElementById('report-dayofweek').innerHTML =
+    `<div style="display:flex;align-items:flex-end;gap:8px;height:100px;margin-bottom:8px;padding:0 4px">
+      ${DAYS.map(d => {
+        const n = dayCount[d.key];
+        const h = n ? Math.max(16, Math.round(n/maxDay*88)) : 8;
+        const isWeekend = d.key === 0 || d.key === 6;
+        const color = isWeekend ? '#D04F7B' : 'var(--blue)';
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:11px;font-weight:700;color:${n ? color : 'transparent'}">${n||'0'}</div>
+          <div style="width:100%;height:${h}px;background:${n ? color : 'var(--bg2)'};border-radius:4px 4px 0 0"></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;padding:0 4px">
+      ${DAYS.map(d => {
+        const isWeekend = d.key === 0 || d.key === 6;
+        return `<div style="flex:1;text-align:center;font-size:12px;font-weight:700;color:${isWeekend ? '#D04F7B' : 'var(--text2)'}">${d.label}</div>`;
+      }).join('')}
+    </div>
+    <div style="margin-top:14px">
+      ${DAYS.filter(d=>dayCount[d.key]>0).map(d=>{
+        const isWeekend = d.key === 0 || d.key === 6;
+        const color = isWeekend ? '#D04F7B' : 'var(--blue)';
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">
+          <span style="min-width:28px;font-weight:700;color:${color}">${d.label}요일</span>
+          <span style="font-weight:700;color:${color};min-width:32px">${dayCount[d.key]}건</span>
+          <span style="color:var(--text3)">${Object.entries(dayByOrg[d.key]).sort((a,b)=>b[1]-a[1]).map(([o,n])=>`${o} ${n}건`).join(' · ')}</span>
+        </div>`;
+      }).join('')}
+    </div>`;
 }
+window.renderReport = renderReport;
 
 // ── 기관 관리 ────────────────────────────────────────────────────
 function renderOrgs() {
