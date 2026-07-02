@@ -2347,8 +2347,8 @@ function parsePeople(s) {
 
 function parseStatus(s) {
   s = (s || '').trim();
-  if (s === '승인') return '확정';
-  if (s === '반려') return '반려';
+  if (s === '확정' || s === '승인' || s === '승인됨' || s === '확인') return '확정';
+  if (s === '반려' || s === '거절' || s === '불승인') return '반려';
   if (s === '취소') return '취소';
   return '대기';
 }
