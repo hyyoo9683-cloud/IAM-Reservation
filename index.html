@@ -1339,6 +1339,9 @@ function updateAllOrgSelects() {
   if (bss) bss.innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
   const rOrg = document.getElementById('r-org-filter');
   if (rOrg) rOrg.innerHTML = '<option value="">전체</option>' + buildOrgOptions(false);
+  const fso = document.getElementById('f-suborg');
+  if (fso) fso.innerHTML = '<option value="">전체</option><option value="__none__">세부기관 미지정</option>'
+    + orgsList.filter(o => o.parentId).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
 }
 
 // ── 공간 칩 ─────────────────────────────────────────────────────
@@ -3051,6 +3054,16 @@ window.toggleRecurGroup = (groupId) => {
 };
 
 window.filterRenderList = () => { clearBulkSelect(); renderList(); };
+window.goListFilter = (type, subOrg) => {
+  go('list');
+  setTimeout(() => {
+    const ft = document.getElementById('ft');
+    if (ft) ft.value = type;
+    const fs = document.getElementById('f-suborg');
+    if (fs && subOrg) fs.value = subOrg;
+    renderList();
+  }, 60);
+};
 window.sortList = (col) => {
   if (listSortCol === col) listSortDir *= -1;
   else { listSortCol = col; listSortDir = 1; }
@@ -3107,6 +3120,7 @@ window.renderList = function renderList() {
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
   if (fSubOrg === '__none__') data = data.filter(r => !r.subOrg);
+  else if (fSubOrg) data = data.filter(r => r.subOrg === fSubOrg);
 
   // 정렬
   const sortKey = listSortCol;
@@ -3535,9 +3549,12 @@ function renderReport() {
       const children = orgsList.filter(c => c.parentId === PARENT_ORGS[oi]?.id);
       const hasChildren = children.length > 0;
       const isOpen = reportOrgExpanded.has(o);
-      const parentRow = `<tr style="cursor:${hasChildren?'pointer':'default'}" ${hasChildren?`onclick="toggleReportOrg('${o.replace(/'/g,"\\'")}')"`:''}">
+      const oKey = o.replace(/'/g, "\\'");
+      const parentRow = `<tr>
         <td style="font-weight:700;white-space:nowrap;font-size:11px">
-          ${hasChildren ? `<span style="color:var(--blue);margin-right:4px">${isOpen?'▾':'▸'}</span>` : '<span style="margin-right:12px"></span>'}${o}
+          ${hasChildren ? `<span style="color:var(--blue);margin-right:4px;cursor:pointer" onclick="toggleReportOrg('${oKey}')">${isOpen?'▾':'▸'}</span>` : '<span style="margin-right:12px"></span>'}
+          <span style="cursor:pointer;color:var(--blue);text-decoration:underline;text-underline-offset:2px"
+                onclick="goListFilter('${oKey}','')">${o}</span>
         </td>
         ${MONTHS.map(m => {
           const n = grid[o][m];
@@ -3551,8 +3568,12 @@ function renderReport() {
         const key = o + '::' + c.name;
         const subTotals = MONTHS.map(m => (subGrid[key]?.[m]) || 0);
         const rowTotal = subTotals.reduce((s,n)=>s+n,0);
+        const cKey = c.name.replace(/'/g, "\\'");
         return `<tr style="background:var(--bg2)">
-          <td style="font-size:11px;color:var(--text2);padding-left:24px;white-space:nowrap">└ ${c.name}</td>
+          <td style="font-size:11px;padding-left:24px;white-space:nowrap">
+            └ <span style="cursor:pointer;color:var(--blue);text-decoration:underline;text-underline-offset:2px"
+                    onclick="goListFilter('${oKey}','${cKey}')">${c.name}</span>
+          </td>
           ${subTotals.map(n => `<td style="text-align:center;font-size:11px;color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`).join('')}
           <td style="text-align:center;font-size:11px;font-weight:700;color:var(--text2)">${rowTotal||'–'}</td>
         </tr>`;
@@ -3577,79 +3598,82 @@ function renderReport() {
   }
 
   // ── 단체별 공간 이용 상세 ──────────────────────────────────────
+  const SG_ROOMS = ['505호','506호','507호','508호','509호','510호','511호'];
+
   document.getElementById('report-org-detail').innerHTML = ORGS.map((org, oi) => {
     const orgData = data.filter(r => r.type === org);
     const children = orgsList.filter(c => c.parentId === PARENT_ORGS[oi]?.id);
     const isOpen = reportOrgExpanded.has(org);
 
-    if (!orgData.length) return `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2)">
-      ${oBadge(org)} <span style="font-size:12px;color:var(--text3);margin-left:6px">예약 없음</span></div>`;
+    if (!orgData.length) return `<div style="margin-bottom:8px;padding:10px 12px;border:1px solid var(--border2);border-radius:8px;display:flex;align-items:center;gap:8px">
+      ${oBadge(org)} <span style="font-size:12px;color:var(--text3)">예약 없음</span></div>`;
 
-    const byRoom = {};
-    orgData.forEach(r => { byRoom[r.room] = (byRoom[r.room]||0)+1; });
-    const roomsSorted = Object.entries(byRoom).sort((a,b)=>b[1]-a[1]);
-    const maxR = roomsSorted[0]?.[1] || 1;
+    // 월별 집계
     const baseOrg = base.filter(r => r.type === org);
-    const byMon = {}; MONTHS.forEach(m => byMon[m]=0);
-    baseOrg.forEach(r => { const m=r.date?.slice(5,7); if(m) byMon[m]++; });
-    const maxM = Math.max(1,...Object.values(byMon));
+    const byMon = {}; MONTHS.forEach(m => byMon[m] = 0);
+    baseOrg.forEach(r => { const m = r.date?.slice(5,7); if (m) byMon[m]++; });
+    const maxM = Math.max(1, ...Object.values(byMon));
 
-    // 세부기관 목록 (있을 경우)
+    // 공간 집계 (5층 소그룹실 묶음)
+    const byRoomGrouped = {};
+    orgData.forEach(r => {
+      const key = SG_ROOMS.includes(r.room) ? '5층 소그룹실' : r.room;
+      byRoomGrouped[key] = (byRoomGrouped[key] || 0) + 1;
+    });
+    const roomsSorted = Object.entries(byRoomGrouped).sort((a,b) => b[1]-a[1]);
+    const maxR = roomsSorted[0]?.[1] || 1;
+
+    // 세부기관 집계
     const subOrgSummary = children.length > 0 ? (() => {
       const subCounts = {};
       children.forEach(c => { subCounts[c.name] = 0; });
       orgData.forEach(r => { if (r.subOrg && subCounts[r.subOrg] !== undefined) subCounts[r.subOrg]++; });
-      const noSub = orgData.filter(r => !r.subOrg).length;
-      return { subCounts, noSub };
+      return { subCounts, noSub: orgData.filter(r => !r.subOrg).length };
     })() : null;
 
-    return `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;cursor:${children.length?'pointer':'default'}"
-           ${children.length ? `onclick="toggleReportOrg('${org.replace(/'/g,"\\'")}');event.stopPropagation()"` : ''}>
+    const orgKey = org.replace(/'/g, "\\'");
+    return `<div style="margin-bottom:8px;border:1px solid var(--border2);border-radius:8px;overflow:hidden">
+      <!-- 항상 보이는 헤더 행: 배지 + 건수 + 월별 그래프 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--bg)"
+           onclick="toggleReportOrg('${orgKey}')">
         ${oBadge(org)}
-        <span style="font-size:13px;font-weight:700;color:var(--blue)">${orgData.length}건</span>
-        ${mo ? '' : `<span style="font-size:11px;color:var(--text2)">${yr}년 합계 ${baseOrg.length}건</span>`}
-        ${children.length ? `<span style="font-size:11px;color:var(--text3);margin-left:auto">${isOpen ? '▾ 세부기관 접기' : '▸ 세부기관 보기'}</span>` : ''}
+        <span style="font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap">${orgData.length}건</span>
+        ${!mo ? `<div style="flex:1;display:flex;align-items:flex-end;gap:1px;height:32px;min-width:0">
+          ${MONTHS.map(m => { const n=byMon[m]; const h=n?Math.max(3,Math.round(n/maxM*28)):2;
+            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:0">
+              <div style="width:100%;height:${h}px;background:${n?'var(--blue)':'var(--bg2)'};border-radius:1px 1px 0 0;opacity:${n?'1':'.4'}"></div>
+            </div>`;}).join('')}
+        </div>` : '<div style="flex:1"></div>'}
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">${isOpen ? '▾' : '▸'}</span>
       </div>
-      ${children.length && isOpen && subOrgSummary ? `
-      <div style="background:var(--bg2);border-radius:7px;padding:8px 12px;margin-bottom:10px">
-        ${children.map(c => {
-          const cnt = subOrgSummary.subCounts[c.name] || 0;
-          const pct = Math.round(cnt / (orgData.length || 1) * 100);
-          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-            <div style="font-size:11px;min-width:80px;color:var(--text2);font-weight:600">${c.name}</div>
-            <div style="flex:1;height:6px;background:var(--border);border-radius:3px">
-              <div style="width:${pct}%;height:100%;background:var(--blue);border-radius:3px;opacity:.7"></div>
+      <!-- 펼쳐지는 상세: 자주 사용한 공간 + 세부기관 -->
+      ${isOpen ? `<div style="padding:10px 14px;border-top:1px solid var(--border2);background:var(--bg)">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">자주 사용한 공간</div>
+        ${roomsSorted.map(([room, cnt]) => `
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="font-size:11px;min-width:80px;font-weight:600">${room}</div>
+            <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
+              <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
             </div>
             <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:28px;text-align:right">${cnt}건</div>
-          </div>`;
-        }).join('')}
-        ${subOrgSummary.noSub > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">세부기관 미지정: ${subOrgSummary.noSub}건</div>` : ''}
-      </div>` : ''}
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <div style="flex:1;min-width:160px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px">자주 사용한 공간</div>
-          ${roomsSorted.slice(0,5).map(([room,cnt])=>`
-            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
-              <div style="font-size:11px;min-width:54px;font-weight:600">${room}</div>
-              <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
-                <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
+          </div>`).join('')}
+        ${subOrgSummary ? `
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">세부 기관</div>
+          ${children.map(c => {
+            const cnt = subOrgSummary.subCounts[c.name] || 0;
+            const pct = Math.round(cnt / (orgData.length || 1) * 100);
+            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <div style="font-size:11px;min-width:80px;color:var(--text2)">${c.name}</div>
+              <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
+                <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px"></div>
               </div>
-              <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:20px;text-align:right">${cnt}</div>
-            </div>`).join('')}
-        </div>
-        ${!mo ? `<div style="flex:1;min-width:180px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px">월별 이용 (${yr}년)</div>
-          <div style="display:flex;align-items:flex-end;gap:2px;height:44px">
-            ${MONTHS.map(m => { const n=byMon[m]; const h=n?Math.max(4,Math.round(n/maxM*40)):2;
-              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px">
-                <div style="font-size:8px;color:var(--blue);font-weight:700">${n||''}</div>
-                <div style="width:100%;height:${h}px;background:${n?'var(--blue)':'var(--bg2)'};border-radius:2px 2px 0 0"></div>
-                <div style="font-size:8px;color:var(--text3)">${parseInt(m)}</div>
-              </div>`;}).join('')}
-          </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text2);min-width:28px;text-align:right">${cnt}건</div>
+            </div>`;
+          }).join('')}
+          ${subOrgSummary.noSub > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">미지정: ${subOrgSummary.noSub}건</div>` : ''}
         </div>` : ''}
-      </div>
+      </div>` : ''}
     </div>`;
   }).join('');
 
