@@ -3283,24 +3283,30 @@ window.bulkChangeType = async () => {
   const type = document.getElementById('bulk-type-sel').value;
   if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
   if (!type) { T('변경할 기관을 선택해주세요', '#A32D2D'); return; }
-  if (!confirm(`선택한 ${ids.length}건의 기관을 "${type}"으로 변경하시겠습니까?`)) return;
+  if (!confirm(`선택한 ${ids.length}건의 기관을 "${type}"으로 변경하시겠습니까?\n(세부기관은 초기화됩니다)`)) return;
   try {
-    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type })));
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type, subOrg: '' })));
     T(`${ids.length}건 기관 변경 완료`, '#3B6D11');
     document.getElementById('bulk-type-sel').value = '';
+    document.getElementById('bulk-subtype-sel').innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
     clearBulkSelect();
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
 window.bulkChangeSubOrg = async () => {
   const ids = getSelectedIds();
+  const type   = document.getElementById('bulk-type-sel').value;
   const subOrg = document.getElementById('bulk-subtype-sel').value;
   if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
   if (!subOrg) { T('변경할 세부기관을 선택해주세요', '#A32D2D'); return; }
-  if (!confirm(`선택한 ${ids.length}건의 세부기관을 "${subOrg}"으로 변경하시겠습니까?`)) return;
+  const updateData = { subOrg };
+  if (type) updateData.type = type;
+  const msg = type ? `기관 "${type}" + 세부기관 "${subOrg}"` : `세부기관 "${subOrg}"`;
+  if (!confirm(`선택한 ${ids.length}건을 ${msg}으로 변경하시겠습니까?`)) return;
   try {
-    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { subOrg })));
-    T(`${ids.length}건 세부기관 변경 완료`, '#3B6D11');
-    document.getElementById('bulk-subtype-sel').value = '';
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), updateData)));
+    T(`${ids.length}건 변경 완료`, '#3B6D11');
+    document.getElementById('bulk-type-sel').value = '';
+    document.getElementById('bulk-subtype-sel').innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
     clearBulkSelect();
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
