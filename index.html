@@ -576,23 +576,23 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-        <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')renderList()">
-        <select id="fr" onchange="renderList()" style="width:110px"><option value="">전체 공간</option></select>
-        <select id="ft" onchange="renderList()" style="width:140px"><option value="">전체 기관</option></select>
-        <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
+        <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')filterRenderList()">
+        <select id="fr" onchange="filterRenderList()" style="width:110px"><option value="">전체 공간</option></select>
+        <select id="ft" onchange="filterRenderList()" style="width:140px"><option value="">전체 기관</option></select>
+        <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="filterRenderList()" title="검색">🔍</button>
         <button class="btn btn-ghost" style="padding:7px 10px;font-size:13px" onclick="resetListFilter()">초기화</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
         <label style="font-size:13px;color:var(--text2);white-space:nowrap">기간</label>
-        <input type="date" id="fdate-s" onchange="renderList()" style="width:145px;padding:7px 8px;font-size:13px">
+        <input type="date" id="fdate-s" onchange="filterRenderList()" style="width:145px;padding:7px 8px;font-size:13px">
         <span style="color:var(--text3)">~</span>
-        <input type="date" id="fdate-e" onchange="renderList()" style="width:145px;padding:7px 8px;font-size:13px">
+        <input type="date" id="fdate-e" onchange="filterRenderList()" style="width:145px;padding:7px 8px;font-size:13px">
       </div>
       <!-- 일괄 액션 바 (선택 시 노출) -->
       <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
         <span id="bulk-count" style="font-size:12px;font-weight:600;color:var(--blue)">0개 선택</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select id="bulk-type-sel" style="width:140px;font-size:12px">
+          <select id="bulk-type-sel" style="width:140px;font-size:12px" onchange="updateBulkSubOrgs()">
             <option value="">기관 변경 선택</option>
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
@@ -3038,11 +3038,26 @@ window.toggleRecurGroup = (groupId) => {
   renderList();
 };
 
+window.filterRenderList = () => { clearBulkSelect(); renderList(); };
+
 window.resetListFilter = () => {
   ['fname','fr','ft','fdate-s','fdate-e'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  clearBulkSelect();
   renderList();
+};
+
+window.updateBulkSubOrgs = () => {
+  const parentName = document.getElementById('bulk-type-sel')?.value;
+  const sel = document.getElementById('bulk-subtype-sel');
+  if (!sel) return;
+  if (!parentName) {
+    sel.innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
+    return;
+  }
+  const opts = buildSubOrgOptions(parentName);
+  sel.innerHTML = '<option value="">세부기관 변경 선택</option>' + (opts || '<option disabled>하위 기관 없음</option>');
 };
 
 window.renderList = function renderList() {
