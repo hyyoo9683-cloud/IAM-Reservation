@@ -770,6 +770,7 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
       <button class="btn btn-primary" id="import-submit-btn" style="display:none" onclick="runImport()">가져오기</button>
+      <button class="btn btn-red" id="import-abort-btn" style="display:none" onclick="abortImport()">■ 중지</button>
       <div id="import-progress" style="font-size:12px;color:var(--text2)"></div>
       <button class="btn btn-ghost" style="margin-left:auto" onclick="closeModal('modal-import')">닫기</button>
     </div>
@@ -2251,6 +2252,7 @@ window.submitApply = async () => {
 
 // ── CSV 가져오기 ────────────────────────────────────────────────
 let _importRows = [];
+let _importAborted = false;
 
 function parseCSV(text) {
   const rows = [];
@@ -2490,13 +2492,18 @@ window.deleteAllReservations = async () => {
   }
 };
 
+window.abortImport = () => { _importAborted = true; };
+
 window.runImport = async () => {
   if (!_importRows.length) return;
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
   const btn = document.getElementById('import-submit-btn');
+  const abortBtn = document.getElementById('import-abort-btn');
   const prog = document.getElementById('import-progress');
+  _importAborted = false;
   btn.disabled = true; btn.textContent = '가져오는 중...';
+  abortBtn.style.display = '';
   try {
     // 정기 예약 시리즈 묶기: 같은 (담당자+공간+시간+반복유형) → 동일 recurGroup
     const seriesMap = {};
@@ -2515,6 +2522,11 @@ window.runImport = async () => {
     let done = 0;
     const BATCH = 5;
     for (let i = 0; i < _importRows.length; i += BATCH) {
+      if (_importAborted) {
+        prog.textContent = '';
+        T(`가져오기 중지됨 (${done}건 저장됨)`, '#A32D2D');
+        break;
+      }
       const chunk = _importRows.slice(i, i + BATCH);
       await Promise.all(chunk.map(r => addDoc(collection(db, 'reservations'), {
         room: r.room, date: r.date, start: r.start, end: r.end,
@@ -2530,18 +2542,23 @@ window.runImport = async () => {
       prog.textContent = `${done} / ${_importRows.length}건 완료...`;
       await new Promise(r => setTimeout(r, 0));
     }
-    prog.textContent = '';
-    T(`${done}건 가져오기 완료!`, '#3B6D11');
-    closeModal('modal-import');
-    _importRows = [];
-    document.getElementById('import-header').value = '';
-    document.getElementById('import-text').value = '';
-    document.getElementById('import-preview').innerHTML = '';
-    btn.style.display = 'none';
+    if (!_importAborted) {
+      prog.textContent = '';
+      T(`${done}건 가져오기 완료!`, '#3B6D11');
+      closeModal('modal-import');
+      _importRows = [];
+      document.getElementById('import-header').value = '';
+      document.getElementById('import-text').value = '';
+      document.getElementById('import-preview').innerHTML = '';
+      btn.style.display = 'none';
+    }
   } catch(e) {
     console.error('import error:', e);
     T('가져오기 실패: ' + e.message, '#A32D2D');
     btn.disabled = false; btn.textContent = `가져오기 (${_importRows.length}건)`;
+  } finally {
+    abortBtn.style.display = 'none';
+    if (!_importAborted) { btn.disabled = false; }
   }
 };
 
