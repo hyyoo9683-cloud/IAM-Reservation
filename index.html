@@ -611,9 +611,16 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div class="card" style="padding:0;overflow:hidden">
         <table class="tbl">
-          <thead><tr>
+          <thead><tr id="list-thead">
             <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleSelectAll(this)" style="cursor:pointer;width:14px;height:14px"></th>
-            <th>#</th><th>기관</th><th>담당자</th><th>공간</th><th>날짜·시간</th><th>목적</th><th>상태</th><th style="width:100px">액션</th>
+            <th>#</th>
+            <th onclick="sortList('type')"      style="cursor:pointer;user-select:none" id="sh-type">기관</th>
+            <th onclick="sortList('managerName')" style="cursor:pointer;user-select:none" id="sh-managerName">담당자</th>
+            <th onclick="sortList('room')"      style="cursor:pointer;user-select:none" id="sh-room">공간</th>
+            <th onclick="sortList('date')"      style="cursor:pointer;user-select:none" id="sh-date">날짜·시간</th>
+            <th>목적</th>
+            <th onclick="sortList('status')"    style="cursor:pointer;user-select:none" id="sh-status">상태</th>
+            <th style="width:100px">액션</th>
           </tr></thead>
           <tbody id="list-body"></tbody>
         </table>
@@ -994,6 +1001,7 @@ let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null;
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
+let listSortCol = 'date', listSortDir = 1; // 1=오름차순, -1=내림차순
 let expandedGroups = new Set();
 let _selectedGroupIds = new Set();  // 선택된 정기예약 그룹 ID 목록
 let newPhotoFiles = [], existingPhotos = [];
@@ -3043,6 +3051,11 @@ window.toggleRecurGroup = (groupId) => {
 };
 
 window.filterRenderList = () => { clearBulkSelect(); renderList(); };
+window.sortList = (col) => {
+  if (listSortCol === col) listSortDir *= -1;
+  else { listSortCol = col; listSortDir = 1; }
+  renderList();
+};
 
 window.resetListFilter = () => {
   ['fname','fr','ft','f-suborg','fdate-s','fdate-e'].forEach(id => {
@@ -3083,7 +3096,7 @@ window.renderList = function renderList() {
     weekEnd   = sun.toISOString().slice(0, 10);
   }
 
-  let data = [...reservations].sort((a, b) => a.date.localeCompare(b.date));
+  let data = [...reservations];
   if (fq) data = data.filter(r =>
     (r.managerName + ' ' + r.stewardName + ' ' + r.room + ' ' + r.purpose).toLowerCase().includes(fq)
   );
@@ -3094,6 +3107,23 @@ window.renderList = function renderList() {
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
   if (fSubOrg === '__none__') data = data.filter(r => !r.subOrg);
+
+  // 정렬
+  const sortKey = listSortCol;
+  data.sort((a, b) => {
+    let va = sortKey === 'date' ? (a.date + ' ' + a.start) : (a[sortKey] || '');
+    let vb = sortKey === 'date' ? (b.date + ' ' + b.start) : (b[sortKey] || '');
+    return va.localeCompare(vb, 'ko') * listSortDir;
+  });
+
+  // 헤더 인디케이터 업데이트
+  ['type','managerName','room','date','status'].forEach(col => {
+    const th = document.getElementById('sh-' + col);
+    if (!th) return;
+    const isActive = col === listSortCol;
+    th.innerHTML = { type:'기관', managerName:'담당자', room:'공간', date:'날짜·시간', status:'상태' }[col]
+      + (isActive ? (listSortDir === 1 ? ' ▲' : ' ▼') : ' <span style="color:var(--border);font-size:10px">⇅</span>');
+  });
 
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = false;
