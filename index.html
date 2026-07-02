@@ -664,6 +664,8 @@ textarea { resize: vertical; min-height: 60px; }
           <option value="">전체 포함</option>
         </select>
       </div>
+      <!-- 공간 그룹별 현황 -->
+      <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
       <!-- 월별 단체 현황 (전체 월 선택 시) -->
       <div class="card" id="report-trend-card">
         <div class="card-title">월별 단체 사용 현황</div>
@@ -674,7 +676,16 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="card-title">단체별 공간 이용 상세</div>
         <div id="report-org-detail"></div>
       </div>
-      <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
+      <!-- 모임 목적 카테고리 -->
+      <div class="card">
+        <div class="card-title">모임 목적 분류</div>
+        <div id="report-purpose"></div>
+      </div>
+      <!-- 시간대별 현황 -->
+      <div class="card">
+        <div class="card-title">시간대별 이용 현황</div>
+        <div id="report-timeslot"></div>
+      </div>
       <div class="card" style="display:none"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
     </div>
     <!-- 관리자: 차단일 관리 -->
@@ -3107,19 +3118,45 @@ function renderMyList() {
   }).join('');
 }
 
+// 모임 목적 자동 분류
+function classifyPurpose(p) {
+  if (!p) return '기타';
+  const t = p.toLowerCase();
+  if (/기도|새벽기도|중보/.test(t))               return '기도모임';
+  if (/예배|경배|찬양|워십|worship/.test(t))       return '예배·찬양';
+  if (/학부모|부모/.test(t))                       return '학부모 모임';
+  if (/수업|교육|강의|공부|학습|강습|훈련/.test(t)) return '교육·수업';
+  if (/세미나|컨퍼런스|포럼|강연/.test(t))          return '세미나·행사';
+  if (/회의|미팅|소그룹|모임|그룹/.test(t))         return '회의·소그룹';
+  if (/수련회|캠프|retreat/.test(t))               return '수련회·캠프';
+  if (/식사|친교|교제/.test(t))                    return '친교·식사';
+  return '기타';
+}
+
+let reportRoomExpanded = new Set();
+window.toggleReportRoom = (group) => {
+  if (reportRoomExpanded.has(group)) reportRoomExpanded.delete(group);
+  else reportRoomExpanded.add(group);
+  renderReport();
+};
+
 function renderReport() {
   const yr  = document.getElementById('report-year')?.value  || '';
   const mo  = document.getElementById('report-month')?.value || '';
-  const stf = document.getElementById('report-status')?.value;  // '' = 전체, '확정' = 확정만
-  const ORGS = ['중앙기독학교', '원천침례교회', '아이엠센터 내부기관', '외부 예약'];
+  const stf = document.getElementById('report-status')?.value;
+  const ORGS   = ['중앙기독학교', '원천침례교회', '아이엠센터 내부기관', '외부 예약'];
   const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
-  // 전체 데이터 (연도 필터만, 월 필터는 섹션마다 다르게 적용)
-  let base = reservations;
-  if (yr) base = base.filter(r => r.date?.startsWith(yr));
-  if (stf) base = base.filter(r => r.status === stf);
+  // 공간 그룹 정의
+  const ROOM_GROUPS = [
+    { id: 'sg', label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], color: 'var(--blue)' },
+    { id: 'sharon', label: '샤론홀',   rooms: ['샤론홀'], color: 'var(--green)' },
+    { id: 'aaron',  label: '아론홀',   rooms: ['아론홀'], color: '#7B4FD0' },
+  ];
 
-  // 월 필터 적용 (통계 카드용)
+  let base = reservations;
+  if (yr)  base = base.filter(r => r.date?.startsWith(yr));
+  if (stf) base = base.filter(r => r.status === stf);
   let data = mo ? base.filter(r => r.date?.slice(5,7) === mo) : base;
 
   // 통계 카드
@@ -3128,127 +3165,200 @@ function renderReport() {
   document.getElementById('r-no').textContent    = data.filter(r => r.status === '반려').length;
   document.getElementById('r-orgs').textContent  = [...new Set(data.map(r => r.type))].filter(Boolean).length;
 
+  // ── 공간 그룹별 현황 ────────────────────────────────────────────
+  const roomsEl = document.getElementById('report-rooms');
+  const allRoomCounts = {};
+  data.forEach(r => { allRoomCounts[r.room] = (allRoomCounts[r.room] || 0) + 1; });
+  const maxGroupCnt = Math.max(1, ...ROOM_GROUPS.map(g => g.rooms.reduce((s,r) => s+(allRoomCounts[r]||0), 0)));
+
+  roomsEl.innerHTML = ROOM_GROUPS.map(g => {
+    const total = g.rooms.reduce((s, r) => s + (allRoomCounts[r] || 0), 0);
+    const isOpen = reportRoomExpanded.has(g.id);
+    const barW = Math.round(total / maxGroupCnt * 100);
+    const subRows = g.rooms.length > 1 && isOpen ? g.rooms
+      .map(r => ({ r, n: allRoomCounts[r] || 0 }))
+      .filter(x => x.n > 0)
+      .sort((a,b) => b.n - a.n)
+      .map(({ r, n }) => `
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0 5px 20px;border-top:1px solid var(--border2)">
+          <div style="font-size:12px;min-width:56px;color:var(--text2)">${r}</div>
+          <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
+            <div style="width:${Math.round(n/total*100)}%;height:100%;background:${g.color};border-radius:3px;opacity:.7"></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;min-width:28px;text-align:right;color:${g.color}">${n}</div>
+        </div>`).join('') : '';
+
+    return `<div style="border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:${g.rooms.length>1?'pointer':'default'};background:var(--bg)"
+           ${g.rooms.length>1 ? `onclick="toggleReportRoom('${g.id}')"` : ''}>
+        <div style="font-weight:700;font-size:14px;min-width:110px;color:${g.color}">${g.label}</div>
+        <div style="flex:1;height:10px;background:var(--bg2);border-radius:5px">
+          <div style="width:${barW}%;height:100%;background:${g.color};border-radius:5px"></div>
+        </div>
+        <div style="font-size:15px;font-weight:700;min-width:32px;text-align:right;color:${g.color}">${total}</div>
+        ${g.rooms.length>1 ? `<div style="font-size:12px;color:var(--text3)">${isOpen?'▾':'▸'}</div>` : ''}
+      </div>
+      ${subRows}
+    </div>`;
+  }).join('');
+
   // ── 월별 × 단체 트렌드 테이블 ──────────────────────────────────
   const trendCard = document.getElementById('report-trend-card');
-  const trendEl   = document.getElementById('report-trend');
   if (!mo) {
     trendCard.style.display = '';
-    // [org][month] = count
     const grid = {};
     ORGS.forEach(o => { grid[o] = {}; MONTHS.forEach(m => grid[o][m] = 0); });
-    base.forEach(r => {
-      const m = r.date?.slice(5,7);
-      if (grid[r.type] && m) grid[r.type][m]++;
-    });
+    base.forEach(r => { const m = r.date?.slice(5,7); if (grid[r.type] && m) grid[r.type][m]++; });
     const totals = ORGS.map(o => MONTHS.reduce((s, m) => s + grid[o][m], 0));
     const maxCell = Math.max(1, ...ORGS.flatMap(o => MONTHS.map(m => grid[o][m])));
 
-    trendEl.innerHTML = `<table class="tbl" style="font-size:12px;min-width:600px">
-      <thead><tr>
-        <th style="min-width:110px">기관</th>
-        ${MONTHS.map(m => `<th style="text-align:center;min-width:36px">${parseInt(m)}월</th>`).join('')}
-        <th style="text-align:center">합계</th>
-      </tr></thead>
-      <tbody>${ORGS.map((o, oi) => `<tr>
-        <td style="font-weight:600;white-space:nowrap">${o}</td>
-        ${MONTHS.map(m => {
-          const n = grid[o][m];
-          const intensity = Math.round((n / maxCell) * 100);
-          const bg = n === 0 ? '' : `background:rgba(24,95,165,${(intensity/100)*0.35 + 0.05})`;
-          return `<td style="text-align:center;${bg};font-weight:${n>0?'600':'400'};color:${n>0?'var(--blue)':'var(--text3)'}">${n || '–'}</td>`;
-        }).join('')}
-        <td style="text-align:center;font-weight:700;color:var(--blue)">${totals[oi]}</td>
-      </tr>`).join('')}
-      <tr style="border-top:2px solid var(--border);font-weight:700">
-        <td>월 합계</td>
-        ${MONTHS.map(m => {
-          const total = ORGS.reduce((s, o) => s + grid[o][m], 0);
-          return `<td style="text-align:center;color:var(--text2)">${total || '–'}</td>`;
-        }).join('')}
-        <td style="text-align:center;color:var(--blue)">${base.length}</td>
-      </tr>
-      </tbody></table>`;
+    document.getElementById('report-trend').innerHTML =
+      `<div style="overflow-x:auto"><table class="tbl" style="font-size:12px;min-width:580px">
+        <thead><tr><th style="min-width:110px">기관</th>
+          ${MONTHS.map(m => `<th style="text-align:center;min-width:34px">${parseInt(m)}월</th>`).join('')}
+          <th style="text-align:center">합계</th></tr></thead>
+        <tbody>${ORGS.map((o, oi) => `<tr>
+          <td style="font-weight:600;white-space:nowrap;font-size:11px">${o}</td>
+          ${MONTHS.map(m => {
+            const n = grid[o][m];
+            const bg = n ? `background:rgba(24,95,165,${(n/maxCell)*0.4+0.06})` : '';
+            return `<td style="text-align:center;${bg};font-weight:${n?'700':'400'};color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`;
+          }).join('')}
+          <td style="text-align:center;font-weight:700;color:var(--blue)">${totals[oi]}</td>
+        </tr>`).join('')}
+        <tr style="border-top:2px solid var(--border);font-weight:700;background:var(--bg2)">
+          <td style="font-size:11px">월 합계</td>
+          ${MONTHS.map(m => { const t = ORGS.reduce((s,o)=>s+grid[o][m],0); return `<td style="text-align:center;color:var(--text2)">${t||'–'}</td>`; }).join('')}
+          <td style="text-align:center;color:var(--blue)">${base.length}</td>
+        </tr></tbody></table></div>`;
   } else {
     trendCard.style.display = 'none';
   }
 
   // ── 단체별 공간 이용 상세 ──────────────────────────────────────
-  const orgDetail = document.getElementById('report-org-detail');
-  orgDetail.innerHTML = ORGS.map(org => {
+  document.getElementById('report-org-detail').innerHTML = ORGS.map(org => {
     const orgData = data.filter(r => r.type === org);
-    if (!orgData.length) return `<div style="margin-bottom:16px">
-      <div style="font-weight:700;margin-bottom:6px">${oBadge(org)}</div>
-      <div style="font-size:12px;color:var(--text3)">예약 없음</div></div>`;
+    if (!orgData.length) return `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2)">
+      ${oBadge(org)} <span style="font-size:12px;color:var(--text3);margin-left:6px">예약 없음</span></div>`;
 
-    // 공간별 카운트
     const byRoom = {};
-    orgData.forEach(r => { byRoom[r.room] = (byRoom[r.room] || 0) + 1; });
-    const roomsSorted = Object.entries(byRoom).sort((a,b) => b[1]-a[1]);
+    orgData.forEach(r => { byRoom[r.room] = (byRoom[r.room]||0)+1; });
+    const roomsSorted = Object.entries(byRoom).sort((a,b)=>b[1]-a[1]);
     const maxR = roomsSorted[0]?.[1] || 1;
-
-    // 월별 카운트 (전체 연도 기준)
     const baseOrg = base.filter(r => r.type === org);
-    const byMon = {};
-    MONTHS.forEach(m => byMon[m] = 0);
-    baseOrg.forEach(r => { const m = r.date?.slice(5,7); if(m) byMon[m]++; });
+    const byMon = {}; MONTHS.forEach(m => byMon[m]=0);
+    baseOrg.forEach(r => { const m=r.date?.slice(5,7); if(m) byMon[m]++; });
+    const maxM = Math.max(1,...Object.values(byMon));
 
-    return `<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+    return `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         ${oBadge(org)}
         <span style="font-size:13px;font-weight:700;color:var(--blue)">${orgData.length}건</span>
-        ${mo ? '' : `<span style="font-size:11px;color:var(--text2)">(${yr}년 합계: ${baseOrg.length}건)</span>`}
+        ${mo ? '' : `<span style="font-size:11px;color:var(--text2)">${yr}년 합계 ${baseOrg.length}건</span>`}
       </div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <div style="flex:1;min-width:180px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">자주 사용하는 공간</div>
-          ${roomsSorted.slice(0,5).map(([room, cnt]) => `
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-              <div style="font-size:12px;min-width:60px;font-weight:600">${room}</div>
-              <div style="flex:1;height:8px;background:var(--bg2);border-radius:4px">
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px">자주 사용한 공간</div>
+          ${roomsSorted.slice(0,5).map(([room,cnt])=>`
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              <div style="font-size:11px;min-width:54px;font-weight:600">${room}</div>
+              <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
                 <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
               </div>
-              <div style="font-size:11px;min-width:24px;text-align:right;font-weight:700;color:var(--blue)">${cnt}</div>
+              <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:20px;text-align:right">${cnt}</div>
             </div>`).join('')}
         </div>
-        ${!mo ? `<div style="flex:1;min-width:200px">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">월별 이용 횟수 (${yr}년)</div>
-          <div style="display:flex;align-items:flex-end;gap:3px;height:48px">
-            ${MONTHS.map(m => {
-              const n = byMon[m], maxM = Math.max(1,...Object.values(byMon));
-              const h = n ? Math.max(4, Math.round(n/maxM*44)) : 2;
-              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="font-size:9px;color:var(--blue);font-weight:700">${n||''}</div>
+        ${!mo ? `<div style="flex:1;min-width:180px">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px">월별 이용 (${yr}년)</div>
+          <div style="display:flex;align-items:flex-end;gap:2px;height:44px">
+            ${MONTHS.map(m => { const n=byMon[m]; const h=n?Math.max(4,Math.round(n/maxM*40)):2;
+              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px">
+                <div style="font-size:8px;color:var(--blue);font-weight:700">${n||''}</div>
                 <div style="width:100%;height:${h}px;background:${n?'var(--blue)':'var(--bg2)'};border-radius:2px 2px 0 0"></div>
-                <div style="font-size:9px;color:var(--text3)">${parseInt(m)}</div>
-              </div>`;
-            }).join('')}
+                <div style="font-size:8px;color:var(--text3)">${parseInt(m)}</div>
+              </div>`;}).join('')}
           </div>
         </div>` : ''}
       </div>
     </div>`;
   }).join('');
 
-  // ── 공간별 현황 ─────────────────────────────────────────────────
-  const byRoom = {};
-  spaces.forEach(s => byRoom[s.name] = { total: 0, ok: 0 });
-  data.forEach(r => { if (byRoom[r.room]) { byRoom[r.room].total++; if (r.status === '확정') byRoom[r.room].ok++; } });
+  // ── 모임 목적 카테고리 ──────────────────────────────────────────
+  const catCount = {};
+  // 카테고리별 단체 내역도 추적
+  const catByOrg = {};
+  data.forEach(r => {
+    const cat = classifyPurpose(r.purpose);
+    catCount[cat] = (catCount[cat]||0)+1;
+    if (!catByOrg[cat]) catByOrg[cat] = {};
+    catByOrg[cat][r.type||'미분류'] = (catByOrg[cat][r.type||'미분류']||0)+1;
+  });
+  const catSorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]);
+  const maxCat = catSorted[0]?.[1] || 1;
+  const CAT_COLORS = { '기도모임':'#7B4FD0','예배·찬양':'#D0724F','학부모 모임':'#4F9DD0','교육·수업':'#4FD09D',
+    '세미나·행사':'#D0C14F','회의·소그룹':'var(--blue)','수련회·캠프':'#D04F7B','친교·식사':'#8FD04F','기타':'var(--text3)' };
 
-  document.getElementById('report-rooms').innerHTML =
-    `<table class="tbl"><thead><tr><th>공간</th><th>건수</th><th>확정</th><th>가동률</th></tr></thead><tbody>
-      ${spaces.filter(sp => (byRoom[sp.name]?.total || 0) > 0).sort((a,b) => (byRoom[b.name]?.total||0)-(byRoom[a.name]?.total||0)).map(sp => {
-        const d = byRoom[sp.name] || { total: 0, ok: 0 };
-        const rate = d.total ? Math.round(d.ok / d.total * 100) : 0;
-        return `<tr>
-          <td style="font-weight:700;color:var(--blue)">${sp.name}</td>
-          <td>${d.total}</td><td style="color:var(--green)">${d.ok}</td>
-          <td><div style="display:flex;align-items:center;gap:8px">
-            <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
-              <div style="width:${rate}%;height:100%;background:var(--blue);border-radius:3px"></div>
+  document.getElementById('report-purpose').innerHTML = catSorted.length
+    ? catSorted.map(([cat, cnt]) => {
+        const color = CAT_COLORS[cat] || 'var(--blue)';
+        const orgBreakdown = Object.entries(catByOrg[cat]||{}).sort((a,b)=>b[1]-a[1])
+          .map(([o,n])=>`<span style="font-size:10px;color:var(--text2);margin-right:8px">${o} ${n}건</span>`).join('');
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
+            <div style="font-size:13px;font-weight:700;min-width:100px;color:${color}">${cat}</div>
+            <div style="flex:1;height:10px;background:var(--bg2);border-radius:5px">
+              <div style="width:${Math.round(cnt/maxCat*100)}%;height:100%;background:${color};border-radius:5px"></div>
             </div>
-            <span style="font-size:11px;min-width:30px">${rate}%</span>
-          </div></td></tr>`;
+            <div style="font-size:13px;font-weight:700;min-width:28px;text-align:right;color:${color}">${cnt}</div>
+          </div>
+          <div style="padding-left:110px">${orgBreakdown}</div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--text3);font-size:13px">데이터 없음</div>';
+
+  // ── 시간대별 현황 ────────────────────────────────────────────────
+  const SLOTS = [
+    { label:'새벽\n(~9시)',   key:'dawn',    test: h => h < 9 },
+    { label:'오전\n(9~12시)', key:'morning', test: h => h >= 9 && h < 12 },
+    { label:'낮\n(12~14시)',  key:'noon',    test: h => h >= 12 && h < 14 },
+    { label:'오후\n(14~18시)',key:'aft',     test: h => h >= 14 && h < 18 },
+    { label:'저녁\n(18~21시)',key:'eve',     test: h => h >= 18 && h < 21 },
+    { label:'야간\n(21시~)',  key:'night',   test: h => h >= 21 },
+  ];
+  const slotCount = {}; SLOTS.forEach(s => slotCount[s.key]=0);
+  const slotByOrg = {}; SLOTS.forEach(s => { slotByOrg[s.key]={}; });
+  data.forEach(r => {
+    const h = parseInt((r.start||'00').split(':')[0]);
+    const slot = SLOTS.find(s => s.test(h));
+    if (slot) {
+      slotCount[slot.key]++;
+      slotByOrg[slot.key][r.type||'미분류'] = (slotByOrg[slot.key][r.type||'미분류']||0)+1;
+    }
+  });
+  const maxSlot = Math.max(1, ...Object.values(slotCount));
+
+  document.getElementById('report-timeslot').innerHTML =
+    `<div style="display:flex;align-items:flex-end;gap:8px;height:100px;margin-bottom:8px;padding:0 4px">
+      ${SLOTS.map(s => {
+        const n = slotCount[s.key];
+        const h = n ? Math.max(16, Math.round(n/maxSlot*88)) : 8;
+        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+          <div style="font-size:11px;font-weight:700;color:var(--blue)">${n||''}</div>
+          <div style="width:100%;height:${h}px;background:${n?'var(--blue)':'var(--bg2)'};border-radius:4px 4px 0 0"></div>
+        </div>`;
       }).join('')}
-    </tbody></table>`;
+    </div>
+    <div style="display:flex;gap:8px;padding:0 4px">
+      ${SLOTS.map(s => `<div style="flex:1;text-align:center;font-size:10px;color:var(--text2);white-space:pre-line;line-height:1.3">${s.label}</div>`).join('')}
+    </div>
+    <div style="margin-top:14px">
+      ${SLOTS.filter(s=>slotCount[s.key]>0).map(s=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">
+          <span style="min-width:80px;color:var(--text2)">${s.label.replace('\n',' ')}</span>
+          <span style="font-weight:700;color:var(--blue);min-width:28px">${slotCount[s.key]}건</span>
+          <span style="color:var(--text3)">${Object.entries(slotByOrg[s.key]).sort((a,b)=>b[1]-a[1]).map(([o,n])=>`${o} ${n}건`).join(' · ')}</span>
+        </div>`).join('')}
+    </div>`;
 }
 
 // ── 외부 사용자 관리 ─────────────────────────────────────────────
