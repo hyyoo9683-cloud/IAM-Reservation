@@ -331,6 +331,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
       <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
+      <button class="nav-btn" onclick="go('orgs')"><span class="icon">🏷</span>기관 관리</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <div class="nav-section">사용자 뷰</div>
@@ -444,11 +445,7 @@ textarea { resize: vertical; min-height: 60px; }
               <div class="fg">
                 <div class="lbl">기관 분류 <span class="req">*</span></div>
                 <select id="m-type" oninput="updateApplySummary()">
-                  <option value="">선택하세요</option>
-                  <option>중앙기독학교</option>
-                  <option>원천침례교회</option>
-                  <option>외부 예약</option>
-                  <option>아이엠센터 내부기관</option>
+                  <option value="">선택</option>
                 </select>
               </div>
               <div class="fg">
@@ -575,7 +572,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
         <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')renderList()">
         <select id="fr" onchange="renderList()" style="width:110px"><option value="">전체 공간</option></select>
-        <select id="ft" onchange="renderList()" style="width:140px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
+        <select id="ft" onchange="renderList()" style="width:140px"><option value="">전체 기관</option></select>
         <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
         <button class="btn btn-ghost" style="padding:7px 10px;font-size:13px" onclick="resetListFilter()">초기화</button>
       </div>
@@ -591,10 +588,6 @@ textarea { resize: vertical; min-height: 60px; }
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <select id="bulk-type-sel" style="width:160px;font-size:12px">
             <option value="">기관 변경 선택</option>
-            <option value="아이엠센터 내부기관">아이엠센터 내부기관</option>
-            <option value="중앙기독학교">중앙기독학교</option>
-            <option value="원천침례교회">원천침례교회</option>
-            <option value="외부 예약">외부 예약</option>
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
@@ -619,6 +612,15 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="btn btn-primary" onclick="openSpaceModal()">+ 새 공간 추가</button>
       </div>
       <div class="space-grid" id="manage-spaces-grid"></div>
+    </div>
+
+    <!-- 관리자: 기관 관리 -->
+    <div class="page" id="p-orgs">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">기관 분류 관리</div>
+        <button class="btn btn-primary" onclick="openOrgModal()">+ 기관 추가</button>
+      </div>
+      <div id="orgs-list"></div>
     </div>
 
     <!-- 관리자: 외부 사용자 관리 -->
@@ -804,7 +806,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div id="edit-recur-banner" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6"></div>
     <div class="fg">
       <div class="lbl">기관 분류 <span class="req">*</span></div>
-      <select id="e-type"><option value="">선택</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
+      <select id="e-type"><option value="">선택</option></select>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
@@ -917,6 +919,41 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 기관 관리 모달 ════════════ -->
+<div class="modal-bg" id="modal-org">
+  <div class="modal" style="max-width:400px;width:92%">
+    <div class="modal-title" id="org-modal-title">기관 추가</div>
+    <input type="hidden" id="org-edit-id">
+    <div class="fg"><div class="lbl">기관명 <span class="req">*</span></div>
+      <input type="text" id="org-name" placeholder="예) 중앙기독학교"></div>
+    <div class="fg"><div class="lbl">약칭 <span class="req">*</span></div>
+      <input type="text" id="org-short" placeholder="예) 학교" maxlength="5"></div>
+    <div class="fl" style="gap:12px">
+      <div class="fg"><div class="lbl">배지 글자색</div>
+        <input type="color" id="org-color" value="#2563C4" style="width:100%;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer"></div>
+      <div class="fg"><div class="lbl">배지 배경색</div>
+        <input type="color" id="org-bgcolor" value="#EBF4FF" style="width:100%;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer"></div>
+    </div>
+    <div class="fg" style="margin-top:4px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="org-isgroup" style="width:15px;height:15px">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">그룹(상위기관)으로 지정</span>
+      </label>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">체크 시 예약에서 직접 선택 불가 — 하위 기관들의 카테고리 헤더로만 사용됩니다</div>
+    </div>
+    <div class="fg" id="org-parent-wrap">
+      <div class="lbl">상위 기관 (선택)</div>
+      <select id="org-parent" style="width:100%">
+        <option value="">없음 (최상위)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="saveOrg()">저장</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-org')">취소</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- ════════════════════════════════════════
@@ -946,6 +983,7 @@ let expandedGroups = new Set();
 let _selectedGroupIds = new Set();  // 선택된 정기예약 그룹 ID 목록
 let newPhotoFiles = [], existingPhotos = [];
 let blockedDates = [];   // { id, date, reason, type:'holiday'|'custom' }
+let orgsList = [];       // [{id, name, shortName, color, bgColor, isGroup, parentId, order}]
 
 // 공간 고정 정렬 순서 (캘린더·기본 공간 안내: 505→511→아론→샤론)
 const SPACE_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
@@ -1014,10 +1052,11 @@ function T(msg, col = '#185FA5') {
 function sBadge(s) {
   return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no', '취소': 'b-cancel' }[s] || ''}">${s}</span>`;
 }
-const TYPE_SHORT = { '아이엠센터 내부기관': '아이엠', '중앙기독학교': '학교', '원천침례교회': '교회', '외부 예약': '외부' };
 function oBadge(t, short = false) {
-  const label = short ? (TYPE_SHORT[t] || t) : t;
-  return `<span class="badge ${{ '중앙기독학교': 'b-blue', '원천침례교회': 'b-ok', '아이엠센터 내부기관': 'b-wait', '외부 예약': 'b-cancel' }[t] || ''}" title="${t}">${label}</span>`;
+  const org = orgsList.find(o => o.name === t);
+  const label = short ? (org?.shortName || t?.slice(0,3) || '?') : (t || '미분류');
+  const bg = org?.bgColor || '#EFEFEF', fg = org?.color || '#777';
+  return `<span class="badge" style="background:${bg};color:${fg}" title="${t||''}">${label}</span>`;
 }
 const tsToday = () => new Date().toISOString().slice(0, 10);
 function nowStr() {
@@ -1178,9 +1217,27 @@ async function loadData() {
     renderPubCal();
   });
 
+  onSnapshot(collection(db, 'orgs'), snap => {
+    orgsList = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.order||0) - (b.order||0));
+    if (orgsList.length === 0) seedDefaultOrgs();
+    updateAllOrgSelects();
+    refresh();
+  });
+
   buildRoomChips();
   populateRoomFilter();
   buildReportYearSelect();
+}
+
+async function seedDefaultOrgs() {
+  const defaults = [
+    { name:'중앙기독학교',      shortName:'학교', color:'#2563C4', bgColor:'#EBF4FF', isGroup:false, parentId:null, order:1 },
+    { name:'원천침례교회',      shortName:'교회', color:'#3B9B6F', bgColor:'#E8F5E9', isGroup:false, parentId:null, order:2 },
+    { name:'아이엠센터 내부기관', shortName:'아이엠', color:'#B45309', bgColor:'#FFF8E1', isGroup:false, parentId:null, order:3 },
+    { name:'외부 예약',         shortName:'외부', color:'#777777', bgColor:'#EFEFEF', isGroup:false, parentId:null, order:4 },
+  ];
+  for (const o of defaults) await addDoc(collection(db, 'orgs'), o);
 }
 
 async function seedDefaultSpaces() {
@@ -1198,6 +1255,37 @@ async function seedDefaultSpaces() {
     const r = await addDoc(collection(db, 'spaces'), { ...s, createdAt: serverTimestamp() });
     spaces.push({ id: r.id, ...s });
   }
+}
+
+// ── 기관 셀렉트 헬퍼 ─────────────────────────────────────────────
+function buildOrgOptions(includeEmpty = true, selectedVal = '') {
+  let html = includeEmpty ? '<option value="">선택</option>' : '';
+  const topOrgs = orgsList.filter(o => !o.parentId);
+  topOrgs.forEach(o => {
+    if (o.isGroup) {
+      html += `<optgroup label="${o.name}">`;
+      orgsList.filter(c => c.parentId === o.id).forEach(c => {
+        html += `<option value="${c.name}" ${c.name===selectedVal?'selected':''}>${c.name}</option>`;
+      });
+      html += '</optgroup>';
+    } else {
+      html += `<option value="${o.name}" ${o.name===selectedVal?'selected':''}>${o.name}</option>`;
+    }
+  });
+  return html;
+}
+
+function updateAllOrgSelects() {
+  const mType = document.getElementById('m-type');
+  if (mType) mType.innerHTML = buildOrgOptions();
+  const eType = document.getElementById('e-type');
+  if (eType) eType.innerHTML = buildOrgOptions();
+  const ft = document.getElementById('ft');
+  if (ft) ft.innerHTML = '<option value="">전체 기관</option>' + buildOrgOptions(false);
+  const bts = document.getElementById('bulk-type-sel');
+  if (bts) bts.innerHTML = '<option value="">기관 변경 선택</option>' + buildOrgOptions(false);
+  const rOrg = document.getElementById('r-org-filter');
+  if (rOrg) rOrg.innerHTML = '<option value="">전체</option>' + buildOrgOptions(false);
 }
 
 // ── 공간 칩 ─────────────────────────────────────────────────────
@@ -1291,7 +1379,7 @@ window.go = (page) => {
   const titles = {
     spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
-    'ext-users': '외부 사용자 관리', blocked: '차단일 관리'
+    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -1325,10 +1413,11 @@ window.go = (page) => {
   if (page === 'report')         renderReport();
   if (page === 'ext-users')      renderExtUsers();
   if (page === 'blocked')        renderBlockedDates();
+  if (page === 'orgs')           renderOrgs();
 };
 
 function refresh() {
-  const map = { dashboard: renderDashboard, list: renderList, mylist: renderMyList, public: renderPubCal, report: renderReport };
+  const map = { dashboard: renderDashboard, list: renderList, mylist: renderMyList, public: renderPubCal, report: renderReport, orgs: renderOrgs };
   if (map[curPage]) map[curPage]();
 
   // 뱃지 업데이트 (항상)
@@ -2898,6 +2987,87 @@ function renderDashboard() {
        </tbody></table>`;
 }
 
+// ── 기관 관리 ─────────────────────────────────────────────────
+function renderOrgs() {
+  const el = document.getElementById('orgs-list');
+  if (!el) return;
+  const topOrgs = orgsList.filter(o => !o.parentId);
+  if (!topOrgs.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">등록된 기관이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = topOrgs.map(org => {
+    const children = orgsList.filter(c => c.parentId === org.id);
+    return `
+      <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2)">
+          <span class="badge" style="background:${org.bgColor};color:${org.color}">${org.shortName}</span>
+          <span style="font-weight:700;font-size:13px">${org.name}</span>
+          ${org.isGroup ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">그룹</span>' : ''}
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${org.id}')">수정</button>
+            <button class="btn btn-red"   style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${org.id}')">삭제</button>
+          </div>
+        </div>
+        ${children.map(c => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 10px 28px;border-top:1px solid var(--border);background:var(--bg)">
+          <span style="color:var(--text3);font-size:12px">└</span>
+          <span class="badge" style="background:${c.bgColor};color:${c.color}">${c.shortName}</span>
+          <span style="font-size:13px">${c.name}</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${c.id}')">수정</button>
+            <button class="btn btn-red"   style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${c.id}')">삭제</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+  }).join('');
+}
+
+window.openOrgModal = (id) => {
+  const org = id ? orgsList.find(o => o.id === id) : null;
+  document.getElementById('org-modal-title').textContent = org ? '기관 수정' : '기관 추가';
+  document.getElementById('org-edit-id').value   = id || '';
+  document.getElementById('org-name').value      = org?.name      || '';
+  document.getElementById('org-short').value     = org?.shortName || '';
+  document.getElementById('org-color').value     = org?.color     || '#2563C4';
+  document.getElementById('org-bgcolor').value   = org?.bgColor   || '#EBF4FF';
+  document.getElementById('org-isgroup').checked = org?.isGroup   || false;
+  const groups = orgsList.filter(o => o.isGroup && o.id !== id);
+  document.getElementById('org-parent').innerHTML =
+    '<option value="">없음 (최상위)</option>' +
+    groups.map(g => `<option value="${g.id}" ${g.id===(org?.parentId||'')?'selected':''}>${g.name}</option>`).join('');
+  openModal('modal-org');
+};
+
+window.saveOrg = async () => {
+  const id        = document.getElementById('org-edit-id').value;
+  const name      = document.getElementById('org-name').value.trim();
+  const shortName = document.getElementById('org-short').value.trim();
+  const color     = document.getElementById('org-color').value;
+  const bgColor   = document.getElementById('org-bgcolor').value;
+  const isGroup   = document.getElementById('org-isgroup').checked;
+  const parentId  = document.getElementById('org-parent').value || null;
+  if (!name || !shortName) { T('기관명과 약칭을 입력해주세요', '#A32D2D'); return; }
+  const data = { name, shortName, color, bgColor, isGroup, parentId,
+    order: id ? (orgsList.find(o => o.id === id)?.order ?? 99) : (orgsList.length + 1) };
+  try {
+    if (id) await updateDoc(doc(db, 'orgs', id), data);
+    else     await addDoc(collection(db, 'orgs'), data);
+    T(id ? '기관이 수정됐습니다' : '기관이 추가됐습니다', '#3B6D11');
+    closeModal('modal-org');
+  } catch(e) { T('저장 실패: ' + e.message, '#A32D2D'); }
+};
+
+window.deleteOrg = async (id) => {
+  const org = orgsList.find(o => o.id === id);
+  if (orgsList.some(o => o.parentId === id)) { T('하위 기관을 먼저 삭제해주세요', '#A32D2D'); return; }
+  if (!confirm(`"${org?.name}" 기관을 삭제하시겠습니까?\n이미 등록된 예약의 기관 분류는 변경되지 않습니다.`)) return;
+  try {
+    await deleteDoc(doc(db, 'orgs', id));
+    T('삭제됐습니다', '#777');
+  } catch(e) { T('삭제 실패: ' + e.message, '#A32D2D'); }
+};
+
 window.toggleRecurGroup = (groupId) => {
   if (expandedGroups.has(groupId)) expandedGroups.delete(groupId);
   else expandedGroups.add(groupId);
@@ -3239,7 +3409,7 @@ function renderReport() {
   const yr  = document.getElementById('report-year')?.value  || '';
   const mo  = document.getElementById('report-month')?.value || '';
   const stf = document.getElementById('report-status')?.value;
-  const ORGS   = ['중앙기독학교', '원천침례교회', '아이엠센터 내부기관', '외부 예약'];
+  const ORGS   = orgsList.filter(o => !o.isGroup).map(o => o.name);
   const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
   // 공간 그룹 정의
@@ -3455,6 +3625,89 @@ function renderReport() {
         </div>`).join('')}
     </div>`;
 }
+
+// ── 기관 관리 ────────────────────────────────────────────────────
+function renderOrgs() {
+  const topOrgs = orgsList.filter(o => !o.parentId);
+  if (!topOrgs.length) {
+    document.getElementById('orgs-list').innerHTML =
+      '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">등록된 기관이 없습니다</div>';
+    return;
+  }
+  let html = '';
+  topOrgs.forEach(org => {
+    const children = orgsList.filter(c => c.parentId === org.id);
+    html += `
+      <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2)">
+          <span class="badge" style="background:${org.bgColor};color:${org.color}">${org.shortName}</span>
+          <span style="font-weight:700;font-size:13px">${org.name}</span>
+          ${org.isGroup ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">그룹</span>' : ''}
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${org.id}')">수정</button>
+            <button class="btn btn-red" style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${org.id}')">삭제</button>
+          </div>
+        </div>
+        ${children.map(c => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 10px 28px;border-top:1px solid var(--border)">
+          <span style="color:var(--text3);font-size:12px">└</span>
+          <span class="badge" style="background:${c.bgColor};color:${c.color}">${c.shortName}</span>
+          <span style="font-size:13px">${c.name}</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${c.id}')">수정</button>
+            <button class="btn btn-red" style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${c.id}')">삭제</button>
+          </div>
+        </div>`).join('')}
+      </div>`;
+  });
+  document.getElementById('orgs-list').innerHTML = html;
+}
+
+window.openOrgModal = (id) => {
+  const org = id ? orgsList.find(o => o.id === id) : null;
+  document.getElementById('org-modal-title').textContent = org ? '기관 수정' : '기관 추가';
+  document.getElementById('org-edit-id').value = id || '';
+  document.getElementById('org-name').value    = org?.name || '';
+  document.getElementById('org-short').value   = org?.shortName || '';
+  document.getElementById('org-color').value   = org?.color || '#2563C4';
+  document.getElementById('org-bgcolor').value = org?.bgColor || '#EBF4FF';
+  document.getElementById('org-isgroup').checked = org?.isGroup || false;
+  const groups = orgsList.filter(o => o.isGroup && o.id !== id);
+  document.getElementById('org-parent').innerHTML =
+    '<option value="">없음 (최상위)</option>' +
+    groups.map(g => `<option value="${g.id}" ${g.id===org?.parentId?'selected':''}>${g.name}</option>`).join('');
+  openModal('modal-org');
+};
+
+window.saveOrg = async () => {
+  const id       = document.getElementById('org-edit-id').value;
+  const name     = document.getElementById('org-name').value.trim();
+  const shortName= document.getElementById('org-short').value.trim();
+  const color    = document.getElementById('org-color').value;
+  const bgColor  = document.getElementById('org-bgcolor').value;
+  const isGroup  = document.getElementById('org-isgroup').checked;
+  const parentId = document.getElementById('org-parent').value || null;
+  if (!name || !shortName) { T('기관명과 약칭을 입력해주세요', '#A32D2D'); return; }
+  const data = { name, shortName, color, bgColor, isGroup, parentId,
+    order: id ? (orgsList.find(o=>o.id===id)?.order||99) : (orgsList.length + 1) };
+  try {
+    if (id) await updateDoc(doc(db, 'orgs', id), data);
+    else     await addDoc(collection(db, 'orgs'), data);
+    T(id ? '기관이 수정됐습니다' : '기관이 추가됐습니다', '#3B6D11');
+    closeModal('modal-org');
+  } catch(e) { T('저장 실패: ' + e.message, '#A32D2D'); }
+};
+
+window.deleteOrg = async (id) => {
+  const org = orgsList.find(o => o.id === id);
+  const hasChildren = orgsList.some(o => o.parentId === id);
+  if (hasChildren) { T('하위 기관을 먼저 삭제해주세요', '#A32D2D'); return; }
+  if (!confirm(`"${org?.name}" 기관을 삭제하시겠습니까?\n이미 등록된 예약의 기관 분류는 변경되지 않습니다.`)) return;
+  try {
+    await deleteDoc(doc(db, 'orgs', id));
+    T('삭제됐습니다', '#777');
+  } catch(e) { T('삭제 실패: ' + e.message, '#A32D2D'); }
+};
 
 // ── 외부 사용자 관리 ─────────────────────────────────────────────
 async function renderExtUsers() {
