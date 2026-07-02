@@ -682,18 +682,19 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">이용 기관</div><div class="stat-num" id="r-orgs">0</div></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <select id="report-year"  onchange="renderReport()" style="width:90px"></select>
-        <select id="report-month" onchange="renderReport()" style="width:80px">
+        <select id="report-year"  style="width:90px"></select>
+        <select id="report-month" style="width:80px">
           <option value="">전체 월</option>
           <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
           <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
           <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
           <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
         </select>
-        <select id="report-status" onchange="renderReport()" style="width:100px">
+        <select id="report-status" style="width:100px">
           <option value="확정">확정 기준</option>
           <option value="">전체 포함</option>
         </select>
+        <button class="btn btn-primary" onclick="renderReport()" style="padding:6px 16px;font-size:13px">검색</button>
       </div>
       <!-- 공간 그룹별 현황 -->
       <div class="card"><div class="card-title">공간별 현황</div><div id="report-rooms"></div></div>
