@@ -579,6 +579,10 @@ textarea { resize: vertical; min-height: 60px; }
         <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')filterRenderList()">
         <select id="fr" onchange="filterRenderList()" style="width:110px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="filterRenderList()" style="width:140px"><option value="">전체 기관</option></select>
+        <select id="f-suborg" onchange="filterRenderList()" style="width:130px">
+          <option value="">전체</option>
+          <option value="__none__">세부기관 미지정</option>
+        </select>
         <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="filterRenderList()" title="검색">🔍</button>
         <button class="btn btn-ghost" style="padding:7px 10px;font-size:13px" onclick="resetListFilter()">초기화</button>
       </div>
@@ -3041,7 +3045,7 @@ window.toggleRecurGroup = (groupId) => {
 window.filterRenderList = () => { clearBulkSelect(); renderList(); };
 
 window.resetListFilter = () => {
-  ['fname','fr','ft','fdate-s','fdate-e'].forEach(id => {
+  ['fname','fr','ft','f-suborg','fdate-s','fdate-e'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   clearBulkSelect();
@@ -3061,11 +3065,12 @@ window.updateBulkSubOrgs = () => {
 };
 
 window.renderList = function renderList() {
-  const fq = (document.getElementById('fname')?.value || '').toLowerCase();
-  const fr = document.getElementById('fr')?.value  || '';
-  const ft = document.getElementById('ft')?.value  || '';
-  const fds = document.getElementById('fdate-s')?.value || '';
-  const fde = document.getElementById('fdate-e')?.value || '';
+  const fq       = (document.getElementById('fname')?.value || '').toLowerCase();
+  const fr       = document.getElementById('fr')?.value      || '';
+  const ft       = document.getElementById('ft')?.value      || '';
+  const fSubOrg  = document.getElementById('f-suborg')?.value || '';
+  const fds      = document.getElementById('fdate-s')?.value || '';
+  const fde      = document.getElementById('fdate-e')?.value || '';
 
   // 이번 주 날짜 범위
   let weekStart = '', weekEnd = '';
@@ -3088,6 +3093,7 @@ window.renderList = function renderList() {
   if (fde) data = data.filter(r => r.date <= fde);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
+  if (fSubOrg === '__none__') data = data.filter(r => !r.subOrg);
 
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = false;
