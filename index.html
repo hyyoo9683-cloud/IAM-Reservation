@@ -3117,7 +3117,7 @@ window.renderList = function renderList() {
         <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck(this)" style="cursor:pointer;width:14px;height:14px">
       </td>
       <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-      <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
+      <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${r.managerName}</td>
       <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
       <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
@@ -3141,7 +3141,7 @@ window.renderList = function renderList() {
           <input type="checkbox" class="group-sel-btn" data-group="${groupId}" data-ids="${allIds}" onclick="toggleGroupSel('${groupId}',this)" style="cursor:pointer;width:14px;height:14px;accent-color:var(--blue)" ${isSel ? 'checked' : ''}>
         </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
-        <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}</td>
+        <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}${first.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${first.subOrg}</span>` : ''}</td>
         <td style="font-weight:600;cursor:pointer" onclick="${tg}">${first.managerName}</td>
         <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
         <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
