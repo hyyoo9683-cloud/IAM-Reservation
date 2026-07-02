@@ -3308,6 +3308,8 @@ window.bulkChangeType = async () => {
   try {
     await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type })));
     T(`${ids.length}건 기관 변경 완료`, '#3B6D11');
+    document.getElementById('bulk-type-sel').value = '';
+    clearBulkSelect();
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
 window.bulkGroupRecur = async () => {
