@@ -2947,7 +2947,7 @@ window.renderList = function renderList() {
   const singleRow = r => `
     <tr class="row" onclick="openDetail('${r.id}')">
       <td onclick="event.stopPropagation()" style="text-align:center">
-        <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
+        <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck(this)" style="cursor:pointer;width:14px;height:14px">
       </td>
       <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
       <td>${oBadge(r.type, true)}</td><td>${r.managerName}</td>
@@ -2965,9 +2965,13 @@ window.renderList = function renderList() {
     const isOpen = expandedGroups.has(groupId);
     const statusSet = [...new Set(rows.map(r => r.status))];
     const statusSummary = statusSet.map(s => sBadge(s)).join(' ');
+    const allIds = rows.map(r => r.id).join(',');
     const headerRow = `
       <tr style="background:var(--blue-lt);cursor:pointer" onclick="toggleRecurGroup('${groupId}')">
-        <td style="text-align:center"><span style="font-size:14px">${isOpen ? '▾' : '▸'}</span></td>
+        <td onclick="event.stopPropagation()" style="text-align:center;white-space:nowrap;padding:6px 4px">
+          <input type="checkbox" class="group-chk" data-group="${groupId}" data-ids="${allIds}" onclick="onGroupCheck(this)" style="cursor:pointer;width:14px;height:14px;vertical-align:middle;margin-right:2px">
+          <span style="font-size:13px;vertical-align:middle" onclick="event.stopPropagation();toggleRecurGroup('${groupId}')">${isOpen ? '▾' : '▸'}</span>
+        </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700">🔁${rows.length}회</td>
         <td>${oBadge(first.type, true)}</td>
         <td style="font-weight:600">${first.managerName}</td>
@@ -2983,7 +2987,7 @@ window.renderList = function renderList() {
     const subRows = rows.map(r => `
       <tr class="row" style="background:#f9fbff" onclick="openDetail('${r.id}')">
         <td onclick="event.stopPropagation()" style="text-align:center;padding-left:16px">
-          <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck()" style="cursor:pointer;width:14px;height:14px">
+          <input type="checkbox" class="row-chk" value="${r.id}" data-group="${groupId}" onclick="onRowCheck(this)" style="cursor:pointer;width:14px;height:14px">
         </td>
         <td style="color:var(--text3);font-size:10px;padding-left:12px">└ ${r.id?.slice(-4)}</td>
         <td></td>
@@ -3051,7 +3055,10 @@ window.saveQuickEdit = async () => {
 };
 
 function getSelectedIds() {
-  return [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+  const fromRows = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
+  const fromGroups = [...document.querySelectorAll('.group-chk:checked')]
+    .flatMap(c => (c.dataset.ids || '').split(',').filter(Boolean));
+  return [...new Set([...fromRows, ...fromGroups])];
 }
 function updateBulkBar() {
   const ids = getSelectedIds();
@@ -3061,7 +3068,37 @@ function updateBulkBar() {
   const countEl = document.getElementById('bulk-count');
   if (countEl) countEl.textContent = `${ids.length}개 선택됨`;
 }
-window.onRowCheck = () => {
+window.onGroupCheck = (el) => {
+  const ids = (el.dataset.ids || '').split(',').filter(Boolean);
+  ids.forEach(id => {
+    const sub = document.querySelector(`.row-chk[value="${id}"]`);
+    if (sub) sub.checked = el.checked;
+  });
+  const chkAll = document.getElementById('chk-all');
+  if (chkAll) {
+    const all = document.querySelectorAll('.row-chk');
+    const checked = document.querySelectorAll('.row-chk:checked');
+    chkAll.checked = all.length > 0 && all.length === checked.length;
+  }
+  updateBulkBar();
+};
+window.onRowCheck = (el) => {
+  if (el && el.dataset.group) {
+    const groupChk = document.querySelector(`.group-chk[data-group="${el.dataset.group}"]`);
+    if (groupChk) {
+      const ids = (groupChk.dataset.ids || '').split(',').filter(Boolean);
+      const allChecked = ids.every(id => {
+        const sub = document.querySelector(`.row-chk[value="${id}"]`);
+        return sub ? sub.checked : false;
+      });
+      const someChecked = ids.some(id => {
+        const sub = document.querySelector(`.row-chk[value="${id}"]`);
+        return sub ? sub.checked : false;
+      });
+      groupChk.checked = allChecked;
+      groupChk.indeterminate = someChecked && !allChecked;
+    }
+  }
   const all = document.querySelectorAll('.row-chk');
   const checked = document.querySelectorAll('.row-chk:checked');
   const chkAll = document.getElementById('chk-all');
@@ -3070,10 +3107,12 @@ window.onRowCheck = () => {
 };
 window.toggleSelectAll = (chk) => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = chk.checked; });
+  document.querySelectorAll('.group-chk').forEach(c => { c.checked = chk.checked; c.indeterminate = false; });
   updateBulkBar();
 };
 window.clearBulkSelect = () => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = false; });
+  document.querySelectorAll('.group-chk').forEach(c => { c.checked = false; c.indeterminate = false; });
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = false;
   updateBulkBar();
