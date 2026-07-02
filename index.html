@@ -444,8 +444,14 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="fl">
               <div class="fg">
                 <div class="lbl">기관 분류 <span class="req">*</span></div>
-                <select id="m-type" oninput="updateApplySummary()">
+                <select id="m-type" oninput="updateMSubOrgs();updateApplySummary()">
                   <option value="">선택</option>
+                </select>
+              </div>
+              <div class="fg" id="m-subtype-wrap" style="display:none">
+                <div class="lbl">세부 기관 <span style="font-size:10px;color:var(--text3)">(선택)</span></div>
+                <select id="m-subtype" oninput="updateApplySummary()">
+                  <option value="">선택 없음</option>
                 </select>
               </div>
               <div class="fg">
@@ -586,10 +592,14 @@ textarea { resize: vertical; min-height: 60px; }
       <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
         <span id="bulk-count" style="font-size:12px;font-weight:600;color:var(--blue)">0개 선택</span>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <select id="bulk-type-sel" style="width:160px;font-size:12px">
+          <select id="bulk-type-sel" style="width:140px;font-size:12px">
             <option value="">기관 변경 선택</option>
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
+          <select id="bulk-subtype-sel" style="width:160px;font-size:12px">
+            <option value="">세부기관 변경 선택</option>
+          </select>
+          <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;background:var(--green);border-color:var(--green)" onclick="bulkChangeSubOrg()">세부기관 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px" onclick="clearBulkSelect()">선택 해제</button>
@@ -804,9 +814,15 @@ textarea { resize: vertical; min-height: 60px; }
   <div class="modal">
     <div class="modal-title" id="edit-modal-title">예약 수정</div>
     <div id="edit-recur-banner" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:9px 12px;margin-bottom:14px;font-size:12px;color:var(--blue);line-height:1.6"></div>
-    <div class="fg">
-      <div class="lbl">기관 분류 <span class="req">*</span></div>
-      <select id="e-type"><option value="">선택</option></select>
+    <div class="fl">
+      <div class="fg">
+        <div class="lbl">기관 분류 <span class="req">*</span></div>
+        <select id="e-type" oninput="updateESubOrgs()"><option value="">선택</option></select>
+      </div>
+      <div class="fg" id="e-subtype-wrap" style="display:none">
+        <div class="lbl">세부 기관 <span style="font-size:10px;color:var(--text3)">(선택)</span></div>
+        <select id="e-subtype"><option value="">선택 없음</option></select>
+      </div>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
@@ -1265,6 +1281,39 @@ function buildOrgOptions(includeEmpty = true, selectedVal = '') {
   return html;
 }
 
+function buildSubOrgOptions(parentName, selectedVal = '') {
+  const parent = orgsList.find(o => o.name === parentName && !o.parentId);
+  if (!parent) return '';
+  return orgsList.filter(c => c.parentId === parent.id)
+    .map(c => `<option value="${c.name}" ${c.name===selectedVal?'selected':''}>${c.name}</option>`).join('');
+}
+
+function buildAllSubOrgOptions() {
+  return orgsList.filter(o => o.parentId).map(c => {
+    const p = orgsList.find(p => p.id === c.parentId);
+    return `<option value="${c.name}">${p ? p.name + ' > ' : ''}${c.name}</option>`;
+  }).join('');
+}
+
+function syncSubOrgSelect(typeId, wrapId, selId, currentVal = '') {
+  const parentName = document.getElementById(typeId)?.value;
+  const wrap = document.getElementById(wrapId);
+  const sel  = document.getElementById(selId);
+  if (!wrap || !sel) return;
+  const opts = buildSubOrgOptions(parentName, currentVal);
+  if (opts) {
+    sel.innerHTML = '<option value="">선택 없음</option>' + opts;
+    wrap.style.display = '';
+  } else {
+    sel.innerHTML = '<option value="">선택 없음</option>';
+    wrap.style.display = 'none';
+    sel.value = '';
+  }
+}
+
+window.updateMSubOrgs = () => syncSubOrgSelect('m-type', 'm-subtype-wrap', 'm-subtype');
+window.updateESubOrgs = () => syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype');
+
 function updateAllOrgSelects() {
   const mType = document.getElementById('m-type');
   if (mType) mType.innerHTML = buildOrgOptions();
@@ -1274,6 +1323,8 @@ function updateAllOrgSelects() {
   if (ft) ft.innerHTML = '<option value="">전체 기관</option>' + buildOrgOptions(false);
   const bts = document.getElementById('bulk-type-sel');
   if (bts) bts.innerHTML = '<option value="">기관 변경 선택</option>' + buildOrgOptions(false);
+  const bss = document.getElementById('bulk-subtype-sel');
+  if (bss) bss.innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
   const rOrg = document.getElementById('r-org-filter');
   if (rOrg) rOrg.innerHTML = '<option value="">전체</option>' + buildOrgOptions(false);
 }
@@ -2218,9 +2269,10 @@ window.updateApplySummary = () => {
 };
 window.resetApply = () => {
   applyRoom = '';
-  ['m-type', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
+  ['m-type', 'm-subtype', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   ['m-need-tv', 'm-need-mic', 'm-is-recur'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  const sw = document.getElementById('m-subtype-wrap'); if (sw) sw.style.display = 'none';
   document.getElementById('m-recur').value = 'weekly';
   document.getElementById('m-end-date-wrap').style.display = 'none';
   document.getElementById('m-recur-wrap').style.display    = 'none';
@@ -2295,8 +2347,9 @@ window.submitApply = async () => {
 
   const recurGroup = isRecur ? `recur_${Date.now()}` : null;
   const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
+  const subOrg = document.getElementById('m-subtype')?.value || '';
   const baseData = {
-    type, managerName: manager, stewardName: sName, stewardTel: sTel,
+    type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
     room, start, end, people: parseInt(people), purpose, memo,
     status: '대기', userEmail: curUser.email,
     createdAt: serverTimestamp()
@@ -2667,7 +2720,7 @@ window.openDetail = (id) => {
 
   document.getElementById('detail-body').innerHTML = seriesInfo + `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}${r.subOrg ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">${r.subOrg}</span>` : ''}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${r.room}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${r.date}</div></div>
@@ -2839,6 +2892,7 @@ window.openEditModal = (id) => {
     document.getElementById('edit-modal-title').textContent  = '예약 수정';
     document.getElementById('edit-submit-btn').textContent   = '수정 저장';
     document.getElementById('e-type').value         = r.type || '';
+    syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype', r.subOrg || '');
     document.getElementById('e-manager').value      = r.managerName || '';
     document.getElementById('e-steward-name').value = r.stewardName || '';
     document.getElementById('e-steward-tel').value  = r.stewardTel || '';
@@ -2865,6 +2919,7 @@ window.openEditModal = (id) => {
 };
 window.submitEdit = async () => {
   const type    = document.getElementById('e-type').value;
+  const subOrg  = document.getElementById('e-subtype')?.value || '';
   const manager = document.getElementById('e-manager').value.trim();
   const sName   = document.getElementById('e-steward-name').value.trim();
   const sTel    = document.getElementById('e-steward-tel').value.trim();
@@ -2883,7 +2938,7 @@ window.submitEdit = async () => {
   if (!noConflict(room, date, start, end, editId)) { T('해당 시간에 이미 예약이 있습니다', '#A32D2D'); return; }
 
   const data = {
-    type, managerName: manager, stewardName: sName, stewardTel: sTel,
+    type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
     room, date, start, end, people: parseInt(people), purpose, memo
   };
   const cu = curUser;
@@ -2971,7 +3026,7 @@ function renderDashboard() {
         ${[...reservations].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(r =>
           `<tr class="row" onclick="openDetail('${r.id}')">
             <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-            <td>${oBadge(r.type)}</td><td>${r.managerName}</td>
+            <td>${oBadge(r.type)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block">${r.subOrg}</span>` : ''}</td><td>${r.managerName}</td>
             <td>${r.room}</td><td>${r.date} ${r.start}</td><td>${sBadge(r.status)}</td>
           </tr>`).join('')}
        </tbody></table>`;
@@ -3218,6 +3273,19 @@ window.bulkChangeType = async () => {
     await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type })));
     T(`${ids.length}건 기관 변경 완료`, '#3B6D11');
     document.getElementById('bulk-type-sel').value = '';
+    clearBulkSelect();
+  } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
+};
+window.bulkChangeSubOrg = async () => {
+  const ids = getSelectedIds();
+  const subOrg = document.getElementById('bulk-subtype-sel').value;
+  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
+  if (!subOrg) { T('변경할 세부기관을 선택해주세요', '#A32D2D'); return; }
+  if (!confirm(`선택한 ${ids.length}건의 세부기관을 "${subOrg}"으로 변경하시겠습니까?`)) return;
+  try {
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { subOrg })));
+    T(`${ids.length}건 세부기관 변경 완료`, '#3B6D11');
+    document.getElementById('bulk-subtype-sel').value = '';
     clearBulkSelect();
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
