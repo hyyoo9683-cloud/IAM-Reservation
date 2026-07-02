@@ -943,6 +943,7 @@ let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
 let expandedGroups = new Set();
+let _selectedGroupIds = new Set();  // 선택된 정기예약 그룹 ID 목록
 let newPhotoFiles = [], existingPhotos = [];
 let blockedDates = [];   // { id, date, reason, type:'holiday'|'custom' }
 
@@ -1356,6 +1357,7 @@ window.setListTab = (tab) => {
     document.getElementById('lst-tab-' + s)?.classList.toggle('active', s === tab)
   );
   expandedGroups.clear();
+  _selectedGroupIds.clear();
   renderList();
 };
 // 정기 예약 시리즈 전체를 관리자 목록에서 필터링
@@ -2967,10 +2969,14 @@ window.renderList = function renderList() {
     const statusSummary = statusSet.map(s => sBadge(s)).join(' ');
     const allIds = rows.map(r => r.id).join(',');
     const tg = `toggleRecurGroup('${groupId}')`;
+    const isSel = _selectedGroupIds.has(groupId);
+    const selBtnStyle = isSel
+      ? 'background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer'
+      : 'background:#fff;color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer';
     const headerRow = `
       <tr style="background:var(--blue-lt)">
         <td style="text-align:center;padding:6px 4px">
-          <input type="checkbox" class="group-chk" data-group="${groupId}" data-ids="${allIds}" onclick="onGroupCheck(this)" style="cursor:pointer;width:14px;height:14px">
+          <button class="group-sel-btn" data-group="${groupId}" data-ids="${allIds}" onclick="toggleGroupSel('${groupId}',this)" style="${selBtnStyle}">${isSel ? '✓선택' : '선택'}</button>
         </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
         <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}</td>
@@ -2980,7 +2986,7 @@ window.renderList = function renderList() {
         <td style="font-size:11px;color:var(--text2);cursor:pointer" onclick="${tg}">${first.purpose}</td>
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
         <td style="white-space:nowrap">
-          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">전체보기</button>
+          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">펼치기</button>
         </td>
       </tr>`;
     if (!isOpen) return headerRow;
@@ -3056,8 +3062,9 @@ window.saveQuickEdit = async () => {
 
 function getSelectedIds() {
   const fromRows = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
-  const fromGroups = [...document.querySelectorAll('.group-chk:checked')]
-    .flatMap(c => (c.dataset.ids || '').split(',').filter(Boolean));
+  const fromGroups = [..._selectedGroupIds].flatMap(gid =>
+    reservations.filter(r => r.recurGroup === gid).map(r => r.id)
+  );
   return [...new Set([...fromRows, ...fromGroups])];
 }
 function updateBulkBar() {
@@ -3068,37 +3075,23 @@ function updateBulkBar() {
   const countEl = document.getElementById('bulk-count');
   if (countEl) countEl.textContent = `${ids.length}개 선택됨`;
 }
-window.onGroupCheck = (el) => {
-  const ids = (el.dataset.ids || '').split(',').filter(Boolean);
-  ids.forEach(id => {
-    const sub = document.querySelector(`.row-chk[value="${id}"]`);
-    if (sub) sub.checked = el.checked;
-  });
-  const chkAll = document.getElementById('chk-all');
-  if (chkAll) {
-    const all = document.querySelectorAll('.row-chk');
-    const checked = document.querySelectorAll('.row-chk:checked');
-    chkAll.checked = all.length > 0 && all.length === checked.length;
+window.toggleGroupSel = (groupId, btn) => {
+  if (_selectedGroupIds.has(groupId)) {
+    _selectedGroupIds.delete(groupId);
+    btn.textContent = '선택';
+    btn.style.background = '#fff';
+    btn.style.color = 'var(--text2)';
+    btn.style.borderColor = 'var(--border)';
+  } else {
+    _selectedGroupIds.add(groupId);
+    btn.textContent = '✓선택';
+    btn.style.background = 'var(--blue)';
+    btn.style.color = '#fff';
+    btn.style.borderColor = 'var(--blue)';
   }
   updateBulkBar();
 };
 window.onRowCheck = (el) => {
-  if (el && el.dataset.group) {
-    const groupChk = document.querySelector(`.group-chk[data-group="${el.dataset.group}"]`);
-    if (groupChk) {
-      const ids = (groupChk.dataset.ids || '').split(',').filter(Boolean);
-      const allChecked = ids.every(id => {
-        const sub = document.querySelector(`.row-chk[value="${id}"]`);
-        return sub ? sub.checked : false;
-      });
-      const someChecked = ids.some(id => {
-        const sub = document.querySelector(`.row-chk[value="${id}"]`);
-        return sub ? sub.checked : false;
-      });
-      groupChk.checked = allChecked;
-      groupChk.indeterminate = someChecked && !allChecked;
-    }
-  }
   const all = document.querySelectorAll('.row-chk');
   const checked = document.querySelectorAll('.row-chk:checked');
   const chkAll = document.getElementById('chk-all');
@@ -3107,12 +3100,37 @@ window.onRowCheck = (el) => {
 };
 window.toggleSelectAll = (chk) => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = chk.checked; });
-  document.querySelectorAll('.group-chk').forEach(c => { c.checked = chk.checked; c.indeterminate = false; });
+  if (chk.checked) {
+    document.querySelectorAll('.group-sel-btn').forEach(btn => {
+      const gid = btn.dataset.group;
+      if (gid) {
+        _selectedGroupIds.add(gid);
+        btn.textContent = '✓선택';
+        btn.style.background = 'var(--blue)';
+        btn.style.color = '#fff';
+        btn.style.borderColor = 'var(--blue)';
+      }
+    });
+  } else {
+    _selectedGroupIds.clear();
+    document.querySelectorAll('.group-sel-btn').forEach(btn => {
+      btn.textContent = '선택';
+      btn.style.background = '#fff';
+      btn.style.color = 'var(--text2)';
+      btn.style.borderColor = 'var(--border)';
+    });
+  }
   updateBulkBar();
 };
 window.clearBulkSelect = () => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = false; });
-  document.querySelectorAll('.group-chk').forEach(c => { c.checked = false; c.indeterminate = false; });
+  _selectedGroupIds.clear();
+  document.querySelectorAll('.group-sel-btn').forEach(btn => {
+    btn.textContent = '선택';
+    btn.style.background = '#fff';
+    btn.style.color = 'var(--text2)';
+    btn.style.borderColor = 'var(--border)';
+  });
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = false;
   updateBulkBar();
