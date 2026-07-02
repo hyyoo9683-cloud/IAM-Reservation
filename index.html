@@ -558,6 +558,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
       </div>
+      <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
       <div class="card"><div class="card-title">최근 예약</div><div id="recent-list"></div></div>
     </div>
@@ -571,11 +572,18 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <input id="fname" placeholder="이름 또는 목적 검색" style="width:190px" onkeydown="if(event.key==='Enter')renderList()">
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+        <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')renderList()">
+        <select id="fr" onchange="renderList()" style="width:110px"><option value="">전체 공간</option></select>
+        <select id="ft" onchange="renderList()" style="width:140px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
         <button class="btn btn-primary" style="padding:7px 12px;font-size:14px" onclick="renderList()" title="검색">🔍</button>
-        <select id="fr" onchange="renderList()" style="width:120px"><option value="">전체 공간</option></select>
-        <select id="ft" onchange="renderList()" style="width:150px"><option value="">전체 기관</option><option>중앙기독학교</option><option>원천침례교회</option><option>아이엠센터 내부기관</option><option>외부 예약</option></select>
+        <button class="btn btn-ghost" style="padding:7px 10px;font-size:13px" onclick="resetListFilter()">초기화</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:13px;color:var(--text2);white-space:nowrap">기간</label>
+        <input type="date" id="fdate-s" onchange="renderList()" style="width:145px;padding:7px 8px;font-size:13px">
+        <span style="color:var(--text3)">~</span>
+        <input type="date" id="fdate-e" onchange="renderList()" style="width:145px;padding:7px 8px;font-size:13px">
       </div>
       <!-- 일괄 액션 바 (선택 시 노출) -->
       <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
@@ -2807,10 +2815,27 @@ window.submitEdit = async () => {
 // ── 페이지 렌더링 ────────────────────────────────────────────────
 function renderDashboard() {
   const today = tsToday();
-  const waitR = reservations.filter(r => r.status === '대기');
-  document.getElementById('d-today').textContent = reservations.filter(r => r.date === today).length;
+  const waitR   = reservations.filter(r => r.status === '대기');
+  const todayR  = reservations.filter(r => r.date === today && r.status !== '반려')
+                    .sort((a, b) => a.start.localeCompare(b.start));
+  document.getElementById('d-today').textContent = todayR.length;
   document.getElementById('d-wait').textContent  = waitR.length;
   document.getElementById('d-total').textContent = reservations.length;
+
+  // 오늘 예약
+  document.getElementById('today-list').innerHTML = !todayR.length
+    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 예약이 없습니다</div>'
+    : todayR.map(r => `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:7px;background:var(--bg);cursor:pointer"
+             onclick="openDetail('${r.id}')">
+          <div style="width:64px;text-align:center;font-weight:700;font-size:13px;color:var(--blue);flex-shrink:0">${r.start}<br><span style="font-size:10px;color:var(--text3)">~${r.end}</span></div>
+          <div style="width:1px;height:32px;background:var(--border2);flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px">${r.room}</div>
+            <div style="font-size:11px;color:var(--text2)">${r.managerName} · ${r.people}명 · ${r.purpose}</div>
+          </div>
+          ${sBadge(r.status)}
+        </div>`).join('');
 
   document.getElementById('pending-list').innerHTML = !waitR.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">대기 중인 예약이 없습니다</div>'
@@ -2844,10 +2869,19 @@ window.toggleRecurGroup = (groupId) => {
   renderList();
 };
 
+window.resetListFilter = () => {
+  ['fname','fr','ft','fdate-s','fdate-e'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  renderList();
+};
+
 window.renderList = function renderList() {
   const fq = (document.getElementById('fname')?.value || '').toLowerCase();
   const fr = document.getElementById('fr')?.value  || '';
   const ft = document.getElementById('ft')?.value  || '';
+  const fds = document.getElementById('fdate-s')?.value || '';
+  const fde = document.getElementById('fdate-e')?.value || '';
 
   // 이번 주 날짜 범위
   let weekStart = '', weekEnd = '';
@@ -2866,6 +2900,8 @@ window.renderList = function renderList() {
   );
   if (listStatusTab) data = data.filter(r => r.status === listStatusTab);
   if (listWeekFilter) data = data.filter(r => r.date >= weekStart && r.date <= weekEnd);
+  if (fds) data = data.filter(r => r.date >= fds);
+  if (fde) data = data.filter(r => r.date <= fde);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
 
