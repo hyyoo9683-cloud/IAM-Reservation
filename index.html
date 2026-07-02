@@ -2970,13 +2970,10 @@ window.renderList = function renderList() {
     const allIds = rows.map(r => r.id).join(',');
     const tg = `toggleRecurGroup('${groupId}')`;
     const isSel = _selectedGroupIds.has(groupId);
-    const selBtnStyle = isSel
-      ? 'background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer'
-      : 'background:#fff;color:var(--text2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer';
     const headerRow = `
       <tr style="background:var(--blue-lt)">
         <td style="text-align:center;padding:6px 4px">
-          <button class="group-sel-btn" data-group="${groupId}" data-ids="${allIds}" onclick="toggleGroupSel('${groupId}',this)" style="${selBtnStyle}">${isSel ? '✓선택' : '선택'}</button>
+          <input type="checkbox" class="group-sel-btn" data-group="${groupId}" data-ids="${allIds}" onclick="toggleGroupSel('${groupId}',this)" style="cursor:pointer;width:14px;height:14px;accent-color:var(--blue)" ${isSel ? 'checked' : ''}>
         </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
         <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}</td>
@@ -3075,19 +3072,11 @@ function updateBulkBar() {
   const countEl = document.getElementById('bulk-count');
   if (countEl) countEl.textContent = `${ids.length}개 선택됨`;
 }
-window.toggleGroupSel = (groupId, btn) => {
-  if (_selectedGroupIds.has(groupId)) {
-    _selectedGroupIds.delete(groupId);
-    btn.textContent = '선택';
-    btn.style.background = '#fff';
-    btn.style.color = 'var(--text2)';
-    btn.style.borderColor = 'var(--border)';
-  } else {
+window.toggleGroupSel = (groupId, chk) => {
+  if (chk.checked) {
     _selectedGroupIds.add(groupId);
-    btn.textContent = '✓선택';
-    btn.style.background = 'var(--blue)';
-    btn.style.color = '#fff';
-    btn.style.borderColor = 'var(--blue)';
+  } else {
+    _selectedGroupIds.delete(groupId);
   }
   updateBulkBar();
 };
@@ -3100,37 +3089,17 @@ window.onRowCheck = (el) => {
 };
 window.toggleSelectAll = (chk) => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = chk.checked; });
-  if (chk.checked) {
-    document.querySelectorAll('.group-sel-btn').forEach(btn => {
-      const gid = btn.dataset.group;
-      if (gid) {
-        _selectedGroupIds.add(gid);
-        btn.textContent = '✓선택';
-        btn.style.background = 'var(--blue)';
-        btn.style.color = '#fff';
-        btn.style.borderColor = 'var(--blue)';
-      }
-    });
-  } else {
-    _selectedGroupIds.clear();
-    document.querySelectorAll('.group-sel-btn').forEach(btn => {
-      btn.textContent = '선택';
-      btn.style.background = '#fff';
-      btn.style.color = 'var(--text2)';
-      btn.style.borderColor = 'var(--border)';
-    });
-  }
+  document.querySelectorAll('.group-sel-btn').forEach(c => {
+    c.checked = chk.checked;
+    const gid = c.dataset.group;
+    if (gid) { chk.checked ? _selectedGroupIds.add(gid) : _selectedGroupIds.delete(gid); }
+  });
   updateBulkBar();
 };
 window.clearBulkSelect = () => {
   document.querySelectorAll('.row-chk').forEach(c => { c.checked = false; });
+  document.querySelectorAll('.group-sel-btn').forEach(c => { c.checked = false; });
   _selectedGroupIds.clear();
-  document.querySelectorAll('.group-sel-btn').forEach(btn => {
-    btn.textContent = '선택';
-    btn.style.background = '#fff';
-    btn.style.color = 'var(--text2)';
-    btn.style.borderColor = 'var(--border)';
-  });
   const chkAll = document.getElementById('chk-all');
   if (chkAll) chkAll.checked = false;
   updateBulkBar();
