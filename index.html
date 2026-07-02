@@ -2834,27 +2834,43 @@ window.submitEdit = async () => {
 // ── 페이지 렌더링 ────────────────────────────────────────────────
 function renderDashboard() {
   const today = tsToday();
-  const waitR   = reservations.filter(r => r.status === '대기');
-  const todayR  = reservations.filter(r => r.date === today && r.status !== '반려')
-                    .sort((a, b) => a.start.localeCompare(b.start));
-  document.getElementById('d-today').textContent = todayR.length;
+  const waitR        = reservations.filter(r => r.status === '대기');
+  const todayConfirmed = reservations.filter(r => r.date === today && r.status === '확정')
+                           .sort((a, b) => a.start.localeCompare(b.start));
+  document.getElementById('d-today').textContent = todayConfirmed.length;
   document.getElementById('d-wait').textContent  = waitR.length;
   document.getElementById('d-total').textContent = reservations.length;
 
-  // 오늘 예약
-  document.getElementById('today-list').innerHTML = !todayR.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 예약이 없습니다</div>'
-    : todayR.map(r => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:7px;background:var(--bg);cursor:pointer"
-             onclick="openDetail('${r.id}')">
-          <div style="width:64px;text-align:center;font-weight:700;font-size:13px;color:var(--blue);flex-shrink:0">${r.start}<br><span style="font-size:10px;color:var(--text3)">~${r.end}</span></div>
-          <div style="width:1px;height:32px;background:var(--border2);flex-shrink:0"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:13px">${r.room}</div>
-            <div style="font-size:11px;color:var(--text2)">${r.managerName} · ${r.people}명 · ${r.purpose}</div>
-          </div>
-          ${sBadge(r.status)}
-        </div>`).join('');
+  // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
+  const TODAY_CATS = [
+    { label: '아론홀',      rooms: ['아론홀'],                                                  color: '#7B4FD0', showRoom: false },
+    { label: '샤론홀',      rooms: ['샤론홀'],                                                  color: '#3B9B6F', showRoom: false },
+    { label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], color: '#2563C4', showRoom: true  },
+  ];
+  let todayHtml = '';
+  TODAY_CATS.forEach(cat => {
+    const items = todayConfirmed.filter(r => cat.rooms.includes(r.room));
+    if (!items.length) return;
+    todayHtml += `
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:${cat.color};padding:3px 8px;border-left:3px solid ${cat.color};margin-bottom:6px">${cat.label}</div>
+        ${items.map(r => `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:5px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
+            <div style="width:58px;text-align:center;flex-shrink:0">
+              <div style="font-weight:700;font-size:12px;color:var(--blue)">${r.start}</div>
+              <div style="font-size:10px;color:var(--text3)">~${r.end}</div>
+            </div>
+            <div style="width:1px;height:30px;background:var(--border2);flex-shrink:0"></div>
+            <div style="flex:1;min-width:0">
+              ${cat.showRoom ? `<div style="font-size:10px;font-weight:700;color:${cat.color}">${r.room}</div>` : ''}
+              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.managerName} · ${r.people}명</div>
+              <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.purpose}</div>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  });
+  document.getElementById('today-list').innerHTML = todayHtml
+    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 확정된 예약이 없습니다</div>';
 
   document.getElementById('pending-list').innerHTML = !waitR.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">대기 중인 예약이 없습니다</div>'
