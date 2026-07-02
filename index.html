@@ -1223,6 +1223,9 @@ async function loadData() {
     if (orgsList.length === 0) seedDefaultOrgs();
     updateAllOrgSelects();
     refresh();
+  }, err => {
+    console.warn('orgs 로드 오류 (Firestore 규칙 확인 필요):', err);
+    updateAllOrgSelects();
   });
 
   buildRoomChips();
@@ -2986,87 +2989,6 @@ function renderDashboard() {
           </tr>`).join('')}
        </tbody></table>`;
 }
-
-// ── 기관 관리 ─────────────────────────────────────────────────
-function renderOrgs() {
-  const el = document.getElementById('orgs-list');
-  if (!el) return;
-  const topOrgs = orgsList.filter(o => !o.parentId);
-  if (!topOrgs.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">등록된 기관이 없습니다</div>';
-    return;
-  }
-  el.innerHTML = topOrgs.map(org => {
-    const children = orgsList.filter(c => c.parentId === org.id);
-    return `
-      <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2)">
-          <span class="badge" style="background:${org.bgColor};color:${org.color}">${org.shortName}</span>
-          <span style="font-weight:700;font-size:13px">${org.name}</span>
-          ${org.isGroup ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">그룹</span>' : ''}
-          <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${org.id}')">수정</button>
-            <button class="btn btn-red"   style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${org.id}')">삭제</button>
-          </div>
-        </div>
-        ${children.map(c => `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 10px 28px;border-top:1px solid var(--border);background:var(--bg)">
-          <span style="color:var(--text3);font-size:12px">└</span>
-          <span class="badge" style="background:${c.bgColor};color:${c.color}">${c.shortName}</span>
-          <span style="font-size:13px">${c.name}</span>
-          <div style="margin-left:auto;display:flex;gap:6px">
-            <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${c.id}')">수정</button>
-            <button class="btn btn-red"   style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${c.id}')">삭제</button>
-          </div>
-        </div>`).join('')}
-      </div>`;
-  }).join('');
-}
-
-window.openOrgModal = (id) => {
-  const org = id ? orgsList.find(o => o.id === id) : null;
-  document.getElementById('org-modal-title').textContent = org ? '기관 수정' : '기관 추가';
-  document.getElementById('org-edit-id').value   = id || '';
-  document.getElementById('org-name').value      = org?.name      || '';
-  document.getElementById('org-short').value     = org?.shortName || '';
-  document.getElementById('org-color').value     = org?.color     || '#2563C4';
-  document.getElementById('org-bgcolor').value   = org?.bgColor   || '#EBF4FF';
-  document.getElementById('org-isgroup').checked = org?.isGroup   || false;
-  const groups = orgsList.filter(o => o.isGroup && o.id !== id);
-  document.getElementById('org-parent').innerHTML =
-    '<option value="">없음 (최상위)</option>' +
-    groups.map(g => `<option value="${g.id}" ${g.id===(org?.parentId||'')?'selected':''}>${g.name}</option>`).join('');
-  openModal('modal-org');
-};
-
-window.saveOrg = async () => {
-  const id        = document.getElementById('org-edit-id').value;
-  const name      = document.getElementById('org-name').value.trim();
-  const shortName = document.getElementById('org-short').value.trim();
-  const color     = document.getElementById('org-color').value;
-  const bgColor   = document.getElementById('org-bgcolor').value;
-  const isGroup   = document.getElementById('org-isgroup').checked;
-  const parentId  = document.getElementById('org-parent').value || null;
-  if (!name || !shortName) { T('기관명과 약칭을 입력해주세요', '#A32D2D'); return; }
-  const data = { name, shortName, color, bgColor, isGroup, parentId,
-    order: id ? (orgsList.find(o => o.id === id)?.order ?? 99) : (orgsList.length + 1) };
-  try {
-    if (id) await updateDoc(doc(db, 'orgs', id), data);
-    else     await addDoc(collection(db, 'orgs'), data);
-    T(id ? '기관이 수정됐습니다' : '기관이 추가됐습니다', '#3B6D11');
-    closeModal('modal-org');
-  } catch(e) { T('저장 실패: ' + e.message, '#A32D2D'); }
-};
-
-window.deleteOrg = async (id) => {
-  const org = orgsList.find(o => o.id === id);
-  if (orgsList.some(o => o.parentId === id)) { T('하위 기관을 먼저 삭제해주세요', '#A32D2D'); return; }
-  if (!confirm(`"${org?.name}" 기관을 삭제하시겠습니까?\n이미 등록된 예약의 기관 분류는 변경되지 않습니다.`)) return;
-  try {
-    await deleteDoc(doc(db, 'orgs', id));
-    T('삭제됐습니다', '#777');
-  } catch(e) { T('삭제 실패: ' + e.message, '#A32D2D'); }
-};
 
 window.toggleRecurGroup = (groupId) => {
   if (expandedGroups.has(groupId)) expandedGroups.delete(groupId);
