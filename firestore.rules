@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 로그인한 사용자만 접근 가능
+    match /reservations/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /spaces/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /blockedDates/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /allowedUsers/{doc} {
+      allow read, write: if request.auth != null;
+    }
+    match /orgs/{doc} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
