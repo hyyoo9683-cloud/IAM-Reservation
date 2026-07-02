@@ -934,19 +934,14 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">배지 배경색</div>
         <input type="color" id="org-bgcolor" value="#EBF4FF" style="width:100%;height:36px;border:1px solid var(--border);border-radius:6px;cursor:pointer"></div>
     </div>
-    <div class="fg" style="margin-top:4px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="org-isgroup" style="width:15px;height:15px">
-        <span style="font-size:13px;font-weight:600;color:var(--text)">그룹(상위기관)으로 지정</span>
-      </label>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">체크 시 예약에서 직접 선택 불가 — 하위 기관들의 카테고리 헤더로만 사용됩니다</div>
-    </div>
     <div class="fg" id="org-parent-wrap">
       <div class="lbl">상위 기관 (선택)</div>
       <select id="org-parent" style="width:100%">
         <option value="">없음 (최상위)</option>
       </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">상위 기관을 선택하면 세부 기관(내부 관리용)으로 등록됩니다. 예약 폼에는 최상위 기관만 표시됩니다.</div>
     </div>
+    <input type="hidden" id="org-isgroup" value="false">
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" onclick="saveOrg()">저장</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-org')">취소</button>
@@ -1261,19 +1256,11 @@ async function seedDefaultSpaces() {
 }
 
 // ── 기관 셀렉트 헬퍼 ─────────────────────────────────────────────
+// 예약 폼/필터에는 최상위 기관만 표시 (하위기관은 내부 관리용)
 function buildOrgOptions(includeEmpty = true, selectedVal = '') {
   let html = includeEmpty ? '<option value="">선택</option>' : '';
-  const topOrgs = orgsList.filter(o => !o.parentId);
-  topOrgs.forEach(o => {
-    if (o.isGroup) {
-      html += `<optgroup label="${o.name}">`;
-      orgsList.filter(c => c.parentId === o.id).forEach(c => {
-        html += `<option value="${c.name}" ${c.name===selectedVal?'selected':''}>${c.name}</option>`;
-      });
-      html += '</optgroup>';
-    } else {
-      html += `<option value="${o.name}" ${o.name===selectedVal?'selected':''}>${o.name}</option>`;
-    }
+  orgsList.filter(o => !o.parentId).forEach(o => {
+    html += `<option value="${o.name}" ${o.name===selectedVal?'selected':''}>${o.name}</option>`;
   });
   return html;
 }
@@ -3566,7 +3553,7 @@ function renderOrgs() {
         <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2)">
           <span class="badge" style="background:${org.bgColor};color:${org.color}">${org.shortName}</span>
           <span style="font-weight:700;font-size:13px">${org.name}</span>
-          ${org.isGroup ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">그룹</span>' : ''}
+          ${children.length > 0 ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">하위기관 있음</span>' : ''}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${org.id}')">수정</button>
             <button class="btn btn-red" style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${org.id}')">삭제</button>
@@ -3595,11 +3582,11 @@ window.openOrgModal = (id) => {
   document.getElementById('org-short').value   = org?.shortName || '';
   document.getElementById('org-color').value   = org?.color || '#2563C4';
   document.getElementById('org-bgcolor').value = org?.bgColor || '#EBF4FF';
-  document.getElementById('org-isgroup').checked = org?.isGroup || false;
-  const groups = orgsList.filter(o => o.isGroup && o.id !== id);
+  // 상위 기관 후보: 자기 자신과 이미 하위기관인 것 제외한 최상위 기관
+  const parents = orgsList.filter(o => !o.parentId && o.id !== id);
   document.getElementById('org-parent').innerHTML =
     '<option value="">없음 (최상위)</option>' +
-    groups.map(g => `<option value="${g.id}" ${g.id===org?.parentId?'selected':''}>${g.name}</option>`).join('');
+    parents.map(p => `<option value="${p.id}" ${p.id===(org?.parentId||'')?'selected':''}>${p.name}</option>`).join('');
   openModal('modal-org');
 };
 
@@ -3609,8 +3596,8 @@ window.saveOrg = async () => {
   const shortName= document.getElementById('org-short').value.trim();
   const color    = document.getElementById('org-color').value;
   const bgColor  = document.getElementById('org-bgcolor').value;
-  const isGroup  = document.getElementById('org-isgroup').checked;
   const parentId = document.getElementById('org-parent').value || null;
+  const isGroup  = false; // 하위기관 여부는 parentId로만 판단
   if (!name || !shortName) { T('기관명과 약칭을 입력해주세요', '#A32D2D'); return; }
   const data = { name, shortName, color, bgColor, isGroup, parentId,
     order: id ? (orgsList.find(o=>o.id===id)?.order||99) : (orgsList.length + 1) };
