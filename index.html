@@ -2966,21 +2966,21 @@ window.renderList = function renderList() {
     const statusSet = [...new Set(rows.map(r => r.status))];
     const statusSummary = statusSet.map(s => sBadge(s)).join(' ');
     const allIds = rows.map(r => r.id).join(',');
+    const tg = `toggleRecurGroup('${groupId}')`;
     const headerRow = `
-      <tr style="background:var(--blue-lt);cursor:pointer" onclick="toggleRecurGroup('${groupId}')">
-        <td onclick="event.stopPropagation()" style="text-align:center;white-space:nowrap;padding:6px 4px">
-          <input type="checkbox" class="group-chk" data-group="${groupId}" data-ids="${allIds}" onclick="onGroupCheck(this)" style="cursor:pointer;width:14px;height:14px;vertical-align:middle;margin-right:2px">
-          <span style="font-size:13px;vertical-align:middle" onclick="event.stopPropagation();toggleRecurGroup('${groupId}')">${isOpen ? '▾' : '▸'}</span>
+      <tr style="background:var(--blue-lt)">
+        <td style="text-align:center;padding:6px 4px">
+          <input type="checkbox" class="group-chk" data-group="${groupId}" data-ids="${allIds}" onclick="onGroupCheck(this)" style="cursor:pointer;width:14px;height:14px">
         </td>
-        <td style="font-size:10px;color:var(--blue);font-weight:700">🔁${rows.length}회</td>
-        <td>${oBadge(first.type, true)}</td>
-        <td style="font-weight:600">${first.managerName}</td>
-        <td>${first.room}</td>
-        <td style="font-size:11px">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
-        <td style="font-size:11px;color:var(--text2)">${first.purpose}</td>
-        <td>${statusSummary}</td>
-        <td onclick="event.stopPropagation()" style="white-space:nowrap">
-          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="filterBySeries('${groupId}')">전체보기</button>
+        <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
+        <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}</td>
+        <td style="font-weight:600;cursor:pointer" onclick="${tg}">${first.managerName}</td>
+        <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
+        <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
+        <td style="font-size:11px;color:var(--text2);cursor:pointer" onclick="${tg}">${first.purpose}</td>
+        <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">전체보기</button>
         </td>
       </tr>`;
     if (!isOpen) return headerRow;
