@@ -3404,12 +3404,19 @@ window.toggleReportRoom = (group) => {
   else reportRoomExpanded.add(group);
   renderReport();
 };
+let reportOrgExpanded = new Set();
+window.toggleReportOrg = (orgName) => {
+  if (reportOrgExpanded.has(orgName)) reportOrgExpanded.delete(orgName);
+  else reportOrgExpanded.add(orgName);
+  renderReport();
+};
 
 function renderReport() {
   const yr  = document.getElementById('report-year')?.value  || '';
   const mo  = document.getElementById('report-month')?.value || '';
   const stf = document.getElementById('report-status')?.value;
-  const ORGS   = orgsList.filter(o => !o.isGroup).map(o => o.name);
+  const PARENT_ORGS = orgsList.filter(o => !o.parentId);
+  const ORGS = PARENT_ORGS.map(o => o.name);
   const MONTHS = ['01','02','03','04','05','06','07','08','09','10','11','12'];
 
   // 공간 그룹 정의
@@ -3471,26 +3478,59 @@ function renderReport() {
   const trendCard = document.getElementById('report-trend-card');
   if (!mo) {
     trendCard.style.display = '';
+    // 부모기관 grid
     const grid = {};
     ORGS.forEach(o => { grid[o] = {}; MONTHS.forEach(m => grid[o][m] = 0); });
     base.forEach(r => { const m = r.date?.slice(5,7); if (grid[r.type] && m) grid[r.type][m]++; });
     const totals = ORGS.map(o => MONTHS.reduce((s, m) => s + grid[o][m], 0));
     const maxCell = Math.max(1, ...ORGS.flatMap(o => MONTHS.map(m => grid[o][m])));
 
+    // 세부기관 grid (subOrg 기준)
+    const subGrid = {};
+    base.forEach(r => {
+      if (!r.subOrg || !r.type) return;
+      const key = r.type + '::' + r.subOrg;
+      if (!subGrid[key]) { subGrid[key] = {}; MONTHS.forEach(m => subGrid[key][m] = 0); }
+      const m = r.date?.slice(5,7);
+      if (m) subGrid[key][m]++;
+    });
+
+    const bodyRows = ORGS.map((o, oi) => {
+      const children = orgsList.filter(c => c.parentId === PARENT_ORGS[oi]?.id);
+      const hasChildren = children.length > 0;
+      const isOpen = reportOrgExpanded.has(o);
+      const parentRow = `<tr style="cursor:${hasChildren?'pointer':'default'}" ${hasChildren?`onclick="toggleReportOrg('${o.replace(/'/g,"\\'")}')"`:''}">
+        <td style="font-weight:700;white-space:nowrap;font-size:11px">
+          ${hasChildren ? `<span style="color:var(--blue);margin-right:4px">${isOpen?'▾':'▸'}</span>` : '<span style="margin-right:12px"></span>'}${o}
+        </td>
+        ${MONTHS.map(m => {
+          const n = grid[o][m];
+          const bg = n ? `background:rgba(24,95,165,${(n/maxCell)*0.4+0.06})` : '';
+          return `<td style="text-align:center;${bg};font-weight:${n?'700':'400'};color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`;
+        }).join('')}
+        <td style="text-align:center;font-weight:700;color:var(--blue)">${totals[oi]}</td>
+      </tr>`;
+
+      const subRows = hasChildren && isOpen ? children.map(c => {
+        const key = o + '::' + c.name;
+        const subTotals = MONTHS.map(m => (subGrid[key]?.[m]) || 0);
+        const rowTotal = subTotals.reduce((s,n)=>s+n,0);
+        return `<tr style="background:var(--bg2)">
+          <td style="font-size:11px;color:var(--text2);padding-left:24px;white-space:nowrap">└ ${c.name}</td>
+          ${subTotals.map(n => `<td style="text-align:center;font-size:11px;color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`).join('')}
+          <td style="text-align:center;font-size:11px;font-weight:700;color:var(--text2)">${rowTotal||'–'}</td>
+        </tr>`;
+      }).join('') : '';
+
+      return parentRow + subRows;
+    }).join('');
+
     document.getElementById('report-trend').innerHTML =
       `<div style="overflow-x:auto"><table class="tbl" style="font-size:12px;min-width:580px">
-        <thead><tr><th style="min-width:110px">기관</th>
+        <thead><tr><th style="min-width:120px">기관</th>
           ${MONTHS.map(m => `<th style="text-align:center;min-width:34px">${parseInt(m)}월</th>`).join('')}
           <th style="text-align:center">합계</th></tr></thead>
-        <tbody>${ORGS.map((o, oi) => `<tr>
-          <td style="font-weight:600;white-space:nowrap;font-size:11px">${o}</td>
-          ${MONTHS.map(m => {
-            const n = grid[o][m];
-            const bg = n ? `background:rgba(24,95,165,${(n/maxCell)*0.4+0.06})` : '';
-            return `<td style="text-align:center;${bg};font-weight:${n?'700':'400'};color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`;
-          }).join('')}
-          <td style="text-align:center;font-weight:700;color:var(--blue)">${totals[oi]}</td>
-        </tr>`).join('')}
+        <tbody>${bodyRows}
         <tr style="border-top:2px solid var(--border);font-weight:700;background:var(--bg2)">
           <td style="font-size:11px">월 합계</td>
           ${MONTHS.map(m => { const t = ORGS.reduce((s,o)=>s+grid[o][m],0); return `<td style="text-align:center;color:var(--text2)">${t||'–'}</td>`; }).join('')}
@@ -3501,8 +3541,11 @@ function renderReport() {
   }
 
   // ── 단체별 공간 이용 상세 ──────────────────────────────────────
-  document.getElementById('report-org-detail').innerHTML = ORGS.map(org => {
+  document.getElementById('report-org-detail').innerHTML = ORGS.map((org, oi) => {
     const orgData = data.filter(r => r.type === org);
+    const children = orgsList.filter(c => c.parentId === PARENT_ORGS[oi]?.id);
+    const isOpen = reportOrgExpanded.has(org);
+
     if (!orgData.length) return `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border2)">
       ${oBadge(org)} <span style="font-size:12px;color:var(--text3);margin-left:6px">예약 없음</span></div>`;
 
@@ -3515,12 +3558,38 @@ function renderReport() {
     baseOrg.forEach(r => { const m=r.date?.slice(5,7); if(m) byMon[m]++; });
     const maxM = Math.max(1,...Object.values(byMon));
 
+    // 세부기관 목록 (있을 경우)
+    const subOrgSummary = children.length > 0 ? (() => {
+      const subCounts = {};
+      children.forEach(c => { subCounts[c.name] = 0; });
+      orgData.forEach(r => { if (r.subOrg && subCounts[r.subOrg] !== undefined) subCounts[r.subOrg]++; });
+      const noSub = orgData.filter(r => !r.subOrg).length;
+      return { subCounts, noSub };
+    })() : null;
+
     return `<div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border2)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;cursor:${children.length?'pointer':'default'}"
+           ${children.length ? `onclick="toggleReportOrg('${org.replace(/'/g,"\\'")}');event.stopPropagation()"` : ''}>
         ${oBadge(org)}
         <span style="font-size:13px;font-weight:700;color:var(--blue)">${orgData.length}건</span>
         ${mo ? '' : `<span style="font-size:11px;color:var(--text2)">${yr}년 합계 ${baseOrg.length}건</span>`}
+        ${children.length ? `<span style="font-size:11px;color:var(--text3);margin-left:auto">${isOpen ? '▾ 세부기관 접기' : '▸ 세부기관 보기'}</span>` : ''}
       </div>
+      ${children.length && isOpen && subOrgSummary ? `
+      <div style="background:var(--bg2);border-radius:7px;padding:8px 12px;margin-bottom:10px">
+        ${children.map(c => {
+          const cnt = subOrgSummary.subCounts[c.name] || 0;
+          const pct = Math.round(cnt / (orgData.length || 1) * 100);
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="font-size:11px;min-width:80px;color:var(--text2);font-weight:600">${c.name}</div>
+            <div style="flex:1;height:6px;background:var(--border);border-radius:3px">
+              <div style="width:${pct}%;height:100%;background:var(--blue);border-radius:3px;opacity:.7"></div>
+            </div>
+            <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:28px;text-align:right">${cnt}건</div>
+          </div>`;
+        }).join('')}
+        ${subOrgSummary.noSub > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">세부기관 미지정: ${subOrgSummary.noSub}건</div>` : ''}
+      </div>` : ''}
       <div style="display:flex;gap:16px;flex-wrap:wrap">
         <div style="flex:1;min-width:160px">
           <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:5px">자주 사용한 공간</div>
