@@ -3576,6 +3576,13 @@ let purposeCats = (() => {
   } catch(e) { return DEFAULT_PURPOSE_CATS; }
 })();
 
+// 공간/기관 패턴 매칭: 끝이 *이면 전방 일치, 아니면 완전 일치
+function matchFilter(filters, value) {
+  return (filters || []).some(f =>
+    f.endsWith('*') ? (value || '').startsWith(f.slice(0, -1)) : f === value
+  );
+}
+
 // room, org 을 추가로 받아 공간·기관 조건도 체크
 function classifyPurpose(p, room, org) {
   const t = (p || '').toLowerCase();
@@ -3584,8 +3591,8 @@ function classifyPurpose(p, room, org) {
     const hasOrgs  = cat.orgs?.length  > 0;
     const hasKws   = cat.keywords?.length > 0;
     if (!hasRooms && !hasOrgs && !hasKws) continue;
-    if (hasRooms && !cat.rooms.includes(room)) continue;
-    if (hasOrgs  && !cat.orgs.includes(org))   continue;
+    if (hasRooms && !matchFilter(cat.rooms, room)) continue;
+    if (hasOrgs  && !matchFilter(cat.orgs, org))   continue;
     if (hasKws   && !cat.keywords.some(k => t.includes(k.toLowerCase()))) continue;
     return cat.name;
   }
