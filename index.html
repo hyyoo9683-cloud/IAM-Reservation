@@ -3552,26 +3552,42 @@ function renderMyList() {
 }
 
 // 모임 목적 카테고리 (기본값)
+// rooms/orgs 가 비어있으면 조건 없음(전체 해당), 값이 있으면 해당 항목만 매칭
 const DEFAULT_PURPOSE_CATS = [
-  { name: '기도모임',   keywords: ['기도','새벽기도','중보'],                      color: '#7B4FD0' },
-  { name: '예배·찬양',  keywords: ['예배','경배','찬양','워십','worship'],          color: '#D0724F' },
-  { name: '학부모 모임', keywords: ['학부모','부모'],                              color: '#4F9DD0' },
-  { name: '교육·수업',  keywords: ['수업','교육','강의','공부','학습','강습','훈련'],color: '#4FD09D' },
-  { name: '세미나·행사', keywords: ['세미나','컨퍼런스','포럼','강연'],             color: '#D0C14F' },
-  { name: '회의·소그룹', keywords: ['회의','미팅','소그룹','모임','그룹'],          color: 'var(--blue)' },
-  { name: '수련회·캠프', keywords: ['수련회','캠프','retreat'],                    color: '#D04F7B' },
-  { name: '친교·식사',  keywords: ['식사','친교','교제'],                          color: '#8FD04F' },
+  { name: '행사',        keywords: [],                                            rooms: ['아론홀'],   orgs: [],            color: '#9333EA' },
+  { name: '제자훈련',   keywords: ['제자','훈련'],                               rooms: [],           orgs: ['원천교회'],  color: '#E85D04' },
+  { name: '기도모임',   keywords: ['기도','새벽기도','중보'],                     rooms: [],           orgs: [],            color: '#7B4FD0' },
+  { name: '예배·찬양',  keywords: ['예배','경배','찬양','워십','worship'],         rooms: [],           orgs: [],            color: '#D0724F' },
+  { name: '학부모 모임', keywords: ['학부모','부모'],                             rooms: [],           orgs: [],            color: '#4F9DD0' },
+  { name: '교육·수업',  keywords: ['수업','교육','강의','공부','학습','강습','훈련'], rooms: [],        orgs: [],            color: '#4FD09D' },
+  { name: '세미나·행사', keywords: ['세미나','컨퍼런스','포럼','강연'],            rooms: [],           orgs: [],            color: '#D0C14F' },
+  { name: '회의·소그룹', keywords: ['회의','미팅','소그룹','모임','그룹'],         rooms: [],           orgs: [],            color: 'var(--blue)' },
+  { name: '수련회·캠프', keywords: ['수련회','캠프','retreat'],                   rooms: [],           orgs: [],            color: '#D04F7B' },
+  { name: '친교·식사',  keywords: ['식사','친교','교제'],                         rooms: [],           orgs: [],            color: '#8FD04F' },
 ];
 let purposeCats = (() => {
-  try { const s = localStorage.getItem('purposeCats'); return s ? JSON.parse(s) : DEFAULT_PURPOSE_CATS; }
-  catch(e) { return DEFAULT_PURPOSE_CATS; }
+  try {
+    const s = localStorage.getItem('purposeCats');
+    if (!s) return DEFAULT_PURPOSE_CATS;
+    const saved = JSON.parse(s);
+    // rooms/orgs 필드가 없는 구버전이면 기본값으로 교체
+    if (saved.some(c => !('rooms' in c))) return DEFAULT_PURPOSE_CATS;
+    return saved;
+  } catch(e) { return DEFAULT_PURPOSE_CATS; }
 })();
 
-function classifyPurpose(p) {
-  if (!p) return '기타';
-  const t = p.toLowerCase();
+// room, org 을 추가로 받아 공간·기관 조건도 체크
+function classifyPurpose(p, room, org) {
+  const t = (p || '').toLowerCase();
   for (const cat of purposeCats) {
-    if (cat.keywords.some(k => t.includes(k.toLowerCase()))) return cat.name;
+    const hasRooms = cat.rooms?.length > 0;
+    const hasOrgs  = cat.orgs?.length  > 0;
+    const hasKws   = cat.keywords?.length > 0;
+    if (!hasRooms && !hasOrgs && !hasKws) continue;
+    if (hasRooms && !cat.rooms.includes(room)) continue;
+    if (hasOrgs  && !cat.orgs.includes(org))   continue;
+    if (hasKws   && !cat.keywords.some(k => t.includes(k.toLowerCase()))) continue;
+    return cat.name;
   }
   return '기타';
 }
@@ -3582,19 +3598,41 @@ window.openPurposeCatModal = () => {
 };
 function renderPurposeCatList() {
   document.getElementById('purpose-cat-list').innerHTML = purposeCats.map((c, i) => `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px;background:var(--bg2);border-radius:7px">
-      <input value="${c.color}" style="width:36px;height:30px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer" type="color"
-             oninput="purposeCatTmp[${i}].color=this.value">
-      <input value="${c.name}" placeholder="카테고리명" style="width:110px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px"
-             oninput="purposeCatTmp[${i}].name=this.value">
-      <input value="${c.keywords.join(',')}" placeholder="키워드1,키워드2,..." style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px"
-             oninput="purposeCatTmp[${i}].keywords=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
-      <button onclick="deletePurposeCatRow(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1">✕</button>
+    <div style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:8px;border:1px solid var(--border2)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <input value="${c.color}" style="width:32px;height:28px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer;flex-shrink:0" type="color"
+               oninput="purposeCatTmp[${i}].color=this.value">
+        <input value="${c.name}" placeholder="카테고리명" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600"
+               oninput="purposeCatTmp[${i}].name=this.value">
+        <button onclick="deletePurposeCatRow(${i})" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">✕</button>
+      </div>
+      <div style="display:grid;gap:5px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--text3);min-width:52px">키워드</span>
+          <input value="${(c.keywords||[]).join(',')}" placeholder="키워드1,키워드2 (비우면 조건 없음)" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px"
+                 oninput="purposeCatTmp[${i}].keywords=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--text3);min-width:52px">공간 조건</span>
+          <input value="${(c.rooms||[]).join(',')}" placeholder="아론홀,샤론홀 (비우면 전체)" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px"
+                 oninput="purposeCatTmp[${i}].rooms=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:10px;color:var(--text3);min-width:52px">기관 조건</span>
+          <input value="${(c.orgs||[]).join(',')}" placeholder="원천교회,안디옥교회 (비우면 전체)" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px"
+                 oninput="purposeCatTmp[${i}].orgs=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
+        </div>
+      </div>
     </div>`).join('');
-  window.purposeCatTmp = purposeCats.map(c => ({ ...c, keywords: [...c.keywords] }));
+  window.purposeCatTmp = purposeCats.map(c => ({
+    ...c,
+    keywords: [...(c.keywords||[])],
+    rooms:    [...(c.rooms||[])],
+    orgs:     [...(c.orgs||[])],
+  }));
 }
 window.addPurposeCatRow = () => {
-  purposeCats.push({ name: '', keywords: [], color: '#4F9DD0' });
+  purposeCats.push({ name: '', keywords: [], rooms: [], orgs: [], color: '#4F9DD0' });
   renderPurposeCatList();
 };
 window.deletePurposeCatRow = (i) => {
@@ -3609,7 +3647,7 @@ window.savePurposeCats = () => {
   T('카테고리가 저장됐습니다', '#3B6D11');
 };
 window.resetPurposeCats = () => {
-  purposeCats = DEFAULT_PURPOSE_CATS.map(c => ({ ...c, keywords: [...c.keywords] }));
+  purposeCats = DEFAULT_PURPOSE_CATS.map(c => ({ ...c, keywords: [...c.keywords], rooms: [...c.rooms], orgs: [...c.orgs] }));
   localStorage.removeItem('purposeCats');
   renderPurposeCatList();
 };
@@ -3848,7 +3886,7 @@ function renderReport() {
   // 카테고리별 단체 내역도 추적
   const catByOrg = {};
   data.forEach(r => {
-    const cat = classifyPurpose(r.purpose);
+    const cat = classifyPurpose(r.purpose, r.room, r.type);
     catCount[cat] = (catCount[cat]||0)+1;
     if (!catByOrg[cat]) catByOrg[cat] = {};
     catByOrg[cat][r.type||'미분류'] = (catByOrg[cat][r.type||'미분류']||0)+1;
