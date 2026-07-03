@@ -764,6 +764,21 @@ textarea { resize: vertical; min-height: 60px; }
             <tbody id="blocked-body"></tbody>
           </table>
         </div>
+
+        <!-- 정기 예약 날짜 보정 -->
+        <div class="card" style="border:2px solid var(--amber);background:var(--amber-lt)">
+          <div class="card-title" style="color:#92400E">정기 예약 날짜 보정 (UTC → KST)</div>
+          <div style="font-size:12px;color:#92400E;line-height:1.8;margin-bottom:12px">
+            타임존 버그로 인해 정기 예약의 날짜가 <strong>하루 일찍</strong> 저장된 경우 일괄 보정합니다.<br>
+            <strong>수동으로 날짜를 이미 수정한 예약이 있다면 실행하지 마세요.</strong><br>
+            대상: <code style="background:#fff;padding:1px 5px;border-radius:3px">recurGroup</code> 필드가 있는 정기 예약 전체를 +1일 처리합니다.
+          </div>
+          <div id="recur-fix-preview" style="font-size:12px;color:var(--text2);margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-amber" onclick="previewRecurFix()">대상 예약 확인</button>
+            <button class="btn btn-primary" id="btn-recur-fix" style="display:none" onclick="applyRecurFix()">일괄 +1일 보정 실행</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1752,6 +1767,74 @@ window.seedHolidays = async () => {
     console.error('seedHolidays error:', e);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🇰🇷 한국 공휴일 자동 등록 (2025–2026)'; }
+  }
+};
+
+// ── 정기 예약 날짜 보정 (+1일) ──────────────────────────────────
+window.previewRecurFix = () => {
+  const targets = reservations.filter(r => r.recurGroup);
+  const el = document.getElementById('recur-fix-preview');
+  const btn = document.getElementById('btn-recur-fix');
+  if (!targets.length) {
+    el.innerHTML = '<span style="color:var(--text3)">정기 예약이 없습니다.</span>';
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  // 날짜 범위 요약
+  const dates = targets.map(r => r.date).sort();
+  const byGroup = {};
+  targets.forEach(r => { if (!byGroup[r.recurGroup]) byGroup[r.recurGroup] = []; byGroup[r.recurGroup].push(r); });
+  const groupCount = Object.keys(byGroup).length;
+  el.innerHTML = `
+    <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px;line-height:1.9">
+      <div>대상 예약: <strong>${targets.length}건</strong> (${groupCount}개 시리즈)</div>
+      <div>날짜 범위: <strong>${dates[0]}</strong> ~ <strong>${dates[dates.length-1]}</strong></div>
+      <div style="font-size:11px;color:#92400E;margin-top:4px">위 예약들의 날짜가 모두 하루씩 앞당겨집니다. 신중히 확인 후 실행하세요.</div>
+      <div style="margin-top:8px;max-height:150px;overflow-y:auto">
+        ${Object.entries(byGroup).map(([g, rows]) => {
+          const sorted = [...rows].sort((a,b) => a.date.localeCompare(b.date));
+          return `<div style="font-size:11px;color:var(--text2);margin-bottom:3px">
+            <strong>${sorted[0]?.managerName}</strong> · ${sorted[0]?.room} · ${rows.length}회
+            (${sorted[0]?.date} ~ ${sorted[sorted.length-1]?.date})
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  if (btn) btn.style.display = '';
+};
+
+window.applyRecurFix = async () => {
+  const targets = reservations.filter(r => r.recurGroup);
+  if (!targets.length) { T('대상 예약이 없습니다', '#777'); return; }
+  if (!confirm(`정기 예약 ${targets.length}건의 날짜를 모두 +1일 보정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+
+  const btn = document.getElementById('btn-recur-fix');
+  const previewBtn = document.querySelector('[onclick="previewRecurFix()"]');
+  if (btn) btn.disabled = true;
+  if (previewBtn) previewBtn.disabled = true;
+
+  let done = 0, failed = 0;
+  try {
+    for (const r of targets) {
+      try {
+        const d = new Date(r.date + 'T00:00:00');
+        d.setDate(d.getDate() + 1);
+        const newDate = toDateStr(d);
+        await updateDoc(doc(db, 'reservations', r.id), { date: newDate });
+        done++;
+      } catch(e) {
+        console.error('보정 실패:', r.id, e);
+        failed++;
+      }
+    }
+    const msg = failed ? `${done}건 보정 완료, ${failed}건 실패` : `${done}건 보정 완료`;
+    T(msg, failed ? '#A32D2D' : '#3B6D11');
+    document.getElementById('recur-fix-preview').innerHTML =
+      `<div style="color:var(--green);font-weight:700;padding:8px 0">✓ ${done}건 보정 완료${failed ? ` (${failed}건 실패)` : ''}</div>`;
+    if (btn) btn.style.display = 'none';
+  } finally {
+    if (btn) btn.disabled = false;
+    if (previewBtn) previewBtn.disabled = false;
   }
 };
 
