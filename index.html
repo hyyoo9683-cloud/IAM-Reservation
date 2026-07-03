@@ -766,7 +766,7 @@ textarea { resize: vertical; min-height: 60px; }
         </div>
 
         <!-- 정기 예약 날짜 보정 -->
-        <div class="card" style="border:2px solid var(--amber);background:var(--amber-lt)">
+        <div class="card" id="recur-fix-card" style="border:2px solid var(--amber);background:var(--amber-lt)">
           <div class="card-title" style="color:#92400E">정기 예약 날짜 보정 (UTC → KST)</div>
           <div style="font-size:12px;color:#92400E;line-height:1.8;margin-bottom:12px">
             타임존 버그로 인해 정기 예약의 날짜가 <strong>하루 일찍</strong> 저장된 경우 일괄 보정합니다.<br>
@@ -1805,37 +1805,46 @@ window.previewRecurFix = () => {
 
 window.applyRecurFix = async () => {
   const targets = reservations.filter(r => r.recurGroup);
-  if (!targets.length) { T('대상 예약이 없습니다', '#777'); return; }
+  if (!targets.length) {
+    document.getElementById('recur-fix-preview').innerHTML =
+      '<div style="font-size:13px;color:var(--text3);padding:8px 0">정기 예약이 없어 보정할 대상이 없습니다.</div>';
+    return;
+  }
   if (!confirm(`정기 예약 ${targets.length}건의 날짜를 모두 +1일 보정하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
 
-  const btn = document.getElementById('btn-recur-fix');
-  const previewBtn = document.querySelector('[onclick="previewRecurFix()"]');
-  if (btn) btn.disabled = true;
-  if (previewBtn) previewBtn.disabled = true;
+  const card    = document.getElementById('recur-fix-card');
+  const btn     = document.getElementById('btn-recur-fix');
+  const prevBtn = document.querySelector('[onclick="previewRecurFix()"]');
+  const preview = document.getElementById('recur-fix-preview');
+
+  if (btn)     { btn.disabled = true; btn.textContent = `처리 중… (0/${targets.length})`; }
+  if (prevBtn) prevBtn.disabled = true;
+  preview.innerHTML = `<div style="font-size:13px;color:#92400E;padding:4px 0">⏳ 보정 진행 중입니다. 잠시만 기다려주세요…</div>`;
 
   let done = 0, failed = 0;
-  try {
-    for (const r of targets) {
-      try {
-        const d = new Date(r.date + 'T00:00:00');
-        d.setDate(d.getDate() + 1);
-        const newDate = toDateStr(d);
-        await updateDoc(doc(db, 'reservations', r.id), { date: newDate });
-        done++;
-      } catch(e) {
-        console.error('보정 실패:', r.id, e);
-        failed++;
-      }
+  for (const r of targets) {
+    try {
+      const d = new Date(r.date + 'T00:00:00');
+      d.setDate(d.getDate() + 1);
+      await updateDoc(doc(db, 'reservations', r.id), { date: toDateStr(d) });
+      done++;
+    } catch(e) {
+      console.error('보정 실패:', r.id, e);
+      failed++;
     }
-    const msg = failed ? `${done}건 보정 완료, ${failed}건 실패` : `${done}건 보정 완료`;
-    T(msg, failed ? '#A32D2D' : '#3B6D11');
-    document.getElementById('recur-fix-preview').innerHTML =
-      `<div style="color:var(--green);font-weight:700;padding:8px 0">✓ ${done}건 보정 완료${failed ? ` (${failed}건 실패)` : ''}</div>`;
-    if (btn) btn.style.display = 'none';
-  } finally {
-    if (btn) btn.disabled = false;
-    if (previewBtn) previewBtn.disabled = false;
+    if (btn) btn.textContent = `처리 중… (${done + failed}/${targets.length})`;
   }
+
+  const ok = !failed;
+  if (card) {
+    card.style.border    = `2px solid ${ok ? 'var(--green)' : 'var(--red)'}`;
+    card.style.background = ok ? '#F0FFF4' : '#FFF0F0';
+  }
+  preview.innerHTML = ok
+    ? `<div style="font-size:15px;font-weight:700;color:var(--green);padding:8px 0">✅ ${done}건 보정 완료!</div>`
+    : `<div style="font-size:15px;font-weight:700;color:var(--red);padding:8px 0">⚠️ ${done}건 완료, ${failed}건 실패</div>`;
+  if (btn)     { btn.style.display = 'none'; btn.disabled = false; }
+  if (prevBtn) { prevBtn.disabled = false; prevBtn.textContent = '다시 확인'; }
 };
 
 // ── 공간 카드 ────────────────────────────────────────────────────
