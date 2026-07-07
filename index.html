@@ -3600,11 +3600,17 @@ function classifyPurpose(p, room, org) {
 }
 
 window.openPurposeCatModal = () => {
+  // 모달 열 때만 purposeCatTmp 를 purposeCats 로 초기화
+  window.purposeCatTmp = purposeCats.map(c => ({
+    ...c, keywords: [...(c.keywords||[])], rooms: [...(c.rooms||[])], orgs: [...(c.orgs||[])],
+  }));
   renderPurposeCatList();
   openModal('modal-purpose-cat');
 };
 function renderPurposeCatList() {
-  document.getElementById('purpose-cat-list').innerHTML = purposeCats.map((c, i) => `
+  // 항상 purposeCatTmp 기준으로 렌더링 (purposeCats 를 덮어쓰지 않음)
+  const list = window.purposeCatTmp || [];
+  document.getElementById('purpose-cat-list').innerHTML = list.map((c, i) => `
     <div style="margin-bottom:10px;padding:10px;background:var(--bg2);border-radius:8px;border:1px solid var(--border2)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <input value="${c.color}" style="width:32px;height:28px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer;flex-shrink:0" type="color"
@@ -3621,7 +3627,7 @@ function renderPurposeCatList() {
         </div>
         <div style="display:flex;align-items:center;gap:6px">
           <span style="font-size:10px;color:var(--text3);min-width:52px">공간 조건</span>
-          <input value="${(c.rooms||[]).join(',')}" placeholder="아론홀,샤론홀 (비우면 전체)" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px"
+          <input value="${(c.rooms||[]).join(',')}" placeholder="아론홀 또는 5* (비우면 전체)" style="flex:1;padding:4px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px"
                  oninput="purposeCatTmp[${i}].rooms=this.value.split(',').map(k=>k.trim()).filter(Boolean)">
         </div>
         <div style="display:flex;align-items:center;gap:6px">
@@ -3631,19 +3637,13 @@ function renderPurposeCatList() {
         </div>
       </div>
     </div>`).join('');
-  window.purposeCatTmp = purposeCats.map(c => ({
-    ...c,
-    keywords: [...(c.keywords||[])],
-    rooms:    [...(c.rooms||[])],
-    orgs:     [...(c.orgs||[])],
-  }));
 }
 window.addPurposeCatRow = () => {
-  purposeCats.push({ name: '', keywords: [], rooms: [], orgs: [], color: '#4F9DD0' });
+  (window.purposeCatTmp = window.purposeCatTmp || []).push({ name: '', keywords: [], rooms: [], orgs: [], color: '#4F9DD0' });
   renderPurposeCatList();
 };
 window.deletePurposeCatRow = (i) => {
-  purposeCats.splice(i, 1);
+  (window.purposeCatTmp || []).splice(i, 1);
   renderPurposeCatList();
 };
 window.savePurposeCats = () => {
