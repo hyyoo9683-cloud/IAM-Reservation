@@ -3064,15 +3064,17 @@ window.openSmsModal = (id, type) => {
   const time    = `${r.start}-${r.end}`;
   const purpose = r.purpose || '';
 
-  let text = '';
-  if (type === 'sms') {
-    text =
+  const baseBody =
 `[예약확정 알림]
-신청하신 IAM센터 예약이 확정 되었습니다. 예약해 주셔서 감사합니다.
+신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
 
 장소: ${room}
 일시: ${date} ${time}
-모임명: ${purpose}
+모임명: ${purpose}`;
+
+  let text = '';
+  if (type === 'sms') {
+    text = `${baseBody}
 
 카카오채널 ID를 추가하시면
 바로 소통이 가능합니다.
@@ -3081,13 +3083,7 @@ http://pf.kakao.com/_Yvxaeb
 ${MSG_FOOTER}`;
     document.getElementById('sms-modal-title').textContent = '📨 문자 작성';
   } else {
-    text =
-`[예약확정 알림]
-신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
-
-장소: ${room}
-일시: ${date} ${time}
-모임명: ${purpose}
+    text = `${baseBody}
 
 ${MSG_FOOTER}`;
     document.getElementById('sms-modal-title').textContent = '💬 카카오 메시지 작성';
