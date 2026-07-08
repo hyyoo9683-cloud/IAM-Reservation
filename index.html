@@ -3172,8 +3172,12 @@ window.openEditModal = (id) => {
       const idx = series.findIndex(x => x.id === r.id) + 1;
       const total = r.recurTotal || series.length;
       recurBanner.style.display = '';
-      recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})<br>
-        <span style="font-size:11px">날짜·시간을 변경하면 <u>이 회차만</u> 변경되고 나머지 일정은 그대로 유지됩니다.</span>`;
+      recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})
+        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer">
+          <input type="checkbox" id="e-all-series" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+          <span style="font-size:12px;font-weight:700">전체 ${total}회 모두 수정</span>
+          <span style="font-size:11px;font-weight:400;color:var(--text2)">(날짜 제외)</span>
+        </label>`;
     } else {
       recurBanner.style.display = 'none';
     }
@@ -3241,9 +3245,23 @@ window.submitEdit = async () => {
     if (editId) {
       const r = reservations.find(x => x.id === editId); if (!r) return;
       if (isAdmin) data.status = document.getElementById('e-status').value;
-      data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
-      await updateDoc(doc(db, 'reservations', editId), data);
-      T('예약이 수정됐습니다', '#3B6D11');
+      const allSeries = document.getElementById('e-all-series')?.checked && r.recurGroup;
+      if (allSeries) {
+        const series = reservations.filter(x => x.recurGroup === r.recurGroup);
+        const conflicts = series.filter(x => !noConflict(room, x.date, start, end, x.id));
+        if (conflicts.length) {
+          T(`${conflicts.length}개 날짜에 시간 충돌 (${conflicts.map(x => x.date.slice(5)).join(', ')})`, '#A32D2D'); return;
+        }
+        await Promise.all(series.map(x => updateDoc(doc(db, 'reservations', x.id), {
+          ...data, date: x.date,
+          history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
+        })));
+        T(`정기 예약 ${series.length}건 전체 수정됐습니다`, '#3B6D11');
+      } else {
+        data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
+        await updateDoc(doc(db, 'reservations', editId), data);
+        T('예약이 수정됐습니다', '#3B6D11');
+      }
     } else {
       const isRecur  = document.getElementById('e-is-recur')?.checked;
       const endDate  = document.getElementById('e-end-date')?.value;
