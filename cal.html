@@ -15,13 +15,6 @@
     --border: #D1D5DB; --border2: #E5E7EB;
     --text: #111827; --text2: #4B5563; --text3: #9CA3AF;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1A1C21; --bg2: #24262D;
-      --border: #3A3D47; --border2: #2E3038;
-      --text: #F1F3F6; --text2: #9CA3AF; --text3: #6B7280;
-    }
-  }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif;
          background: var(--bg); color: var(--text); font-size: 13px; }
 
@@ -159,7 +152,7 @@ function render() {
         res.forEach(r => {
           html += `<div class="chip chip-ok">
             <div class="time">${r.start}–${r.end}</div>
-            <div class="org">${r.type || ''} ${r.people ? '· ' + r.people + '명' : ''}</div>
+            <div class="org">${r.managerName || ''} ${r.people ? '· ' + r.people + '명' : ''}</div>
           </div>`;
         });
       }
@@ -198,7 +191,7 @@ function render() {
           res.forEach(r => {
             html += `<div class="chip chip-ok">
               <div class="time">${r.start}–${r.end}</div>
-              <div class="org">${r.type || ''}</div>
+              <div class="org">${r.managerName || ''}</div>
             </div>`;
           });
         }
