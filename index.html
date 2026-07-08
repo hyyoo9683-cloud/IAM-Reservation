@@ -844,6 +844,20 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 승인 후 메시지 선택 모달 ════════════ -->
+<div class="modal-bg" id="modal-approve-msg">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-title">✅ 예약이 확정됐습니다</div>
+    <input type="hidden" id="approve-msg-id">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">알림 메시지를 바로 작성하시겠습니까?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary" style="justify-content:center" onclick="closeModal('modal-approve-msg');openSmsModal(document.getElementById('approve-msg-id').value,'sms')">📨 문자 작성</button>
+      <button class="btn btn-ghost" style="justify-content:center;color:var(--green)" onclick="closeModal('modal-approve-msg');openSmsModal(document.getElementById('approve-msg-id').value,'kakao')">💬 카카오 메시지 작성</button>
+      <button class="btn btn-ghost" style="justify-content:center;color:var(--text3)" onclick="closeModal('modal-approve-msg')">나중에</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 문자 템플릿 모달 ════════════ -->
 <div class="modal-bg" id="modal-sms">
   <div class="modal">
@@ -2977,6 +2991,9 @@ window.approve = async (id) => {
       history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인' }]
     });
     T('승인 완료', '#3B6D11');
+    // 승인 후 메시지 전송 선택 팝업
+    document.getElementById('approve-msg-id').value = id;
+    openModal('modal-approve-msg');
   } catch (e) {
     console.error('approve error:', e);
     T('승인 실패: ' + e.message, '#A32D2D');
