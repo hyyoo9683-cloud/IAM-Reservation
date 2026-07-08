@@ -2315,6 +2315,11 @@ window.selApplyRoom = (name) => {
 
   checkAvail(); updateApplySummary();
 };
+window.toggleAllSeriesOpts = () => {
+  const on = document.getElementById('e-all-series')?.checked;
+  const opts = document.getElementById('e-all-series-opts');
+  if (opts) opts.style.display = on ? '' : 'none';
+};
 window.toggleEditRecur = () => {
   const on = document.getElementById('e-is-recur').checked;
   document.getElementById('e-recur-opts').style.display    = on ? '' : 'none';
@@ -3171,13 +3176,21 @@ window.openEditModal = (id) => {
       const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
       const idx = series.findIndex(x => x.id === r.id) + 1;
       const total = r.recurTotal || series.length;
+      const lastDate = series[series.length - 1].date;
       recurBanner.style.display = '';
       recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})
-        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer">
-          <input type="checkbox" id="e-all-series" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+        <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="e-all-series" onchange="toggleAllSeriesOpts()" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
           <span style="font-size:12px;font-weight:700">전체 ${total}회 모두 수정</span>
-          <span style="font-size:11px;font-weight:400;color:var(--text2)">(날짜 제외)</span>
-        </label>`;
+        </label>
+        <div id="e-all-series-opts" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:600;white-space:nowrap">종료 날짜 변경</span>
+            <input type="date" id="e-series-end-date" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap">현재 ${lastDate.slice(5).replace('-','/')}</span>
+          </div>
+        </div>`;
     } else {
       recurBanner.style.display = 'none';
     }
@@ -3247,16 +3260,44 @@ window.submitEdit = async () => {
       if (isAdmin) data.status = document.getElementById('e-status').value;
       const allSeries = document.getElementById('e-all-series')?.checked && r.recurGroup;
       if (allSeries) {
-        const series = reservations.filter(x => x.recurGroup === r.recurGroup);
-        const conflicts = series.filter(x => !noConflict(room, x.date, start, end, x.id));
+        const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+        const lastDate  = series[series.length - 1].date;
+        const newEndDate = document.getElementById('e-series-end-date')?.value || '';
+        const recurCode = r.recurType?.includes('격') ? 'biweekly' : r.recurType?.includes('달') ? 'monthly' : 'weekly';
+        let activeSeries = [...series];
+
+        if (newEndDate && newEndDate !== lastDate) {
+          if (newEndDate < series[0].date) { T('종료 날짜가 시작 날짜보다 빠릅니다', '#A32D2D'); return; }
+          if (newEndDate < lastDate) {
+            // 단축: 새 종료 날짜 이후 회차 삭제
+            const toDelete = series.filter(x => x.date > newEndDate);
+            await Promise.all(toDelete.map(x => deleteDoc(doc(db, 'reservations', x.id))));
+            activeSeries = series.filter(x => x.date <= newEndDate);
+          } else {
+            // 연장: lastDate 이후 날짜 추가
+            const addDates = generateAvailDates(lastDate, newEndDate, recurCode).slice(1);
+            if (addDates.length) {
+              const newTotal = series.length + addDates.length;
+              data.recurTotal = newTotal;
+              for (const d of addDates) {
+                await addDoc(collection(db, 'reservations'), {
+                  ...data, date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
+                  history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
+                });
+              }
+            }
+          }
+        }
+
+        const conflicts = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id));
         if (conflicts.length) {
           T(`${conflicts.length}개 날짜에 시간 충돌 (${conflicts.map(x => x.date.slice(5)).join(', ')})`, '#A32D2D'); return;
         }
-        await Promise.all(series.map(x => updateDoc(doc(db, 'reservations', x.id), {
+        await Promise.all(activeSeries.map(x => updateDoc(doc(db, 'reservations', x.id), {
           ...data, date: x.date,
           history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
         })));
-        T(`정기 예약 ${series.length}건 전체 수정됐습니다`, '#3B6D11');
+        T(`정기 예약 ${activeSeries.length}건 전체 수정됐습니다`, '#3B6D11');
       } else {
         data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
         await updateDoc(doc(db, 'reservations', editId), data);
