@@ -869,7 +869,29 @@ textarea { resize: vertical; min-height: 60px; }
       <div id="e-room-chips" style="margin-bottom:6px"></div>
       <input type="hidden" id="e-room">
     </div>
-    <div class="fg"><div class="lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail()"></div>
+    <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+        <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+        <label for="e-is-recur" style="font-size:13px;font-weight:600;color:var(--green);cursor:pointer;margin:0">정기 예약 (반복)</label>
+      </div>
+      <div class="fl" id="e-recur-opts" style="display:none">
+        <div class="fg">
+          <div class="lbl">반복 유형</div>
+          <select id="e-recur">
+            <option value="weekly">매 주</option>
+            <option value="biweekly">격 주</option>
+            <option value="monthly">매 달 동일 요일</option>
+          </select>
+        </div>
+        <div class="fg">
+          <div class="lbl">종료 날짜 <span class="req">*</span></div>
+          <input type="date" id="e-end-date">
+        </div>
+      </div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail()"></div>
+    </div>
     <div class="fl">
       <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
       <div class="fg"><div class="lbl">종료 <span class="req">*</span></div><select id="e-end"   onchange="checkEditAvail()"></select></div>
@@ -2263,6 +2285,11 @@ window.selApplyRoom = (name) => {
 
   checkAvail(); updateApplySummary();
 };
+window.toggleEditRecur = () => {
+  const on = document.getElementById('e-is-recur').checked;
+  document.getElementById('e-recur-opts').style.display = on ? '' : 'none';
+  document.getElementById('e-date-lbl').innerHTML = (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+};
 window.toggleRecur = () => {
   const on = document.getElementById('m-is-recur').checked;
   document.getElementById('m-end-date-wrap').style.display = on ? '' : 'none';
@@ -3024,6 +3051,7 @@ window.openEditModal = (id) => {
     }
     document.getElementById('edit-modal-title').textContent  = '예약 수정';
     document.getElementById('edit-submit-btn').textContent   = '수정 저장';
+    document.getElementById('e-recur-wrap').style.display = 'none';
     document.getElementById('e-type').value         = r.type || '';
     syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype', r.subOrg || '');
     document.getElementById('e-manager').value      = r.managerName || '';
@@ -3041,9 +3069,13 @@ window.openEditModal = (id) => {
   } else {
     document.getElementById('edit-modal-title').textContent = '예약 추가 (관리자)';
     document.getElementById('edit-submit-btn').textContent  = '추가';
-    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-people', 'e-purpose', 'e-memo']
+    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo']
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
     document.getElementById('e-room').value = '';
+    document.getElementById('e-is-recur').checked = false;
+    document.getElementById('e-recur-wrap').style.display = '';
+    document.getElementById('e-recur-opts').style.display = 'none';
+    document.getElementById('e-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
     initTimeSelects('e-start', 'e-end');
     if (isAdmin) document.getElementById('e-status').value = '확정';
   }
@@ -3084,12 +3116,26 @@ window.submitEdit = async () => {
       await updateDoc(doc(db, 'reservations', editId), data);
       T('예약이 수정됐습니다', '#3B6D11');
     } else {
-      data.status     = document.getElementById('e-status').value || '확정';
-      data.userEmail  = cu.email || 'admin';
-      data.history    = [{ time: nowStr(), msg: '관리자 추가' }];
-      data.createdAt  = serverTimestamp();
-      await addDoc(collection(db, 'reservations'), data);
-      T('예약이 추가됐습니다', '#3B6D11');
+      const isRecur  = document.getElementById('e-is-recur')?.checked;
+      const endDate  = document.getElementById('e-end-date')?.value;
+      const recurType = document.getElementById('e-recur')?.value || 'weekly';
+      if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+      if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
+      const dates = isRecur ? generateAvailDates(date, endDate, recurType) : [date];
+      const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
+      const recurGroup = isRecur ? `recur_${Date.now()}` : null;
+      data.status    = document.getElementById('e-status').value || '확정';
+      data.userEmail = cu.email || 'admin';
+      data.createdAt = serverTimestamp();
+      if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabelMap[recurType]; data.recurTotal = dates.length; }
+      for (let i = 0; i < dates.length; i++) {
+        await addDoc(collection(db, 'reservations'), {
+          ...data,
+          date: dates[i],
+          history: [{ time: nowStr(), msg: isRecur ? `관리자 추가 (정기 ${i+1}/${dates.length}회, ${recurLabelMap[recurType]})` : '관리자 추가' }]
+        });
+      }
+      T(isRecur ? `정기 예약 ${dates.length}건 추가됐습니다` : '예약이 추가됐습니다', '#3B6D11');
     }
     closeModal('modal-edit');
   } catch (e) {
