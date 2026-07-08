@@ -847,7 +847,7 @@ textarea { resize: vertical; min-height: 60px; }
 <!-- ════════════ 문자 템플릿 모달 ════════════ -->
 <div class="modal-bg" id="modal-sms">
   <div class="modal">
-    <div class="modal-title">📨 문자 작성</div>
+    <div class="modal-title" id="sms-modal-title">📨 문자 작성</div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하세요.</div>
     <textarea id="sms-body" style="width:100%;height:220px;font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;font-family:inherit;background:var(--bg2)"></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -2933,7 +2933,7 @@ window.openDetail = (id) => {
   let btns = '';
   if (isAdmin) {
     if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">반려</button>`;
-    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#185FA5" onclick="openSmsModal('${r.id}')">📨 문자</button>`;
+    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#185FA5" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
@@ -3041,7 +3041,7 @@ window.checkEditAvail = () => {
   const ok = noConflict(room, date, start, end, editId);
   el.innerHTML = ok ? `<div class="avail-ok">✓ 사용 가능</div>` : `<div class="avail-no">✗ 이미 예약 있음</div>`;
 };
-const SMS_FOOTER = `[THE GREAT I AM
+const MSG_FOOTER = `[THE GREAT I AM
 지극히 작은 자를 섬기는 공간
 IAM center]
 담당자 070.7018.1439`;
@@ -3056,18 +3056,42 @@ function dateToSmsFormat(dateStr) {
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]})`;
 }
 
-window.openSmsModal = (id) => {
+window.openSmsModal = (id, type) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
-  const text =
+  const room    = roomToSmsName(r.room);
+  const date    = dateToSmsFormat(r.date);
+  const time    = `${r.start}-${r.end}`;
+  const purpose = r.purpose || '';
+
+  let text = '';
+  if (type === 'sms') {
+    text =
+`[예약확정 알림]
+신청하신 IAM센터 예약이 확정 되었습니다. 예약해 주셔서 감사합니다.
+
+장소: ${room}
+일시: ${date} ${time}
+모임명: ${purpose}
+
+카카오채널 ID를 추가하시면
+바로 소통이 가능합니다.
+http://pf.kakao.com/_Yvxaeb
+
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = '📨 문자 작성';
+  } else {
+    text =
 `[예약확정 알림]
 신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
 
-장소: ${roomToSmsName(r.room)}
-일시: ${dateToSmsFormat(r.date)} ${r.start}-${r.end}
-모임명: ${r.purpose || ''}
+장소: ${room}
+일시: ${date} ${time}
+모임명: ${purpose}
 
-${SMS_FOOTER}`;
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = '💬 카카오 메시지 작성';
+  }
   document.getElementById('sms-body').value = text;
   document.getElementById('sms-copy-msg').textContent = '';
   openModal('modal-sms');
