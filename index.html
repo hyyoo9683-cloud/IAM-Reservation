@@ -1666,7 +1666,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start">${r.purpose ? `<span style="font-weight:700">${r.purpose}</span>` : ''}<span>${r.start}–${r.end} · ${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</span></div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="openDetail('${r.id}')">${r.purpose ? `<span style="font-weight:700">${r.purpose}</span>` : ''}<span>${r.start}–${r.end} · ${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -1699,7 +1699,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.purpose ? `<span style="font-weight:700;display:block">${r.purpose}</span>` : ''}${r.start}–${r.end}<br>${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="openDetail('${r.id}')">${r.purpose ? `<span style="font-weight:700;display:block">${r.purpose}</span>` : ''}${r.start}–${r.end}<br>${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
         });
       }
       html += `</td>`;
@@ -3459,6 +3459,7 @@ window.renderList = function renderList() {
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">펼치기</button>
+          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="openDetail('${first.id}')">상세</button>
         </td>
       </tr>`;
     if (!isOpen) return headerRow;
