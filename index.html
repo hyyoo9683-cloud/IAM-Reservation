@@ -844,6 +844,20 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 문자 템플릿 모달 ════════════ -->
+<div class="modal-bg" id="modal-sms">
+  <div class="modal">
+    <div class="modal-title">📨 문자 작성</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하세요.</div>
+    <textarea id="sms-body" style="width:100%;height:220px;font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;font-family:inherit;background:var(--bg2)"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="copySms()">복사</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-sms')">닫기</button>
+    </div>
+    <div id="sms-copy-msg" style="text-align:center;font-size:12px;color:var(--green);margin-top:6px;height:16px"></div>
+  </div>
+</div>
+
 <!-- ════════════ 예약 수정/추가 모달 ════════════ -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
@@ -2919,6 +2933,7 @@ window.openDetail = (id) => {
   let btns = '';
   if (isAdmin) {
     if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">반려</button>`;
+    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#185FA5" onclick="openSmsModal('${r.id}')">📨 문자</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
@@ -3026,6 +3041,51 @@ window.checkEditAvail = () => {
   const ok = noConflict(room, date, start, end, editId);
   el.innerHTML = ok ? `<div class="avail-ok">✓ 사용 가능</div>` : `<div class="avail-no">✗ 이미 예약 있음</div>`;
 };
+const SMS_FOOTER = `[THE GREAT I AM
+지극히 작은 자를 섬기는 공간
+IAM center]
+담당자 070.7018.1439`;
+
+function roomToSmsName(room) {
+  const m = room.match(/^(\d+)호$/);
+  return m ? `I-${m[1]}` : room;
+}
+function dateToSmsFormat(dateStr) {
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]})`;
+}
+
+window.openSmsModal = (id) => {
+  const r = reservations.find(x => x.id === id);
+  if (!r) return;
+  const text =
+`[예약확정 알림]
+신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
+
+장소: ${roomToSmsName(r.room)}
+일시: ${dateToSmsFormat(r.date)} ${r.start}-${r.end}
+모임명: ${r.purpose || ''}
+
+${SMS_FOOTER}`;
+  document.getElementById('sms-body').value = text;
+  document.getElementById('sms-copy-msg').textContent = '';
+  openModal('modal-sms');
+};
+
+window.copySms = () => {
+  const text = document.getElementById('sms-body').value;
+  navigator.clipboard.writeText(text).then(() => {
+    document.getElementById('sms-copy-msg').textContent = '✅ 클립보드에 복사됐습니다!';
+    setTimeout(() => { document.getElementById('sms-copy-msg').textContent = ''; }, 2500);
+  }).catch(() => {
+    document.getElementById('sms-body').select();
+    document.execCommand('copy');
+    document.getElementById('sms-copy-msg').textContent = '✅ 복사됐습니다!';
+    setTimeout(() => { document.getElementById('sms-copy-msg').textContent = ''; }, 2500);
+  });
+};
+
 window.openEditModal = (id) => {
   editId = id; editRoom = '';
   document.getElementById('e-avail').innerHTML = '';
