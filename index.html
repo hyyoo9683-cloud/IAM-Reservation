@@ -1619,7 +1619,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;margin-right:6px;margin-bottom:3px">${r.start}–${r.end} · ${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start">${r.purpose ? `<span style="font-weight:700">${r.purpose}</span>` : ''}<span>${r.start}–${r.end} · ${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -1652,7 +1652,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.start}–${r.end}<br>${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.purpose ? `<span style="font-weight:700;display:block">${r.purpose}</span>` : ''}${r.start}–${r.end}<br>${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
         });
       }
       html += `</td>`;
@@ -3032,6 +3032,7 @@ window.openEditModal = (id) => {
     document.getElementById('e-date').value         = r.date || '';
     document.getElementById('e-people').value       = r.people || '';
     document.getElementById('e-purpose').value      = r.purpose || '';
+    document.getElementById('e-res-name').value     = r.reservationName || '';
     document.getElementById('e-memo').value         = r.memo || '';
     initTimeSelects('e-start', 'e-end', r.start, r.end);
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
@@ -3062,9 +3063,10 @@ window.submitEdit = async () => {
   const end     = document.getElementById('e-end').value;
   const people  = document.getElementById('e-people').value;
   const purpose = document.getElementById('e-purpose').value.trim();
+  const resName = document.getElementById('e-res-name').value.trim();
   const memo    = document.getElementById('e-memo').value.trim();
 
-  if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose) {
+  if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose || !resName) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
@@ -3072,7 +3074,7 @@ window.submitEdit = async () => {
 
   const data = {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-    room, date, start, end, people: parseInt(people), purpose, memo
+    room, date, start, end, people: parseInt(people), purpose, reservationName: resName, memo
   };
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
