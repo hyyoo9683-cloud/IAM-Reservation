@@ -8,9 +8,6 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --blue: #185FA5; --blue-lt: #EBF4FF;
-    --green: #3B6D11; --green-lt: #F0FFF4;
-    --amber: #92400E; --amber-lt: #FFFBEB;
-    --red: #A32D2D;
     --bg: #FFFFFF; --bg2: #F7F8FA;
     --border: #D1D5DB; --border2: #E5E7EB;
     --text: #111827; --text2: #4B5563; --text3: #9CA3AF;
@@ -19,44 +16,54 @@
          background: var(--bg); color: var(--text); font-size: 13px; }
 
   /* 헤더 */
-  .header { background: var(--blue); color: #fff; padding: 12px 16px;
-             display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .header h1 { font-size: 15px; font-weight: 700; }
-  .week-label { font-size: 13px; opacity: .85; }
-  .nav-btns { display: flex; gap: 6px; margin-left: auto; }
+  .header { background: var(--blue); color: #fff; padding: 10px 12px;
+             display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .header h1 { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .week-label { font-size: 12px; opacity: .85; flex: 1; text-align: center; }
+  .nav-btns { display: flex; gap: 4px; }
   .nav-btns button { background: rgba(255,255,255,.18); border: none; color: #fff;
-                      padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+                      padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
   /* 탭 */
-  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); background: var(--bg); }
-  .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 600;
+  .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--bg); }
+  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 11px; font-weight: 600;
           color: var(--text3); cursor: pointer; border: none; background: none;
           border-bottom: 3px solid transparent; margin-bottom: -2px; transition: .15s; }
   .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
 
   /* 테이블 */
-  .tbl-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 420px; }
-  th, td { border: 1px solid var(--border2); padding: 6px 5px; vertical-align: top; }
-  th { background: var(--bg2); font-size: 11px; font-weight: 700; text-align: center;
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid var(--border2); padding: 5px 4px; vertical-align: top; }
+  th { background: var(--bg2); font-size: 10px; font-weight: 700; text-align: center;
         color: var(--text2); white-space: nowrap; }
   th.today-col { background: var(--blue-lt); color: var(--blue); }
   th.sun { color: #D04F7B; } th.sat { color: #7B4FD0; }
-  .room-th { min-width: 64px; text-align: left; font-size: 11px; }
+  .room-th { width: 52px; min-width: 52px; max-width: 52px; text-align: left;
+              font-size: 10px; word-break: keep-all; }
 
   /* 예약 칩 */
-  .chip { border-radius: 5px; padding: 3px 5px; margin-bottom: 3px; font-size: 10px; line-height: 1.4; }
-  .chip-ok   { background: var(--blue-lt);  color: var(--blue); }
-  .chip-none { color: var(--text3); font-size: 10px; padding: 6px 2px; text-align: center; }
-  .chip-blk  { background: #F5F5F5; color: #999; font-size: 10px; padding: 6px 2px; text-align: center; }
-  .time { font-weight: 700; font-size: 10px; }
-  .org  { font-size: 9px; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip { border-radius: 4px; padding: 3px 4px; margin-bottom: 3px; font-size: 9px; line-height: 1.4; }
+  .chip-ok   { background: var(--blue-lt); color: var(--blue); }
+  .chip-none { color: var(--text3); font-size: 9px; padding: 5px 2px; text-align: center; }
+  .chip-blk  { background: #F5F5F5; color: #999; font-size: 9px; padding: 5px 2px; text-align: center; }
+  .time { font-weight: 700; font-size: 9px; }
+  .org  { font-size: 8px; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
 
   /* 단일홀 세로 레이아웃 */
-  .date-th { min-width: 72px; text-align: left; font-size: 11px; font-weight: 700; }
-  .empty-msg { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-  .loading   { text-align: center; padding: 40px; color: var(--text3); }
+  .date-th { min-width: 60px; text-align: left; font-size: 10px; font-weight: 700; }
+  .loading  { text-align: center; padding: 40px; color: var(--text3); }
+
+  @media (min-width: 560px) {
+    .room-th { width: 64px; min-width: 64px; max-width: 64px; font-size: 11px; }
+    .chip { font-size: 10px; padding: 3px 5px; }
+    .time { font-size: 10px; }
+    .org  { font-size: 9px; max-width: 100px; }
+    th { font-size: 11px; }
+    .tab { font-size: 12px; }
+    .date-th { min-width: 72px; font-size: 11px; }
+  }
 </style>
 </head>
 <body>
@@ -65,9 +72,9 @@
   <h1>📅 예약 현황</h1>
   <span class="week-label" id="week-label"></span>
   <div class="nav-btns">
-    <button onclick="changeWeek(-1)">◀ 이전</button>
+    <button onclick="changeWeek(-1)">◀</button>
     <button onclick="changeWeek(0)">오늘</button>
-    <button onclick="changeWeek(1)">다음 ▶</button>
+    <button onclick="changeWeek(1)">▶</button>
   </div>
 </div>
 
@@ -99,25 +106,41 @@ let reservations = [], spaces = [], blockedDates = [];
 let weekOffset = 0, curTab = '5f';
 let loaded = { res: false, sp: false, bd: false };
 
+const isMobile = () => window.innerWidth < 560;
+
 const toDateStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tsToday = () => toDateStr(new Date());
 
-function getWeekDays() {
-  const today = new Date(); today.setDate(today.getDate() + weekOffset * 7);
-  const dw = today.getDay();
-  const mon = new Date(today); mon.setDate(today.getDate() - dw + (dw === 0 ? -6 : 1));
-  return Array.from({ length: 7 }, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
+function getViewDays() {
+  const today = new Date();
+  if (isMobile()) {
+    // 모바일: 오늘 기준 3일씩 이동
+    const base = new Date(today);
+    base.setDate(today.getDate() + weekOffset * 3);
+    return Array.from({ length: 3 }, (_, i) => {
+      const d = new Date(base); d.setDate(base.getDate() + i); return d;
+    });
+  } else {
+    // 데스크탑: 월~일 7일
+    const ref = new Date(today); ref.setDate(today.getDate() + weekOffset * 7);
+    const dw = ref.getDay();
+    const mon = new Date(ref); mon.setDate(ref.getDate() - dw + (dw === 0 ? -6 : 1));
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
+  }
 }
 
 function render() {
   if (!loaded.res || !loaded.sp || !loaded.bd) return;
 
-  const days    = getWeekDays();
-  const todayS  = tsToday();
-  const tab     = TABS.find(t => t.key === curTab);
-  const fmt     = d => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-  document.getElementById('week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
+  const days   = getViewDays();
+  const todayS = tsToday();
+  const tab    = TABS.find(t => t.key === curTab);
+  const fmt    = d => `${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('week-label').textContent =
+    isMobile()
+      ? `${DOWS[days[0].getDay()]} ${fmt(days[0])} – ${DOWS[days[days.length-1].getDay()]} ${fmt(days[days.length-1])}`
+      : `${days[0].toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} – ${days[6].toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`;
 
   const tabRooms = tab.rooms.map(name => spaces.find(s => s.name === name) || { name, cap: '' });
 
@@ -130,7 +153,7 @@ function render() {
       <th class="date-th">날짜</th>
       <th>${sp.name}${sp.cap ? ' · ' + sp.cap + '명' : ''}</th>
     </tr></thead><tbody>`;
-    days.forEach((d, i) => {
+    days.forEach(d => {
       const ds  = toDateStr(d);
       const isT = ds === todayS;
       const bd  = blockedDates.find(b => b.date === ds);
@@ -141,7 +164,7 @@ function render() {
       const bgT = isT ? 'background:var(--blue-lt)' : '';
       html += `<tr>
         <td style="${bgT};white-space:nowrap;font-weight:600;color:${isW?'#D04F7B':isT?'var(--blue)':'var(--text2)'}">
-          ${dow} · ${d.getMonth()+1}/${d.getDate()}${isT ? ' ◀오늘' : ''}
+          ${dow} ${d.getMonth()+1}/${d.getDate()}${isT ? '<br><span style="font-size:9px">◀오늘</span>' : ''}
         </td>
         <td style="${bd ? 'background:#F5F5F5' : bgT}">`;
       if (bd) {
@@ -151,9 +174,9 @@ function render() {
       } else {
         res.forEach(r => {
           html += `<div class="chip chip-ok">
-            ${r.purpose ? `<div style="font-weight:700;font-size:10px">${r.purpose}</div>` : ''}
+            ${r.purpose ? `<div style="font-weight:700;font-size:9px">${r.purpose}</div>` : ''}
             <div class="time">${r.start}–${r.end}</div>
-            <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''} ${r.people ? '· ' + r.people + '명' : ''}</div>
+            <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>
           </div>`;
         });
       }
@@ -164,7 +187,7 @@ function render() {
   } else {
     // 다중 공간: 날짜 가로
     html = `<table><thead><tr><th class="room-th">공간</th>`;
-    days.forEach((d, i) => {
+    days.forEach(d => {
       const ds  = toDateStr(d);
       const isT = ds === todayS;
       const dow = DOWS[d.getDay()];
@@ -175,7 +198,8 @@ function render() {
     html += '</tr></thead><tbody>';
 
     tabRooms.forEach(sp => {
-      html += `<tr><td class="room-th" style="font-weight:600">${sp.name}${sp.cap ? '<br><span style="font-size:9px;font-weight:400;color:var(--text3)">' + sp.cap + '명</span>' : ''}</td>`;
+      const shortName = sp.name.replace('호', '');
+      html += `<tr><td class="room-th" style="font-weight:600">${isMobile() ? shortName : sp.name}</td>`;
       days.forEach(d => {
         const ds  = toDateStr(d);
         const isT = ds === todayS;
@@ -191,7 +215,7 @@ function render() {
         } else {
           res.forEach(r => {
             html += `<div class="chip chip-ok">
-              ${r.purpose ? `<div style="font-weight:700;font-size:10px">${r.purpose}</div>` : ''}
+              ${r.purpose ? `<div style="font-weight:700;font-size:9px">${r.purpose}</div>` : ''}
               <div class="time">${r.start}–${r.end}</div>
               <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>
             </div>`;
@@ -218,6 +242,9 @@ window.setTab = (key) => {
   render();
 };
 window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
+
+// 화면 크기 바뀌면 재렌더 (가로/세로 회전 등)
+window.addEventListener('resize', () => render());
 
 // Firestore 실시간 구독 (인증 없이)
 onSnapshot(collection(db, 'reservations'), snap => {
