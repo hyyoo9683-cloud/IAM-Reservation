@@ -1619,7 +1619,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;margin-right:6px;margin-bottom:3px">${r.start}–${r.end} · ${r.managerName}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;margin-right:6px;margin-bottom:3px">${r.start}–${r.end} · ${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
         });
       }
       html += `</td></tr>`;
@@ -1652,7 +1652,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.start}–${r.end}<br>${r.managerName}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}">${r.start}–${r.end}<br>${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>`;
         });
       }
       html += `</td>`;

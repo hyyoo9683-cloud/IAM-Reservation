@@ -152,7 +152,7 @@ function render() {
         res.forEach(r => {
           html += `<div class="chip chip-ok">
             <div class="time">${r.start}–${r.end}</div>
-            <div class="org">${r.managerName || ''} ${r.people ? '· ' + r.people + '명' : ''}</div>
+            <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''} ${r.people ? '· ' + r.people + '명' : ''}</div>
           </div>`;
         });
       }
@@ -191,7 +191,7 @@ function render() {
           res.forEach(r => {
             html += `<div class="chip chip-ok">
               <div class="time">${r.start}–${r.end}</div>
-              <div class="org">${r.managerName || ''}</div>
+              <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>
             </div>`;
           });
         }
