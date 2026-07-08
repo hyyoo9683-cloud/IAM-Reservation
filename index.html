@@ -3032,7 +3032,6 @@ window.openEditModal = (id) => {
     document.getElementById('e-date').value         = r.date || '';
     document.getElementById('e-people').value       = r.people || '';
     document.getElementById('e-purpose').value      = r.purpose || '';
-    document.getElementById('e-res-name').value     = r.reservationName || '';
     document.getElementById('e-memo').value         = r.memo || '';
     initTimeSelects('e-start', 'e-end', r.start, r.end);
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
@@ -3063,10 +3062,9 @@ window.submitEdit = async () => {
   const end     = document.getElementById('e-end').value;
   const people  = document.getElementById('e-people').value;
   const purpose = document.getElementById('e-purpose').value.trim();
-  const resName = document.getElementById('e-res-name').value.trim();
   const memo    = document.getElementById('e-memo').value.trim();
 
-  if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose || !resName) {
+  if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
@@ -3074,7 +3072,7 @@ window.submitEdit = async () => {
 
   const data = {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-    room, date, start, end, people: parseInt(people), purpose, reservationName: resName, memo
+    room, date, start, end, people: parseInt(people), purpose, memo
   };
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
