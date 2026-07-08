@@ -199,6 +199,9 @@
         <a class="sidebar-item" data-tab="regional"><span class="icon">📍</span> 지역교회</a>
         <div class="sidebar-section-label">운영</div>
         <a class="sidebar-item" data-tab="messages"><span class="icon">✉️</span> 문의 메시지<span class="sidebar-badge" id="msgBadge">-</span></a>
+        <div class="sidebar-section-label">콘텐츠</div>
+        <a class="sidebar-item" data-tab="media"><span class="icon">🎬</span> 미디어 관리</a>
+        <a class="sidebar-item" data-tab="devotional"><span class="icon">📖</span> 묵상 관리</a>
       </nav>
       <div class="sidebar-footer">
         <div class="sidebar-user">
@@ -224,6 +227,8 @@
           <div class="stats-grid">
             <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-number" id="statSem">-</div><div class="stat-label">세미나</div></div>
             <div class="stat-card"><div class="stat-icon">📰</div><div class="stat-number" id="statNews">-</div><div class="stat-label">소식 글</div></div>
+            <div class="stat-card"><div class="stat-icon">🎬</div><div class="stat-number" id="statMedia">-</div><div class="stat-label">미디어</div></div>
+            <div class="stat-card"><div class="stat-icon">📖</div><div class="stat-number" id="statDev">-</div><div class="stat-label">묵상</div></div>
             <div class="stat-card"><div class="stat-icon">✉️</div><div class="stat-number" id="statMsg">-</div><div class="stat-label">미확인 문의</div></div>
             <div class="stat-card"><div class="stat-icon">📍</div><div class="stat-number" id="statReg">-</div><div class="stat-label">지역교회</div></div>
           </div>
@@ -232,6 +237,8 @@
             <div style="display:flex;flex-wrap:wrap;gap:.7rem;">
               <button class="btn btn-primary" onclick="switchTab('seminars')">📋 세미나 관리</button>
               <button class="btn btn-primary" onclick="switchTab('news');openNewsModal()">+ 소식 작성</button>
+              <button class="btn btn-primary" onclick="switchTab('media');openMediaModal()">🎬 영상 추가</button>
+              <button class="btn btn-primary" onclick="switchTab('devotional');openDevotionalModal()">📖 묵상 추가</button>
               <button class="btn btn-secondary" onclick="switchTab('messages')">📨 문의 확인</button>
             </div>
           </div>
@@ -294,6 +301,30 @@
               <button class="btn btn-primary" onclick="openRegionalModal()">+ 지역 추가</button>
             </div>
             <div id="regionalList"><div class="loading"><div class="spin"></div>불러오는 중...</div></div>
+          </div>
+        </div>
+
+        <!-- Media -->
+        <div class="tab-panel" id="panel-media">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">미디어 관리 (유튜브)</div>
+              <button class="btn btn-primary" onclick="openMediaModal()">+ 영상 추가</button>
+            </div>
+            <p style="font-size:.84rem;color:var(--text-light);margin-bottom:1.2rem;">팟캐스트와 강의영상을 유튜브 영상 ID로 등록합니다.</p>
+            <div id="mediaList"><div class="loading"><div class="spin"></div>불러오는 중...</div></div>
+          </div>
+        </div>
+
+        <!-- Devotional -->
+        <div class="tab-panel" id="panel-devotional">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">묵상 관리</div>
+              <button class="btn btn-primary" onclick="openDevotionalModal()">+ 묵상 추가</button>
+            </div>
+            <p style="font-size:.84rem;color:var(--text-light);margin-bottom:1.2rem;">묵상노트와 기도문을 등록합니다.</p>
+            <div id="devotionalList"><div class="loading"><div class="spin"></div>불러오는 중...</div></div>
           </div>
         </div>
 
@@ -362,6 +393,93 @@
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeRegionalModal()">취소</button>
       <button class="btn btn-primary" onclick="saveRegional()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Media Modal -->
+<div class="modal-overlay" id="mediaModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-text" id="mediaModalLabel">영상 추가</div>
+      <button class="modal-close" onclick="closeMediaModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>유형</label>
+      <select id="mType">
+        <option value="podcast">팟캐스트</option>
+        <option value="lecture">강의영상</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>제목 *</label>
+      <input type="text" id="mTitle" placeholder="영상 제목" />
+    </div>
+    <div class="form-group">
+      <label>유튜브 영상 ID *</label>
+      <input type="text" id="mYoutubeId" placeholder="예: dQw4w9WgXcQ" />
+      <p class="form-hint">유튜브 URL에서 v= 뒤의 문자열. 예) youtube.com/watch?v=<strong>dQw4w9WgXcQ</strong></p>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>날짜</label>
+        <input type="text" id="mDate" placeholder="2025. 04. 01" />
+      </div>
+      <div class="form-group">
+        <label>공개 여부</label>
+        <select id="mPublished"><option value="true">공개</option><option value="false">비공개</option></select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>설명 (선택)</label>
+      <textarea id="mDesc" style="min-height:80px;" placeholder="영상에 대한 간단한 설명"></textarea>
+    </div>
+    <input type="hidden" id="mDocId" />
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeMediaModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveMedia()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Devotional Modal -->
+<div class="modal-overlay" id="devotionalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title-text" id="devModalLabel">묵상 추가</div>
+      <button class="modal-close" onclick="closeDevotionalModal()">✕</button>
+    </div>
+    <div class="form-group">
+      <label>유형</label>
+      <select id="dType">
+        <option value="devotion">묵상노트</option>
+        <option value="prayer">기도문</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>제목 *</label>
+      <input type="text" id="dTitle" placeholder="묵상 제목" />
+    </div>
+    <div class="form-group">
+      <label>성경 구절 (선택)</label>
+      <input type="text" id="dScripture" placeholder="예: 잠언 31:30" />
+    </div>
+    <div class="form-group">
+      <label>날짜</label>
+      <input type="text" id="dDate" placeholder="2025. 04. 01" />
+    </div>
+    <div class="form-group">
+      <label>본문 *</label>
+      <textarea id="dContent" style="min-height:160px;" placeholder="묵상 내용 또는 기도문을 입력하세요"></textarea>
+    </div>
+    <div class="form-group">
+      <label>공개 여부</label>
+      <select id="dPublished"><option value="true">공개</option><option value="false">비공개</option></select>
+    </div>
+    <input type="hidden" id="dDocId" />
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeDevotionalModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveDevotional()">저장</button>
     </div>
   </div>
 </div>
@@ -440,6 +558,8 @@ function initAdmin() {
   loadRegionals();
   renderBooksEditor();
   renderAboutEditor();
+  watchMedia();
+  watchDevotionals();
 }
 
 // ── Nav ──
@@ -449,7 +569,7 @@ document.querySelectorAll('.sidebar-item[data-tab]').forEach(el =>
 window.switchTab = function(tab) {
   document.querySelectorAll('.sidebar-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
-  const titles = { dashboard:'대시보드', seminars:'세미나 관리', news:'소식 / 공지', books:'교재 안내', about:'단체 소개', regional:'지역교회', messages:'문의 메시지' };
+  const titles = { dashboard:'대시보드', seminars:'세미나 관리', news:'소식 / 공지', books:'교재 안내', about:'단체 소개', regional:'지역교회', messages:'문의 메시지', media:'미디어 관리', devotional:'묵상 관리' };
   document.getElementById('topbarTitle').textContent = titles[tab] || tab;
 };
 
@@ -741,6 +861,169 @@ window.saveRegional = async function() {
 window.deleteRegional = async function(docId) {
   if (!confirm('삭제하시겠습니까?')) return;
   try { await deleteDoc(doc(db, 'mw_regionals', docId)); toast('삭제되었습니다'); loadRegionals(); }
+  catch (e) { toast('삭제 실패', 'error'); }
+};
+
+// ── Media ──
+function watchMedia() {
+  const q = query(collection(db, 'mw_media'), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(q, snap => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMediaList(items);
+    document.getElementById('statMedia').textContent = items.length;
+  }, () => {});
+  unsubs.push(unsub);
+}
+
+function renderMediaList(items) {
+  const el = document.getElementById('mediaList');
+  if (!items.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🎬</div>등록된 미디어가 없습니다.</div>'; return; }
+  el.innerHTML = items.map(item => `
+    <div class="list-item">
+      <img src="https://img.youtube.com/vi/${item.youtubeId}/mqdefault.jpg"
+           onerror="this.style.display='none'"
+           style="width:100px;height:62px;object-fit:cover;border-radius:6px;flex-shrink:0;" />
+      <div class="list-item-info">
+        <span class="list-item-tag">${item.type === 'podcast' ? '🎙️ 팟캐스트' : '🎥 강의영상'}</span>
+        <div class="list-item-title">${item.title}</div>
+        <div class="list-item-meta">${item.date || ''} · ID: ${item.youtubeId} ${item.published === false ? '· <span style="color:var(--warning)">비공개</span>' : ''}</div>
+      </div>
+      <div class="list-item-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openMediaModal('${item.id}')">✏️ 수정</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMedia('${item.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.openMediaModal = async function(docId) {
+  document.getElementById('mDocId').value = docId || '';
+  if (docId) {
+    document.getElementById('mediaModalLabel').textContent = '영상 수정';
+    const snap = await getDocs(collection(db, 'mw_media'));
+    const d = snap.docs.find(x => x.id === docId)?.data();
+    if (d) {
+      document.getElementById('mType').value      = d.type       || 'podcast';
+      document.getElementById('mTitle').value     = d.title      || '';
+      document.getElementById('mYoutubeId').value = d.youtubeId  || '';
+      document.getElementById('mDate').value      = d.date       || '';
+      document.getElementById('mDesc').value      = d.desc       || '';
+      document.getElementById('mPublished').value = String(d.published !== false);
+    }
+  } else {
+    document.getElementById('mediaModalLabel').textContent = '영상 추가';
+    ['mTitle','mYoutubeId','mDate','mDesc'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mType').value = 'podcast';
+    document.getElementById('mDate').value = new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'});
+    document.getElementById('mPublished').value = 'true';
+  }
+  document.getElementById('mediaModal').classList.add('open');
+};
+window.closeMediaModal = () => document.getElementById('mediaModal').classList.remove('open');
+
+window.saveMedia = async function() {
+  const title     = document.getElementById('mTitle').value.trim();
+  const youtubeId = document.getElementById('mYoutubeId').value.trim();
+  if (!title || !youtubeId) { toast('제목과 유튜브 ID를 입력해주세요', 'error'); return; }
+  const data = {
+    type:      document.getElementById('mType').value,
+    title,
+    youtubeId,
+    date:      document.getElementById('mDate').value.trim(),
+    desc:      document.getElementById('mDesc').value.trim(),
+    published: document.getElementById('mPublished').value === 'true',
+  };
+  const docId = document.getElementById('mDocId').value;
+  try {
+    if (docId) { await updateDoc(doc(db, 'mw_media', docId), { ...data, updatedAt: serverTimestamp() }); toast('수정되었습니다', 'success'); }
+    else       { await addDoc(collection(db, 'mw_media'), { ...data, createdAt: serverTimestamp() }); toast('영상이 등록되었습니다 🎬', 'success'); }
+    closeMediaModal();
+  } catch (e) { toast('저장 실패: ' + e.message, 'error'); }
+};
+
+window.deleteMedia = async function(docId) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try { await deleteDoc(doc(db, 'mw_media', docId)); toast('삭제되었습니다'); }
+  catch (e) { toast('삭제 실패', 'error'); }
+};
+
+// ── Devotionals ──
+function watchDevotionals() {
+  const q = query(collection(db, 'mw_devotionals'), orderBy('createdAt', 'desc'));
+  const unsub = onSnapshot(q, snap => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderDevotionalList(items);
+    document.getElementById('statDev').textContent = items.length;
+  }, () => {});
+  unsubs.push(unsub);
+}
+
+function renderDevotionalList(items) {
+  const el = document.getElementById('devotionalList');
+  if (!items.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📖</div>등록된 묵상이 없습니다.</div>'; return; }
+  el.innerHTML = items.map(item => `
+    <div class="list-item">
+      <div class="list-item-info">
+        <span class="list-item-tag">${item.type === 'prayer' ? '🙏 기도문' : '📖 묵상노트'}</span>
+        <div class="list-item-title">${item.title}</div>
+        <div class="list-item-meta">${item.date || ''} ${item.scripture ? '· ' + item.scripture : ''} ${item.published === false ? '· <span style="color:var(--warning)">비공개</span>' : ''}</div>
+      </div>
+      <div class="list-item-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openDevotionalModal('${item.id}')">✏️ 수정</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteDevotional('${item.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+window.openDevotionalModal = async function(docId) {
+  document.getElementById('dDocId').value = docId || '';
+  if (docId) {
+    document.getElementById('devModalLabel').textContent = '묵상 수정';
+    const snap = await getDocs(collection(db, 'mw_devotionals'));
+    const d = snap.docs.find(x => x.id === docId)?.data();
+    if (d) {
+      document.getElementById('dType').value      = d.type      || 'devotion';
+      document.getElementById('dTitle').value     = d.title     || '';
+      document.getElementById('dScripture').value = d.scripture || '';
+      document.getElementById('dDate').value      = d.date      || '';
+      document.getElementById('dContent').value   = d.content   || '';
+      document.getElementById('dPublished').value = String(d.published !== false);
+    }
+  } else {
+    document.getElementById('devModalLabel').textContent = '묵상 추가';
+    ['dTitle','dScripture','dDate','dContent'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('dType').value = 'devotion';
+    document.getElementById('dDate').value = new Date().toLocaleDateString('ko-KR', {year:'numeric',month:'2-digit',day:'2-digit'});
+    document.getElementById('dPublished').value = 'true';
+  }
+  document.getElementById('devotionalModal').classList.add('open');
+};
+window.closeDevotionalModal = () => document.getElementById('devotionalModal').classList.remove('open');
+
+window.saveDevotional = async function() {
+  const title   = document.getElementById('dTitle').value.trim();
+  const content = document.getElementById('dContent').value.trim();
+  if (!title || !content) { toast('제목과 본문을 입력해주세요', 'error'); return; }
+  const data = {
+    type:      document.getElementById('dType').value,
+    title,
+    scripture: document.getElementById('dScripture').value.trim(),
+    date:      document.getElementById('dDate').value.trim(),
+    content,
+    published: document.getElementById('dPublished').value === 'true',
+  };
+  const docId = document.getElementById('dDocId').value;
+  try {
+    if (docId) { await updateDoc(doc(db, 'mw_devotionals', docId), { ...data, updatedAt: serverTimestamp() }); toast('수정되었습니다', 'success'); }
+    else       { await addDoc(collection(db, 'mw_devotionals'), { ...data, createdAt: serverTimestamp() }); toast('묵상이 등록되었습니다 📖', 'success'); }
+    closeDevotionalModal();
+  } catch (e) { toast('저장 실패: ' + e.message, 'error'); }
+};
+
+window.deleteDevotional = async function(docId) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  try { await deleteDoc(doc(db, 'mw_devotionals', docId)); toast('삭제되었습니다'); }
   catch (e) { toast('삭제 실패', 'error'); }
 };
 

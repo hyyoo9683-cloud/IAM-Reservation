@@ -2,473 +2,456 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>마더와이즈 Motherwise — 어머니를 위한 사역 세미나</title>
-  <meta name="description" content="마더와이즈 사역 세미나 — 지혜, 자유, 회복, 동행. 어머니들이 함께 배우고 성장하는 공동체입니다." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="마더와이즈" />
+  <meta name="theme-color" content="#d97b6c" />
+  <title>마더와이즈 Motherwise</title>
+  <link rel="manifest" href="manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --cream: #fdf6ee; --beige: #f5e6d3; --blush: #f2c4b0;
       --rose: #d97b6c; --rose-dark: #b85c4e; --brown: #7a4a3a;
       --text: #3d2b1f; --text-mid: #6b4c3b; --text-light: #a07060;
-      --white: #ffffff; --shadow: 0 4px 24px rgba(120,70,50,0.10); --radius: 18px;
-      --green: #5a8f6a;
+      --white: #fff; --green: #5a8f6a;
+      --shadow: 0 2px 16px rgba(120,70,50,.10);
+      --tab-h: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
     }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Noto Sans KR', sans-serif; background: var(--cream); color: var(--text); line-height: 1.7; overflow-x: hidden; }
-    h1, h2, h3 { font-family: 'Noto Serif KR', serif; line-height: 1.35; }
-    h2 { font-size: clamp(1.6rem, 4vw, 2.4rem); color: var(--brown); }
-    p { color: var(--text-mid); }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--cream); color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
 
-    /* ── Nav ── */
-    nav {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(253,246,238,0.94); backdrop-filter: blur(14px);
-      border-bottom: 1px solid rgba(210,150,120,0.18);
-      padding: 0 clamp(1.2rem, 5vw, 4rem); height: 66px;
+    /* ── App Shell ── */
+    .app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+
+    /* ── Header ── */
+    .app-header {
+      background: rgba(253,246,238,.96); backdrop-filter: blur(14px);
+      padding: calc(var(--safe-top) + 10px) 1.2rem 10px;
       display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(210,150,120,.14);
+      flex-shrink: 0; z-index: 10;
     }
-    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .nav-logo-icon { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--blush), var(--rose)); display: flex; align-items: center; justify-content: center; font-size: 17px; }
-    .nav-logo-text { font-family: 'Noto Serif KR', serif; font-size: 1.1rem; font-weight: 700; color: var(--brown); }
-    .nav-logo-sub { font-size: 0.65rem; color: var(--text-light); letter-spacing: 0.08em; }
-    .nav-links { display: flex; align-items: center; gap: 1.6rem; list-style: none; }
-    .nav-links a { text-decoration: none; color: var(--text-mid); font-size: 0.9rem; font-weight: 500; transition: color .2s; }
-    .nav-links a:hover { color: var(--rose); }
-    .nav-cta { background: var(--rose); color: var(--white) !important; padding: 0.42rem 1.1rem; border-radius: 50px; font-size: 0.86rem !important; }
-    .nav-cta:hover { background: var(--rose-dark) !important; }
-    .nav-toggle { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
-    .nav-toggle span { display: block; width: 24px; height: 2px; background: var(--brown); border-radius: 2px; }
-    .mobile-menu { display: none; position: fixed; top: 66px; left: 0; right: 0; z-index: 99; background: rgba(253,246,238,0.98); backdrop-filter: blur(12px); padding: 1.2rem clamp(1.2rem, 5vw, 4rem) 1.8rem; border-bottom: 1px solid rgba(210,150,120,0.18); flex-direction: column; gap: 0.4rem; }
-    .mobile-menu.open { display: flex; }
-    .mobile-menu a { text-decoration: none; color: var(--text-mid); font-size: 0.98rem; font-weight: 500; padding: 0.55rem 0; border-bottom: 1px solid rgba(160,112,96,0.1); }
+    .header-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .header-logo-icon { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--blush), var(--rose)); display: flex; align-items: center; justify-content: center; font-size: 15px; }
+    .header-logo-text { font-family: 'Noto Serif KR', serif; font-size: 1rem; font-weight: 700; color: var(--brown); }
+    .header-logo-sub { font-size: .6rem; color: var(--text-light); letter-spacing: .08em; }
+    .header-actions { display: flex; gap: .5rem; align-items: center; }
+    .btn-install { background: rgba(217,123,108,.12); color: var(--rose-dark); border: none; border-radius: 20px; padding: .32rem .8rem; font-family: inherit; font-size: .76rem; font-weight: 600; cursor: pointer; display: none; }
+    .btn-install.show { display: block; }
 
-    /* ── Shared ── */
-    section { padding: clamp(56px, 9vw, 100px) clamp(1.2rem, 6vw, 7rem); }
-    .section-label { display: inline-block; font-size: 0.76rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--rose); margin-bottom: 0.6rem; }
-    .section-title { margin-bottom: 0.7rem; word-break: keep-all; }
-    .section-desc { font-size: 1rem; color: var(--text-light); max-width: 540px; word-break: keep-all; margin-bottom: 2.8rem; }
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 0.75rem 1.6rem; border-radius: 50px; font-size: 0.94rem; font-weight: 600; text-decoration: none; transition: all .22s; cursor: pointer; border: none; font-family: inherit; }
-    .btn-primary { background: var(--rose); color: var(--white); box-shadow: 0 4px 14px rgba(217,123,108,0.32); }
-    .btn-primary:hover { background: var(--rose-dark); transform: translateY(-2px); }
-    .btn-outline { background: transparent; color: var(--brown); border: 2px solid rgba(120,74,58,0.28); }
-    .btn-outline:hover { border-color: var(--rose); color: var(--rose); transform: translateY(-2px); }
-    .btn-green { background: var(--green); color: white; }
-    .btn-green:hover { background: #4a7a5a; transform: translateY(-2px); }
+    /* ── Tab Content ── */
+    .tab-content {
+      flex: 1; overflow: hidden; position: relative;
+    }
+    .tab-page {
+      position: absolute; inset: 0;
+      overflow-y: auto; overflow-x: hidden;
+      opacity: 0; pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity .22s ease, transform .22s ease;
+      padding-bottom: calc(var(--tab-h) + var(--safe-bottom) + 12px);
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-page.active {
+      opacity: 1; pointer-events: all; transform: translateY(0);
+    }
 
-    /* ── Hero ── */
-    #hero {
-      min-height: 100vh; padding-top: 110px;
-      display: flex; align-items: center;
-      background:
-        radial-gradient(ellipse 70% 55% at 68% 38%, rgba(242,196,176,0.38) 0%, transparent 65%),
-        radial-gradient(ellipse 55% 45% at 18% 78%, rgba(245,230,211,0.5) 0%, transparent 60%),
-        var(--cream);
+    /* ── Bottom Nav ── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+      background: rgba(253,246,238,.96); backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(210,150,120,.14);
+      display: flex;
+      height: calc(var(--tab-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; cursor: pointer; border: none; background: none;
+      color: var(--text-light); font-family: inherit; font-size: .68rem; font-weight: 500;
+      transition: color .18s; padding: 0; -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item .nav-icon { font-size: 1.35rem; line-height: 1; transition: transform .18s; }
+    .nav-item.active { color: var(--rose); }
+    .nav-item.active .nav-icon { transform: scale(1.15); }
+
+    /* ── Shared Components ── */
+    .page-section { padding: 1.2rem; }
+    .section-header { margin-bottom: 1rem; }
+    .section-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--rose); }
+    .section-title { font-family: 'Noto Serif KR', serif; font-size: 1.15rem; font-weight: 700; color: var(--brown); margin-top: .15rem; }
+
+    .card {
+      background: var(--white); border-radius: 16px;
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .card + .card { margin-top: .9rem; }
+
+    .pill { display: inline-block; font-size: .68rem; font-weight: 700; letter-spacing: .06em; padding: .18rem .6rem; border-radius: 50px; }
+    .pill-rose { background: rgba(217,123,108,.12); color: var(--rose-dark); }
+    .pill-green { background: rgba(90,143,106,.12); color: var(--green); }
+    .pill-brown { background: rgba(122,74,58,.1); color: var(--brown); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      padding: .65rem 1.3rem; border-radius: 50px;
+      font-family: inherit; font-size: .88rem; font-weight: 600;
+      cursor: pointer; border: none; transition: all .2s; text-decoration: none;
+    }
+    .btn-primary { background: var(--rose); color: white; }
+    .btn-primary:hover, .btn-primary:active { background: var(--rose-dark); }
+    .btn-outline { background: transparent; color: var(--brown); border: 1.5px solid rgba(120,74,58,.25); }
+    .btn-block { width: 100%; }
+    .btn-sm { padding: .45rem .9rem; font-size: .8rem; }
+
+    /* ── Segment Control ── */
+    .segment { display: flex; background: var(--beige); border-radius: 12px; padding: 3px; margin-bottom: 1rem; }
+    .seg-btn { flex: 1; padding: .5rem; border: none; background: none; border-radius: 9px; font-family: inherit; font-size: .82rem; font-weight: 600; color: var(--text-light); cursor: pointer; transition: all .2s; }
+    .seg-btn.active { background: white; color: var(--brown); box-shadow: 0 1px 6px rgba(120,70,50,.12); }
+
+    /* ── HOME TAB ── */
+    .home-hero {
+      background: linear-gradient(160deg, var(--beige) 0%, rgba(242,196,176,.3) 100%);
+      padding: 1.6rem 1.2rem 1.2rem;
       position: relative; overflow: hidden;
     }
-    .hero-deco { position: absolute; border-radius: 50%; pointer-events: none; }
-    .hero-deco-1 { width: 440px; height: 440px; background: var(--blush); opacity: .16; top: -60px; right: -60px; }
-    .hero-deco-2 { width: 240px; height: 240px; background: var(--rose); opacity: .07; bottom: 50px; right: 180px; }
-    .hero-inner { max-width: 640px; position: relative; z-index: 1; }
-    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(217,123,108,0.11); color: var(--rose-dark); font-size: 0.8rem; font-weight: 600; padding: 0.32rem 0.9rem; border-radius: 50px; border: 1px solid rgba(217,123,108,0.22); margin-bottom: 1.3rem; }
-    .hero-title { font-size: clamp(2rem, 5.5vw, 3.4rem); color: var(--brown); font-weight: 700; margin-bottom: 1.1rem; word-break: keep-all; }
-    .hero-title .accent { color: var(--rose); }
-    .hero-desc { font-size: clamp(0.96rem, 1.8vw, 1.1rem); color: var(--text-mid); margin-bottom: 2rem; word-break: keep-all; max-width: 500px; line-height: 1.8; }
-    .hero-btns { display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 2.8rem; }
-    .hero-cores { display: flex; gap: 0.7rem; flex-wrap: wrap; }
-    .core-chip { padding: 0.38rem 0.9rem; border-radius: 50px; font-size: 0.82rem; font-weight: 700; background: var(--white); border: 1.5px solid rgba(180,130,110,0.22); color: var(--text-mid); }
-    .core-chip::before { margin-right: 5px; }
-    .core-chip-1::before { content: '🌿'; }
-    .core-chip-2::before { content: '🕊️'; }
-    .core-chip-3::before { content: '💛'; }
-    .core-chip-4::before { content: '🤝'; }
+    .home-hero::after { content: '🌿'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 5rem; opacity: .12; pointer-events: none; }
+    .home-hero-label { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--rose); margin-bottom: .4rem; }
+    .home-hero-title { font-family: 'Noto Serif KR', serif; font-size: 1.35rem; font-weight: 700; color: var(--brown); line-height: 1.4; margin-bottom: .6rem; word-break: keep-all; }
+    .home-hero-desc { font-size: .84rem; color: var(--text-mid); line-height: 1.7; word-break: keep-all; }
+    .home-hero-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .9rem; }
+    .home-hero-chip { font-size: .76rem; font-weight: 600; padding: .28rem .75rem; border-radius: 50px; background: white; color: var(--text-mid); border: 1px solid rgba(180,130,110,.2); }
 
-    /* ── Seminar Section ── */
-    #seminar { background: var(--white); }
-    .seminar-header { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 2.4rem; }
-    .seminar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
-    .seminar-card {
-      border-radius: var(--radius); overflow: hidden;
-      box-shadow: var(--shadow); background: var(--white);
-      transition: transform .25s, box-shadow .25s;
-      display: flex; flex-direction: column;
+    .seminar-card { padding: 1.1rem; }
+    .seminar-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .7rem; margin-bottom: .6rem; }
+    .seminar-icon { font-size: 1.8rem; }
+    .seminar-module { font-size: .68rem; font-weight: 700; color: var(--rose); letter-spacing: .06em; }
+    .seminar-name { font-size: 1rem; font-weight: 700; color: var(--brown); margin-top: .1rem; }
+    .seminar-desc { font-size: .82rem; color: var(--text-light); line-height: 1.6; word-break: keep-all; margin-bottom: .8rem; }
+    .seminar-meta { font-size: .76rem; color: var(--text-light); margin-bottom: .9rem; }
+    .seminar-actions { display: flex; gap: .6rem; }
+    .seminar-actions .btn { flex: 1; font-size: .82rem; padding: .55rem .8rem; }
+
+    .news-item { padding: 1rem 1.1rem; }
+    .news-item + .news-item { border-top: 1px solid rgba(200,160,140,.1); }
+    .news-item-top { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+    .news-item-title { font-size: .9rem; font-weight: 700; color: var(--brown); line-height: 1.45; word-break: keep-all; }
+    .news-item-excerpt { font-size: .8rem; color: var(--text-light); line-height: 1.6; margin-top: .3rem; word-break: keep-all; }
+    .news-item-date { font-size: .72rem; color: var(--text-light); margin-left: auto; }
+
+    /* ── MEDIA TAB ── */
+    .media-card { display: flex; gap: .9rem; padding: 1rem; align-items: flex-start; }
+    .media-thumb {
+      width: 100px; height: 68px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--beige), var(--blush));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; overflow: hidden; position: relative; cursor: pointer;
     }
-    .seminar-card:hover { transform: translateY(-6px); box-shadow: 0 14px 38px rgba(120,70,50,0.16); }
-    .seminar-thumb { height: 140px; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
-    .seminar-thumb-0 { background: linear-gradient(135deg,#fde8d8,#f5c0a8); }
-    .seminar-thumb-1 { background: linear-gradient(135deg,#e8f0fd,#c8d4f5); }
-    .seminar-thumb-2 { background: linear-gradient(135deg,#fde8f5,#f5c0d8); }
-    .seminar-thumb-3 { background: linear-gradient(135deg,#d8f0e8,#b8e0d0); }
-    .seminar-body { padding: 1.3rem; flex: 1; display: flex; flex-direction: column; }
-    .seminar-module { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rose); background: rgba(217,123,108,0.1); padding: 0.18rem 0.6rem; border-radius: 50px; display: inline-block; margin-bottom: 0.5rem; }
-    .seminar-name { font-size: 1.08rem; font-weight: 700; color: var(--brown); margin-bottom: 0.45rem; }
-    .seminar-desc { font-size: 0.86rem; color: var(--text-light); line-height: 1.65; flex: 1; }
-    .seminar-meta { display: flex; gap: 0.7rem; margin-top: 0.9rem; font-size: 0.79rem; color: var(--text-light); flex-wrap: wrap; }
-    .seminar-actions { padding: 0 1.3rem 1.3rem; display: flex; gap: 0.7rem; }
-    .seminar-actions .btn { font-size: 0.84rem; padding: 0.5rem 1rem; flex: 1; justify-content: center; }
-    .seminar-status-open { color: var(--green); font-weight: 700; font-size: 0.78rem; background: rgba(90,143,106,0.1); padding: 0.2rem 0.7rem; border-radius: 50px; display: inline-block; margin-top: 0.6rem; }
-    .seminar-status-closed { color: var(--text-light); font-size: 0.78rem; background: rgba(160,112,96,0.08); padding: 0.2rem 0.7rem; border-radius: 50px; display: inline-block; margin-top: 0.6rem; }
-
-    /* ── History ── */
-    #history { background: var(--cream); }
-    .history-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(2rem, 5vw, 5rem); align-items: start; }
-    .history-image { border-radius: var(--radius); background: linear-gradient(145deg, var(--beige), var(--blush)); aspect-ratio: 4/3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; color: var(--text-light); font-size: 0.88rem; text-align: center; padding: 2rem; }
-    .history-image .big-icon { font-size: 3.5rem; }
-    .timeline { margin-top: 2rem; }
-    .timeline-item { display: flex; gap: 1.2rem; padding-bottom: 1.4rem; position: relative; }
-    .timeline-item:not(:last-child)::after { content: ''; position: absolute; left: 17px; top: 34px; bottom: 0; width: 2px; background: rgba(200,160,140,0.2); }
-    .timeline-dot { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--blush), var(--rose)); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; font-weight: 700; color: white; font-family: 'Noto Serif KR', serif; }
-    .timeline-year { font-size: 0.76rem; font-weight: 700; color: var(--rose); letter-spacing: 0.05em; }
-    .timeline-text { font-size: 0.9rem; color: var(--text-mid); line-height: 1.6; margin-top: 0.15rem; word-break: keep-all; }
-
-    /* ── Books ── */
-    #books { background: var(--white); }
-    .books-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.4rem; margin-bottom: 2rem; }
-    .book-card { background: var(--cream); border-radius: 14px; padding: 1.6rem 1.2rem; text-align: center; border: 1.5px solid rgba(200,160,140,0.15); transition: border-color .2s, transform .2s; }
-    .book-card:hover { border-color: var(--blush); transform: translateY(-4px); }
-    .book-icon { font-size: 2.8rem; margin-bottom: 0.8rem; }
-    .book-title { font-size: 1.05rem; font-weight: 700; color: var(--brown); margin-bottom: 0.35rem; }
-    .book-subtitle { font-size: 0.8rem; color: var(--text-light); line-height: 1.5; }
-    .books-cta { text-align: center; background: linear-gradient(135deg, var(--beige), rgba(242,196,176,0.3)); border-radius: 16px; padding: 2rem; }
-    .books-cta-text { font-size: 1rem; color: var(--text-mid); margin-bottom: 1.2rem; word-break: keep-all; }
-
-    /* ── News ── */
-    #news { background: var(--cream); }
-    .news-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.3rem; }
-    .news-card { background: var(--white); border-radius: 14px; padding: 1.4rem; border: 1px solid rgba(200,160,140,0.14); transition: border-color .2s, box-shadow .2s; cursor: pointer; }
-    .news-card:hover { border-color: var(--blush); box-shadow: var(--shadow); }
-    .news-date { font-size: 0.76rem; color: var(--text-light); margin-bottom: 0.5rem; }
-    .news-tag { display: inline-block; font-size: 0.7rem; font-weight: 700; color: var(--rose); background: rgba(217,123,108,0.09); padding: 0.15rem 0.55rem; border-radius: 50px; margin-bottom: 0.6rem; }
-    .news-title { font-size: 0.96rem; font-weight: 700; color: var(--brown); margin-bottom: 0.4rem; line-height: 1.5; word-break: keep-all; }
-    .news-excerpt { font-size: 0.85rem; color: var(--text-light); line-height: 1.6; }
-    .news-more { font-size: 0.8rem; color: var(--rose); font-weight: 600; margin-top: 0.8rem; display: inline-block; }
-
-    /* ── Regional ── */
-    #regional { background: var(--white); }
-    .regional-intro { max-width: 600px; margin-bottom: 2.4rem; }
-    .regional-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
-    .regional-card { background: var(--cream); border-radius: 12px; padding: 1.1rem; border: 1.5px solid rgba(200,160,140,0.15); transition: border-color .2s; }
-    .regional-card:hover { border-color: var(--blush); }
-    .regional-name { font-size: 0.92rem; font-weight: 700; color: var(--brown); margin-bottom: 0.2rem; }
-    .regional-church { font-size: 0.8rem; color: var(--text-light); }
-    .regional-status { font-size: 0.72rem; margin-top: 0.4rem; font-weight: 600; }
-    .status-active { color: var(--green); }
-    .regional-empty { text-align: center; padding: 3rem; color: var(--text-light); }
-    .cafe-banner {
-      margin-top: 2.5rem;
-      background: linear-gradient(135deg, #2d1a12, #5a3020);
-      border-radius: 16px; padding: 1.8rem 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem;
+    .media-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .media-thumb-play {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.25); color: white; font-size: 1.4rem;
     }
-    .cafe-banner-text { color: rgba(255,255,255,0.9); }
-    .cafe-banner-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
-    .cafe-banner-desc { font-size: 0.84rem; color: rgba(255,255,255,0.6); }
-    .btn-cafe { background: rgba(255,255,255,0.12); color: white !important; border: 1px solid rgba(255,255,255,0.2); padding: 0.55rem 1.2rem; border-radius: 50px; font-size: 0.88rem; font-weight: 600; text-decoration: none; transition: background .2s; white-space: nowrap; }
-    .btn-cafe:hover { background: rgba(255,255,255,0.2); }
+    .media-info { flex: 1; min-width: 0; }
+    .media-title { font-size: .88rem; font-weight: 700; color: var(--brown); line-height: 1.4; word-break: keep-all; cursor: pointer; }
+    .media-title:hover { color: var(--rose); }
+    .media-meta { font-size: .74rem; color: var(--text-light); margin-top: .3rem; }
+    .media-desc { font-size: .78rem; color: var(--text-light); margin-top: .25rem; line-height: 1.5; word-break: keep-all; }
 
-    /* ── Footer ── */
-    footer { background: var(--brown); color: rgba(255,255,255,0.75); padding: 0; }
-    .footer-main { padding: 2.8rem clamp(1.2rem, 6vw, 7rem) 2rem; }
-    .footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 2.5rem; margin-bottom: 2rem; }
-    .footer-brand-name { font-family: 'Noto Serif KR', serif; font-size: 1.1rem; font-weight: 700; color: var(--white); margin-bottom: 0.5rem; }
-    .footer-brand-desc { font-size: 0.83rem; line-height: 1.75; }
-    .footer-col-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.4); margin-bottom: 0.9rem; }
-    .footer-links { list-style: none; }
-    .footer-links li { margin-bottom: 0.45rem; }
-    .footer-links a { text-decoration: none; color: rgba(255,255,255,0.68); font-size: 0.86rem; transition: color .2s; }
-    .footer-links a:hover { color: var(--blush); }
-    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding: 1.2rem clamp(1.2rem, 6vw, 7rem); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; font-size: 0.78rem; }
-    /* 유관기관 배너 */
-    .footer-partners {
-      background: rgba(0,0,0,0.2);
-      padding: 1.1rem clamp(1.2rem, 6vw, 7rem);
-      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
-    }
-    .partner-label { font-size: 0.72rem; color: rgba(255,255,255,0.4); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 0.6rem; flex-shrink: 0; }
-    .partner-chip {
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14);
-      color: rgba(255,255,255,0.7); font-size: 0.82rem; font-weight: 500;
-      padding: 0.3rem 0.9rem; border-radius: 50px; text-decoration: none;
-      transition: background .2s, color .2s;
-    }
-    .partner-chip:hover { background: rgba(255,255,255,0.15); color: white; }
+    .media-empty { text-align: center; padding: 3rem 1.5rem; color: var(--text-light); }
+    .media-empty .e-icon { font-size: 2.5rem; margin-bottom: .6rem; }
+    .media-empty p { font-size: .88rem; }
 
-    /* ── Animations ── */
-    .fade-up { opacity: 0; transform: translateY(24px); transition: opacity .55s ease, transform .55s ease; }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    /* ── DEVOTION TAB ── */
+    .devot-card { padding: 1.2rem; }
+    .devot-card + .devot-card { margin-top: .8rem; }
+    .devot-title { font-size: .95rem; font-weight: 700; color: var(--brown); line-height: 1.45; word-break: keep-all; margin: .4rem 0; }
+    .devot-scripture { font-size: .78rem; color: var(--rose-dark); font-style: italic; margin-bottom: .5rem; }
+    .devot-preview { font-size: .82rem; color: var(--text-light); line-height: 1.65; word-break: keep-all; }
+    .devot-footer { display: flex; align-items: center; justify-content: space-between; margin-top: .8rem; }
+    .devot-date { font-size: .72rem; color: var(--text-light); }
+    .devot-read { font-size: .78rem; font-weight: 600; color: var(--rose); cursor: pointer; }
 
-    /* ── News Modal ── */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.42); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; opacity: 0; pointer-events: none; transition: opacity .25s; }
-    .modal-overlay.open { opacity: 1; pointer-events: all; }
-    .modal { background: white; border-radius: 20px; padding: 2.2rem; width: 100%; max-width: 580px; max-height: 85vh; overflow-y: auto; transform: scale(0.95); transition: transform .25s; }
-    .modal-overlay.open .modal { transform: scale(1); }
-    .modal-close { float: right; background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-light); line-height: 1; margin-left: 1rem; }
-    .modal-cat { font-size: 0.78rem; font-weight: 700; color: var(--rose); background: rgba(217,123,108,0.1); padding: 0.18rem 0.65rem; border-radius: 50px; display: inline-block; margin-bottom: 0.7rem; }
-    .modal-title { font-size: 1.35rem; font-weight: 700; color: var(--brown); margin-bottom: 0.4rem; word-break: keep-all; }
-    .modal-date { font-size: 0.8rem; color: var(--text-light); margin-bottom: 1.3rem; padding-bottom: 1.3rem; border-bottom: 1px solid rgba(160,112,96,0.12); }
-    .modal-content { font-size: 0.93rem; color: var(--text-mid); line-height: 1.9; white-space: pre-line; word-break: keep-all; }
+    /* ── MALL TAB ── */
+    .mall-banner {
+      background: linear-gradient(135deg, var(--beige) 0%, rgba(242,196,176,.4) 100%);
+      margin: 1.2rem; border-radius: 16px; padding: 1.4rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .mall-banner-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .mall-banner-title { font-family: 'Noto Serif KR', serif; font-size: 1rem; font-weight: 700; color: var(--brown); margin-bottom: .3rem; }
+    .mall-banner-desc { font-size: .8rem; color: var(--text-mid); line-height: 1.5; }
 
-    /* ── Responsive ── */
-    @media (max-width: 860px) {
-      .history-grid { grid-template-columns: 1fr; }
-      .footer-grid { grid-template-columns: 1fr 1fr; }
+    .book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; padding: 0 1.2rem 1.2rem; }
+    .book-card { background: white; border-radius: 14px; padding: 1.1rem; text-align: center; box-shadow: var(--shadow); }
+    .book-card-icon { font-size: 2.2rem; margin-bottom: .5rem; }
+    .book-card-title { font-size: .95rem; font-weight: 700; color: var(--brown); }
+    .book-card-sub { font-size: .72rem; color: var(--text-light); margin-top: .15rem; }
+
+    .mall-cta { margin: 0 1.2rem 1.2rem; }
+    .coming-soon { background: rgba(122,74,58,.05); border: 1.5px dashed rgba(122,74,58,.2); border-radius: 14px; padding: 1.2rem; text-align: center; margin: 0 1.2rem 1.2rem; }
+    .coming-soon-icon { font-size: 1.8rem; margin-bottom: .4rem; }
+    .coming-soon-text { font-size: .82rem; color: var(--text-light); line-height: 1.6; }
+
+    /* ── MORE TAB ── */
+    .more-menu-item {
+      display: flex; align-items: center; gap: .9rem;
+      padding: 1rem 1.2rem; cursor: pointer;
+      transition: background .15s; text-decoration: none;
     }
-    @media (max-width: 620px) {
-      .nav-links { display: none; }
-      .nav-toggle { display: flex; }
-      .footer-grid { grid-template-columns: 1fr; gap: 1.8rem; }
-    }
+    .more-menu-item:hover, .more-menu-item:active { background: rgba(217,123,108,.05); }
+    .more-menu-item + .more-menu-item { border-top: 1px solid rgba(200,160,140,.1); }
+    .more-menu-icon { width: 40px; height: 40px; border-radius: 10px; background: rgba(217,123,108,.1); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .more-menu-text {}
+    .more-menu-label { font-size: .9rem; font-weight: 700; color: var(--brown); }
+    .more-menu-desc { font-size: .76rem; color: var(--text-light); margin-top: .1rem; }
+    .more-menu-arrow { margin-left: auto; color: var(--text-light); font-size: .9rem; }
+
+    .more-profile { background: linear-gradient(135deg, var(--beige), rgba(242,196,176,.4)); padding: 1.4rem 1.2rem; display: flex; align-items: center; gap: 1rem; }
+    .more-profile-icon { font-size: 3rem; }
+    .more-profile-title { font-family: 'Noto Serif KR', serif; font-size: 1.1rem; font-weight: 700; color: var(--brown); }
+    .more-profile-desc { font-size: .78rem; color: var(--text-mid); margin-top: .2rem; line-height: 1.5; }
+
+    /* ── Modal / Sheet ── */
+    .sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 100; opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 101; background: white; border-radius: 24px 24px 0 0; padding: 0 0 calc(var(--safe-bottom) + 1.5rem); max-height: 88vh; overflow-y: auto; transform: translateY(100%); transition: transform .3s cubic-bezier(.32,.72,0,1); }
+    .sheet.open { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: rgba(0,0,0,.1); border-radius: 2px; margin: .8rem auto; }
+    .sheet-header { padding: .5rem 1.4rem 1rem; border-bottom: 1px solid rgba(200,160,140,.12); }
+    .sheet-cat { font-size: .72rem; font-weight: 700; color: var(--rose); background: rgba(217,123,108,.1); padding: .18rem .6rem; border-radius: 50px; display: inline-block; margin-bottom: .5rem; }
+    .sheet-title { font-family: 'Noto Serif KR', serif; font-size: 1.2rem; font-weight: 700; color: var(--brown); line-height: 1.4; word-break: keep-all; }
+    .sheet-date { font-size: .76rem; color: var(--text-light); margin-top: .3rem; }
+    .sheet-body { padding: 1.2rem 1.4rem; font-size: .92rem; color: var(--text-mid); line-height: 1.9; white-space: pre-line; word-break: keep-all; }
+    .sheet-scripture { background: rgba(217,123,108,.06); border-left: 3px solid var(--blush); border-radius: 0 8px 8px 0; padding: .7rem 1rem; margin-bottom: 1rem; font-size: .84rem; color: var(--rose-dark); font-style: italic; line-height: 1.6; }
+
+    /* ── Skeleton loading ── */
+    .skel { background: linear-gradient(90deg, var(--beige) 25%, rgba(245,230,211,.5) 50%, var(--beige) 75%); background-size: 200% 100%; animation: skel 1.4s infinite; border-radius: 8px; }
+    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skel-text { height: 14px; margin-bottom: 8px; }
+    .skel-text-sm { height: 11px; }
+
+    /* ── Utilities ── */
+    .mt-1 { margin-top: .6rem; } .mt-2 { margin-top: 1.2rem; }
+    .divider { height: 8px; background: var(--beige); margin: 0; }
   </style>
 </head>
 <body>
+<div class="app">
 
-  <!-- Nav -->
-  <nav>
-    <a class="nav-logo" href="#hero">
-      <div class="nav-logo-icon">🌿</div>
+  <!-- Header -->
+  <header class="app-header">
+    <a class="header-logo" href="#">
+      <div class="header-logo-icon">🌿</div>
       <div>
-        <div class="nav-logo-text">마더와이즈</div>
-        <div class="nav-logo-sub">MOTHERWISE</div>
+        <div class="header-logo-text">마더와이즈</div>
+        <div class="header-logo-sub">MOTHERWISE</div>
       </div>
     </a>
-    <ul class="nav-links">
-      <li><a href="#seminar">세미나</a></li>
-      <li><a href="#history">단체 소개</a></li>
-      <li><a href="#books">교재 구매</a></li>
-      <li><a href="#news">소식</a></li>
-      <li><a href="#regional">지역교회</a></li>
-      <li><a href="#seminar" class="nav-cta">세미나 신청</a></li>
-    </ul>
-    <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+    <div class="header-actions">
+      <button class="btn-install" id="installBtn">📲 앱 설치</button>
+    </div>
+  </header>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+
+    <!-- ① 홈 -->
+    <div class="tab-page active" id="page-home">
+      <div class="home-hero">
+        <div class="home-hero-label">마더와이즈 사역 세미나</div>
+        <h1 class="home-hero-title" id="heroTitle">어머니의 삶을<br />지혜로 세우는 여정</h1>
+        <p class="home-hero-desc" id="heroDesc">지혜, 자유, 회복, 동행의 네 가지 여정을 함께 걸어가는 어머니 사역 세미나입니다.</p>
+        <div class="home-hero-chips">
+          <span class="home-hero-chip">🌿 지혜</span>
+          <span class="home-hero-chip">🕊️ 자유</span>
+          <span class="home-hero-chip">💛 회복</span>
+          <span class="home-hero-chip">🤝 동행</span>
+        </div>
+      </div>
+
+      <div class="page-section">
+        <div class="section-header">
+          <div class="section-label">Seminar</div>
+          <div class="section-title">세미나 일정</div>
+        </div>
+        <div id="homeSeminars">
+          <div class="card"><div class="seminar-card"><div class="skel skel-text" style="width:60%"></div><div class="skel skel-text" style="width:80%;margin-top:8px"></div><div class="skel skel-text-sm" style="width:40%;margin-top:8px"></div></div></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="page-section">
+        <div class="section-header">
+          <div class="section-label">News</div>
+          <div class="section-title">최근 소식</div>
+        </div>
+        <div class="card" id="homeNews">
+          <div style="padding:1rem 1.1rem"><div class="skel skel-text" style="width:80%"></div><div class="skel skel-text-sm" style="width:60%;margin-top:8px"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ② 미디어 -->
+    <div class="tab-page" id="page-media">
+      <div class="page-section">
+        <div class="segment" id="mediaSegment">
+          <button class="seg-btn active" data-seg="podcast" onclick="switchSeg('media','podcast',this)">🎙️ 팟캐스트</button>
+          <button class="seg-btn" data-seg="lecture" onclick="switchSeg('media','lecture',this)">🎬 강의 영상</button>
+        </div>
+        <div id="mediaList"></div>
+      </div>
+    </div>
+
+    <!-- ③ 묵상 -->
+    <div class="tab-page" id="page-devotion">
+      <div class="page-section">
+        <div class="segment" id="devotSegment">
+          <button class="seg-btn active" data-seg="devotion" onclick="switchSeg('devot','devotion',this)">📖 묵상 노트</button>
+          <button class="seg-btn" data-seg="prayer" onclick="switchSeg('devot','prayer',this)">🙏 기도문</button>
+        </div>
+        <div id="devotList"></div>
+      </div>
+    </div>
+
+    <!-- ④ 몰 -->
+    <div class="tab-page" id="page-mall">
+      <div class="mall-banner">
+        <div class="mall-banner-icon">📚</div>
+        <div>
+          <div class="mall-banner-title">마더와이즈 교재</div>
+          <div class="mall-banner-desc">지혜·자유·회복·동행<br />4가지 세미나 공식 교재</div>
+        </div>
+      </div>
+      <div class="book-grid">
+        <div class="book-card"><div class="book-card-icon">🌿</div><div class="book-card-title">지혜</div><div class="book-card-sub">Wisdom</div></div>
+        <div class="book-card"><div class="book-card-icon">🕊️</div><div class="book-card-title">자유</div><div class="book-card-sub">Freedom</div></div>
+        <div class="book-card"><div class="book-card-icon">💛</div><div class="book-card-title">회복</div><div class="book-card-sub">Restoration</div></div>
+        <div class="book-card"><div class="book-card-icon">🤝</div><div class="book-card-title">동행</div><div class="book-card-sub">Together</div></div>
+      </div>
+      <!-- 🔗 여유몰 URL을 href에 입력하세요 -->
+      <div class="mall-cta">
+        <a href="YEOYUMOL_URL_HERE" target="_blank" class="btn btn-primary btn-block">🛍️ 여유몰에서 교재 구매하기</a>
+      </div>
+      <div class="coming-soon">
+        <div class="coming-soon-icon">🔔</div>
+        <div class="coming-soon-text">앱 내 직접 구매 기능을<br />준비 중입니다</div>
+      </div>
+    </div>
+
+    <!-- ⑤ 더보기 -->
+    <div class="tab-page" id="page-more">
+      <div class="more-profile">
+        <div class="more-profile-icon">🌿</div>
+        <div>
+          <div class="more-profile-title">마더와이즈</div>
+          <div class="more-profile-desc">어머니를 위한 사역 세미나<br />지혜 · 자유 · 회복 · 동행</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin:1.2rem;border-radius:16px;overflow:hidden;">
+        <a class="more-menu-item" onclick="showMorePage('seminar')">
+          <div class="more-menu-icon">📋</div>
+          <div class="more-menu-text"><div class="more-menu-label">세미나 소개</div><div class="more-menu-desc">4가지 사역 세미나 안내</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+        <a class="more-menu-item" onclick="showMorePage('about')">
+          <div class="more-menu-icon">🏠</div>
+          <div class="more-menu-text"><div class="more-menu-label">단체 소개</div><div class="more-menu-desc">마더와이즈 소개 및 연혁</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+        <a class="more-menu-item" onclick="showMorePage('regional')">
+          <div class="more-menu-icon">📍</div>
+          <div class="more-menu-text"><div class="more-menu-label">지역교회 마더와이즈</div><div class="more-menu-desc">전국 지역교회 현황</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+        <!-- 🔗 카페 URL을 href에 입력하세요 -->
+        <a class="more-menu-item" href="CAFE_URL_HERE" target="_blank">
+          <div class="more-menu-icon">☕</div>
+          <div class="more-menu-text"><div class="more-menu-label">사역자 온라인 카페</div><div class="more-menu-desc">사역자 전용 나눔 공간</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+      </div>
+
+      <div class="card" style="margin:0 1.2rem 1.2rem;border-radius:16px;overflow:hidden;">
+        <!-- 🔗 유관기관 URL을 href에 입력하세요 -->
+        <a class="more-menu-item" href="WONCHUN_URL_HERE" target="_blank">
+          <div class="more-menu-icon">⛪</div>
+          <div class="more-menu-text"><div class="more-menu-label">원천침례교회</div><div class="more-menu-desc">유관기관</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+        <a class="more-menu-item" href="https://www.suwoncca.org" target="_blank">
+          <div class="more-menu-icon">🏫</div>
+          <div class="more-menu-text"><div class="more-menu-label">중앙기독학교</div><div class="more-menu-desc">유관기관</div></div>
+          <span class="more-menu-arrow">›</span>
+        </a>
+      </div>
+
+      <!-- More sub-pages -->
+      <div id="moreSubPage" style="display:none; position:fixed; inset:0; background:var(--cream); z-index:30; overflow-y:auto; padding-bottom:2rem;">
+        <div style="display:flex;align-items:center;gap:.7rem;padding:calc(var(--safe-top)+12px) 1.2rem 1rem;background:rgba(253,246,238,.96);backdrop-filter:blur(14px);border-bottom:1px solid rgba(210,150,120,.14);position:sticky;top:0;z-index:1;">
+          <button onclick="hideMorePage()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--brown);">‹</button>
+          <span style="font-size:1rem;font-weight:700;color:var(--brown);" id="moreSubTitle"></span>
+        </div>
+        <div id="moreSubContent" style="padding:1.2rem;"></div>
+      </div>
+    </div>
+
+  </div><!-- .tab-content -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="home" onclick="switchTab('home',this)">
+      <span class="nav-icon">🏠</span><span>홈</span>
+    </button>
+    <button class="nav-item" data-tab="media" onclick="switchTab('media',this)">
+      <span class="nav-icon">▶️</span><span>미디어</span>
+    </button>
+    <button class="nav-item" data-tab="devotion" onclick="switchTab('devotion',this)">
+      <span class="nav-icon">📖</span><span>묵상</span>
+    </button>
+    <button class="nav-item" data-tab="mall" onclick="switchTab('mall',this)">
+      <span class="nav-icon">🛍️</span><span>몰</span>
+    </button>
+    <button class="nav-item" data-tab="more" onclick="switchTab('more',this)">
+      <span class="nav-icon">☰</span><span>더보기</span>
+    </button>
   </nav>
 
-  <div class="mobile-menu" id="mobileMenu">
-    <a href="#seminar" onclick="mm()">세미나</a>
-    <a href="#history" onclick="mm()">단체 소개</a>
-    <a href="#books" onclick="mm()">교재 구매</a>
-    <a href="#news" onclick="mm()">소식</a>
-    <a href="#regional" onclick="mm()">지역교회</a>
+</div><!-- .app -->
+
+<!-- Bottom Sheet -->
+<div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-cat" id="sheetCat"></span>
+    <div class="sheet-title" id="sheetTitle"></div>
+    <div class="sheet-date" id="sheetDate"></div>
   </div>
-
-  <!-- ① Hero -->
-  <section id="hero">
-    <div class="hero-deco hero-deco-1"></div>
-    <div class="hero-deco hero-deco-2"></div>
-    <div class="hero-inner fade-up">
-      <div class="hero-badge">🌿 마더와이즈 사역 세미나</div>
-      <h1 class="hero-title">
-        어머니의 삶을<br />
-        <span class="accent">지혜로</span> 세우는<br />
-        사역 세미나
-      </h1>
-      <p class="hero-desc" id="heroDesc">
-        마더와이즈는 어머니들이 지혜, 자유, 회복, 동행의 여정을 함께 걸으며
-        자녀를 건강하게 양육하고 가정을 세우도록 돕는 사역 세미나입니다.
-      </p>
-      <div class="hero-btns">
-        <a href="#seminar" class="btn btn-primary">세미나 일정 보기 →</a>
-        <a href="#history" class="btn btn-outline">단체 소개</a>
-      </div>
-      <div class="hero-cores">
-        <span class="core-chip core-chip-1">지혜</span>
-        <span class="core-chip core-chip-2">자유</span>
-        <span class="core-chip core-chip-3">회복</span>
-        <span class="core-chip core-chip-4">동행</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- ② Seminar -->
-  <section id="seminar">
-    <div class="seminar-header fade-up">
-      <div>
-        <span class="section-label">Seminar</span>
-        <h2 class="section-title">사역 세미나 소개</h2>
-        <p class="section-desc" style="margin-bottom:0;">매 학기 4회의 세미나가 열립니다. 어머니라면 누구든지 참여하실 수 있어요.</p>
-      </div>
-    </div>
-    <div class="seminar-grid" id="seminarGrid">
-      <!-- JS로 렌더링 -->
-    </div>
-  </section>
-
-  <!-- ③ History -->
-  <section id="history">
-    <div class="history-grid">
-      <div class="fade-up">
-        <div class="history-image">
-          <div class="big-icon">🌿</div>
-          <p>마더와이즈 사역 사진이<br />들어갈 자리입니다</p>
-        </div>
-      </div>
-      <div class="fade-up">
-        <span class="section-label">About</span>
-        <h2 class="section-title" id="aboutTitle">마더와이즈는<br />어떤 단체인가요?</h2>
-        <p id="aboutDesc1" style="color:var(--text-mid);line-height:1.85;word-break:keep-all;">
-          마더와이즈(Motherwise)는 원천침례교회에서 시작된 어머니 사역으로, 성경적 가치관 위에서 자녀를 양육하고 건강한 가정을 세울 수 있도록 교육과 공동체를 지원합니다.
-        </p>
-        <p id="aboutDesc2" style="color:var(--text-mid);line-height:1.85;margin-top:0.8rem;word-break:keep-all;">
-          지혜·자유·회복·동행 네 가지 주제의 세미나와 교재를 통해 어머니들이 서로 배우고 격려하며 성장하는 공동체를 세워갑니다.
-        </p>
-        <div class="timeline" id="historyTimeline">
-          <div class="timeline-item">
-            <div class="timeline-dot" style="font-size:0.72rem;">설립</div>
-            <div>
-              <div class="timeline-year">창립</div>
-              <div class="timeline-text">원천침례교회에서 마더와이즈 사역 시작</div>
-            </div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-dot" style="font-size:0.72rem;">성장</div>
-            <div>
-              <div class="timeline-year">확산</div>
-              <div class="timeline-text">지역교회로 사역이 퍼져나가며 전국 단체로 성장</div>
-            </div>
-          </div>
-          <div class="timeline-item">
-            <div class="timeline-dot" style="font-size:0.72rem;">현재</div>
-            <div>
-              <div class="timeline-year">현재</div>
-              <div class="timeline-text">지혜·자유·회복·동행 커리큘럼으로 전국 세미나 진행 중</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ④ Books -->
-  <section id="books">
-    <div class="fade-up" style="margin-bottom:2.4rem;">
-      <span class="section-label">Textbooks</span>
-      <h2 class="section-title">교재 구매 안내</h2>
-      <p class="section-desc" style="margin-bottom:0;">마더와이즈 4가지 세미나 교재를 여유몰에서 구매하실 수 있습니다.</p>
-    </div>
-    <div class="books-grid fade-up">
-      <div class="book-card">
-        <div class="book-icon">🌿</div>
-        <div class="book-title">지혜</div>
-        <div class="book-subtitle">Wisdom<br />지혜로운 어머니의 길</div>
-      </div>
-      <div class="book-card">
-        <div class="book-icon">🕊️</div>
-        <div class="book-title">자유</div>
-        <div class="book-subtitle">Freedom<br />진정한 자유를 향한 여정</div>
-      </div>
-      <div class="book-card">
-        <div class="book-icon">💛</div>
-        <div class="book-title">회복</div>
-        <div class="book-subtitle">Restoration<br />상처에서 회복으로</div>
-      </div>
-      <div class="book-card">
-        <div class="book-icon">🤝</div>
-        <div class="book-title">동행</div>
-        <div class="book-subtitle">Together<br />함께 걷는 어머니의 여정</div>
-      </div>
-    </div>
-    <div class="books-cta fade-up">
-      <p class="books-cta-text">교재는 마더와이즈 공식 온라인 쇼핑몰 <strong>여유몰</strong>에서 구매하실 수 있습니다.</p>
-      <!-- 🔗 여유몰 주소를 아래 href에 입력하세요 -->
-      <a href="YEOYUMOL_URL_HERE" target="_blank" rel="noopener" class="btn btn-primary">여유몰 바로가기 →</a>
-    </div>
-  </section>
-
-  <!-- ⑤ News -->
-  <section id="news">
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;margin-bottom:2.4rem;" class="fade-up">
-      <div>
-        <span class="section-label">News</span>
-        <h2 class="section-title">마더와이즈 소식</h2>
-        <p class="section-desc" style="margin-bottom:0;">세미나 일정, 공지사항, 사역 소식을 전합니다.</p>
-      </div>
-    </div>
-    <div class="news-grid" id="newsGrid"><!-- JS --></div>
-  </section>
-
-  <!-- ⑥ Regional -->
-  <section id="regional">
-    <div class="regional-intro fade-up">
-      <span class="section-label">Regional</span>
-      <h2 class="section-title">지역교회 마더와이즈</h2>
-      <p class="section-desc" style="margin-bottom:0;">전국 각 지역교회에서 마더와이즈 사역이 진행되고 있습니다.</p>
-    </div>
-    <div class="regional-grid" id="regionalGrid"><!-- JS --></div>
-    <div class="cafe-banner fade-up">
-      <div class="cafe-banner-text">
-        <div class="cafe-banner-title">🏕️ 마더와이즈 사역자 온라인 카페</div>
-        <div class="cafe-banner-desc">사역자들을 위한 자료실, 나눔, 소통 공간입니다</div>
-      </div>
-      <!-- 🔗 카페 주소를 아래 href에 입력하세요 -->
-      <a href="CAFE_URL_HERE" target="_blank" rel="noopener" class="btn-cafe">카페 바로가기 →</a>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer>
-    <!-- 유관기관 배너 -->
-    <div class="footer-partners">
-      <span class="partner-label">유관기관</span>
-      <!-- 🔗 유관기관 주소를 href에 입력하세요 -->
-      <a href="WONCHUN_URL_HERE" target="_blank" rel="noopener" class="partner-chip">원천침례교회</a>
-      <a href="https://www.suwoncca.org" target="_blank" rel="noopener" class="partner-chip">중앙기독학교</a>
-    </div>
-    <div class="footer-main">
-      <div class="footer-grid">
-        <div>
-          <div class="footer-brand-name">마더와이즈 Motherwise</div>
-          <p class="footer-brand-desc">
-            어머니들이 지혜·자유·회복·동행의<br />
-            여정을 함께 걷는 사역 세미나입니다.
-          </p>
-        </div>
-        <div>
-          <div class="footer-col-title">바로가기</div>
-          <ul class="footer-links">
-            <li><a href="#seminar">세미나 소개</a></li>
-            <li><a href="#history">단체 소개</a></li>
-            <li><a href="#books">교재 구매</a></li>
-            <li><a href="#news">소식</a></li>
-            <li><a href="#regional">지역교회</a></li>
-          </ul>
-        </div>
-        <div>
-          <div class="footer-col-title">연락처</div>
-          <ul class="footer-links">
-            <li><a href="#">경기도 수원시 영통구 월드컵로 70</a></li>
-            <li><a href="tel:07070181300">070-7018-1300</a></li>
-            <li><a href="mailto:itman@suwoncca.org">itman@suwoncca.org</a></li>
-          </ul>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <span>© 2025 마더와이즈(Motherwise). All rights reserved.</span>
-        <a href="admin.html" style="color:rgba(255,255,255,0.25);font-size:0.72rem;text-decoration:none;">관리자</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- News Modal -->
-  <div class="modal-overlay" id="newsModal">
-    <div class="modal">
-      <button class="modal-close" onclick="closeModal()">✕</button>
-      <span class="modal-cat" id="mCat"></span>
-      <h2 class="modal-title" id="mTitle"></h2>
-      <div class="modal-date" id="mDate"></div>
-      <div class="modal-content" id="mContent"></div>
-    </div>
+  <div class="sheet-body">
+    <div class="sheet-scripture" id="sheetScripture" style="display:none;"></div>
+    <div id="sheetContent"></div>
   </div>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, addDoc, setDoc, serverTimestamp, query, orderBy, where, onSnapshot }
+import { getFirestore, collection, getDocs, onSnapshot, query, orderBy, where }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
-// ══════════════════════════════════════════════════════════
-// 🔧 Firebase 설정 — admin.html 과 동일한 값으로 교체하세요
 const firebaseConfig = {
   apiKey:            "AIzaSyD-uNiAqgp54pREVGjZFL-cdXfBrhK8trU",
   authDomain:        "motherwisekr.firebaseapp.com",
@@ -477,181 +460,259 @@ const firebaseConfig = {
   messagingSenderId: "115848932002",
   appId:             "1:115848932002:web:81966ecead06baaf0c45fb"
 };
-// ══════════════════════════════════════════════════════════
-
-const DEFAULT_SEMINARS = [
-  { id:"wisdom",      order:0, icon:"🌿", module:"세미나 1", name:"지혜 (Wisdom)",      desc:"하나님의 말씀 위에서 지혜로운 어머니로 서는 법을 배웁니다. 양육의 근본 원리를 함께 탐구합니다.",                 open:true,  formUrl:"GOOGLE_FORM_URL_1" },
-  { id:"freedom",     order:1, icon:"🕊️", module:"세미나 2", name:"자유 (Freedom)",     desc:"어머니 안의 상처와 두려움을 직면하고, 말씀 안에서 진정한 자유를 경험하는 과정입니다.",                     open:true,  formUrl:"GOOGLE_FORM_URL_2" },
-  { id:"restoration", order:2, icon:"💛", module:"세미나 3", name:"회복 (Restoration)", desc:"관계와 내면의 상처로부터 하나님의 은혜로 회복되는 여정을 함께 걷습니다.",                               open:false, formUrl:"GOOGLE_FORM_URL_3" },
-  { id:"together",    order:3, icon:"🤝", module:"세미나 4", name:"동행 (Together)",    desc:"어머니들이 서로의 여정에 동행하며 공동체로 세워져 가는 마더와이즈의 핵심 과정입니다.",                     open:false, formUrl:"GOOGLE_FORM_URL_4" },
-];
-
-const DEFAULT_REGIONALS = [
-  { id:"r1", region:"수원", church:"원천침례교회", active:true },
-  { id:"r2", region:"수원", church:"중앙기독학교", active:true },
-];
 
 let db;
 try { db = getFirestore(initializeApp(firebaseConfig)); } catch {}
 
-// ── Seminars ──
+// ── State ──
+let state = {
+  mediaSeg: 'podcast',
+  devotSeg: 'devotion',
+  mediaItems: [],
+  devotItems: [],
+};
+
+// ── Tab navigation ──
+window.switchTab = function(tab, el) {
+  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (el) el.classList.add('active');
+};
+
+// ── Segment control ──
+window.switchSeg = function(type, seg, el) {
+  const wrap = el.closest('.segment');
+  wrap.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  if (type === 'media') { state.mediaSeg = seg; renderMedia(); }
+  if (type === 'devot') { state.devotSeg = seg; renderDevot(); }
+};
+
+// ── Sheet ──
+window.openSheet = function(data) {
+  document.getElementById('sheetCat').textContent     = data.cat || '';
+  document.getElementById('sheetTitle').textContent   = data.title || '';
+  document.getElementById('sheetDate').textContent    = data.date || '';
+  const scrEl = document.getElementById('sheetScripture');
+  if (data.scripture) { scrEl.textContent = data.scripture; scrEl.style.display = 'block'; }
+  else scrEl.style.display = 'none';
+  document.getElementById('sheetContent').textContent = data.content || data.excerpt || '';
+  document.getElementById('sheet').classList.add('open');
+  document.getElementById('sheetOverlay').classList.add('open');
+};
+window.closeSheet = function() {
+  document.getElementById('sheet').classList.remove('open');
+  document.getElementById('sheetOverlay').classList.remove('open');
+};
+
+// ── HOME ──
+async function loadHome() {
+  loadSeminars();
+  loadNews();
+}
+
+const DEFAULT_SEMINARS = [
+  { id:'wisdom',      order:0, icon:'🌿', module:'세미나 1', name:'지혜 (Wisdom)',      desc:'하나님의 말씀 위에서 지혜로운 어머니로 서는 법을 배웁니다.', open:true,  formUrl:'' },
+  { id:'freedom',     order:1, icon:'🕊️', module:'세미나 2', name:'자유 (Freedom)',     desc:'말씀 안에서 진정한 자유를 경험하는 과정입니다.',             open:true,  formUrl:'' },
+  { id:'restoration', order:2, icon:'💛', module:'세미나 3', name:'회복 (Restoration)', desc:'하나님의 은혜로 회복되는 여정을 함께 걷습니다.',             open:false, formUrl:'' },
+  { id:'together',    order:3, icon:'🤝', module:'세미나 4', name:'동행 (Together)',    desc:'어머니들이 공동체로 세워져 가는 핵심 과정입니다.',           open:false, formUrl:'' },
+];
+
 async function loadSeminars() {
   let items = DEFAULT_SEMINARS;
   if (db) {
     try {
-      const snap = await getDocs(query(collection(db, 'mw_seminars'), orderBy('order')));
-      if (!snap.empty) items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const s = await getDocs(query(collection(db, 'mw_seminars'), orderBy('order')));
+      if (!s.empty) items = s.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch {}
   }
-  renderSeminars(items);
-}
-
-function renderSeminars(items) {
-  document.getElementById('seminarGrid').innerHTML = items.map((s, i) => `
-    <div class="seminar-card fade-up">
-      <div class="seminar-thumb seminar-thumb-${i % 4}">${s.icon}</div>
-      <div class="seminar-body">
-        <span class="seminar-module">${s.module}</span>
-        <div class="seminar-name">${s.name}</div>
+  document.getElementById('homeSeminars').innerHTML = items.map(s => `
+    <div class="card" style="${items.indexOf(s) > 0 ? 'margin-top:.9rem' : ''}">
+      <div class="seminar-card">
+        <div class="seminar-card-top">
+          <div>
+            <div class="seminar-module">${s.module}</div>
+            <div class="seminar-name">${s.icon} ${s.name}</div>
+          </div>
+          <span class="pill ${s.open ? 'pill-green' : 'pill-brown'}">${s.open ? '신청 가능' : '마감'}</span>
+        </div>
         <div class="seminar-desc">${s.desc}</div>
-        ${s.schedule ? `<div class="seminar-meta"><span>📅 ${s.schedule}</span></div>` : ''}
-        <span class="${s.open ? 'seminar-status-open' : 'seminar-status-closed'}">${s.open ? '✅ 신청 가능' : '🔒 신청 마감'}</span>
+        ${s.schedule ? `<div class="seminar-meta">📅 ${s.schedule}</div>` : ''}
+        <div class="seminar-actions">
+          ${s.open && s.formUrl ? `<a href="${s.formUrl}" target="_blank" class="btn btn-primary btn-sm">신청하기</a>` : `<button class="btn btn-outline btn-sm" disabled style="opacity:.5">신청 마감</button>`}
+        </div>
       </div>
-      ${s.open ? `
-      <div class="seminar-actions">
-        <a href="${s.formUrl || '#'}" target="_blank" rel="noopener" class="btn btn-primary">신청하기</a>
-        <a href="#news" class="btn btn-outline">일정 보기</a>
-      </div>` : `
-      <div class="seminar-actions">
-        <a href="#news" class="btn btn-outline" style="flex:1;justify-content:center;">다음 일정 알림받기</a>
-      </div>`}
     </div>
   `).join('');
-  reObserve();
 }
 
-// ── News ──
 function loadNews() {
   if (!db) { renderDefaultNews(); return; }
   try {
-    const q = query(collection(db, 'mw_news'), where('published', '!=', false), orderBy('published'), orderBy('createdAt', 'desc'));
+    const q = query(collection(db, 'mw_news'), where('published','!=',false), orderBy('published'), orderBy('createdAt','desc'));
     onSnapshot(q, snap => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      items.length ? renderNews(items.slice(0, 6)) : renderDefaultNews();
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 5);
+      items.length ? renderNews(items) : renderDefaultNews();
     }, renderDefaultNews);
   } catch { renderDefaultNews(); }
 }
 
 function renderNews(items) {
-  document.getElementById('newsGrid').innerHTML = items.map(item => `
-    <div class="news-card fade-up" onclick='openModal(${JSON.stringify(item).replace(/'/g,"&#39;")})'>
-      <div class="news-date">${item.date || ''}</div>
-      <span class="news-tag">${item.category || '공지'}</span>
-      <div class="news-title">${item.title}</div>
-      <p class="news-excerpt">${item.excerpt || ''}</p>
-      <span class="news-more">자세히 보기 →</span>
+  document.getElementById('homeNews').innerHTML = items.map(item => `
+    <div class="news-item" onclick='openSheet(${JSON.stringify({cat:item.category,title:item.title,date:item.date,content:item.content||item.excerpt})})'>
+      <div class="news-item-top">
+        <span class="pill pill-rose">${item.category||'공지'}</span>
+        <span class="news-item-date">${item.date||''}</span>
+      </div>
+      <div class="news-item-title">${item.title}</div>
+      <div class="news-item-excerpt">${item.excerpt||''}</div>
     </div>
   `).join('');
-  reObserve();
 }
 
 function renderDefaultNews() {
-  document.getElementById('newsGrid').innerHTML = `
-    <div class="news-card fade-up">
-      <div class="news-date">2025. 03. 10</div>
-      <span class="news-tag">세미나</span>
-      <div class="news-title">2025년 봄학기 세미나 일정 안내</div>
-      <p class="news-excerpt">봄학기 지혜·자유 세미나 참가자를 모집합니다. 서둘러 신청해 주세요.</p>
-    </div>
-    <div class="news-card fade-up">
-      <div class="news-date">2025. 02. 15</div>
-      <span class="news-tag">공지</span>
-      <div class="news-title">교재 개정판 출시 안내</div>
-      <p class="news-excerpt">지혜 교재 개정판이 여유몰에서 구매 가능합니다.</p>
-    </div>
-    <div class="news-card fade-up">
-      <div class="news-date">2025. 01. 20</div>
-      <span class="news-tag">후기</span>
-      <div class="news-title">2024년 겨울 수련회 후기</div>
-      <p class="news-excerpt">30여 명의 어머니들이 함께한 겨울 수련회의 은혜로운 시간을 나눕니다.</p>
-    </div>
+  document.getElementById('homeNews').innerHTML = `
+    <div class="news-item"><div class="news-item-top"><span class="pill pill-rose">세미나</span><span class="news-item-date">2025. 03. 10</span></div><div class="news-item-title">2025년 봄학기 세미나 일정 안내</div><div class="news-item-excerpt">봄학기 지혜·자유 세미나 참가자를 모집합니다.</div></div>
+    <div class="news-item"><div class="news-item-top"><span class="pill pill-rose">공지</span><span class="news-item-date">2025. 02. 15</span></div><div class="news-item-title">교재 개정판 출시 안내</div><div class="news-item-excerpt">지혜 교재 개정판이 여유몰에서 구매 가능합니다.</div></div>
   `;
-  reObserve();
 }
 
-// ── Regional ──
-async function loadRegionals() {
-  let items = DEFAULT_REGIONALS;
-  if (db) {
-    try {
-      const snap = await getDocs(collection(db, 'mw_regionals'));
-      if (!snap.empty) items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch {}
-  }
-  renderRegionals(items);
+// ── MEDIA ──
+function loadMedia() {
+  if (!db) { state.mediaItems = []; renderMedia(); return; }
+  const q = query(collection(db, 'mw_media'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, snap => {
+    state.mediaItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMedia();
+  }, () => { state.mediaItems = []; renderMedia(); });
 }
 
-function renderRegionals(items) {
-  const el = document.getElementById('regionalGrid');
+function renderMedia() {
+  const items = state.mediaItems.filter(i => i.type === state.mediaSeg);
+  const el = document.getElementById('mediaList');
   if (!items.length) {
-    el.innerHTML = '<div class="regional-empty">등록된 지역교회 정보가 없습니다.</div>';
+    el.innerHTML = `<div class="media-empty"><div class="e-icon">${state.mediaSeg === 'podcast' ? '🎙️' : '🎬'}</div><p>${state.mediaSeg === 'podcast' ? '등록된 팟캐스트가 없습니다.' : '등록된 강의 영상이 없습니다.'}<br/>관리자 페이지에서 추가해 주세요.</p></div>`;
     return;
   }
-  el.innerHTML = items.map(r => `
-    <div class="regional-card fade-up">
-      <div class="regional-name">📍 ${r.region}</div>
-      <div class="regional-church">${r.church}</div>
-      <span class="regional-status ${r.active ? 'status-active' : ''}">${r.active ? '✅ 운영 중' : '준비 중'}</span>
+  el.innerHTML = items.map(item => {
+    const ytId = item.youtubeId || '';
+    const thumb = ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : '';
+    const ytUrl = ytId ? `https://www.youtube.com/watch?v=${ytId}` : '#';
+    return `
+      <div class="card" style="margin-bottom:.9rem;">
+        <div class="media-card">
+          <div class="media-thumb" onclick="window.open('${ytUrl}','_blank')">
+            ${thumb ? `<img src="${thumb}" alt="" loading="lazy"/>` : (state.mediaSeg === 'podcast' ? '🎙️' : '🎬')}
+            ${ytId ? '<div class="media-thumb-play">▶</div>' : ''}
+          </div>
+          <div class="media-info">
+            <div class="media-title" onclick="window.open('${ytUrl}','_blank')">${item.title}</div>
+            <div class="media-meta">${item.date || ''}</div>
+            ${item.desc ? `<div class="media-desc">${item.desc}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── DEVOTION ──
+function loadDevot() {
+  if (!db) { state.devotItems = []; renderDevot(); return; }
+  const q = query(collection(db, 'mw_devotionals'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, snap => {
+    state.devotItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderDevot();
+  }, () => { state.devotItems = []; renderDevot(); });
+}
+
+function renderDevot() {
+  const items = state.devotItems.filter(i => i.type === state.devotSeg);
+  const el = document.getElementById('devotList');
+  if (!items.length) {
+    el.innerHTML = `<div class="media-empty"><div class="e-icon">${state.devotSeg === 'devotion' ? '📖' : '🙏'}</div><p>${state.devotSeg === 'devotion' ? '등록된 묵상 노트가 없습니다.' : '등록된 기도문이 없습니다.'}<br/>관리자 페이지에서 추가해 주세요.</p></div>`;
+    return;
+  }
+  el.innerHTML = items.map(item => `
+    <div class="card devot-card" style="margin-bottom:.8rem;">
+      <span class="pill pill-rose">${item.type === 'devotion' ? '묵상' : '기도문'}</span>
+      <div class="devot-title">${item.title}</div>
+      ${item.scripture ? `<div class="devot-scripture">${item.scripture}</div>` : ''}
+      <div class="devot-preview">${(item.content||'').slice(0, 80)}${item.content?.length > 80 ? '...' : ''}</div>
+      <div class="devot-footer">
+        <span class="devot-date">${item.date||''}</span>
+        <span class="devot-read" onclick='openSheet(${JSON.stringify({cat:item.type==="devotion"?"묵상 노트":"기도문",title:item.title,date:item.date,scripture:item.scripture,content:item.content})})'>전체 읽기 →</span>
+      </div>
     </div>
   `).join('');
-  reObserve();
 }
 
-// ── Modal ──
-window.openModal = function(item) {
-  document.getElementById('mCat').textContent     = item.category || '';
-  document.getElementById('mTitle').textContent   = item.title    || '';
-  document.getElementById('mDate').textContent    = item.date     || '';
-  document.getElementById('mContent').textContent = item.content  || item.excerpt || '';
-  document.getElementById('newsModal').classList.add('open');
+// ── MORE sub-pages ──
+window.showMorePage = async function(type) {
+  const sub = document.getElementById('moreSubPage');
+  const content = document.getElementById('moreSubContent');
+  const titles = { seminar:'세미나 소개', about:'단체 소개', regional:'지역교회 마더와이즈' };
+  document.getElementById('moreSubTitle').textContent = titles[type] || '';
+
+  if (type === 'seminar') {
+    let items = DEFAULT_SEMINARS;
+    if (db) { try { const s = await getDocs(query(collection(db,'mw_seminars'),orderBy('order'))); if (!s.empty) items = s.docs.map(d=>({id:d.id,...d.data()})); } catch {} }
+    content.innerHTML = items.map(s => `
+      <div class="card" style="margin-bottom:.9rem;padding:1.2rem;">
+        <div style="font-size:.7rem;font-weight:700;color:var(--rose);letter-spacing:.08em;">${s.module}</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--brown);margin:.3rem 0;">${s.icon} ${s.name}</div>
+        <div style="font-size:.84rem;color:var(--text-light);line-height:1.65;word-break:keep-all;">${s.desc}</div>
+        ${s.schedule ? `<div style="font-size:.76rem;color:var(--text-light);margin-top:.6rem;">📅 ${s.schedule}</div>` : ''}
+        <span class="pill ${s.open?'pill-green':'pill-brown'}" style="margin-top:.7rem;">${s.open?'✅ 신청 가능':'🔒 마감'}</span>
+      </div>
+    `).join('');
+  } else if (type === 'about') {
+    let d = {};
+    if (db) { try { const s = await getDocs(collection(db,'mw_about')); if (!s.empty) d = s.docs[0].data(); } catch {} }
+    content.innerHTML = `
+      <div style="font-size:.92rem;color:var(--text-mid);line-height:1.85;word-break:keep-all;margin-bottom:1.2rem;">${d.aboutDesc1||'마더와이즈(Motherwise)는 원천침례교회에서 시작된 어머니 사역으로, 성경적 가치관 위에서 자녀를 양육하고 건강한 가정을 세울 수 있도록 교육과 공동체를 지원합니다.'}</div>
+      <div style="font-size:.92rem;color:var(--text-mid);line-height:1.85;word-break:keep-all;">${d.aboutDesc2||'지혜·자유·회복·동행 네 가지 주제의 세미나와 교재를 통해 어머니들이 서로 배우고 격려하며 성장하는 공동체를 세워갑니다.'}</div>
+    `;
+  } else if (type === 'regional') {
+    let items = [];
+    if (db) { try { const s = await getDocs(collection(db,'mw_regionals')); items = s.docs.map(d=>({id:d.id,...d.data()})); } catch {} }
+    content.innerHTML = items.length
+      ? items.map(r => `<div class="card" style="margin-bottom:.8rem;padding:1rem 1.2rem;"><div style="font-weight:700;color:var(--brown);">📍 ${r.region}</div><div style="font-size:.84rem;color:var(--text-light);margin-top:.2rem;">${r.church}</div><span class="pill ${r.active?'pill-green':'pill-brown'}" style="margin-top:.5rem;">${r.active?'운영 중':'준비 중'}</span></div>`).join('')
+      : '<div class="media-empty"><div class="e-icon">📍</div><p>등록된 지역교회가 없습니다.</p></div>';
+  }
+
+  sub.style.display = 'block';
+  requestAnimationFrame(() => sub.style.opacity = '1');
 };
-window.closeModal = function() {
-  document.getElementById('newsModal').classList.remove('open');
+
+window.hideMorePage = function() {
+  document.getElementById('moreSubPage').style.display = 'none';
 };
-document.getElementById('newsModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closeModal();
+
+// ── PWA Install ──
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('installBtn').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') document.getElementById('installBtn').classList.remove('show');
+  deferredPrompt = null;
 });
 
-// ── Scroll animation ──
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      setTimeout(() => e.target.classList.add('visible'), e.target.dataset.delay || 0);
-      io.unobserve(e.target);
-    }
-  });
-}, { threshold: 0.1 });
-
-function reObserve() {
-  document.querySelectorAll('.fade-up:not(.visible)').forEach((el, i) => {
-    el.dataset.delay = (i % 4) * 70;
-    io.observe(el);
-  });
+// ── Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
-document.querySelectorAll('.fade-up').forEach((el, i) => { el.dataset.delay = (i % 4) * 70; io.observe(el); });
-document.querySelector('#hero .fade-up').classList.add('visible');
 
-// ── Mobile nav ──
-document.getElementById('navToggle').addEventListener('click', () => document.getElementById('mobileMenu').classList.toggle('open'));
-window.mm = () => document.getElementById('mobileMenu').classList.remove('open');
-document.addEventListener('click', e => {
-  if (!document.getElementById('navToggle').contains(e.target) && !document.getElementById('mobileMenu').contains(e.target))
-    document.getElementById('mobileMenu').classList.remove('open');
-});
-
-loadSeminars();
-loadNews();
-loadRegionals();
+// ── Init ──
+loadHome();
+loadMedia();
+loadDevot();
 </script>
 </body>
 </html>
