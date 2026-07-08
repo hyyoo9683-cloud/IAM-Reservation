@@ -865,7 +865,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div id="sms-contact-bar" style="display:none;align-items:center;gap:8px;background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">
       <span style="color:var(--text2)">수신자</span>
       <span id="sms-contact-name" style="font-weight:700;color:var(--text)"></span>
-      <a id="sms-contact-tel" href="#" style="color:var(--blue);font-weight:700;text-decoration:none;margin-left:auto"></a>
+      <span id="sms-contact-tel" style="font-weight:700;color:var(--blue);margin-left:auto;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>{this.style.opacity='.4';setTimeout(()=>this.style.opacity='1',800)})" title="클릭하여 복사"></span>
     </div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하세요.</div>
     <textarea id="sms-body" style="width:100%;height:220px;font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;font-family:inherit;background:var(--bg2)"></textarea>
@@ -3134,9 +3134,7 @@ ${MSG_FOOTER}`;
   const contactBar = document.getElementById('sms-contact-bar');
   if (tel) {
     document.getElementById('sms-contact-name').textContent = r.stewardName || '';
-    const telEl = document.getElementById('sms-contact-tel');
-    telEl.textContent = tel;
-    telEl.href = `tel:${tel.replace(/[^0-9+]/g, '')}`;
+    document.getElementById('sms-contact-tel').textContent = tel;
     contactBar.style.display = 'flex';
   } else {
     contactBar.style.display = 'none';
