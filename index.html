@@ -874,8 +874,8 @@ textarea { resize: vertical; min-height: 60px; }
         <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
         <label for="e-is-recur" style="font-size:13px;font-weight:600;color:var(--green);cursor:pointer;margin:0">정기 예약 (반복)</label>
       </div>
-      <div class="fl" id="e-recur-opts" style="display:none">
-        <div class="fg">
+      <div id="e-recur-opts" style="display:none">
+        <div class="fg" style="margin-bottom:8px">
           <div class="lbl">반복 유형</div>
           <select id="e-recur">
             <option value="weekly">매 주</option>
@@ -883,14 +883,11 @@ textarea { resize: vertical; min-height: 60px; }
             <option value="monthly">매 달 동일 요일</option>
           </select>
         </div>
-        <div class="fg">
-          <div class="lbl">종료 날짜 <span class="req">*</span></div>
-          <input type="date" id="e-end-date">
-        </div>
       </div>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail()"></div>
+      <div class="fg" id="e-end-date-wrap" style="display:none"><div class="lbl">종료 날짜 <span class="req">*</span></div><input type="date" id="e-end-date"></div>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
@@ -2287,7 +2284,8 @@ window.selApplyRoom = (name) => {
 };
 window.toggleEditRecur = () => {
   const on = document.getElementById('e-is-recur').checked;
-  document.getElementById('e-recur-opts').style.display = on ? '' : 'none';
+  document.getElementById('e-recur-opts').style.display    = on ? '' : 'none';
+  document.getElementById('e-end-date-wrap').style.display = on ? '' : 'none';
   document.getElementById('e-date-lbl').innerHTML = (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
 };
 window.toggleRecur = () => {
@@ -3073,8 +3071,9 @@ window.openEditModal = (id) => {
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
     document.getElementById('e-room').value = '';
     document.getElementById('e-is-recur').checked = false;
-    document.getElementById('e-recur-wrap').style.display = '';
-    document.getElementById('e-recur-opts').style.display = 'none';
+    document.getElementById('e-recur-wrap').style.display    = '';
+    document.getElementById('e-recur-opts').style.display    = 'none';
+    document.getElementById('e-end-date-wrap').style.display = 'none';
     document.getElementById('e-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
     initTimeSelects('e-start', 'e-end');
     if (isAdmin) document.getElementById('e-status').value = '확정';
