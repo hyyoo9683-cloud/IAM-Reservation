@@ -3077,16 +3077,31 @@ window.openSmsModal = (id, type) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
   const room    = roomToSmsName(r.room);
-  const date    = dateToSmsFormat(r.date);
-  const time    = `${r.start}-${r.end}`;
   const purpose = r.purpose || '';
+  const time    = `${r.start}-${r.end}`;
+
+  // 일시 문자열 구성 (정기: "7.9-9.10 (매주 목 19:30-21:00)", 단건: "2026.7.9(목) 19:30-21:00")
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  let ilsi;
+  if (r.recurGroup) {
+    const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+    const first = series[0], last = series[series.length - 1];
+    const fd = new Date(first.date + 'T00:00:00');
+    const ld = new Date(last.date  + 'T00:00:00');
+    const shortDate = d => `${d.getMonth()+1}.${d.getDate()}`;
+    const dow = DOWS_KR[fd.getDay()];
+    const recurLabel = (r.recurType || '매 주').replace(' ', ''); // "매 주" → "매주"
+    ilsi = `${shortDate(fd)}-${shortDate(ld)} (${recurLabel} ${dow} ${time})`;
+  } else {
+    ilsi = `${dateToSmsFormat(r.date)} ${time}`;
+  }
 
   const baseBody =
 `[예약확정 알림]
 신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
 
 장소: ${room}
-일시: ${date} ${time}
+일시: ${ilsi}
 모임명: ${purpose}`;
 
   let text = '';
