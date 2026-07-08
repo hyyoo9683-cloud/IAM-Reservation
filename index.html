@@ -3092,7 +3092,7 @@ window.openSmsModal = (id, type) => {
     const shortDate = (d, withYear) => withYear ? `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}` : `${d.getMonth()+1}.${d.getDate()}`;
     const dow = DOWS_KR[fd.getDay()];
     const recurLabel = (r.recurType || '매 주').replace(' ', ''); // "매 주" → "매주"
-    ilsi = `${shortDate(fd, true)}-${shortDate(ld, !sameYear)} (${recurLabel} ${dow} ${time})`;
+    ilsi = `${shortDate(fd, true)}-${shortDate(ld, !sameYear)}\n(${recurLabel} ${dow} ${time})`;
   } else {
     ilsi = `${dateToSmsFormat(r.date)} ${time}`;
   }
