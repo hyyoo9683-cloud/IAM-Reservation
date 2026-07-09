@@ -927,6 +927,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="lbl">공간 <span class="req">*</span></div>
       <div id="e-room-chips" style="margin-bottom:6px"></div>
       <input type="hidden" id="e-room">
+      <div id="e-avail" style="margin-bottom:4px"></div>
     </div>
     <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
@@ -952,7 +953,6 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
       <div class="fg"><div class="lbl">종료 <span class="req">*</span></div><select id="e-end"   onchange="checkEditAvail()"></select></div>
     </div>
-    <div id="e-avail" style="margin-bottom:8px"></div>
     <div class="fl">
       <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="e-people" min="1"></div>
       <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="e-purpose"></div>
@@ -3173,15 +3173,21 @@ window.selEditRoom = (name) => {
 window.checkEditAvail = () => {
   const room = editRoom, date = document.getElementById('e-date').value,
         start = document.getElementById('e-start').value, end = document.getElementById('e-end').value;
-  const el = document.getElementById('e-avail'); if (!room || !date) { el.innerHTML = ''; return; }
+  const el = document.getElementById('e-avail');
+  if (!el) return;
+  if (!room || !date) { el.innerHTML = ''; return; }
+  if (room === '공실 희망') {
+    el.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:4px 0">실을 선택하면 이용 가능 여부를 확인할 수 있습니다</div>`;
+    return;
+  }
   const confirmedOk = noConflict(room, date, start, end, editId, true);
   const allOk       = noConflict(room, date, start, end, editId, false);
   if (!confirmedOk) {
-    el.innerHTML = `<div class="avail-no">✗ 확정된 예약 있음</div>`;
+    el.innerHTML = `<div class="avail-no">✗ ${room} 확정된 예약 있음</div>`;
   } else if (!allOk) {
-    el.innerHTML = `<div class="avail-warn" style="font-size:12px;color:var(--orange,#d97706);background:var(--orange-lt,#fff7ed);border-radius:6px;padding:5px 10px;margin-bottom:4px">⚠ 대기 중인 예약 있음 (확정 전)</div><div class="avail-ok">✓ 확정 예약 없음</div>`;
+    el.innerHTML = `<div class="avail-warn" style="font-size:12px;color:var(--orange,#d97706);background:var(--orange-lt,#fff7ed);border-radius:6px;padding:5px 10px;margin-bottom:4px">⚠ ${room} 대기 중인 예약 있음 (확정 전)</div><div class="avail-ok">✓ 확정 예약 없음</div>`;
   } else {
-    el.innerHTML = `<div class="avail-ok">✓ 사용 가능</div>`;
+    el.innerHTML = `<div class="avail-ok">✓ ${room} 사용 가능</div>`;
   }
 };
 const MSG_FOOTER = `[THE GREAT I AM
@@ -3337,7 +3343,7 @@ window.openEditModal = (id) => {
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
     editRoom = r.room;
     document.getElementById('e-room').value = r.room;
-    setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); }, 40);
+    setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); checkEditAvail(); }, 40);
   } else {
     document.getElementById('edit-modal-title').textContent = '예약 추가 (관리자)';
     document.getElementById('edit-submit-btn').textContent  = '추가';
