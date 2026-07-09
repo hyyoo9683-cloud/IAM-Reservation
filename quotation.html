@@ -60,8 +60,40 @@ const ISSUER = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
-let curUser = null;
-let history = [];
+let curUser   = null;
+let history   = [];
+let quoteDates = [];
+
+function renderQuoteDates() {
+  const el = document.getElementById('q-date-rows');
+  if (!el) return;
+  el.innerHTML = quoteDates.map((d, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
+      <input type="date" value="${d.date||''}" oninput="syncQD(${i},'date',this.value)" style="flex:1.2;min-width:0">
+      <input type="time" value="${d.timeStart||''}" oninput="syncQD(${i},'timeStart',this.value)" style="flex:1;min-width:0">
+      <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
+      <input type="time" value="${d.timeEnd||''}" oninput="syncQD(${i},'timeEnd',this.value)" style="flex:1;min-width:0">
+      ${quoteDates.length > 1
+        ? `<button onclick="removeQD(${i})" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text2)">×</button>`
+        : '<span style="width:26px;flex-shrink:0"></span>'}
+    </div>`).join('');
+  updateCalc();
+}
+window.syncQD = (i, f, val) => {
+  if (quoteDates[i]) quoteDates[i][f] = val;
+  updateCalc();
+};
+window.addQD = () => {
+  const last = quoteDates[quoteDates.length - 1];
+  let nextDate = '';
+  if (last?.date) {
+    const d = new Date(last.date); d.setDate(d.getDate() + 1);
+    nextDate = d.toISOString().slice(0, 10);
+  }
+  quoteDates.push({ date: nextDate, timeStart: last?.timeStart||'', timeEnd: last?.timeEnd||'' });
+  renderQuoteDates();
+};
+window.removeQD = i => { quoteDates.splice(i, 1); renderQuoteDates(); };
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
@@ -101,15 +133,23 @@ function initForm() {
   const params = new URLSearchParams(location.search);
 
   document.getElementById('q-issue-date').value = today;
-  document.getElementById('q-date').value        = params.get('date')    || today;
-  document.getElementById('q-client').value      = params.get('client')  || '';
-  document.getElementById('q-purpose').value     = params.get('purpose') || '';
+  document.getElementById('q-client').value     = params.get('client')  || '';
+  document.getElementById('q-purpose').value    = params.get('purpose') || '';
+
+  try {
+    const dp = params.get('dates');
+    quoteDates = dp ? JSON.parse(dp) : [{ date: today, timeStart: '', timeEnd: '' }];
+  } catch { quoteDates = [{ date: today, timeStart: '', timeEnd: '' }]; }
+  if (!quoteDates.length) quoteDates = [{ date: today, timeStart: '', timeEnd: '' }];
+
+  document.getElementById('q-date').value = quoteDates[0]?.date || today;
 
   const venueParam = params.get('venue');
   if (venueParam && VENUES[venueParam]) {
     document.getElementById('q-venue').value = venueParam;
   }
   switchVenue();
+  renderQuoteDates();
 
   if (params.get('ref')) {
     const refNote = document.getElementById('q-memo');
@@ -147,6 +187,7 @@ window.switchVenue = () => {
     if (d) document.getElementById('q-date-in').value = d;
   }
 
+  if (hourly) renderQuoteDates();
   updateCalc();
 };
 
@@ -173,12 +214,19 @@ window.updateCalc = () => {
     if (vInfo.surcharge && surOn) roomTotal = Math.round(roomTotal * 1.2);
 
     // 케이터링 할인
-    const cTier    = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
-    const cRate    = cTier === 'over' ? 0.5 : cTier === 'under' ? 0.3 : 0;
-    const cDisc    = Math.round(roomTotal * cRate);
-    subtotal       = roomTotal - cDisc;
+    const cTier     = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
+    const cRate     = cTier === 'over' ? 0.5 : cTier === 'under' ? 0.3 : 0;
+    const cDisc     = Math.round(roomTotal * cRate);
+    const dateCount = quoteDates.filter(d => d.date).length || 1;
+    subtotal        = (roomTotal - cDisc) * dateCount;
 
     el('q-catering-memo-wrap').style.display = cTier !== 'none' ? '' : 'none';
+
+    const dcRow = el('row-date-count');
+    if (dcRow) {
+      dcRow.style.display = dateCount > 1 ? '' : 'none';
+      el('c-date-count').textContent = `× ${dateCount}일`;
+    }
 
     el('c-base').textContent    = comma(base);
     el('c-extra').textContent   = extra ? `+${comma(extraAmt)}` : '–';
@@ -256,8 +304,8 @@ window.printQuote = async () => {
     let extraAmt  = extra * vInfo.extraPh;
     let roomTotal = base + extraAmt;
     if (vInfo.surcharge && surOn) roomTotal = Math.round(roomTotal * 1.2);
-    const cDisc   = Math.round(roomTotal * cRate);
-    subtotal      = roomTotal - cDisc;
+    const cDisc      = Math.round(roomTotal * cRate);
+    const perDateCost = roomTotal - cDisc;
 
     const remarks = [
       type === 'base90m' ? `단시간(90분) ${comma(base)}원` : `기본 3시간 ${comma(base)}원`,
@@ -267,7 +315,14 @@ window.printQuote = async () => {
       cMemo ? `케이터링: ${cMemo}` : '',
     ].filter(Boolean).join(' / ');
 
-    rows.push({ date: dateDisplay, time: timeStr, space: venue, item: purpose, remarks });
+    const datesToPrint = quoteDates.filter(d => d.date);
+    if (!datesToPrint.length) datesToPrint.push({ date: dateVal, timeStart: timeS, timeEnd: timeE });
+    datesToPrint.forEach(d => {
+      const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
+      const tStr = (d.timeStart && d.timeEnd) ? `${d.timeStart}–${d.timeEnd}` : timeStr;
+      rows.push({ date: dStr, time: tStr, space: venue, item: purpose, remarks, perDateCost });
+    });
+    subtotal = perDateCost * datesToPrint.length;
   } else {
     // 지혜홀 — 항목별 행
     const nights = parseInt(g('q-nights').value) || 1;
@@ -312,14 +367,15 @@ window.printQuote = async () => {
 
   const buildRows = () => {
     if (vInfo.type === 'hourly') {
-      const r = rows[0];
-      const s = Math.round(total/1.1), v = total - s;
-      return `<tr>
-        <td>${r.date}</td><td>${r.time}</td><td>${r.space}</td>
-        <td class="left">${r.item}</td>
-        <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
-        <td class="left sm">${r.remarks}</td>
-      </tr>`;
+      return rows.map(r => {
+        const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
+        return `<tr>
+          <td>${r.date}</td><td>${r.time}</td><td>${r.space}</td>
+          <td class="left">${r.item}</td>
+          <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
+          <td class="left sm">${r.remarks}</td>
+        </tr>`;
+      }).join('');
     } else {
       let html = '';
       rows.forEach((r, i) => {
@@ -621,6 +677,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .calc-total-label{color:rgba(255,255,255,.8);font-size:12px;font-weight:600;}
 .calc-total-val{color:#fff;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
 
+.btn-add-date{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);
+  background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
+.btn-add-date:hover{border-color:var(--blue);color:var(--blue);}
 .print-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
   background:var(--green);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
   display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:4px;}
@@ -684,10 +743,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       <div class="fg"><div class="lbl">사업자등록번호 (선택)</div><input id="q-client-biz" placeholder="000-00-00000"></div>
 
       <div class="sec-title">예약 정보</div>
-      <div class="fl">
-        <div class="fg"><div class="lbl">발행일</div><input type="date" id="q-issue-date"></div>
-        <div class="fg"><div class="lbl">이용 날짜</div><input type="date" id="q-date" onchange="updateCalc()"></div>
-      </div>
+      <div class="fg"><div class="lbl">발행일</div><input type="date" id="q-issue-date"></div>
+      <input type="hidden" id="q-date">
       <div class="fg"><div class="lbl">공간</div>
         <select id="q-venue" onchange="switchVenue()">
           <option value="아론홀">아론홀</option>
@@ -698,10 +755,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
       <!-- 아론홀/샤론홀 전용 -->
       <div id="sec-hourly">
-        <div class="fl">
-          <div class="fg"><div class="lbl">시작 시간</div><input type="time" id="q-time-start"></div>
-          <div class="fg"><div class="lbl">종료 시간</div><input type="time" id="q-time-end"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div class="lbl">날짜 / 시간</div>
+          <button class="btn-add-date" onclick="addQD()">+ 날짜 추가</button>
         </div>
+        <div id="q-date-rows"></div>
+        <input type="hidden" id="q-time-start">
+        <input type="hidden" id="q-time-end">
         <div class="fg"><div class="lbl">이용 유형</div>
           <select id="q-type" onchange="updateCalc()">
             <option value="base3h">기본 (3시간)</option>
@@ -842,6 +902,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div class="calc-row" id="row-hourly-extra"><span class="calc-label">추가 시간</span><span class="calc-val" id="c-extra">–</span></div>
         <div class="calc-row" id="row-surcharge" style="display:none"><span class="calc-label">시간대 할증</span><span class="calc-val" id="c-surcharge">–</span></div>
         <div class="calc-row" id="row-catering"><span class="calc-label">케이터링 할인</span><span class="calc-val" id="c-catering" style="color:var(--red)">–</span></div>
+        <div class="calc-row" id="row-date-count" style="display:none"><span class="calc-label">날짜 수</span><span class="calc-val" id="c-date-count" style="color:var(--blue)">–</span></div>
 
         <!-- 숙박 전용 행 -->
         <div class="calc-row" id="row-r1" style="display:none"><span class="calc-label">Room 1</span><span class="calc-val" id="c-r1">–</span></div>

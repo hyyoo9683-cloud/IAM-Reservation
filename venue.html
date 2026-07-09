@@ -27,21 +27,23 @@ const ALLOWED_DOMAIN = "suwoncca.org";
 const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
 
 // ── 공간별 장비 설정 ──────────────────────────────────────
+const CATERING_VENDORS = ['차폰팩토리', '조스테이블', '참방'];
+
 const VENUES = {
   '아론홀': {
     type: 'hourly',
     stdEquip: ['무선 마이크 2', 'TV', '스피커', '보면대', '마이크 스탠드 1'],
-    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '케이터링'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '케이터링', '다과 별도 준비'],
   },
   '샤론홀': {
     type: 'hourly',
     stdEquip: ['무선 마이크 2', '유선 마이크 2', 'TV 2대', '키보드'],
-    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '미디어 지원 (BMS)', '케이터링'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '미디어 지원 (BMS)', '케이터링', '다과 별도 준비'],
   },
   '지혜홀': {
     type: 'lodging',
     stdEquip: [],
-    paidServices: ['다과 IAM 제공', '케이터링', '기타 서비스'],
+    paidServices: ['다과 IAM 제공', '케이터링', '다과 별도 준비', '기타 서비스'],
   },
 };
 
@@ -56,10 +58,38 @@ const STATUSES = {
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
-let curUser = null;
+let curUser  = null;
 let requests = [];
 let curId    = null;
 let curTab   = '전체';
+let formDates = [];
+
+function renderDateRows() {
+  const el = document.getElementById('date-rows');
+  if (!el) return;
+  el.innerHTML = formDates.map((d, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
+      <input type="date" value="${d.date||''}" oninput="syncDR(${i},'date',this.value)" style="flex:1.2;min-width:0">
+      <input type="time" value="${d.timeStart||''}" oninput="syncDR(${i},'timeStart',this.value)" style="flex:1;min-width:0">
+      <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
+      <input type="time" value="${d.timeEnd||''}" oninput="syncDR(${i},'timeEnd',this.value)" style="flex:1;min-width:0">
+      ${formDates.length > 1
+        ? `<button onclick="removeDR(${i})" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text2)">×</button>`
+        : '<span style="width:26px;flex-shrink:0"></span>'}
+    </div>`).join('');
+}
+window.syncDR    = (i, f, v) => { if (formDates[i]) formDates[i][f] = v; };
+window.addDateRow = () => {
+  const last = formDates[formDates.length - 1];
+  let nextDate = '';
+  if (last?.date) {
+    const d = new Date(last.date); d.setDate(d.getDate() + 1);
+    nextDate = d.toISOString().slice(0, 10);
+  }
+  formDates.push({ date: nextDate, timeStart: last?.timeStart||'', timeEnd: last?.timeEnd||'' });
+  renderDateRows();
+};
+window.removeDR  = i => { formDates.splice(i, 1); renderDateRows(); };
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
@@ -137,9 +167,11 @@ function renderList() {
 
 // ── 폼 빌더 ───────────────────────────────────────────────
 window.showNewForm = () => {
-  curId = null; renderList();
+  curId = null;
+  formDates = [{ date: new Date().toISOString().slice(0,10), timeStart: '', timeEnd: '' }];
+  renderList();
   document.getElementById('detail-panel').innerHTML = buildFormHTML(null);
-  initVenueSwitch();
+  renderDateRows();
 };
 
 function buildFormHTML(r) {
@@ -156,17 +188,36 @@ function buildFormHTML(r) {
     `<span class="equip-tag">${e}</span>`
   ).join('');
 
-  const paidHTML = vInfo.paidServices.map(e =>
-    `<label class="equip-opt">
+  const savedVendor = isEdit ? (r.cateringVendor||'') : '';
+  const cateringChecked = isEdit && r.paidServices?.includes('케이터링');
+  const paidHTML = vInfo.paidServices.map(e => {
+    if (e === '케이터링') {
+      return `<div style="width:100%">
+        <label class="equip-opt" style="display:inline-flex" onchange="toggleCateringDetail(this.querySelector('input'))">
+          <input type="checkbox" value="케이터링"${cateringChecked?' checked':''}> 케이터링
+        </label>
+        <div id="catering-detail" style="display:${cateringChecked?'':'none'};margin-top:8px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)">
+          <div class="lbl" style="margin-bottom:6px">케이터링 업체</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${CATERING_VENDORS.map(v =>
+              `<label class="equip-opt" style="padding:5px 10px;font-size:12px">
+                <input type="radio" name="catering-vendor" value="${v}"${savedVendor===v?' checked':''}> ${v}
+              </label>`
+            ).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+    return `<label class="equip-opt">
       <input type="checkbox" value="${e}"${isEdit && r.paidServices?.includes(e)?' checked':''}> ${e}
-    </label>`
-  ).join('');
+    </label>`;
+  }).join('');
 
   const lodgingFields = `
     <div id="sec-lodging" style="display:${vInfo.type==='lodging'?'':'none'}">
       <div class="fl">
-        <div class="fg"><div class="lbl">체크인 날짜</div>
-          <input type="date" id="f-date-in" value="${v('dateIn')}"></div>
+        <div class="fg"><div class="lbl">날짜</div>
+          <input type="date" id="f-date-in" value="${v('dateIn', new Date().toISOString().slice(0,10))}"></div>
         <div class="fg"><div class="lbl">박수</div>
           <input type="number" id="f-nights" min="1" value="${v('nights','1')}"></div>
       </div>
@@ -181,12 +232,11 @@ function buildFormHTML(r) {
 
   const hourlyFields = `
     <div id="sec-hourly" style="display:${vInfo.type==='hourly'?'':'none'}">
-      <div class="fl">
-        <div class="fg"><div class="lbl">시작 시간</div>
-          <input type="time" id="f-start" value="${v('timeStart')}"></div>
-        <div class="fg"><div class="lbl">종료 시간</div>
-          <input type="time" id="f-end" value="${v('timeEnd')}"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="lbl">날짜 / 시간</div>
+        <button type="button" class="btn-add-date" onclick="addDateRow()">+ 날짜 추가</button>
       </div>
+      <div id="date-rows"></div>
     </div>`;
 
   return `
@@ -226,12 +276,6 @@ function buildFormHTML(r) {
         <input id="f-name" value="${v('eventName')}" placeholder="예: 청년부 수련회"></div>
       <div class="fg"><div class="lbl">예상 인원</div>
         <input type="number" id="f-ppl" min="1" value="${v('headcount')}" placeholder="0"></div>
-    </div>
-    <div class="fl">
-      <div class="fg"><div class="lbl">날짜</div>
-        <input type="date" id="f-date" value="${v('eventDate', new Date().toISOString().slice(0,10))}"></div>
-      <div class="fg"><div class="lbl">종료일 <span style="font-size:11px;color:var(--text3)">(다일·숙박)</span></div>
-        <input type="date" id="f-date-end" value="${v('eventDateEnd')}"></div>
     </div>
     ${hourlyFields}
     ${lodgingFields}
@@ -280,7 +324,6 @@ function buildFormHTML(r) {
 }
 
 // ── 공간 전환 ──────────────────────────────────────────────
-function initVenueSwitch() {}  // chips already wired via onclick
 
 window.selectSpace = space => {
   document.getElementById('f-space').value = space;
@@ -313,27 +356,44 @@ window.formatTel = el => {
   else el.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
 };
 
+window.toggleCateringDetail = el => {
+  const d = document.getElementById('catering-detail');
+  if (d) d.style.display = el.checked ? '' : 'none';
+};
+
 function collectForm(id) {
   const g = i => document.getElementById(i);
-  const paidServices = [...document.querySelectorAll('#paid-services input:checked')].map(c => c.value);
-  const rooms = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
+  const space  = g('f-space')?.value || '';
+  const vInfo  = VENUES[space];
+  const isHourly = vInfo?.type === 'hourly';
+
+  const paidServices   = [...document.querySelectorAll('#paid-services input[type=checkbox]:checked')].map(c => c.value);
+  const cateringVendor = document.querySelector('input[name="catering-vendor"]:checked')?.value || '';
+  const rooms          = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
+
+  const dates     = isHourly ? formDates.filter(d => d.date) : [];
+  const eventDate = dates.length ? dates[0].date : (g('f-date-in')?.value || '');
+  const eventDateEnd = dates.length > 1 ? dates[dates.length-1].date : '';
+
   const data = {
-    space:        g('f-space')?.value       || '',
+    space,
     orgName:      g('f-org')?.value.trim()  || '',
     managerName:  g('f-mgr')?.value.trim()  || '',
     tel:          g('f-tel')?.value.trim()  || '',
     email:        g('f-email')?.value.trim()|| '',
     eventName:    g('f-name')?.value.trim() || '',
     headcount:    parseInt(g('f-ppl')?.value)||0,
-    eventDate:    g('f-date')?.value        || '',
-    eventDateEnd: g('f-date-end')?.value    || '',
-    timeStart:    g('f-start')?.value       || '',
-    timeEnd:      g('f-end')?.value         || '',
-    dateIn:       g('f-date-in')?.value     || '',
+    eventDate,
+    eventDateEnd,
+    dates,
+    timeStart:    dates[0]?.timeStart || '',
+    timeEnd:      dates[0]?.timeEnd   || '',
+    dateIn:       g('f-date-in')?.value || '',
     nights:       parseInt(g('f-nights')?.value)||0,
     rooms,
     purpose:      g('f-purpose')?.value.trim()||'',
     paidServices,
+    cateringVendor,
     etcRequest:   g('f-etc')?.value.trim() || '',
   };
   if (id) {
@@ -385,17 +445,24 @@ window.openRequest = id => {
   curId = id; renderList();
   const r = requests.find(x => x.id === id);
   if (!r) return;
+  formDates = (r.dates?.length)
+    ? r.dates.map(d => ({...d}))
+    : [{ date: r.eventDate||'', timeStart: r.timeStart||'', timeEnd: r.timeEnd||'' }];
   document.getElementById('detail-panel').innerHTML = buildFormHTML(r);
+  renderDateRows();
 };
 
 window.openQuotation = id => {
   const r = requests.find(x => x.id === id);
   if (!r) return;
+  const dates = r.dates?.length
+    ? r.dates
+    : [{ date: r.eventDate||'', timeStart: r.timeStart||'', timeEnd: r.timeEnd||'' }];
   const params = new URLSearchParams({
-    venue:   r.space     || '',
-    date:    r.eventDate || '',
-    client:  r.orgName   || '',
-    purpose: r.purpose   || '',
+    venue:   r.space   || '',
+    dates:   JSON.stringify(dates),
+    client:  r.orgName || '',
+    purpose: r.purpose || '',
     ref:     id,
   });
   window.open(`quotation.html?${params}`, '_blank');
@@ -537,6 +604,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .btn-quote{padding:9px 16px;border-radius:10px;border:1px solid var(--green);cursor:pointer;
   background:var(--green-lt);color:var(--green);font-size:13px;font-weight:700;font-family:var(--font);transition:all .15s;}
 .btn-quote:hover{background:var(--green);color:#fff;}
+.btn-add-date{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);
+  background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
+.btn-add-date:hover{border-color:var(--blue);color:var(--blue);}
 
 @media(max-width:760px){
   .layout{flex-direction:column;height:auto;}
