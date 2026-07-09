@@ -39,14 +39,21 @@ select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/
 
 /* 체크리스트 */
 .checklist{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
-.check-item{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;
+.check-item{display:flex;align-items:center;gap:14px;padding:14px 16px;
   border:1.5px solid var(--border2);border-radius:11px;cursor:pointer;
   transition:all .15s;user-select:none;background:#fff;}
-.check-item:has(input:checked){border-color:var(--green);background:var(--green-lt);}
-.check-item input[type=checkbox]{
-  width:20px;height:20px;accent-color:var(--green);flex-shrink:0;margin-top:1px;cursor:pointer;
+.check-item:has(.chk-input:checked){border-color:var(--green);background:var(--green-lt);}
+/* 실제 input 숨기고 커스텀 박스 사용 */
+.chk-input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
+.chk-box{
+  width:24px;height:24px;flex-shrink:0;border-radius:7px;
+  border:2px solid var(--border);background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;font-size:15px;line-height:1;
 }
-.check-text{font-size:15px;color:var(--text);line-height:1.45;}
+.chk-input:checked ~ .chk-box{background:var(--green);border-color:var(--green);color:#fff;}
+.chk-input:checked ~ .chk-box::after{content:'✓';font-size:15px;font-weight:700;color:#fff;}
+.check-text{font-size:15px;color:var(--text);line-height:1.45;flex:1;}
 
 /* 특이사항 */
 textarea{min-height:90px;resize:vertical;line-height:1.6;}
@@ -116,23 +123,28 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
     <div class="sec-label">체크리스트</div>
     <div class="checklist">
       <label class="check-item">
-        <input type="checkbox" name="chk" value="trash">
+        <input class="chk-input" type="checkbox" name="chk" value="trash">
+        <span class="chk-box"></span>
         <span class="check-text">쓰레기를 모두 수거하여 반출했습니다</span>
       </label>
       <label class="check-item">
-        <input type="checkbox" name="chk" value="furniture">
+        <input class="chk-input" type="checkbox" name="chk" value="furniture">
+        <span class="chk-box"></span>
         <span class="check-text">테이블·의자를 원래 위치로 복구했습니다</span>
       </label>
       <label class="check-item" id="chk-equipment-wrap" style="display:none">
-        <input type="checkbox" name="chk" value="equipment">
-        <span class="check-text">사용한 장비(TV, 마이크, 리모컨 등) 정리</span>
+        <input class="chk-input" type="checkbox" name="chk" value="equipment">
+        <span class="chk-box"></span>
+        <span class="check-text">사용한 장비를 잘 정리하였습니다</span>
       </label>
       <label class="check-item">
-        <input type="checkbox" name="chk" value="power">
+        <input class="chk-input" type="checkbox" name="chk" value="power">
+        <span class="chk-box"></span>
         <span class="check-text">조명·에어컨·난방기기 전원을 껐습니다</span>
       </label>
       <label class="check-item">
-        <input type="checkbox" name="chk" value="nodamage">
+        <input class="chk-input" type="checkbox" name="chk" value="nodamage">
+        <span class="chk-box"></span>
         <span class="check-text">파손 또는 훼손된 물품이 없습니다</span>
       </label>
     </div>
@@ -179,7 +191,7 @@ window.onSpaceChange = () => {
   const show  = HALL_SPACES.includes(space);
   const wrap  = document.getElementById('chk-equipment-wrap');
   wrap.style.display = show ? '' : 'none';
-  if (!show) wrap.querySelector('input').checked = false;
+  if (!show) wrap.querySelector('.chk-input').checked = false;
 };
 
 window.submitCheckout = async () => {
@@ -191,7 +203,7 @@ window.submitCheckout = async () => {
   const errEl  = document.getElementById('err-msg');
 
   // 현재 보이는 항목만 카운트
-  const visibleItems = [...document.querySelectorAll('input[name="chk"]')]
+  const visibleItems = [...document.querySelectorAll('.chk-input[name="chk"]')]
     .filter(el => el.closest('label').style.display !== 'none');
   const checked = visibleItems.filter(el => el.checked).map(el => el.value);
   const total   = visibleItems.length;
