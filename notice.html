@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공지사항 — IAM 인트라넷</title>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, orderBy, where, serverTimestamp, getDoc }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+const AARON_CONTENT = `아론홀은 공동체 안에서 영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.
+쾌적하고 안전하게 함께 이용하실 수 있도록 운영 기준을 안내드립니다.
+
+1. 공간 소개
+• 세미나 · 강의 · 소규모 모임에 적합한 공간, 케이터링 이용 가능
+• 테이블 8개 · 의자 48개 기본 구비
+• 최대 50명 이용 가능 (좌석 30~40석)
+
+2. 이용 가능 시간
+• 09:00 ~ 22:00 (월~토)
+• 일요일: 오후 4시 이후 운영
+
+3. 이용 요금 (VAT 포함)
+구분          기본 시간    사용료
+기본          3시간       200,000원  (준비 및 철수 포함)
+단시간        90분        100,000원  (준비 및 철수 포함)
+추가          1시간당      50,000원
+
+※ 90분 초과 시 기본 이용 요금 적용
+※ 이용 시간은 입실부터 퇴실까지 전체 기준으로 산정
+※ 초과 시간이 1시간 미만인 경우에도 1시간 추가로 요금 적용
+※ 모든 이용 요금은 VAT 포함 가격입니다.
+
+4. 이용 요금 할인 안내
+• 아이엠센터 입점 매장 (차폰팩토리 · 조스테이블 · 참새방앗간) 케이터링 이용 시:
+  - 15만원 미만 이용 시 → 대관료 30% 할인
+  - 15만원 이상 이용 시 → 대관료 50% 할인
+※ 음료만 이용 시에도 적용됩니다.
+
+5. 기본 제공 장비
+• 무선 마이크 2대
+• 스피커
+• TV (HDMI 연결 가능)
+※ 기본 세팅은 관리자에 의해 제공되며, 이후 장비 조작 및 변경은 사전 협의 없이 불가합니다.
+
+6. 공간 이용 안내
+• 테이블 및 의자는 간단한 위치 조정만 가능하며, 기본 배치를 벗어나는 대규모 이동 및 재배치는 제한됩니다.
+• 공간 특성상 소음이 큰 행사는 제한됩니다.
+
+7. 식음료 이용 안내
+• 외부 음식 반입은 가능하나, 조리 및 가열은 불가합니다.
+• 간단한 다과 및 음료 (냄새나 오염이 적은 음식)에 한해 이용 가능합니다. (예: 빵, 쿠키, 샌드위치 등)
+• 음식물 쓰레기는 반드시 전량 수거하여 반출해 주시기 바랍니다.
+
+8. 퇴실 시 정리 안내
+• 일반/재활용 쓰레기는 비닐봉투에 정리하여 배출 가능합니다.
+• 이용하신 공간은 원래 상태로 정돈해 주시기 바랍니다.
+• 장비 및 시설 파손 시 관리자에게 즉시 알려주시기 바랍니다. (상황에 따라 복구 비용이 청구될 수 있습니다.)
+
+9. 예약 · 결제 유의사항
+• 예약은 계약금 (이용료의 30%) 입금 시 확정됩니다.
+• 잔금은 이용일 7일 전까지 납부해 주시기 바랍니다.
+• 예약은 결제 완료 순으로 확정되며, 일정은 상황에 따라 선착순으로 마감될 수 있습니다.
+
+10. 추가 비용 안내
+• 평일 17:00 이후 또는 주말·공휴일 이용 시 운영 인력 배치에 따라 추가 비용이 발생할 수 있습니다.
+• 추가 비용이 필요한 경우 예약 확정 전 사전 안내 및 협의 후 진행됩니다.
+
+11. 취소 및 환불 규정
+• 이용일 15일 이전 취소:      100% 환불
+• 이용일 7일 ~ 14일 전 취소:   50% 환불
+• 이용일 2일 ~ 6일 전 취소:    20% 환불
+• 이용일 1일 전 ~ 당일 취소:   환불 불가`;
+
+const SHARON_CONTENT = `1. 공간 소개
+• 세미나, 강의에 적합한 공간
+• 총 140석 (기본 의자 80, 추가 의자 60)
+• 최소 50명부터 예약 가능
+• 라이프타임 원형 테이블 10개, 직사각형 테이블 2개
+
+2. 이용 가능 시간
+• 09:00 ~ 22:00 (월~토)
+• 일요일도 예약 가능하나, 내부 행사 일정에 따라 이용 가능 시간대가 변동될 수 있습니다.
+
+3. 이용 요금 (VAT 포함)
+• 기본 이용 (3시간):      300,000원  (세팅·철수 포함)
+• 단시간 이용 (90분 이내): 150,000원
+• 추가 시간:             +80,000원 / 1시간
+
+※ 90분 초과 시 기본 이용 요금 적용
+※ 이용 시간은 입실부터 퇴실까지 전체 기준으로 산정
+※ 이용 시간 초과 시 30분 단위로 추가 요금 부과
+※ 평일 17:00 이후, 주말 및 공휴일 이용 시 기본 이용요금의 20% 할증 적용
+
+4. 할인 안내
+• 아이엠센터 지정 케이터링 이용 시 (차폰 · 조스 · 참방 / 음료만 이용 시에도 적용):
+  - 15만원 미만 이용 시 → 대관료 30% 할인
+  - 15만원 이상 이용 시 → 대관료 50% 할인
+※ 샤론홀 내에는 음식물 반입 불가 (물 제외).
+
+5. 기본 제공 장비
+• 무선 마이크 2대, 유선 마이크 2대
+• 마이크스탠드, 보면대
+• TV 62인치 2대 (고정 설치)
+• 키보드 (YAMAHA CK88)
+※ 추가 장비 세팅 희망 시 사전 협의 후 진행 가능 (추가 비용 발생)
+※ 기본 세팅은 관리자에 의해 제공되며, 이후 장비 조작 및 변경은 관리자 사전 허락 없이 불가합니다.
+
+6. 공간 이용 안내
+• 의자, 테이블 세팅은 세미나의 형태에 따라 변경할 수 있습니다.
+• 이용 후 공간 및 장비는 원상 복구해 주시기 바랍니다.
+
+7. 음식 이용 안내
+• 샤론홀은 카펫이 설치된 공간으로, 물 제외한 모든 음식 및 음료 반입이 제한됩니다.
+• 샤론홀 앞 아일랜드 식탁에서 음식물을 드실 수 있습니다.
+
+8. 정리 및 쓰레기 안내
+• 발생한 쓰레기는 직접 수거 및 반출을 원칙으로 합니다.
+• 공간 및 장비 훼손 발생 시 별도 비용이 청구됩니다.
+
+9. 예약 안내
+• 예약은 계약금 (이용료의 30%) 입금 시 확정됩니다.
+• 잔금은 이용일 7일 전까지 납부해 주시기 바랍니다.
+• 예약은 선착순으로 마감될 수 있습니다.
+
+10. 취소 및 환불 규정
+• 이용일 15일 이전 취소:     100% 환불
+• 이용일 7일 ~ 14일전 취소:   50% 환불
+• 이용일 2일 ~ 6일전 취소:    20% 환불
+• 이용일 1일 전 ~ 당일 취소:  환불 불가
+※ 예약은 결제 완료 순으로 확정되며, 일정은 상황에 따라 선착순으로 마감될 수 있습니다.`;
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let curUser  = null;
+let isAdmin  = false;
+let notices  = [];
+let curCat   = '전체';
+let editingId = null;
+
+const CATS = ['전체', '이용 규정', '공지', '팀 소식'];
+const CAT_COLOR = {
+  '이용 규정': 'var(--blue)',
+  '공지':      'var(--red)',
+  '팀 소식':   'var(--green)',
+};
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  curUser = user;
+  isAdmin = ADMIN_EMAILS.includes(user.email) || domain === ALLOWED_DOMAIN;
+  document.getElementById('login-wrap').style.display  = 'none';
+  document.getElementById('app-wrap').style.display    = 'block';
+  document.getElementById('user-avatar').textContent   = (user.displayName || user.email)[0].toUpperCase();
+  document.getElementById('user-name').textContent     = user.displayName || user.email.split('@')[0];
+  document.getElementById('write-btn').style.display   = isAdmin ? 'flex' : 'none';
+  buildCatTabs();
+  await seedIfNeeded();
+  await loadNotices();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block'; showLogin();
+}
+window.doLogin = async () => {
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+};
+window.doLogout = async () => { await signOut(auth); };
+
+async function seedIfNeeded() {
+  const snap = await getDocs(query(collection(db,'notices'), where('seeded','==',true)));
+  if (!snap.empty) return;
+  const seeds = [
+    { title:'아론홀 이용 안내 (2026)', category:'이용 규정', content: AARON_CONTENT, pinned:true, seeded:true, venue:'아론홀',   createdBy:'system' },
+    { title:'샤론홀 이용 안내 (2026)', category:'이용 규정', content: SHARON_CONTENT, pinned:true, seeded:true, venue:'샤론홀', createdBy:'system' },
+  ];
+  for (const s of seeds)
+    await addDoc(collection(db,'notices'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+}
+
+async function loadNotices() {
+  const snap = await getDocs(query(collection(db,'notices'), orderBy('pinned','desc'), orderBy('createdAt','desc')));
+  notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderList();
+}
+
+function buildCatTabs() {
+  const html = CATS.map(c =>
+    `<button class="cat-tab${c===curCat?' active':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+  const mob  = document.getElementById('cat-tabs');
+  const desk = document.getElementById('cat-tabs-desktop');
+  if (mob)  mob.innerHTML  = html;
+  if (desk) desk.innerHTML = html;
+}
+
+window.setCat = (c) => {
+  curCat = c;
+  buildCatTabs();
+  renderList();
+  document.getElementById('detail-panel').style.display = 'none';
+};
+
+function renderList() {
+  const filtered = curCat === '전체' ? notices : notices.filter(n => n.category === curCat);
+  const el = document.getElementById('notice-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div style="text-align:center;padding:48px 20px;color:var(--text3);font-size:14px">등록된 공지가 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(n => {
+    const dateStr = n.createdAt?.toDate ? fmtDate(n.createdAt.toDate()) : '';
+    const color   = CAT_COLOR[n.category] || 'var(--text3)';
+    return `<div class="ncard${n.pinned?' pinned':''}" onclick="openNotice('${n.id}')">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        ${n.pinned ? '<span style="font-size:12px;margin-top:1px">📌</span>' : ''}
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">
+            <span class="cat-badge" style="background:${color}20;color:${color}">${n.category}</span>
+            ${n.venue ? `<span class="cat-badge" style="background:var(--bg3);color:var(--text2)">${n.venue}</span>` : ''}
+          </div>
+          <div class="ncard-title">${n.title}</div>
+          <div class="ncard-preview">${(n.content||'').slice(0,80).replace(/\n/g,' ')}${n.content?.length>80?'…':''}</div>
+        </div>
+        <div class="ncard-date">${dateStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.openNotice = (id) => {
+  const n = notices.find(x => x.id === id); if (!n) return;
+  const color = CAT_COLOR[n.category] || 'var(--text3)';
+  const dateStr = n.createdAt?.toDate ? fmtDate(n.createdAt.toDate()) : '';
+  const updStr  = n.updatedAt?.toDate && n.updatedAt.seconds !== n.createdAt?.seconds
+    ? ' (수정: ' + fmtDate(n.updatedAt.toDate()) + ')' : '';
+
+  const adminBtns = isAdmin ? `
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="btn btn-ghost" onclick="openEditor('${id}')">수정</button>
+      <button class="btn btn-red"   onclick="deleteNotice('${id}')">삭제</button>
+    </div>` : '';
+
+  document.getElementById('detail-panel').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <a href="notice.html" style="font-size:13px;color:var(--text3);text-decoration:none">← 목록</a>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <span class="cat-badge" style="background:${color}20;color:${color}">${n.category}</span>
+      ${n.venue ? `<span class="cat-badge" style="background:var(--bg3);color:var(--text2)">${n.venue}</span>` : ''}
+      ${n.pinned ? '<span class="cat-badge" style="background:var(--amber-lt);color:var(--amber)">📌 고정</span>' : ''}
+    </div>
+    <h2 style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.4">${n.title}</h2>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:24px">${dateStr}${updStr}</div>
+    <div class="notice-body">${n.content || ''}</div>
+    ${adminBtns}
+  `;
+  document.getElementById('detail-panel').style.display = 'block';
+  document.getElementById('detail-panel').scrollTop = 0;
+  // on mobile, hide list to show detail
+  if (window.innerWidth < 768) {
+    document.getElementById('notice-list').style.display = 'none';
+    document.getElementById('detail-panel').style.display = 'block';
+  }
+};
+
+// 뒤로가기: 모바일에서 목록 복귀
+window.addEventListener('click', e => {
+  if (e.target.closest('a[href="notice.html"]')) {
+    e.preventDefault();
+    document.getElementById('notice-list').style.display = '';
+    document.getElementById('detail-panel').style.display = 'none';
+  }
+});
+
+// ── 에디터 ──
+window.openEditor = (id) => {
+  editingId = id || null;
+  const n   = id ? notices.find(x => x.id === id) : null;
+  document.getElementById('ed-title').value    = n?.title    || '';
+  document.getElementById('ed-cat').value      = n?.category || '공지';
+  document.getElementById('ed-venue').value    = n?.venue    || '';
+  document.getElementById('ed-content').value  = n?.content  || '';
+  document.getElementById('ed-pinned').checked = !!n?.pinned;
+  document.getElementById('ed-modal-title').textContent = id ? '공지 수정' : '새 공지 작성';
+  document.getElementById('ed-modal').style.display = 'flex';
+};
+window.closeEditor = () => { document.getElementById('ed-modal').style.display = 'none'; editingId = null; };
+window.saveNotice  = async () => {
+  const title   = document.getElementById('ed-title').value.trim();
+  const cat     = document.getElementById('ed-cat').value;
+  const venue   = document.getElementById('ed-venue').value.trim();
+  const content = document.getElementById('ed-content').value.trim();
+  const pinned  = document.getElementById('ed-pinned').checked;
+  if (!title || !content) { alert('제목과 내용을 입력해 주세요.'); return; }
+
+  const data = { title, category: cat, venue, content, pinned,
+    updatedAt: serverTimestamp(), createdBy: curUser?.email || '' };
+
+  if (editingId) {
+    await updateDoc(doc(db,'notices',editingId), data);
+  } else {
+    await addDoc(collection(db,'notices'), { ...data, createdAt: serverTimestamp(), seeded: false });
+  }
+  closeEditor();
+  await loadNotices();
+};
+
+window.deleteNotice = async (id) => {
+  if (!confirm('이 공지를 삭제하시겠습니까?')) return;
+  await deleteDoc(doc(db,'notices',id));
+  document.getElementById('detail-panel').style.display = 'none';
+  if (window.innerWidth < 768) document.getElementById('notice-list').style.display = '';
+  await loadNotices();
+};
+
+function fmtDate(d) {
+  return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+</script>
+
+<style>
+:root {
+  --blue:     #185FA5; --blue-lt:  #E6F1FB; --blue-mid: #378ADD;
+  --green:    #3B6D11; --green-lt: #EAF3DE;
+  --amber:    #854F0B; --amber-lt: #FAEEDA;
+  --red:      #A32D2D; --red-lt:   #FCEBEB;
+  --bg:  #fff; --bg2: #F8FAFD; --bg3: #F0F6FF;
+  --border: #D4E4F4; --border2: #E8EFF7;
+  --text: #1A2533; --text2: #4A6078; --text3: #8AA3BC;
+  --font: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;}
+
+/* ── 로그인 ── */
+#login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:360px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:32px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;
+  padding:8px;background:var(--red-lt);border-radius:7px;}
+
+/* ── 앱 ── */
+#app-wrap{display:none;min-height:100vh;flex-direction:column;}
+
+/* 상단바 */
+.topbar{background:#fff;border-bottom:1px solid var(--border2);height:56px;padding:0 24px;
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 6px rgba(24,95,165,.07);}
+.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.tb-mark{width:30px;height:30px;background:var(--blue);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
+.tb-name{font-size:15px;font-weight:800;color:var(--blue);}
+.tb-sub{font-size:11px;color:var(--text3);}
+.tb-sep{color:var(--border);font-size:20px;margin:0 2px;}
+.tb-cur{font-size:14px;font-weight:600;color:var(--text2);}
+.tb-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 5px;
+  border:1px solid var(--border);border-radius:20px;}
+.u-avatar{width:26px;height:26px;background:var(--blue);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.u-name{font-size:13px;font-weight:600;color:var(--text);}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;
+  font-family:var(--font);padding:5px 9px;border-radius:6px;transition:all .15s;}
+.logout-btn:hover{background:var(--red-lt);color:var(--red);}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-family:var(--font);
+  cursor:pointer;border:none;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{filter:brightness(.92);}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-ghost{background:var(--bg2);color:var(--text2);border:1px solid var(--border);}
+.btn-red{background:var(--red);color:#fff;}
+#write-btn{display:none;}
+
+/* 본문 레이아웃 */
+.main-layout{display:flex;height:calc(100vh - 56px);}
+
+/* 카테고리 사이드바 */
+.cat-sidebar{width:160px;flex-shrink:0;border-right:1px solid var(--border2);
+  background:#fff;padding:16px 10px;display:flex;flex-direction:column;gap:4px;}
+.cat-tab{width:100%;padding:9px 12px;border-radius:8px;font-size:13px;font-family:var(--font);
+  color:var(--text2);cursor:pointer;border:none;background:none;text-align:left;
+  font-weight:500;transition:all .15s;}
+.cat-tab.active{background:var(--blue);color:#fff;font-weight:700;}
+.cat-tab:hover:not(.active){background:var(--bg3);color:var(--blue);}
+
+/* 목록 패널 */
+.list-panel{flex:1;overflow-y:auto;padding:20px;}
+.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.list-title{font-size:16px;font-weight:700;color:var(--text);}
+#cat-tabs{display:none;}
+
+/* 공지 카드 */
+.ncard{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:16px;
+  margin-bottom:10px;cursor:pointer;transition:all .18s;}
+.ncard:hover{box-shadow:0 4px 16px rgba(0,0,0,.09);border-color:var(--border);}
+.ncard.pinned{border-left:3px solid var(--amber);}
+.ncard-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.4;}
+.ncard-preview{font-size:12px;color:var(--text3);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ncard-date{font-size:11px;color:var(--text3);white-space:nowrap;flex-shrink:0;margin-top:2px;}
+.cat-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:8px;white-space:nowrap;}
+
+/* 상세 패널 */
+.detail-panel{width:480px;flex-shrink:0;border-left:1px solid var(--border2);
+  background:#fff;overflow-y:auto;padding:24px;display:none;}
+.notice-body{font-size:14px;line-height:1.85;color:var(--text);white-space:pre-wrap;
+  word-break:break-word;font-family:var(--font);}
+
+/* 에디터 모달 */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;
+  align-items:center;justify-content:center;z-index:1000;padding:16px;}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:600px;
+  max-height:90vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:18px;color:var(--text);}
+.lbl{font-size:13px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+.fg{margin-bottom:13px;}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);
+  border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg);
+  color:var(--text);outline:none;transition:border .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+textarea{resize:vertical;min-height:260px;}
+
+/* 반응형 */
+@media(max-width:900px){.detail-panel{width:380px;}}
+@media(max-width:767px){
+  .cat-sidebar{display:none;}
+  #cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+  .cat-tab{padding:6px 12px;border:1px solid var(--border);border-radius:20px;}
+  .detail-panel{position:fixed;inset:0;width:100%;border-left:none;z-index:200;padding:16px;
+    overflow-y:auto;background:#fff;}
+  .list-panel{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">IAM 인트라넷</div>
+    <div class="login-sub">아이엠센터 구성원 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- 앱 -->
+<div id="app-wrap">
+
+  <!-- 상단바 -->
+  <div class="topbar">
+    <a class="tb-logo" href="portal.html">
+      <div class="tb-mark">IM</div>
+      <div>
+        <div class="tb-name">IAM 인트라넷</div>
+      </div>
+    </a>
+    <span class="tb-sep">›</span>
+    <span class="tb-cur">공지사항</span>
+    <div class="tb-right">
+      <button id="write-btn" class="btn btn-primary" onclick="openEditor(null)">+ 새 공지</button>
+      <div class="user-chip">
+        <div class="u-avatar" id="user-avatar">?</div>
+        <span class="u-name" id="user-name"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- 레이아웃 -->
+  <div class="main-layout">
+
+    <!-- 카테고리 사이드바 (데스크탑) -->
+    <div class="cat-sidebar" id="cat-tabs-desktop">
+      <!-- JS로 채움 -->
+    </div>
+
+    <!-- 목록 -->
+    <div class="list-panel">
+      <!-- 카테고리 탭 (모바일) -->
+      <div id="cat-tabs"></div>
+      <div class="list-header">
+        <div class="list-title">공지사항</div>
+      </div>
+      <div id="notice-list">
+        <div style="text-align:center;padding:48px;color:var(--text3)">불러오는 중...</div>
+      </div>
+    </div>
+
+    <!-- 상세 -->
+    <div class="detail-panel" id="detail-panel"></div>
+
+  </div>
+</div>
+
+<!-- 에디터 모달 -->
+<div class="modal-bg" id="ed-modal">
+  <div class="modal">
+    <div class="modal-title" id="ed-modal-title">새 공지 작성</div>
+    <div class="fg"><div class="lbl">제목 *</div><input id="ed-title" placeholder="공지 제목을 입력하세요"></div>
+    <div style="display:flex;gap:12px">
+      <div class="fg" style="flex:1"><div class="lbl">분류 *</div>
+        <select id="ed-cat">
+          <option value="공지">공지</option>
+          <option value="이용 규정">이용 규정</option>
+          <option value="팀 소식">팀 소식</option>
+        </select>
+      </div>
+      <div class="fg" style="flex:1"><div class="lbl">공간 (선택)</div>
+        <select id="ed-venue">
+          <option value="">해당 없음</option>
+          <option value="아론홀">아론홀</option>
+          <option value="샤론홀">샤론홀</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><div class="lbl">내용 *</div><textarea id="ed-content" placeholder="내용을 입력하세요 (줄바꿈 그대로 표시됩니다)"></textarea></div>
+    <div class="fg" style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="ed-pinned" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+      <label for="ed-pinned" style="font-size:13px;cursor:pointer;color:var(--text2)">상단 고정 (📌)</label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveNotice()">저장</button>
+      <button class="btn btn-ghost"   onclick="closeEditor()">취소</button>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

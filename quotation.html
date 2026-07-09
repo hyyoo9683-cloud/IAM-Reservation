@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>견적서 발급 — IAM 인트라넷</title>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+// ── 공간별 요금 ─────────────────────────────────────────────
+const VENUES = {
+  '아론홀': {
+    base3h:   200000,  // 기본 3시간 (VAT 포함)
+    base90m:  100000,  // 단시간 90분 이내 (VAT 포함)
+    extraPh:   50000,  // 추가 1시간당
+    surcharge: false,  // 시간대 할증 없음 (아론홀은 안내 없음)
+  },
+  '샤론홀': {
+    base3h:   300000,
+    base90m:  150000,
+    extraPh:   80000,
+    surcharge: true,   // 평일 17시이후/주말/공휴일 +20%
+  },
+};
+
+// 발행자 정보 (필요시 수정)
+const ISSUER = {
+  name:    '여유 (마더와이즈몰)',
+  ceo:     '민 혜 영',
+  address: '경기 수원시 영통구 월드컵로 76 (원천동) IMCENTER 1동 2층 203디호',
+  phone:   '070-7018-1380',
+  email:   'iamspace@suwoncca.org',
+  bank:    '신한 110-557-411395 민혜영',
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let curUser = null;
+let history = [];
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  curUser = user;
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display   = 'flex';
+  document.getElementById('user-avatar').textContent  = (user.displayName||user.email)[0].toUpperCase();
+  document.getElementById('user-name').textContent    = user.displayName||user.email.split('@')[0];
+  initForm();
+  await loadHistory();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block'; showLogin();
+}
+window.doLogin = async () => {
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+};
+window.doLogout = async () => { await signOut(auth); };
+
+// ── 폼 초기화 ─────────────────────────────────────────────
+function initForm() {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('q-date').value = today;
+  updateCalc();
+}
+
+// ── 금액 계산 ─────────────────────────────────────────────
+window.updateCalc = () => {
+  const venue   = document.getElementById('q-venue').value;
+  const type    = document.getElementById('q-type').value;   // 'base3h' | 'base90m'
+  const extra   = parseInt(document.getElementById('q-extra').value) || 0;
+  const catering= parseInt(document.getElementById('q-catering').value.replace(/,/g,'')) || 0;
+  const surOn   = document.getElementById('q-surcharge')?.checked;
+  const vInfo   = VENUES[venue];
+
+  let base = type === 'base90m' ? vInfo.base90m : vInfo.base3h;
+  let extraAmt = extra * vInfo.extraPh;
+  let subtotal = base + extraAmt;
+
+  // 할증 (샤론홀 전용)
+  if (vInfo.surcharge && surOn) subtotal = Math.round(subtotal * 1.2);
+
+  // 케이터링 할인
+  let discountRate = 0;
+  let discountAmt  = 0;
+  if (catering > 0) {
+    discountRate = catering >= 150000 ? 0.5 : 0.3;
+    discountAmt  = Math.round(subtotal * discountRate);
+  }
+
+  const total    = subtotal - discountAmt;
+  const supply   = Math.round(total / 1.1);
+  const vat      = total - supply;
+
+  document.getElementById('c-base').textContent     = comma(base);
+  document.getElementById('c-extra').textContent    = extra ? `+${comma(extraAmt)}` : '–';
+  document.getElementById('c-surcharge').textContent= (vInfo.surcharge && surOn) ? `+20%` : '–';
+  document.getElementById('c-discount').textContent = discountAmt ? `-${comma(discountAmt)} (${discountRate*100}%)` : '–';
+  document.getElementById('c-supply').textContent   = comma(supply);
+  document.getElementById('c-vat').textContent      = comma(vat);
+  document.getElementById('c-total').textContent    = comma(total);
+
+  // 샤론홀 할증 행 보임/숨김
+  document.getElementById('row-surcharge').style.display = vInfo.surcharge ? '' : 'none';
+  document.getElementById('q-surcharge-wrap').style.display = vInfo.surcharge ? '' : 'none';
+};
+
+window.fmtCateringInput = () => {
+  const el  = document.getElementById('q-catering');
+  const raw = el.value.replace(/\D/g,'');
+  el.value  = raw ? comma(parseInt(raw)) : '';
+  updateCalc();
+};
+
+function comma(n) { return n.toLocaleString('ko-KR'); }
+
+// ── 견적서 미리보기/인쇄 ─────────────────────────────────
+window.printQuote = async () => {
+  const venue    = document.getElementById('q-venue').value;
+  const type     = document.getElementById('q-type').value;
+  const extra    = parseInt(document.getElementById('q-extra').value) || 0;
+  const surOn    = document.getElementById('q-surcharge')?.checked;
+  const vInfo    = VENUES[venue];
+  const catering = parseInt(document.getElementById('q-catering').value.replace(/,/g,'')) || 0;
+  const clientNm = document.getElementById('q-client').value.trim() || '(수신처)';
+  const clientBiz= document.getElementById('q-client-biz').value.trim();
+  const purpose  = document.getElementById('q-purpose').value.trim() || '–';
+  const dateVal  = document.getElementById('q-date').value;
+  const timeS    = document.getElementById('q-time-start').value;
+  const timeE    = document.getElementById('q-time-end').value;
+  const memo     = document.getElementById('q-memo').value.trim();
+  const issueDate= document.getElementById('q-issue-date').value || new Date().toISOString().slice(0,10);
+
+  let base = type === 'base90m' ? vInfo.base90m : vInfo.base3h;
+  let extraAmt = extra * vInfo.extraPh;
+  let subtotal = base + extraAmt;
+  if (vInfo.surcharge && surOn) subtotal = Math.round(subtotal * 1.2);
+  const discountRate = catering >= 150000 ? 0.5 : catering > 0 ? 0.3 : 0;
+  const discountAmt  = Math.round(subtotal * discountRate);
+  const total  = subtotal - discountAmt;
+  const supply = Math.round(total / 1.1);
+  const vat    = total - supply;
+
+  const timeStr = timeS && timeE ? `${timeS}–${timeE}` : '';
+  const typeLabel = type === 'base90m' ? '단시간 (90분)' : '기본 (3시간)';
+  const remarks = [
+    typeLabel + ' ' + comma(base) + '원',
+    extra ? `추가 ${extra}시간 ${comma(extra * vInfo.extraPh)}원` : '',
+    (vInfo.surcharge && surOn) ? '시간대 할증 +20%' : '',
+    discountAmt ? `케이터링 할인 ${discountRate*100}%` : '',
+    memo,
+  ].filter(Boolean).join(' / ');
+
+  const issueDateFmt = issueDate.replace(/-/g,'.').replace(/^(\d{4})\.(\d{2})\.(\d{2})$/, '$1년 $2월 $3일');
+  const dateDisplay  = dateVal ? dateVal.replace(/-/g,'.') : '';
+
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>견적서</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  body { font-family:'Malgun Gothic','AppleGothic',sans-serif; font-size:12px; color:#111; margin:0; }
+  h1 { font-size:26px; font-weight:900; text-align:center; letter-spacing:4px; margin-bottom:22px; }
+  .top-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #888; }
+  .top-grid > div { padding:8px 12px; border-right:1px solid #888; }
+  .top-grid > div:last-child { border-right:none; }
+  .to-box { border-bottom:1px solid #888; }
+  .label { font-size:10px; color:#555; margin-bottom:2px; }
+  .val   { font-weight:700; font-size:13px; }
+  .info-row { display:flex; gap:6px; font-size:11px; margin-top:3px; }
+  .info-lbl { color:#555; white-space:nowrap; }
+  .total-box { margin:14px 0; text-align:right; font-size:13px; }
+  .total-box strong { font-size:16px; font-weight:900; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; }
+  th { background:#1a2533; color:#fff; padding:7px 8px; font-size:11px; text-align:center; }
+  td { padding:8px; border-bottom:1px solid #ddd; font-size:11px; vertical-align:top; text-align:center; }
+  td.left { text-align:left; }
+  .num { text-align:right; font-variant-numeric:tabular-nums; }
+  tfoot td { border-top:2px solid #1a2533; font-weight:700; background:#f8f8f8; }
+  .grand td { background:#1a2533; color:#fff; font-weight:900; font-size:13px; }
+  .footer { margin-top:20px; font-size:10px; color:#666; line-height:1.7; }
+  .note { margin-top:12px; font-size:10px; color:#555; font-style:italic; }
+  @media print { body { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style></head><body>
+<h1>견 &nbsp; 적 &nbsp; 서</h1>
+<div class="top-grid">
+  <div class="to-box">
+    <div class="label">수신</div>
+    <div class="val">${clientNm} 귀하</div>
+    ${clientBiz ? `<div class="info-row"><span class="info-lbl">사업자등록번호</span>${clientBiz}</div>` : ''}
+  </div>
+  <div class="to-box">
+    <div class="label">발행일</div>
+    <div class="val">${issueDateFmt}</div>
+  </div>
+  <div>
+    <div class="label">공급자</div>
+    <div class="val">${ISSUER.name}</div>
+    <div class="info-row"><span class="info-lbl">대표</span>${ISSUER.ceo}&nbsp;(인)</div>
+    <div class="info-row"><span class="info-lbl">주소</span>${ISSUER.address}</div>
+    <div class="info-row"><span class="info-lbl">전화</span>${ISSUER.phone}</div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;">
+    <div class="note">아래와 같이 견적합니다.</div>
+  </div>
+</div>
+
+<div class="total-box">
+  합계금액 (공급가액+세액) : <strong>${numToKor(total)}원정 (₩ ${comma(total)})</strong> &nbsp; VAT 포함
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>날짜</th><th>시간</th><th>공간</th><th class="left">항목</th>
+      <th class="num">공급가액</th><th class="num">세액</th><th class="left">비고</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>${dateDisplay}</td>
+      <td>${timeStr}</td>
+      <td>${venue}</td>
+      <td class="left">${purpose}</td>
+      <td class="num">${comma(supply)}</td>
+      <td class="num">${comma(vat)}</td>
+      <td class="left" style="font-size:10px">${remarks}</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr><td colspan="4" style="text-align:right">계</td>
+      <td class="num">${comma(supply)}</td>
+      <td class="num">${comma(vat)}</td>
+      <td>메모: ${memo}</td>
+    </tr>
+    <tr class="grand"><td colspan="4" style="text-align:right">총계</td>
+      <td colspan="3" class="num">${comma(total)}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<div class="footer">
+  계좌정보: ${ISSUER.bank}<br>
+  문의 / ${ISSUER.email} / ${ISSUER.phone}
+</div>
+</body></html>`;
+
+  const win = window.open('', '_blank', 'width=860,height=1000');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
+
+  // 이력 저장
+  try {
+    await addDoc(collection(db,'quotations'), {
+      client: clientNm, venue, purpose, total, supply, vat,
+      date: dateVal, issuedBy: curUser?.email||'', issuedAt: serverTimestamp(),
+    });
+    await loadHistory();
+  } catch(e) { console.error('Quote save error:', e); }
+};
+
+// ── 발행 이력 ─────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const snap = await getDocs(query(collection(db,'quotations'), orderBy('issuedAt','desc')));
+    history    = snap.docs.map(d => ({ id: d.id, ...d.data() })).slice(0, 20);
+    renderHistory();
+  } catch(e) { console.error('History load error:', e); }
+}
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (!history.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">발행 이력 없음</div>`;
+    return;
+  }
+  el.innerHTML = history.map(h => {
+    const d = h.issuedAt?.toDate ? h.issuedAt.toDate() : new Date();
+    const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    return `<div class="hist-row">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${h.client||'–'}</div>
+        <div style="font-size:11px;color:var(--text3)">${h.venue||''} · ${h.date||''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:13px;font-weight:700;color:var(--blue)">₩${(h.total||0).toLocaleString()}</div>
+        <div style="font-size:10px;color:var(--text3)">${dateStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 숫자 → 한글 금액
+function numToKor(n) {
+  const units  = ['','십','백','천'];
+  const higher = ['','만','억'];
+  const digits = ['영','일','이','삼','사','오','육','칠','팔','구'];
+  if (n === 0) return '영';
+  let result = '', h = 0;
+  while (n > 0) {
+    const chunk = n % 10000; n = Math.floor(n / 10000);
+    if (chunk) {
+      let s = '';
+      for (let i = 3; i >= 0; i--) {
+        const d = Math.floor(chunk / Math.pow(10,i)) % 10;
+        if (d) s += (d === 1 && i > 0 ? '' : digits[d]) + units[i];
+      }
+      result = s + higher[h] + result;
+    }
+    h++;
+  }
+  return result;
+}
+</script>
+
+<style>
+:root {
+  --blue:    #185FA5; --blue-lt: #E6F1FB; --blue-mid: #378ADD;
+  --green:   #3B6D11; --green-lt:#EAF3DE;
+  --amber:   #854F0B; --amber-lt:#FAEEDA;
+  --red:     #A32D2D; --red-lt:  #FCEBEB;
+  --bg: #fff; --bg2: #F8FAFD; --bg3: #F0F6FF;
+  --border: #D4E4F4; --border2: #E8EFF7;
+  --text: #1A2533; --text2: #4A6078; --text3: #8AA3BC;
+  --font: 'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;}
+
+#login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:360px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:32px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;
+  padding:8px;background:var(--red-lt);border-radius:7px;}
+
+#app-wrap{display:none;flex-direction:column;min-height:100vh;}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border2);height:56px;padding:0 24px;
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 6px rgba(24,95,165,.07);}
+.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.tb-mark{width:30px;height:30px;background:var(--blue);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
+.tb-name{font-size:15px;font-weight:800;color:var(--blue);}
+.tb-sep{color:var(--border);font-size:20px;}
+.tb-cur{font-size:14px;font-weight:600;color:var(--text2);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 5px;
+  border:1px solid var(--border);border-radius:20px;}
+.u-avatar{width:26px;height:26px;background:var(--blue);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.u-name{font-size:13px;font-weight:600;color:var(--text);}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;
+  font-family:var(--font);padding:5px 9px;border-radius:6px;transition:all .15s;}
+.logout-btn:hover{background:var(--red-lt);color:var(--red);}
+
+.layout{display:flex;gap:0;height:calc(100vh - 56px);}
+
+/* 왼쪽: 입력 폼 */
+.form-panel{width:380px;flex-shrink:0;border-right:1px solid var(--border2);
+  background:#fff;overflow-y:auto;padding:20px;}
+.sec-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.1em;
+  text-transform:uppercase;margin:16px 0 10px;}
+.fg{margin-bottom:12px;}
+.lbl{font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border);
+  border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg);
+  color:var(--text);outline:none;transition:border .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+.fl{display:flex;gap:10px;}
+.fl>.fg{flex:1;}
+
+/* 오른쪽: 계산 + 이력 */
+.right-panel{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px;}
+
+/* 계산 카드 */
+.calc-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:18px;}
+.calc-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;}
+.calc-row{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border2);font-size:13px;}
+.calc-row:last-child{border-bottom:none;}
+.calc-label{color:var(--text2);}
+.calc-val{font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
+.calc-total{background:var(--blue);border-radius:10px;padding:14px 18px;margin-top:14px;
+  display:flex;justify-content:space-between;align-items:center;}
+.calc-total-label{color:rgba(255,255,255,.8);font-size:12px;font-weight:600;}
+.calc-total-val{color:#fff;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
+
+.print-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--green);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:4px;}
+.print-btn:hover{filter:brightness(.92);}
+
+/* 이력 카드 */
+.hist-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:18px;}
+.hist-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:12px;}
+.hist-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);}
+.hist-row:last-child{border-bottom:none;}
+
+@media(max-width:760px){
+  .layout{flex-direction:column;height:auto;}
+  .form-panel{width:100%;border-right:none;border-bottom:1px solid var(--border2);}
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 -->
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">IAM 인트라넷</div>
+    <div class="login-sub">아이엠센터 구성원 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<!-- 앱 -->
+<div id="app-wrap">
+
+  <div class="topbar">
+    <a class="tb-logo" href="portal.html">
+      <div class="tb-mark">IM</div>
+      <div><div class="tb-name">IAM 인트라넷</div></div>
+    </a>
+    <span class="tb-sep">›</span>
+    <span class="tb-cur">견적서</span>
+    <div class="tb-right">
+      <div class="user-chip">
+        <div class="u-avatar" id="user-avatar">?</div>
+        <span class="u-name" id="user-name"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 입력 폼 -->
+    <div class="form-panel">
+      <div class="sec-title">수신자 정보</div>
+      <div class="fg"><div class="lbl">수신처 *</div>
+        <input id="q-client" placeholder="피어나 주식회사" oninput="updateCalc()">
+      </div>
+      <div class="fg"><div class="lbl">사업자등록번호 (선택)</div>
+        <input id="q-client-biz" placeholder="000-00-00000">
+      </div>
+
+      <div class="sec-title">예약 정보</div>
+      <div class="fg"><div class="lbl">발행일 *</div>
+        <input type="date" id="q-issue-date">
+      </div>
+      <div class="fg"><div class="lbl">이용 날짜 *</div>
+        <input type="date" id="q-date" onchange="updateCalc()">
+      </div>
+      <div class="fl">
+        <div class="fg"><div class="lbl">시작 시간</div>
+          <input type="time" id="q-time-start" placeholder="11:30">
+        </div>
+        <div class="fg"><div class="lbl">종료 시간</div>
+          <input type="time" id="q-time-end" placeholder="16:00">
+        </div>
+      </div>
+      <div class="fg"><div class="lbl">공간 *</div>
+        <select id="q-venue" onchange="updateCalc()">
+          <option value="아론홀">아론홀</option>
+          <option value="샤론홀">샤론홀</option>
+        </select>
+      </div>
+      <div class="fg"><div class="lbl">이용 유형 *</div>
+        <select id="q-type" onchange="updateCalc()">
+          <option value="base3h">기본 (3시간)</option>
+          <option value="base90m">단시간 (90분 이내)</option>
+        </select>
+      </div>
+      <div class="fg"><div class="lbl">추가 시간 (시간 단위)</div>
+        <input type="number" id="q-extra" min="0" value="0" oninput="updateCalc()" placeholder="0">
+      </div>
+      <div class="fg" id="q-surcharge-wrap" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--amber-lt);border-radius:8px">
+          <input type="checkbox" id="q-surcharge" onchange="updateCalc()" style="width:15px;height:15px;cursor:pointer">
+          <label for="q-surcharge" style="font-size:13px;cursor:pointer;color:var(--amber);font-weight:600">
+            시간대 할증 +20% (평일 17시 이후 / 주말·공휴일)
+          </label>
+        </div>
+      </div>
+      <div class="fg"><div class="lbl">모임 목적 *</div>
+        <input id="q-purpose" placeholder="강사진 역량강화 워크숍" oninput="updateCalc()">
+      </div>
+
+      <div class="sec-title">케이터링 할인</div>
+      <div class="fg">
+        <div class="lbl">케이터링 이용 금액 (원)</div>
+        <input id="q-catering" placeholder="0" oninput="fmtCateringInput()">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">
+          15만원 미만 → 30% 할인 &nbsp;·&nbsp; 15만원 이상 → 50% 할인
+        </div>
+      </div>
+
+      <div class="sec-title">메모</div>
+      <div class="fg">
+        <textarea id="q-memo" placeholder="기타 안내사항 (비고란에 표시됩니다)" style="min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <!-- 계산 + 이력 -->
+    <div class="right-panel">
+
+      <div class="calc-card">
+        <div class="calc-title">금액 계산</div>
+        <div class="calc-row"><span class="calc-label">기본 요금</span><span class="calc-val" id="c-base">–</span></div>
+        <div class="calc-row"><span class="calc-label">추가 시간</span><span class="calc-val" id="c-extra">–</span></div>
+        <div class="calc-row" id="row-surcharge" style="display:none">
+          <span class="calc-label">시간대 할증</span><span class="calc-val" id="c-surcharge">–</span>
+        </div>
+        <div class="calc-row"><span class="calc-label">케이터링 할인</span><span class="calc-val" id="c-discount" style="color:var(--red)">–</span></div>
+        <div style="height:8px"></div>
+        <div class="calc-row"><span class="calc-label">공급가액 (VAT 제외)</span><span class="calc-val" id="c-supply">–</span></div>
+        <div class="calc-row"><span class="calc-label">부가세 (10%)</span><span class="calc-val" id="c-vat">–</span></div>
+        <div class="calc-total">
+          <span class="calc-total-label">합계 (VAT 포함)</span>
+          <span class="calc-total-val" id="c-total">–</span>
+        </div>
+        <button class="print-btn" onclick="printQuote()">🖨️ 견적서 인쇄 / PDF</button>
+      </div>
+
+      <div class="hist-card">
+        <div class="hist-title">최근 발행 이력</div>
+        <div id="history-list">
+          <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">불러오는 중...</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
