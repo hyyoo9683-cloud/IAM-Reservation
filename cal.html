@@ -13,21 +13,21 @@
     --text: #111827; --text2: #4B5563; --text3: #9CA3AF;
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif;
-         background: var(--bg); color: var(--text); font-size: 13px; }
+         background: var(--bg); color: var(--text); font-size: 15px; }
 
   /* 헤더 */
   .header { background: var(--blue); color: #fff; padding: 10px 12px;
              display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .header h1 { font-size: 14px; font-weight: 700; white-space: nowrap; }
-  .week-label { font-size: 12px; opacity: .85; flex: 1; text-align: center; }
+  .header h1 { font-size: 16px; font-weight: 700; white-space: nowrap; }
+  .week-label { font-size: 14px; opacity: .85; flex: 1; text-align: center; }
   .nav-btns { display: flex; gap: 4px; }
   .nav-btns button { background: rgba(255,255,255,.18); border: none; color: #fff;
-                      padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+                      padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
   /* 탭 */
   .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--bg); }
-  .tab { flex: 1; padding: 9px 4px; text-align: center; font-size: 11px; font-weight: 600;
+  .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; font-weight: 600;
           color: var(--text3); cursor: pointer; border: none; background: none;
           border-bottom: 3px solid transparent; margin-bottom: -2px; transition: .15s; }
   .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
@@ -35,36 +35,38 @@
   /* 테이블 */
   .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid var(--border2); padding: 3px 3px; vertical-align: top; }
-  th { background: var(--bg2); font-size: 10px; font-weight: 700; text-align: center;
+  th, td { border: 1px solid var(--border2); padding: 4px 4px; vertical-align: top; }
+  th { background: var(--bg2); font-size: 12px; font-weight: 700; text-align: center;
         color: var(--text2); white-space: nowrap; }
   th.today-col { background: var(--blue-lt); color: var(--blue); }
   th.sun { color: #D04F7B; } th.sat { color: #7B4FD0; }
-  .room-th { width: 52px; min-width: 52px; max-width: 52px; text-align: left;
-              font-size: 10px; word-break: keep-all; }
+  .room-th { width: 58px; min-width: 58px; max-width: 58px; text-align: left;
+              font-size: 12px; word-break: keep-all; }
 
-  /* 예약 칩 */
-  .chip { border-radius: 4px; padding: 2px 3px; margin-bottom: 2px; font-size: 9px; line-height: 1.35; }
+  /* 예약 칩 — 한 줄 */
+  .chip { display: flex; align-items: baseline; gap: 3px;
+          white-space: nowrap; overflow: hidden;
+          border-radius: 4px; padding: 3px 4px; margin-bottom: 2px; }
   .chip-ok   { background: var(--blue-lt); color: var(--blue); }
-  .chip-none { color: var(--text3); font-size: 9px; padding: 2px 2px; text-align: center; }
-  .chip-blk  { background: #F5F5F5; color: #999; font-size: 9px; padding: 2px 2px; text-align: center; }
-  .time { font-weight: 700; font-size: 9px; }
-  .org  { font-size: 8px; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80px; }
+  .chip-none { color: var(--text3); font-size: 12px; padding: 3px 3px; text-align: center; }
+  .chip-blk  { background: #F5F5F5; color: #999; font-size: 12px; padding: 3px 3px; text-align: center; }
+  .time { font-weight: 700; font-size: 11px; flex-shrink: 0; }
+  .org  { font-size: 11px; opacity: .75; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 
   /* 단일홀 세로 레이아웃 */
-  .date-th { min-width: 60px; text-align: left; font-size: 10px; font-weight: 700; }
+  .date-th { min-width: 68px; text-align: left; font-size: 12px; font-weight: 700; }
   .loading  { text-align: center; padding: 40px; color: var(--text3); }
 
   @media (min-width: 560px) {
-    th, td { padding: 4px 5px; }
-    .room-th { width: 64px; min-width: 64px; max-width: 64px; font-size: 11px; }
-    .chip { font-size: 10px; padding: 2px 4px; margin-bottom: 2px; }
-    .chip-none, .chip-blk { padding: 2px 2px; }
-    .time { font-size: 10px; }
-    .org  { font-size: 9px; max-width: 100px; }
-    th { font-size: 11px; }
-    .tab { font-size: 12px; }
-    .date-th { min-width: 72px; font-size: 11px; }
+    th, td { padding: 5px 6px; }
+    .room-th { width: 72px; min-width: 72px; max-width: 72px; font-size: 13px; }
+    .chip { padding: 3px 5px; }
+    .chip-none, .chip-blk { font-size: 13px; padding: 3px 3px; }
+    .time { font-size: 12px; }
+    .org  { font-size: 12px; }
+    th { font-size: 13px; }
+    .tab { font-size: 14px; }
+    .date-th { min-width: 80px; font-size: 13px; }
   }
 </style>
 </head>
@@ -175,10 +177,9 @@ function render() {
         html += `<div class="chip-none">–</div>`;
       } else {
         res.forEach(r => {
+          const label = [r.purpose, r.managerName].filter(Boolean).join(' ');
           html += `<div class="chip chip-ok">
-            ${r.purpose ? `<div style="font-weight:700;font-size:9px">${r.purpose}</div>` : ''}
-            <div class="time">${r.start}–${r.end}</div>
-            <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>
+            <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
           </div>`;
         });
       }
@@ -216,10 +217,9 @@ function render() {
           html += `<div class="chip-none">–</div>`;
         } else {
           res.forEach(r => {
+            const label = [r.purpose, r.managerName].filter(Boolean).join(' ');
             html += `<div class="chip chip-ok">
-              ${r.purpose ? `<div style="font-weight:700;font-size:9px">${r.purpose}</div>` : ''}
-              <div class="time">${r.start}–${r.end}</div>
-              <div class="org">${r.managerName || ''}${r.stewardName && r.stewardName !== r.managerName ? '(' + r.stewardName + ')' : ''}</div>
+              <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
             </div>`;
           });
         }
