@@ -31,5 +31,10 @@ service cloud.firestore {
     match /venue_requests/{doc} {
       allow read, write: if request.auth != null;
     }
+    // 퇴실 체크: 누구나 제출 가능, 조회·수정·삭제는 로그인 필요
+    match /checkouts/{doc} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
   }
 }

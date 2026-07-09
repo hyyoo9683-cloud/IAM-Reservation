@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>퇴실 체크 이력 — IAM 인트라넷</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#185FA5;--blue-lt:#EBF4FF;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --bg:#F8FAFD;--bg2:#fff;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+#login-wrap{display:none;position:fixed;inset:0;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:340px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:40px;margin-bottom:12px;}
+.login-title{font-size:20px;font-weight:800;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:28px;}
+.login-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-err{margin-top:10px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
+
+#app-wrap{display:none;flex-direction:column;min-height:100vh;}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border2);height:54px;padding:0 20px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 6px rgba(24,95,165,.07);}
+.tb-logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.tb-mark{width:28px;height:28px;background:var(--blue);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;}
+.tb-name{font-size:14px;font-weight:800;color:var(--blue);}
+.tb-sep{color:var(--border);font-size:18px;}
+.tb-cur{font-size:13px;font-weight:600;color:var(--text2);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;
+  font-family:var(--font);padding:5px 9px;border-radius:6px;transition:all .15s;}
+.logout-btn:hover{background:var(--red-lt);color:var(--red);}
+
+.content{max-width:720px;margin:0 auto;padding:20px 16px 48px;}
+.page-title{font-size:20px;font-weight:800;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
+
+/* 필터 */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-row input,.filter-row select{
+  flex:1;min-width:120px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;
+  font-size:14px;font-family:var(--font);background:#fff;color:var(--text);outline:none;
+  -webkit-appearance:none;
+}
+.filter-row select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238AA3BC' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+
+/* 제출 항목 카드 */
+.co-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:16px 18px;margin-bottom:10px;
+  cursor:pointer;transition:border-color .15s;}
+.co-card:hover{border-color:var(--border);}
+.co-card.expanded{border-color:var(--blue);}
+.co-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.co-space{font-size:13px;font-weight:700;padding:2px 9px;border-radius:6px;
+  background:var(--blue-lt);color:var(--blue);}
+.co-org{font-size:15px;font-weight:700;color:var(--text);}
+.co-date{font-size:13px;color:var(--text3);margin-left:auto;}
+.co-name{font-size:13px;color:var(--text2);}
+.co-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);display:none;}
+.co-card.expanded .co-body{display:block;}
+
+.chk-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.chk-row{display:flex;align-items:center;gap:8px;font-size:14px;}
+.chk-icon{font-size:15px;flex-shrink:0;}
+.chk-label{color:var(--text2);}
+
+.note-box{background:var(--amber-lt);border:1px solid #e0c07a;border-radius:8px;
+  padding:10px 12px;font-size:14px;color:var(--amber);line-height:1.5;}
+.note-label{font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;letter-spacing:.05em;}
+
+.submitted-at{font-size:12px;color:var(--text3);margin-top:8px;}
+
+.empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px;}
+.loading{text-align:center;padding:48px 20px;color:var(--text3);}
+
+/* 체크 레이블 맵 */
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">IAM 인트라넷</div>
+    <div class="login-sub">퇴실 체크 이력 — 관리자 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z" fill="#4285F4"/><path d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2.04c-.72.48-1.63.77-2.7.77-2.08 0-3.84-1.4-4.47-3.29H1.88v2.07A8 8 0 0 0 8.98 17z" fill="#34A853"/><path d="M4.51 10.5A4.8 4.8 0 0 1 4.26 9c0-.52.09-1.02.25-1.5V5.43H1.88A8 8 0 0 0 1 9c0 1.29.31 2.51.88 3.57l2.63-2.07z" fill="#FBBC05"/><path d="M8.98 4.21c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 8.98 1 8 8 0 0 0 1.88 5.43l2.63 2.07C5.14 5.61 6.9 4.21 8.98 4.21z" fill="#EA4335"/></svg>
+      Google로 로그인
+    </button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app-wrap">
+  <div class="topbar">
+    <a class="tb-logo" href="portal.html">
+      <div class="tb-mark">IM</div>
+      <div><div class="tb-name">IAM 인트라넷</div></div>
+    </a>
+    <span class="tb-sep">›</span><span class="tb-cur">퇴실 체크 이력</span>
+    <div class="tb-right">
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-title">퇴실 체크 이력</div>
+    <div class="page-sub" id="page-sub">불러오는 중…</div>
+
+    <div class="filter-row">
+      <input id="f-search" type="text" placeholder="단체명·공간 검색" oninput="renderList()">
+      <select id="f-space" onchange="renderList()">
+        <option value="">전체 공간</option>
+        <option>아론홀</option><option>샤론홀</option><option>지혜홀</option>
+        <option>505호</option><option>506호</option><option>507호</option>
+        <option>508호</option><option>509호</option><option>510호</option><option>511호</option>
+      </select>
+    </div>
+
+    <div id="list-wrap"><div class="loading">불러오는 중…</div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, collection, getDocs, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const ALLOWED_DOMAIN = 'suwoncca.org';
+const ADMIN_EMAILS   = ['hyyoo9683@gmail.com'];
+
+const CHK_LABELS = {
+  trash:    '쓰레기 수거 및 반출',
+  furniture:'테이블·의자 원상복구',
+  equipment:'장비 제자리 반납',
+  power:    '전원 OFF 확인',
+  nodamage: '파손·훼손 없음',
+};
+const ALL_KEYS = Object.keys(CHK_LABELS);
+
+const app  = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let checkouts = [];
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const ok = user.email.endsWith('@'+ALLOWED_DOMAIN) || ADMIN_EMAILS.includes(user.email);
+  if (!ok) { await signOut(auth); showLoginErr('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display   = 'flex';
+  await loadData();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginErr(msg) {
+  const el = document.getElementById('login-err'); el.textContent = msg; el.style.display = 'block';
+  showLogin();
+}
+window.doLogin = async () => {
+  document.getElementById('login-err').style.display = 'none';
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginErr('로그인 실패. 다시 시도해 주세요.'); }
+};
+window.doLogout = async () => { await signOut(auth); };
+
+async function loadData() {
+  try {
+    const snap = await getDocs(query(collection(db,'checkouts'), orderBy('submittedAt','desc')));
+    checkouts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderList();
+  } catch(e) {
+    document.getElementById('list-wrap').innerHTML =
+      `<div class="empty" style="color:var(--red)">불러오기 실패: ${e.message}</div>`;
+  }
+}
+
+window.renderList = () => {
+  const q  = document.getElementById('f-search').value.trim().toLowerCase();
+  const sp = document.getElementById('f-space').value;
+  const filtered = checkouts.filter(c =>
+    (!sp || c.space === sp) &&
+    (!q  || (c.org||'').toLowerCase().includes(q) || (c.space||'').toLowerCase().includes(q))
+  );
+  document.getElementById('page-sub').textContent =
+    `총 ${checkouts.length}건${filtered.length !== checkouts.length ? ` 중 ${filtered.length}건 표시` : ''}`;
+
+  if (!filtered.length) {
+    document.getElementById('list-wrap').innerHTML = `<div class="empty">해당하는 퇴실 체크가 없습니다.</div>`;
+    return;
+  }
+  document.getElementById('list-wrap').innerHTML = filtered.map(c => {
+    const ts = c.submittedAt?.toDate ? c.submittedAt.toDate() : null;
+    const tsStr = ts ? `${ts.getFullYear()}.${p2(ts.getMonth()+1)}.${p2(ts.getDate())} ${p2(ts.getHours())}:${p2(ts.getMinutes())}` : '';
+    const checked = c.checked || [];
+    const allOk   = ALL_KEYS.every(k => checked.includes(k));
+
+    const chkRows = ALL_KEYS.map(k => {
+      const ok = checked.includes(k);
+      return `<div class="chk-row">
+        <span class="chk-icon">${ok ? '✅' : '⬜'}</span>
+        <span class="chk-label" style="${ok ? '' : 'color:var(--red);font-weight:600'}">${CHK_LABELS[k]}</span>
+      </div>`;
+    }).join('');
+
+    const noteHtml = c.note ? `
+      <div class="note-box">
+        <div class="note-label">특이사항</div>
+        ${c.note}
+      </div>` : '';
+
+    return `<div class="co-card" id="card-${c.id}" onclick="toggleCard('${c.id}')">
+      <div class="co-head">
+        <span class="co-space">${c.space||'–'}</span>
+        <span class="co-org">${c.org||'–'}</span>
+        <span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
+        <span class="co-name">담당자 ${c.name||'–'}</span>
+        ${allOk
+          ? '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--green-lt);color:var(--green)">전항목 완료</span>'
+          : '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber)">미완료 항목 있음</span>'}
+        ${c.note ? '<span style="font-size:11px;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber);font-weight:700">특이사항</span>' : ''}
+      </div>
+      <div class="co-body">
+        <div class="chk-list">${chkRows}</div>
+        ${noteHtml}
+        <div class="submitted-at">제출 시각: ${tsStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.toggleCard = id => {
+  const el = document.getElementById('card-'+id);
+  if (el) el.classList.toggle('expanded');
+};
+
+const p2 = n => String(n).padStart(2,'0');
+</script>
+</body>
+</html>
