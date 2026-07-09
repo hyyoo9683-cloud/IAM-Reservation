@@ -140,7 +140,7 @@ textarea { resize: vertical; min-height: 60px; }
 .modal-title       { font-size: 17px; font-weight: 700; margin-bottom: 18px; color: var(--text); }
 
 /* ── 로그인 ── */
-.login-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, var(--bg3) 0%, var(--bg) 60%); }
+.login-wrap { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: linear-gradient(135deg, var(--bg3) 0%, var(--bg) 60%); }
 .login-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 40px 36px; width: 380px; text-align: center; box-shadow: 0 4px 24px rgba(24,95,165,.08); }
 .login-logo { font-size: 26px; font-weight: 800; color: var(--blue); margin-bottom: 4px; }
 .login-sub  { font-size: 14px; color: var(--text3); margin-bottom: 32px; }
@@ -1319,7 +1319,10 @@ getRedirectResult(auth).then(result => {
 }).catch(() => { /* 잔존 리다이렉트 오류 모두 무시 */ });
 
 onAuthStateChanged(auth, async user => {
-  if (!user) return;
+  if (!user) {
+    document.getElementById('view-login').style.display = 'flex';
+    return;
+  }
 
   const email = user.email;
   const isDomainUser = email.endsWith('@' + ALLOWED_DOMAIN);
