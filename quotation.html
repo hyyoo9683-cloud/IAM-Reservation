@@ -94,6 +94,9 @@ window.addQD = () => {
   renderQuoteDates();
 };
 window.removeQD = i => { quoteDates.splice(i, 1); renderQuoteDates(); };
+window.setCategory = val => {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+};
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
@@ -281,6 +284,7 @@ window.printQuote = async () => {
   const timeE      = g('q-time-end').value;
   const memo       = g('q-memo').value.trim();
   const issueDate  = g('q-issue-date').value || new Date().toISOString().slice(0,10);
+  const quoteCategory = document.querySelector('.cat-btn.active')?.dataset.val || '신청';
   const discountType = document.querySelector('input[name="q-discount"]:checked')?.value || 'none';
   const discountLabel = discountType === 'mission' ? '선교사 할인 50%' : discountType === 'related' ? '유관기관 할인 20%' : '';
   const discountRate  = discountType === 'mission' ? 0.5 : discountType === 'related' ? 0.2 : 0;
@@ -450,7 +454,10 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       <div class="logo-text-sub">아이엠센터</div>
     </div>
   </div>
-  <div class="doc-title">견&nbsp;&nbsp;적&nbsp;&nbsp;서</div>
+  <div style="text-align:right">
+    <div style="font-size:9px;letter-spacing:2px;font-weight:700;margin-bottom:4px;color:${quoteCategory==='취소'?'#a32d2d':quoteCategory==='변경'?'#854f0b':'#185fa5'}">${quoteCategory}</div>
+    <div class="doc-title">견&nbsp;&nbsp;적&nbsp;&nbsp;서</div>
+  </div>
 </div>
 
 <div class="info-grid">
@@ -527,6 +534,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     await addDoc(collection(db,'quotations'), {
       client: clientNm, clientBiz, venue, purpose, total, supply, vat,
       date: dateVal, dates: quoteDates,
+      quoteCategory,
       qType:        g('q-type')?.value || '',
       qExtra:       parseInt(g('q-extra')?.value) || 0,
       qSurcharge:   g('q-surcharge')?.checked || false,
@@ -567,9 +575,15 @@ function renderHistory(q = '') {
   el.innerHTML = filtered.map(h => {
     const d  = h.issuedAt?.toDate ? h.issuedAt.toDate() : new Date();
     const ds = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    const cat = h.quoteCategory || '신청';
+    const catColor = cat === '변경' ? 'var(--amber)' : cat === '취소' ? 'var(--red)' : 'var(--blue)';
+    const catBg    = cat === '변경' ? 'var(--amber-lt)' : cat === '취소' ? 'var(--red-lt)' : 'var(--blue-lt)';
     return `<div class="hist-row">
       <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${h.client||'–'}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:${catBg};color:${catColor};border:1px solid ${catColor}">${cat}</span>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${h.client||'–'}</span>
+        </div>
         <div style="font-size:11px;color:var(--text3)">${h.venue||''} · ${h.date||''} ${h.purpose ? '· '+h.purpose : ''}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
@@ -597,6 +611,9 @@ window.reissue = id => {
     ? h.dates.map(d => ({...d}))
     : [{ date: h.date||'', timeStart:'', timeEnd:'' }];
   document.getElementById('q-date').value = quoteDates[0]?.date || '';
+
+  // 분류 복원
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.quoteCategory || '신청')));
 
   switchVenue();
   renderQuoteDates();
@@ -731,6 +748,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .btn-add-date{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);
   background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
 .btn-add-date:hover{border-color:var(--blue);color:var(--blue);}
+
+/* 견적 분류 */
+.cat-group{display:flex;gap:6px;margin-top:4px;}
+.cat-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff;
+  font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
+.cat-btn[data-val="신청"].active{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
+.cat-btn[data-val="변경"].active{background:var(--amber-lt);border-color:var(--amber);color:var(--amber);}
+.cat-btn[data-val="취소"].active{background:var(--red-lt);border-color:var(--red);color:var(--red);}
+
 .print-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
   background:var(--green);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
   display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:4px;}
@@ -791,6 +817,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   <div class="layout">
     <!-- ── 입력 폼 ── -->
     <div class="form-panel">
+
+      <div class="sec-title" style="margin-top:0">견적 분류</div>
+      <div class="fg" style="margin-bottom:16px">
+        <div class="cat-group">
+          <button class="cat-btn active" data-val="신청" onclick="setCategory('신청')">신청</button>
+          <button class="cat-btn" data-val="변경" onclick="setCategory('변경')">변경</button>
+          <button class="cat-btn" data-val="취소" onclick="setCategory('취소')">취소</button>
+        </div>
+      </div>
 
       <div class="sec-title">수신자 정보</div>
       <div class="fg"><div class="lbl">수신처</div><input id="q-client"></div>
