@@ -128,7 +128,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
       <input id="f-search" type="text" placeholder="단체명·공간 검색" oninput="renderList()">
       <select id="f-space" onchange="renderList()">
         <option value="">전체 공간</option>
-        <option>아론홀</option><option>샤론홀</option><option>지혜홀</option>
+        <option>아론홀</option><option>샤론홀</option>
         <option>505호</option><option>506호</option><option>507호</option>
         <option>508호</option><option>509호</option><option>510호</option><option>511호</option>
       </select>
@@ -151,7 +151,7 @@ const ADMIN_EMAILS   = ['hyyoo9683@gmail.com'];
 const CHK_LABELS = {
   trash:    '쓰레기 수거 및 반출',
   furniture:'테이블·의자 원상복구',
-  equipment:'장비 제자리 반납',
+  equipment:'사용한 장비(TV, 마이크, 리모컨 등) 정리',
   power:    '전원 OFF 확인',
   nodamage: '파손·훼손 없음',
 };
@@ -247,7 +247,7 @@ window.renderList = () => {
         <span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
-        <span class="co-name">담당자 ${c.name||'–'}</span>
+        <span class="co-name">청지기 ${c.name||'–'}</span>
         ${allOk
           ? '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--green-lt);color:var(--green)">전항목 완료</span>'
           : '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber)">미완료 항목 있음</span>'}

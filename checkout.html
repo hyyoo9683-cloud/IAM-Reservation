@@ -85,11 +85,10 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
     <div class="sec-label">이용 정보</div>
     <div class="field">
       <div class="lbl">공간</div>
-      <select id="co-space">
+      <select id="co-space" onchange="onSpaceChange()">
         <option value="">선택해 주세요</option>
         <option>아론홀</option>
         <option>샤론홀</option>
-        <option>지혜홀</option>
         <option>505호</option>
         <option>506호</option>
         <option>507호</option>
@@ -100,16 +99,16 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
       </select>
     </div>
     <div class="field">
-      <div class="lbl">단체명</div>
-      <input id="co-org" type="text" placeholder="단체 또는 모임 이름">
+      <div class="lbl">모임명</div>
+      <input id="co-org" type="text" placeholder="모임 이름">
     </div>
     <div class="field">
       <div class="lbl">이용 날짜</div>
       <input id="co-date" type="date">
     </div>
     <div class="field" style="margin-bottom:0">
-      <div class="lbl">담당자명</div>
-      <input id="co-name" type="text" placeholder="담당자 이름">
+      <div class="lbl">청지기명</div>
+      <input id="co-name" type="text" placeholder="청지기 이름">
     </div>
   </div>
 
@@ -124,9 +123,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
         <input type="checkbox" name="chk" value="furniture">
         <span class="check-text">테이블·의자를 원래 위치로 복구했습니다</span>
       </label>
-      <label class="check-item">
+      <label class="check-item" id="chk-equipment-wrap" style="display:none">
         <input type="checkbox" name="chk" value="equipment">
-        <span class="check-text">장비(마이크·리모컨 등)를 제자리에 반납했습니다</span>
+        <span class="check-text">사용한 장비(TV, 마이크, 리모컨 등) 정리</span>
       </label>
       <label class="check-item">
         <input type="checkbox" name="chk" value="power">
@@ -170,8 +169,18 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
+const HALL_SPACES = ['아론홀', '샤론홀'];
+
 // 오늘 날짜 기본값
 document.getElementById('co-date').value = new Date().toISOString().slice(0,10);
+
+window.onSpaceChange = () => {
+  const space = document.getElementById('co-space').value;
+  const show  = HALL_SPACES.includes(space);
+  const wrap  = document.getElementById('chk-equipment-wrap');
+  wrap.style.display = show ? '' : 'none';
+  if (!show) wrap.querySelector('input').checked = false;
+};
 
 window.submitCheckout = async () => {
   const space  = document.getElementById('co-space').value.trim();
@@ -181,15 +190,18 @@ window.submitCheckout = async () => {
   const note   = document.getElementById('co-note').value.trim();
   const errEl  = document.getElementById('err-msg');
 
-  const checked = [...document.querySelectorAll('input[name="chk"]:checked')].map(el => el.value);
-  const total   = document.querySelectorAll('input[name="chk"]').length;
+  // 현재 보이는 항목만 카운트
+  const visibleItems = [...document.querySelectorAll('input[name="chk"]')]
+    .filter(el => el.closest('label').style.display !== 'none');
+  const checked = visibleItems.filter(el => el.checked).map(el => el.value);
+  const total   = visibleItems.length;
 
   errEl.style.display = 'none';
 
   if (!space) { showErr('공간을 선택해 주세요.'); return; }
-  if (!org)   { showErr('단체명을 입력해 주세요.'); return; }
+  if (!org)   { showErr('모임명을 입력해 주세요.'); return; }
   if (!date)  { showErr('이용 날짜를 선택해 주세요.'); return; }
-  if (!name)  { showErr('담당자명을 입력해 주세요.'); return; }
+  if (!name)  { showErr('청지기명을 입력해 주세요.'); return; }
   if (checked.length < total) {
     showErr('모든 체크 항목을 확인 후 체크해 주세요.'); return;
   }
