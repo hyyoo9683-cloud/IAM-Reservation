@@ -12,7 +12,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, doc,
-  getDocs, orderBy, query, serverTimestamp, where }
+  getDocs, orderBy, query, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -26,8 +26,25 @@ const firebaseConfig = {
 const ALLOWED_DOMAIN = "suwoncca.org";
 const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
 
-const SPACES  = ['아론홀', '샤론홀', '지혜홀'];
-const EQUIP   = ['음향 시스템', '빔프로젝터', '마이크', '케이터링', '화이트보드', '방송 촬영'];
+// ── 공간별 장비 설정 ──────────────────────────────────────
+const VENUES = {
+  '아론홀': {
+    type: 'hourly',
+    stdEquip: ['무선 마이크 2', 'TV', '스피커', '보면대', '마이크 스탠드 1'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '조명 지원 (BMS)', '빔프로젝터', '케이터링'],
+  },
+  '샤론홀': {
+    type: 'hourly',
+    stdEquip: ['무선 마이크 2', '유선 마이크 2', 'TV 2대', '키보드'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '미디어 지원 (BMS)', '케이터링'],
+  },
+  '지혜홀': {
+    type: 'lodging',
+    stdEquip: [],
+    paidServices: ['다과 IAM 제공', '케이터링', '기타 서비스'],
+  },
+};
+
 const STATUSES = {
   '접수':   { label: '접수완료', color: '#185FA5', bg: '#E6F1FB' },
   '검토중': { label: '검토 중',  color: '#854F0B', bg: '#FAEEDA' },
@@ -41,8 +58,8 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 let curUser = null;
 let requests = [];
-let curId   = null;
-let curTab  = '전체';
+let curId    = null;
+let curTab   = '전체';
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
@@ -92,19 +109,16 @@ window.setTab = t => { curTab = t; renderList(); };
 function renderList() {
   const tabs = ['전체','접수','검토중','승인','거절','취소'];
   document.getElementById('tab-bar').innerHTML = tabs.map(t =>
-    `<button class="tab${t===curTab?' active':''}" onclick="setTab('${t}')">${t === '전체' ? '전체' : STATUSES[t]?.label || t}</button>`
+    `<button class="tab${t===curTab?' active':''}" onclick="setTab('${t}')">${t==='전체'?'전체':STATUSES[t]?.label||t}</button>`
   ).join('');
 
   const filtered = curTab === '전체' ? requests : requests.filter(r => r.status === curTab);
-
   const el = document.getElementById('req-list');
   if (!filtered.length) {
-    el.innerHTML = `<div class="empty-msg">신청 내역이 없습니다</div>`;
-    return;
+    el.innerHTML = `<div class="empty-msg">신청 내역이 없습니다</div>`; return;
   }
   el.innerHTML = filtered.map(r => {
     const st = STATUSES[r.status] || STATUSES['접수'];
-    const dateStr = r.eventDate || '날짜 미정';
     const active = r.id === curId ? ' active' : '';
     return `<div class="req-card${active}" onclick="openRequest('${r.id}')">
       <div class="req-card-top">
@@ -114,41 +128,80 @@ function renderList() {
       <div class="req-card-mid">${esc(r.eventName||'(행사명 없음)')}</div>
       <div class="req-card-bot">
         <span>${esc(r.space||'–')}</span>
-        <span>${dateStr}</span>
+        <span>${r.eventDate||'날짜 미정'}</span>
         <span>${esc(r.managerName||'–')}</span>
       </div>
     </div>`;
   }).join('');
 }
 
-// ── 새 신청서 폼 ───────────────────────────────────────────
+// ── 폼 빌더 ───────────────────────────────────────────────
 window.showNewForm = () => {
-  curId = null;
-  renderList();
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('detail-panel').innerHTML = buildFormHTML(null, today);
-  bindEquipCheckboxes();
+  curId = null; renderList();
+  document.getElementById('detail-panel').innerHTML = buildFormHTML(null);
+  initVenueSwitch();
 };
 
-function buildFormHTML(r, today) {
-  const isEdit = !!r;
-  const v = (field, def='') => isEdit ? esc(r[field]||def) : def;
-  const spaceOpts = SPACES.map(s =>
-    `<option value="${s}"${isEdit && r.space===s?' selected':''}>${s}</option>`
+function buildFormHTML(r) {
+  const isEdit  = !!r;
+  const v       = (f, def='') => isEdit ? esc(r[f]||def) : def;
+  const curSpace = isEdit ? (r.space||'아론홀') : '아론홀';
+  const vInfo   = VENUES[curSpace] || VENUES['아론홀'];
+
+  const spaceChips = Object.keys(VENUES).map(s =>
+    `<button type="button" class="space-chip${s===curSpace?' sel':''}" onclick="selectSpace('${s}')">${s}</button>`
   ).join('');
-  const equipChecks = EQUIP.map(e =>
+
+  const stdEquipHTML = vInfo.stdEquip.map(e =>
+    `<span class="equip-tag">${e}</span>`
+  ).join('');
+
+  const paidHTML = vInfo.paidServices.map(e =>
     `<label class="equip-opt">
-      <input type="checkbox" value="${e}"${isEdit && r.equip?.includes(e)?' checked':''}> ${e}
+      <input type="checkbox" value="${e}"${isEdit && r.paidServices?.includes(e)?' checked':''}> ${e}
     </label>`
   ).join('');
 
+  const lodgingFields = `
+    <div id="sec-lodging" style="display:${vInfo.type==='lodging'?'':'none'}">
+      <div class="fl">
+        <div class="fg"><div class="lbl">체크인 날짜</div>
+          <input type="date" id="f-date-in" value="${v('dateIn')}"></div>
+        <div class="fg"><div class="lbl">박수</div>
+          <input type="number" id="f-nights" min="1" value="${v('nights','1')}"></div>
+      </div>
+      <div class="fg"><div class="lbl">룸 선택</div>
+        <div class="fl" style="flex-wrap:wrap;gap:8px;margin-top:4px">
+          ${['Room 1 (3인실)','Room 2 (2인실)','Room 3 (2인실)'].map(rm =>
+            `<label class="equip-opt"><input type="checkbox" name="f-rooms" value="${rm}"${isEdit&&r.rooms?.includes(rm)?' checked':''}> ${rm}</label>`
+          ).join('')}
+        </div>
+      </div>
+    </div>`;
+
+  const hourlyFields = `
+    <div id="sec-hourly" style="display:${vInfo.type==='hourly'?'':'none'}">
+      <div class="fl">
+        <div class="fg"><div class="lbl">시작 시간</div>
+          <input type="time" id="f-start" value="${v('timeStart')}"></div>
+        <div class="fg"><div class="lbl">종료 시간</div>
+          <input type="time" id="f-end" value="${v('timeEnd')}"></div>
+      </div>
+    </div>`;
+
   return `
   <div class="detail-header">
-    <div class="detail-title">${isEdit ? '신청서 수정' : '새 대관 신청 접수'}</div>
-    ${isEdit ? `<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>` : ''}
+    <div class="detail-title">${isEdit?'신청서 수정':'새 대관 신청 접수'}</div>
+    ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>`:''}
   </div>
-
   <div class="form-body">
+    <input type="hidden" id="f-space" value="${curSpace}">
+
+    <!-- 1. 공간 선택 -->
+    <div class="form-sec first">공간 선택</div>
+    <div class="space-chips">${spaceChips}</div>
+
+    <!-- 2. 업체 정보 -->
     <div class="form-sec">신청 업체 정보</div>
     <div class="fl">
       <div class="fg"><div class="lbl">업체·단체명 <span class="req-mark">*</span></div>
@@ -163,36 +216,39 @@ function buildFormHTML(r, today) {
         <input id="f-email" value="${v('email')}" placeholder="example@email.com"></div>
     </div>
 
+    <!-- 3. 행사 정보 -->
     <div class="form-sec">행사 정보</div>
     <div class="fl">
       <div class="fg"><div class="lbl">행사명</div>
         <input id="f-name" value="${v('eventName')}" placeholder="예: 청년부 수련회"></div>
-      <div class="fg"><div class="lbl">공간</div>
-        <select id="f-space"><option value="">선택</option>${spaceOpts}</select></div>
-    </div>
-    <div class="fl">
-      <div class="fg"><div class="lbl">날짜</div>
-        <input type="date" id="f-date" value="${v('eventDate', today)}"></div>
-      <div class="fg"><div class="lbl">종료일 (숙박·다일 경우)</div>
-        <input type="date" id="f-date-end" value="${v('eventDateEnd')}"></div>
-    </div>
-    <div class="fl">
-      <div class="fg"><div class="lbl">시작 시간</div>
-        <input type="time" id="f-start" value="${v('timeStart')}"></div>
-      <div class="fg"><div class="lbl">종료 시간</div>
-        <input type="time" id="f-end" value="${v('timeEnd')}"></div>
       <div class="fg"><div class="lbl">예상 인원</div>
         <input type="number" id="f-ppl" min="1" value="${v('headcount')}" placeholder="0"></div>
     </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">날짜</div>
+        <input type="date" id="f-date" value="${v('eventDate', new Date().toISOString().slice(0,10))}"></div>
+      <div class="fg"><div class="lbl">종료일 <span style="font-size:11px;color:var(--text3)">(다일·숙박)</span></div>
+        <input type="date" id="f-date-end" value="${v('eventDateEnd')}"></div>
+    </div>
+    ${hourlyFields}
+    ${lodgingFields}
     <div class="fg"><div class="lbl">행사 내용 / 목적</div>
-      <textarea id="f-purpose" style="min-height:64px" placeholder="행사 목적, 프로그램 내용 등">${v('purpose')}</textarea></div>
+      <textarea id="f-purpose" style="min-height:64px" placeholder="행사 목적, 프로그램 등">${v('purpose')}</textarea></div>
 
-    <div class="form-sec">필요 장비 / 서비스</div>
-    <div class="equip-grid">${equipChecks}</div>
+    <!-- 4. 기본 제공 장비 (숙박 공간 제외) -->
+    <div id="sec-std-equip" style="display:${vInfo.stdEquip.length?'':'none'}">
+      <div class="form-sec">기본 제공 장비 <span style="font-size:11px;font-weight:400;color:var(--text3);letter-spacing:0;text-transform:none">(해당 공간 기본 사양)</span></div>
+      <div class="equip-tags" id="std-equip">${stdEquipHTML}</div>
+    </div>
+
+    <!-- 5. 추가 서비스 (유료) -->
+    <div class="form-sec">추가 서비스 <span style="font-size:11px;font-weight:400;color:var(--amber);letter-spacing:0;text-transform:none">유료 / 사전 협의 필요</span></div>
+    <div class="equip-grid" id="paid-services">${paidHTML}</div>
     <div class="fg" style="margin-top:10px"><div class="lbl">기타 요청사항</div>
       <textarea id="f-etc" style="min-height:56px" placeholder="추가 요청사항">${v('etcRequest')}</textarea></div>
 
     ${isEdit ? `
+    <!-- 6. 팀 메모 -->
     <div class="form-sec">팀 메모</div>
     <div class="fg"><div class="lbl">행정 메모</div>
       <textarea id="f-memo-admin" style="min-height:48px">${v('memoAdmin')}</textarea></div>
@@ -201,7 +257,8 @@ function buildFormHTML(r, today) {
     <div class="fg"><div class="lbl">미디어 메모</div>
       <textarea id="f-memo-media" style="min-height:48px">${v('memoMedia')}</textarea></div>
 
-    <div class="form-sec">상태</div>
+    <!-- 7. 상태 -->
+    <div class="form-sec">처리 상태</div>
     <div class="status-btns">
       ${Object.entries(STATUSES).map(([k,s]) =>
         `<button class="status-btn${r.status===k?' sel':''}"
@@ -211,21 +268,40 @@ function buildFormHTML(r, today) {
     </div>` : ''}
 
     <div style="margin-top:20px;display:flex;gap:10px">
-      <button class="btn-primary" onclick="${isEdit ? `saveEdit('${r.id}')` : 'saveNew()'}">
-        ${isEdit ? '저장' : '접수 등록'}
+      <button class="btn-primary" onclick="${isEdit?`saveEdit('${r.id}')`:'saveNew()'}">
+        ${isEdit?'저장':'접수 등록'}
       </button>
-      ${isEdit ? `<button class="btn-ghost" onclick="showNewForm()">취소</button>` : ''}
+      ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">취소</button>`:''}
     </div>
   </div>`;
 }
 
-function bindEquipCheckboxes() {
-  // nothing extra needed — checkboxes are plain HTML
-}
+// ── 공간 전환 ──────────────────────────────────────────────
+function initVenueSwitch() {}  // chips already wired via onclick
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+window.selectSpace = space => {
+  document.getElementById('f-space').value = space;
+  // 칩 선택 표시
+  document.querySelectorAll('.space-chip').forEach(b =>
+    b.classList.toggle('sel', b.textContent === space)
+  );
+  const vInfo = VENUES[space];
+  // 시간제/숙박 섹션 토글
+  const hourly = document.getElementById('sec-hourly');
+  const lodging = document.getElementById('sec-lodging');
+  if (hourly)  hourly.style.display  = vInfo.type === 'hourly'  ? '' : 'none';
+  if (lodging) lodging.style.display = vInfo.type === 'lodging' ? '' : 'none';
+  // 기본 장비 태그 (없으면 섹션 숨김)
+  const stdSec = document.getElementById('sec-std-equip');
+  const stdEl  = document.getElementById('std-equip');
+  if (stdSec) stdSec.style.display = vInfo.stdEquip.length ? '' : 'none';
+  if (stdEl)  stdEl.innerHTML = vInfo.stdEquip.map(e => `<span class="equip-tag">${e}</span>`).join('');
+  // 추가 서비스 체크박스
+  document.getElementById('paid-services').innerHTML =
+    vInfo.paidServices.map(e =>
+      `<label class="equip-opt"><input type="checkbox" value="${e}"> ${e}</label>`
+    ).join('');
+};
 
 window.formatTel = el => {
   let v = el.value.replace(/\D/g,'');
@@ -236,27 +312,31 @@ window.formatTel = el => {
 
 function collectForm(id) {
   const g = i => document.getElementById(i);
-  const equip = [...document.querySelectorAll('.equip-opt input:checked')].map(c => c.value);
+  const paidServices = [...document.querySelectorAll('#paid-services input:checked')].map(c => c.value);
+  const rooms = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
   const data = {
-    orgName:      g('f-org')?.value.trim()    || '',
-    managerName:  g('f-mgr')?.value.trim()    || '',
-    tel:          g('f-tel')?.value.trim()    || '',
-    email:        g('f-email')?.value.trim()  || '',
-    eventName:    g('f-name')?.value.trim()   || '',
-    space:        g('f-space')?.value         || '',
-    eventDate:    g('f-date')?.value          || '',
-    eventDateEnd: g('f-date-end')?.value      || '',
-    timeStart:    g('f-start')?.value         || '',
-    timeEnd:      g('f-end')?.value           || '',
-    headcount:    parseInt(g('f-ppl')?.value) || 0,
-    purpose:      g('f-purpose')?.value.trim()|| '',
-    equip,
-    etcRequest:   g('f-etc')?.value.trim()   || '',
+    space:        g('f-space')?.value       || '',
+    orgName:      g('f-org')?.value.trim()  || '',
+    managerName:  g('f-mgr')?.value.trim()  || '',
+    tel:          g('f-tel')?.value.trim()  || '',
+    email:        g('f-email')?.value.trim()|| '',
+    eventName:    g('f-name')?.value.trim() || '',
+    headcount:    parseInt(g('f-ppl')?.value)||0,
+    eventDate:    g('f-date')?.value        || '',
+    eventDateEnd: g('f-date-end')?.value    || '',
+    timeStart:    g('f-start')?.value       || '',
+    timeEnd:      g('f-end')?.value         || '',
+    dateIn:       g('f-date-in')?.value     || '',
+    nights:       parseInt(g('f-nights')?.value)||0,
+    rooms,
+    purpose:      g('f-purpose')?.value.trim()||'',
+    paidServices,
+    etcRequest:   g('f-etc')?.value.trim() || '',
   };
   if (id) {
-    data.memoAdmin = g('f-memo-admin')?.value.trim() || '';
-    data.memoMgmt  = g('f-memo-mgmt')?.value.trim()  || '';
-    data.memoMedia = g('f-memo-media')?.value.trim()  || '';
+    data.memoAdmin = g('f-memo-admin')?.value.trim()||'';
+    data.memoMgmt  = g('f-memo-mgmt')?.value.trim() ||'';
+    data.memoMedia = g('f-memo-media')?.value.trim()||'';
   }
   return data;
 }
@@ -266,29 +346,27 @@ window.saveNew = async () => {
   if (!data.orgName || !data.managerName || !data.tel) {
     alert('업체명, 담당자 이름, 연락처는 필수입니다.'); return;
   }
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true; btn.textContent = '저장 중...';
   try {
-    const btn = document.querySelector('.btn-primary');
-    btn.disabled = true; btn.textContent = '저장 중...';
     await addDoc(collection(db,'venue_requests'), {
       ...data, status: '접수',
       createdBy: curUser.email, createdAt: serverTimestamp(),
     });
-    await loadRequests();
-    showNewForm();
-  } catch(e) { alert('저장 실패: ' + e.message); }
+    await loadRequests(); showNewForm();
+  } catch(e) { alert('저장 실패: ' + e.message); btn.disabled=false; btn.textContent='접수 등록'; }
 };
 
-window.saveEdit = async (id) => {
+window.saveEdit = async id => {
   const data = collectForm(id);
+  const btn = document.querySelector('.btn-primary');
+  btn.disabled = true; btn.textContent = '저장 중...';
   try {
-    const btn = document.querySelector('.btn-primary');
-    btn.disabled = true; btn.textContent = '저장 중...';
     await updateDoc(doc(db,'venue_requests',id), {
       ...data, updatedBy: curUser.email, updatedAt: serverTimestamp(),
     });
-    await loadRequests();
-    openRequest(id);
-  } catch(e) { alert('저장 실패: ' + e.message); }
+    await loadRequests(); openRequest(id);
+  } catch(e) { alert('저장 실패: ' + e.message); btn.disabled=false; btn.textContent='저장'; }
 };
 
 window.setStatus = async (id, status) => {
@@ -296,18 +374,20 @@ window.setStatus = async (id, status) => {
     await updateDoc(doc(db,'venue_requests',id), {
       status, updatedBy: curUser.email, updatedAt: serverTimestamp(),
     });
-    await loadRequests();
-    openRequest(id);
+    await loadRequests(); openRequest(id);
   } catch(e) { alert('상태 변경 실패: ' + e.message); }
 };
 
 window.openRequest = id => {
-  curId = id;
-  renderList();
+  curId = id; renderList();
   const r = requests.find(x => x.id === id);
   if (!r) return;
   document.getElementById('detail-panel').innerHTML = buildFormHTML(r);
 };
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 
 <style>
@@ -338,7 +418,6 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
 .login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
 
 #app-wrap{display:none;flex-direction:column;min-height:100vh;}
-
 .topbar{background:#fff;border-bottom:1px solid var(--border2);height:56px;padding:0 24px;
   display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
   box-shadow:0 1px 6px rgba(24,95,165,.07);}
@@ -359,12 +438,12 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
 
 .layout{display:flex;height:calc(100vh - 56px);}
 
-/* ── 목록 패널 ── */
+/* 목록 패널 */
 .list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--border2);
   background:#fff;display:flex;flex-direction:column;}
 .list-top{padding:14px 14px 0;display:flex;flex-direction:column;gap:10px;}
 .list-top-row{display:flex;align-items:center;justify-content:space-between;}
-.list-heading{font-size:15px;font-weight:800;color:var(--text);}
+.list-heading{font-size:15px;font-weight:800;}
 .new-btn{padding:6px 12px;border-radius:8px;border:none;cursor:pointer;
   background:var(--blue);color:#fff;font-size:13px;font-weight:700;font-family:var(--font);}
 .new-btn:hover{filter:brightness(.92);}
@@ -379,22 +458,23 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
 .req-card:hover{border-color:var(--blue);background:var(--bg3);}
 .req-card.active{border-color:var(--blue);background:var(--blue-lt);}
 .req-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
-.req-org{font-size:13px;font-weight:700;color:var(--text);}
+.req-org{font-size:13px;font-weight:700;}
 .status-chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
 .req-card-mid{font-size:12px;color:var(--text2);margin-bottom:4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.req-card-bot{display:flex;gap:8px;font-size:11px;color:var(--text3);}
-.req-card-bot span::after{content:'·';margin-left:8px;}
+.req-card-bot{display:flex;gap:6px;font-size:11px;color:var(--text3);}
+.req-card-bot span::after{content:'·';margin-left:6px;}
 .req-card-bot span:last-child::after{content:'';}
 
-/* ── 상세 패널 ── */
+/* 상세 패널 */
 .detail-panel{flex:1;overflow-y:auto;padding:24px;}
 .detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
 .detail-title{font-size:18px;font-weight:800;}
 .form-body{max-width:680px;}
-.form-sec{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.1em;
+
+.form-sec{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.08em;
   text-transform:uppercase;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--border2);}
-.form-sec:first-child{margin-top:0;padding-top:0;border-top:none;}
+.form-sec.first{margin-top:0;padding-top:0;border-top:none;}
 .fg{margin-bottom:12px;}
 .lbl{font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
 .req-mark{color:var(--red);}
@@ -404,12 +484,27 @@ input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border)
 input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
 .fl{display:flex;gap:10px;} .fl>.fg{flex:1;}
 
-.equip-grid{display:flex;flex-wrap:wrap;gap:8px;}
-.equip-opt{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);
-  border-radius:20px;cursor:pointer;font-size:13px;user-select:none;transition:all .15s;}
-.equip-opt:has(input:checked){border-color:var(--blue);background:var(--blue-lt);color:var(--blue);font-weight:600;}
-.equip-opt input{width:14px;height:14px;accent-color:var(--blue);}
+/* 공간 칩 */
+.space-chips{display:flex;gap:10px;margin-bottom:4px;}
+.space-chip{padding:10px 22px;border-radius:10px;border:2px solid var(--border);
+  background:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  cursor:pointer;color:var(--text2);transition:all .18s;}
+.space-chip:hover{border-color:var(--blue);color:var(--blue);}
+.space-chip.sel{border-color:var(--blue);background:var(--blue);color:#fff;}
 
+/* 기본 장비 태그 */
+.equip-tags{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-tag{padding:5px 12px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);
+  font-size:12px;font-weight:600;color:var(--text2);}
+
+/* 추가 서비스 체크박스 */
+.equip-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-opt{display:flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--border);
+  border-radius:20px;cursor:pointer;font-size:13px;user-select:none;transition:all .15s;}
+.equip-opt:has(input:checked){border-color:var(--amber);background:var(--amber-lt);color:var(--amber);font-weight:600;}
+.equip-opt input{width:14px;height:14px;accent-color:var(--amber);}
+
+/* 상태 버튼 */
 .status-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
 .status-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--border);
   background:#fff;font-size:13px;font-family:var(--font);cursor:pointer;transition:all .15s;color:var(--text2);}
@@ -427,6 +522,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 @media(max-width:760px){
   .layout{flex-direction:column;height:auto;}
   .list-panel{width:100%;border-right:none;border-bottom:1px solid var(--border2);max-height:40vh;}
+  .space-chips{gap:6px;}
+  .space-chip{padding:8px 14px;font-size:13px;}
 }
 </style>
 </head>
