@@ -580,15 +580,15 @@ function renderHistory(q = '') {
     const catBg    = cat === '변경' ? 'var(--amber-lt)' : cat === '취소' ? 'var(--red-lt)' : 'var(--blue-lt)';
     return `<div class="hist-row">
       <div style="flex:1;min-width:0">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
-          <span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:${catBg};color:${catColor};border:1px solid ${catColor}">${cat}</span>
-          <span style="font-size:13px;font-weight:600;color:var(--text)">${h.client||'–'}</span>
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+          <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;background:${catBg};color:${catColor};border:1px solid ${catColor}">${cat}</span>
+          <span style="font-size:15px;font-weight:700;color:var(--text)">${h.client||'–'}</span>
         </div>
-        <div style="font-size:11px;color:var(--text3)">${h.venue||''} · ${h.date||''} ${h.purpose ? '· '+h.purpose : ''}</div>
+        <div style="font-size:13px;color:var(--text3)">${h.venue||''} · ${h.date||''} ${h.purpose ? '· '+h.purpose : ''}</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
-        <div style="font-size:13px;font-weight:700;color:var(--blue)">₩${(h.total||0).toLocaleString()}</div>
-        <div style="font-size:10px;color:var(--text3)">${ds}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
+        <div style="font-size:15px;font-weight:700;color:var(--blue)">₩${(h.total||0).toLocaleString()}</div>
+        <div style="font-size:12px;color:var(--text3)">${ds}</div>
         <button class="hist-reissue-btn" onclick="reissue('${h.id}')">재발행</button>
       </div>
     </div>`;
@@ -697,80 +697,81 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
 .logout-btn:hover{background:var(--red-lt);color:var(--red);}
 
 .layout{display:flex;height:calc(100vh - 56px);}
-.form-panel{width:360px;flex-shrink:0;border-right:1px solid var(--border2);
-  background:#fff;overflow-y:auto;padding:20px;}
-.right-panel{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:20px;}
+.form-panel{width:380px;flex-shrink:0;border-right:1px solid var(--border2);
+  background:#fff;overflow-y:auto;padding:22px 20px;}
+.right-panel{flex:1;overflow-y:auto;padding:22px 20px;display:flex;flex-direction:column;gap:20px;}
 
+/* 섹션 구분 */
 .sec-title{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.1em;
-  text-transform:uppercase;margin:16px 0 10px;}
+  text-transform:uppercase;margin:22px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border2);}
 .sec-title:first-child{margin-top:0;}
-.fg{margin-bottom:12px;}
-.lbl{font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
-input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border);
-  border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--text);
+.fg{margin-bottom:14px;}
+.lbl{font-size:14px;color:var(--text2);margin-bottom:6px;font-weight:600;}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--border);
+  border-radius:8px;font-size:15px;font-family:var(--font);background:var(--bg);color:var(--text);
   outline:none;transition:border .15s;}
 input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
 .fl{display:flex;gap:10px;} .fl>.fg{flex:1;}
 
 /* 라디오 버튼 그룹 */
-.radio-group{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
-.radio-opt{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);
-  border-radius:8px;cursor:pointer;transition:all .15s;user-select:none;}
+.radio-group{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.radio-opt{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--border);
+  border-radius:9px;cursor:pointer;transition:all .15s;user-select:none;}
 .radio-opt:has(input:checked){border-color:var(--blue);background:var(--blue-lt);}
-.radio-opt input{width:15px;height:15px;accent-color:var(--blue);flex-shrink:0;}
-.radio-opt-label{font-size:13px;color:var(--text);}
-.radio-opt-badge{margin-left:auto;font-size:11px;font-weight:700;color:var(--red);}
+.radio-opt input{width:16px;height:16px;accent-color:var(--blue);flex-shrink:0;}
+.radio-opt-label{font-size:15px;color:var(--text);}
+.radio-opt-badge{margin-left:auto;font-size:13px;font-weight:700;color:var(--red);}
 
 /* 룸 선택 카드 */
-.room-card{border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:8px;}
+.room-card{border:1px solid var(--border2);border-radius:10px;padding:13px;margin-bottom:9px;}
 .room-card:has(input[type=checkbox]:checked){border-color:var(--blue);background:var(--blue-lt);}
-.room-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.room-header input{width:16px;height:16px;accent-color:var(--blue);}
-.room-name{font-size:13px;font-weight:700;color:var(--text);}
-.room-desc{font-size:11px;color:var(--text3);margin-left:auto;}
-.room-body{display:flex;align-items:center;gap:8px;padding-left:24px;}
-.room-body .lbl{margin:0;white-space:nowrap;}
-.room-body input[type=number]{max-width:70px;}
+.room-header{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.room-header input{width:17px;height:17px;accent-color:var(--blue);}
+.room-name{font-size:15px;font-weight:700;color:var(--text);}
+.room-desc{font-size:13px;color:var(--text3);margin-left:auto;}
+.room-body{display:flex;align-items:center;gap:9px;padding-left:26px;}
+.room-body .lbl{margin:0;white-space:nowrap;font-size:14px;}
+.room-body input[type=number]{max-width:74px;}
 
 /* 계산 카드 */
-.calc-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:18px;}
-.calc-title{font-size:14px;font-weight:700;margin-bottom:14px;}
+.calc-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:20px;}
+.calc-title{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text);}
 .calc-row{display:flex;justify-content:space-between;align-items:center;
-  padding:6px 0;border-bottom:1px solid var(--border2);font-size:13px;}
+  padding:8px 0;border-bottom:1px solid var(--border2);font-size:15px;}
 .calc-row:last-of-type{border-bottom:none;}
 .calc-label{color:var(--text2);}
-.calc-val{font-weight:600;font-variant-numeric:tabular-nums;}
-.calc-total{background:var(--blue);border-radius:10px;padding:14px 18px;margin-top:14px;
+.calc-val{font-weight:700;font-variant-numeric:tabular-nums;color:var(--text);}
+.calc-total{background:var(--blue);border-radius:10px;padding:15px 18px;margin-top:16px;
   display:flex;justify-content:space-between;align-items:center;}
-.calc-total-label{color:rgba(255,255,255,.8);font-size:12px;font-weight:600;}
-.calc-total-val{color:#fff;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;}
+.calc-total-label{color:rgba(255,255,255,.85);font-size:14px;font-weight:600;}
+.calc-total-val{color:#fff;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
 
-.btn-add-date{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);
-  background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
+.btn-add-date{padding:5px 12px;border-radius:7px;border:1px dashed var(--border);
+  background:#fff;font-size:13px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
 .btn-add-date:hover{border-color:var(--blue);color:var(--blue);}
 
 /* 견적 분류 */
-.cat-group{display:flex;gap:6px;margin-top:4px;}
-.cat-btn{flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:#fff;
-  font-size:13px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
+.cat-group{display:flex;gap:7px;margin-top:4px;}
+.cat-btn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:#fff;
+  font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
 .cat-btn[data-val="신청"].active{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
 .cat-btn[data-val="변경"].active{background:var(--amber-lt);border-color:var(--amber);color:var(--amber);}
 .cat-btn[data-val="취소"].active{background:var(--red-lt);border-color:var(--red);color:var(--red);}
 
-.print-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
-  background:var(--green);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
-  display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:4px;}
+.print-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--green);color:#fff;font-size:16px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:6px;}
 .print-btn:hover{filter:brightness(.92);}
 
-.hist-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:18px;}
-.hist-title{font-size:14px;font-weight:700;margin-bottom:12px;}
-.hist-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);}
+.hist-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:20px;}
+.hist-title{font-size:16px;font-weight:700;margin-bottom:14px;}
+.hist-row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--border2);}
 .hist-row:last-child{border-bottom:none;}
-.hist-reissue-btn{font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-lt);
-  border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.hist-reissue-btn{font-size:13px;font-weight:700;color:var(--blue);background:var(--blue-lt);
+  border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--font);transition:all .15s;}
 .hist-reissue-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
 
-.divider{height:1px;background:var(--border2);margin:14px 0;}
+.divider{height:1px;background:var(--border2);margin:18px 0;}
 
 @media(max-width:760px){
   .layout{flex-direction:column;height:auto;}
@@ -863,7 +864,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div id="q-surcharge-wrap" style="display:none;margin-bottom:12px">
           <label class="radio-opt" style="background:var(--amber-lt);border-color:var(--amber)">
             <input type="checkbox" id="q-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)">
-            <span class="radio-opt-label" style="color:var(--amber);font-weight:600">시간대 할증 +20%<br><span style="font-size:11px;font-weight:400">평일 17시 이후 / 주말·공휴일</span></span>
+            <span class="radio-opt-label" style="color:var(--amber);font-weight:600">시간대 할증 +20%<br><span style="font-size:13px;font-weight:400">평일 17시 이후 / 주말·공휴일</span></span>
           </label>
         </div>
       </div>
@@ -885,7 +886,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div class="room-body" id="jH-r1-body">
             <span class="lbl">인원</span>
             <input type="number" id="jH-r1-ppl" min="2" value="2" oninput="updateCalc()">
-            <span style="font-size:12px;color:var(--text3)">명 (2인 기준)</span>
+            <span style="font-size:14px;color:var(--text3)">명 (2인 기준)</span>
           </div>
         </div>
         <!-- Room 2 -->
@@ -898,7 +899,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div class="room-body">
             <span class="lbl">인원</span>
             <input type="number" id="jH-r2-ppl" min="2" value="2" oninput="updateCalc()">
-            <span style="font-size:12px;color:var(--text3)">명 (2인 기준)</span>
+            <span style="font-size:14px;color:var(--text3)">명 (2인 기준)</span>
           </div>
         </div>
         <!-- Room 3 -->
@@ -911,14 +912,14 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div class="room-body">
             <span class="lbl">인원</span>
             <input type="number" id="jH-r3-ppl" min="2" value="2" oninput="updateCalc()">
-            <span style="font-size:12px;color:var(--text3)">명 (2인 기준)</span>
+            <span style="font-size:14px;color:var(--text3)">명 (2인 기준)</span>
           </div>
         </div>
         <!-- 다과비 -->
         <div class="fg" style="margin-top:4px">
           <label class="radio-opt" style="margin-bottom:8px">
             <input type="checkbox" id="jH-snack-on" onchange="updateCalc()" style="accent-color:var(--blue)">
-            <span class="radio-opt-label">다과 IAM 제공 <span style="font-size:11px;color:var(--text3)">(자체 준비 시 미적용)</span></span>
+            <span class="radio-opt-label">다과 IAM 제공 <span style="font-size:13px;color:var(--text3)">(자체 준비 시 미적용)</span></span>
           </label>
           <div id="jH-snack-amt-wrap" style="display:none">
             <div class="lbl">다과비 금액 (원)</div>
