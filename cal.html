@@ -177,7 +177,8 @@ function render() {
         html += `<div class="chip-none">–</div>`;
       } else {
         res.forEach(r => {
-          const label = [r.purpose, r.managerName].filter(Boolean).join(' ');
+          const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
+          const label = [r.purpose, r.managerName ? r.managerName + swd : swd || ''].filter(Boolean).join(' ');
           html += `<div class="chip chip-ok">
             <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
           </div>`;
@@ -217,7 +218,8 @@ function render() {
           html += `<div class="chip-none">–</div>`;
         } else {
           res.forEach(r => {
-            const label = [r.purpose, r.managerName].filter(Boolean).join(' ');
+            const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
+          const label = [r.purpose, r.managerName ? r.managerName + swd : swd || ''].filter(Boolean).join(' ');
             html += `<div class="chip chip-ok">
               <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
             </div>`;
