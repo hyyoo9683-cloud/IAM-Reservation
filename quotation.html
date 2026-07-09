@@ -151,10 +151,6 @@ function initForm() {
   switchVenue();
   renderQuoteDates();
 
-  if (params.get('ref')) {
-    const refNote = document.getElementById('q-memo');
-    if (refNote && !refNote.value) refNote.value = `대관 신청서 ref: ${params.get('ref')}`;
-  }
 }
 
 // ── 공간 전환 ─────────────────────────────────────────────
