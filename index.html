@@ -493,6 +493,7 @@ textarea { resize: vertical; min-height: 60px; }
               <div class="lbl">날짜 추가 <span class="req">*</span></div>
               <div style="display:flex;gap:6px;margin-bottom:6px">
                 <input type="date" id="m-multi-date-input" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+                <button type="button" onclick="document.getElementById('m-multi-date-input').value=tsToday()" style="font-size:10px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600;white-space:nowrap">오늘</button>
                 <button type="button" class="btn btn-ghost" onclick="addMultiDate()" style="white-space:nowrap;padding:6px 12px">+ 추가</button>
               </div>
               <div id="m-multi-date-list"></div>
@@ -503,7 +504,9 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="fl" id="m-date-row">
               <div class="fg">
-                <div class="lbl" id="m-date-lbl">날짜 <span class="req">*</span></div>
+                <div class="lbl" id="m-date-lbl" style="display:flex;align-items:center;gap:6px">날짜 <span class="req">*</span>
+                  <button type="button" onclick="document.getElementById('m-date').value=tsToday();checkAvail();updateApplySummary()" style="font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600">오늘</button>
+                </div>
                 <input type="date" id="m-date" onchange="checkAvail();updateApplySummary()">
               </div>
               <div class="fg" id="m-end-date-wrap" style="display:none">
