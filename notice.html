@@ -26,6 +26,32 @@ const firebaseConfig = {
 const ALLOWED_DOMAIN = "suwoncca.org";
 const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
 
+const IAM_STORY_CONTENT = `"너희가 여기 내 형제 중에 지극히 작은 자 하나에게 한 것이 곧 내게 한 것이니라"
+마태복음 25:40
+
+──────────────────────────────
+
+"나는 ... 누구인가?"
+
+인간은 누구나 이 질문에 대한 답을 찾기 위해 몸부림칩니다. '나'라는 존재의 정체성은 고정(fix)된 것이 아닙니다. 양파처럼 계속 벗겨도 껍질만 나오는 듯한 삶을 사는 동안, 우리의 존재감은 좀처럼 쉽게 채워지지 않습니다. 우리는 주로 부족한 '나'의 정체성을 발견하고 그 부족함을 채우려고 혈안이 되어 삽니다.
+
+I am hungry, I am thirsty, I am small, I am lost, I am sick, I am empty ... I am ...
+
+예수님은 복음서에서 자신을 "I AM ..."이라는 말로 소개하십니다.
+
+I AM the Way, I AM the Life, I AM the Living Water ... I AM.
+
+I AM ... Center의 비전은 이 곳에 머무는 I am ... 존재들이 'THE GREAT I AM' 되신 예수님을 만나고 그분을 통해 존재의 깊은 공허함을 채우며 하나님 자녀의 정체성이 회복되는 기적의 장소가 되는 것입니다.
+
+──────────────────────────────
+지극히 작은 자를 섬기는 자리로
+
+또한 이 공간이 지극히 작은 자를 섬기는 자리가 되기 원합니다. 이곳에서 부족함이 많은 우리가 예수님으로 충만히 채워져서 타인의 필요를 채우는 자가 되기 원합니다. 궁극적으로는 작은 자 하나에게 베푼 것이 결국 'THE GREAT I AM' 되신 예수님을 섬기는 것임을 기억하는 자리가 되기 원합니다.
+
+코로나로 인해 힘든 상황에서도 I AM ... Center를 허락해 주신 하나님께 감사드리며, 함께해 주신 성도님들께 감사드립니다.
+
+— 김요셉 목사`;
+
 const AARON_CONTENT = `아론홀은 공동체 안에서 영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.
 쾌적하고 안전하게 함께 이용하실 수 있도록 운영 기준을 안내드립니다.
 
@@ -205,14 +231,34 @@ window.doLogout = async () => { await signOut(auth); };
 async function seedIfNeeded() {
   try {
     const snap = await getDocs(collection(db,'notices'));
-    const hasSeeded = snap.docs.some(d => d.data().seeded === true);
-    if (hasSeeded) return;
-    const seeds = [
-      { title:'아론홀 이용 안내 (2026)', category:'이용 규정', content: AARON_CONTENT, pinned:true, seeded:true, venue:'아론홀',   createdBy:'system' },
-      { title:'샤론홀 이용 안내 (2026)', category:'이용 규정', content: SHARON_CONTENT, pinned:true, seeded:true, venue:'샤론홀', createdBy:'system' },
-    ];
-    for (const s of seeds)
-      await addDoc(collection(db,'notices'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // 홀 이용 안내 시드 (최초 1회)
+    const hasSeeded = docs.some(d => d.seeded === true);
+    if (!hasSeeded) {
+      const seeds = [
+        { title:'아론홀 이용 안내 (2026)', category:'이용 규정', content: AARON_CONTENT, pinned:true, seeded:true, venue:'아론홀',   createdBy:'system' },
+        { title:'샤론홀 이용 안내 (2026)', category:'이용 규정', content: SHARON_CONTENT, pinned:true, seeded:true, venue:'샤론홀', createdBy:'system' },
+      ];
+      for (const s of seeds)
+        await addDoc(collection(db,'notices'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    }
+
+    // I AM 스토리 공지 (별도 시드 — 기존 시드와 독립)
+    const hasStory = docs.some(d => d.seededStory === true);
+    if (!hasStory) {
+      await addDoc(collection(db,'notices'), {
+        title: 'I AM ... Center 이야기',
+        category: '공지',
+        content: IAM_STORY_CONTENT,
+        pinned: true,
+        seeded: false,
+        seededStory: true,
+        createdBy: 'system',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
   } catch(e) { console.error('Seed error:', e); }
 }
 
