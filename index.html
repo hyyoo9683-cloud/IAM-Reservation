@@ -465,7 +465,7 @@ textarea { resize: vertical; min-height: 60px; }
             <div style="font-size:11px;color:var(--text3);margin-bottom:10px">청지기는 실제로 예약 공간을 사용하시는 분입니다.</div>
             <div class="fl">
               <div class="fg"><div class="lbl">성함 <span class="req">*</span></div><input id="m-steward-name" placeholder="김철수" oninput="updateApplySummary()"></div>
-              <div class="fg"><div class="lbl">연락처 <span class="req">*</span></div><input id="m-steward-tel" placeholder="010-0000-0000" oninput="updateApplySummary()"></div>
+              <div class="fg"><div class="lbl">연락처 <span class="req">*</span></div><input id="m-steward-tel" placeholder="010-0000-0000" oninput="formatTelInput(this);updateApplySummary()"></div>
             </div>
           </div>
 
@@ -922,7 +922,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
       <div class="fg"><div class="lbl">실사용자 이름 <span class="req">*</span></div><input id="e-steward-name"></div>
     </div>
-    <div class="fg"><div class="lbl">실사용자 연락처 <span class="req">*</span></div><input id="e-steward-tel"></div>
+    <div class="fg"><div class="lbl">실사용자 연락처 <span class="req">*</span></div><input id="e-steward-tel" oninput="formatTelInput(this)"></div>
     <div class="fg">
       <div class="lbl">공간 <span class="req">*</span></div>
       <div id="e-room-chips" style="margin-bottom:6px"></div>
@@ -1168,6 +1168,12 @@ function initTimeSelects(sId, eId, sv, ev) {
   document.getElementById(eId).innerHTML = buildEndOpts(se, ev);
 }
 
+window.formatTelInput = (el) => {
+  const digits = el.value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) el.value = digits;
+  else if (digits.length <= 7) el.value = `${digits.slice(0,3)}-${digits.slice(3)}`;
+  else el.value = `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+};
 window.onStartChange = () => {
   const v = document.getElementById('m-start').value;
   const e = document.getElementById('m-end');
@@ -3168,8 +3174,15 @@ window.checkEditAvail = () => {
   const room = editRoom, date = document.getElementById('e-date').value,
         start = document.getElementById('e-start').value, end = document.getElementById('e-end').value;
   const el = document.getElementById('e-avail'); if (!room || !date) { el.innerHTML = ''; return; }
-  const ok = noConflict(room, date, start, end, editId, true);
-  el.innerHTML = ok ? `<div class="avail-ok">✓ 사용 가능</div>` : `<div class="avail-no">✗ 확정된 예약 있음</div>`;
+  const confirmedOk = noConflict(room, date, start, end, editId, true);
+  const allOk       = noConflict(room, date, start, end, editId, false);
+  if (!confirmedOk) {
+    el.innerHTML = `<div class="avail-no">✗ 확정된 예약 있음</div>`;
+  } else if (!allOk) {
+    el.innerHTML = `<div class="avail-warn" style="font-size:12px;color:var(--orange,#d97706);background:var(--orange-lt,#fff7ed);border-radius:6px;padding:5px 10px;margin-bottom:4px">⚠ 대기 중인 예약 있음 (확정 전)</div><div class="avail-ok">✓ 확정 예약 없음</div>`;
+  } else {
+    el.innerHTML = `<div class="avail-ok">✓ 사용 가능</div>`;
+  }
 };
 const MSG_FOOTER = `[THE GREAT I AM
 지극히 작은 자를 섬기는 공간
