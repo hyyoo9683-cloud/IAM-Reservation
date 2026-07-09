@@ -3198,14 +3198,25 @@ window.openSmsModal = (id, type) => {
   let ilsi;
   if (r.recurGroup) {
     const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
-    const first = series[0], last = series[series.length - 1];
-    const fd = new Date(first.date + 'T00:00:00');
-    const ld = new Date(last.date  + 'T00:00:00');
-    const sameYear = fd.getFullYear() === ld.getFullYear();
-    const shortDate = (d, withYear) => withYear ? `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}` : `${d.getMonth()+1}.${d.getDate()}`;
-    const dow = DOWS_KR[fd.getDay()];
-    const recurLabel = (r.recurType || '매 주').replace(' ', ''); // "매 주" → "매주"
-    ilsi = `${shortDate(fd, true)}-${shortDate(ld, !sameYear)}\n(${recurLabel} ${dow} ${time})`;
+    // 비정기이거나 시리즈 내 시간이 제각각이면 날짜별 나열
+    const timesUniform = series.every(x => x.start === series[0].start && x.end === series[0].end);
+    const isIrregular  = r.recurType === '비정기' || !timesUniform;
+    if (isIrregular) {
+      const entries = series.map(x => {
+        const d = new Date(x.date + 'T00:00:00');
+        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
+      });
+      ilsi = entries.join('\n');
+    } else {
+      const first = series[0], last = series[series.length - 1];
+      const fd = new Date(first.date + 'T00:00:00');
+      const ld = new Date(last.date  + 'T00:00:00');
+      const sameYear = fd.getFullYear() === ld.getFullYear();
+      const shortDate = (d, withYear) => withYear ? `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}` : `${d.getMonth()+1}.${d.getDate()}`;
+      const dow = DOWS_KR[fd.getDay()];
+      const recurLabel = (r.recurType || '매 주').replace(' ', '');
+      ilsi = `${shortDate(fd, true)}-${shortDate(ld, !sameYear)}\n(${recurLabel} ${dow} ${time})`;
+    }
   } else {
     ilsi = `${dateToSmsFormat(r.date)} ${time}`;
   }
