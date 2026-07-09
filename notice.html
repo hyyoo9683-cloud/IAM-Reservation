@@ -203,20 +203,31 @@ window.doLogin = async () => {
 window.doLogout = async () => { await signOut(auth); };
 
 async function seedIfNeeded() {
-  const snap = await getDocs(query(collection(db,'notices'), where('seeded','==',true)));
-  if (!snap.empty) return;
-  const seeds = [
-    { title:'아론홀 이용 안내 (2026)', category:'이용 규정', content: AARON_CONTENT, pinned:true, seeded:true, venue:'아론홀',   createdBy:'system' },
-    { title:'샤론홀 이용 안내 (2026)', category:'이용 규정', content: SHARON_CONTENT, pinned:true, seeded:true, venue:'샤론홀', createdBy:'system' },
-  ];
-  for (const s of seeds)
-    await addDoc(collection(db,'notices'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  try {
+    const snap = await getDocs(collection(db,'notices'));
+    const hasSeeded = snap.docs.some(d => d.data().seeded === true);
+    if (hasSeeded) return;
+    const seeds = [
+      { title:'아론홀 이용 안내 (2026)', category:'이용 규정', content: AARON_CONTENT, pinned:true, seeded:true, venue:'아론홀',   createdBy:'system' },
+      { title:'샤론홀 이용 안내 (2026)', category:'이용 규정', content: SHARON_CONTENT, pinned:true, seeded:true, venue:'샤론홀', createdBy:'system' },
+    ];
+    for (const s of seeds)
+      await addDoc(collection(db,'notices'), { ...s, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  } catch(e) { console.error('Seed error:', e); }
 }
 
 async function loadNotices() {
-  const snap = await getDocs(query(collection(db,'notices'), orderBy('pinned','desc'), orderBy('createdAt','desc')));
-  notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderList();
+  try {
+    const snap = await getDocs(query(collection(db,'notices'), orderBy('createdAt','desc')));
+    notices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 고정 공지를 앞으로, 나머지는 최신순 유지
+    notices.sort((a,b) => (b.pinned?1:0) - (a.pinned?1:0));
+    renderList();
+  } catch(e) {
+    console.error('Load notices error:', e);
+    document.getElementById('notice-list').innerHTML =
+      `<div style="text-align:center;padding:48px 20px;color:var(--red);font-size:13px">불러오기 실패: ${e.message}</div>`;
+  }
 }
 
 function buildCatTabs() {
