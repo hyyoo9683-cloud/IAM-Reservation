@@ -1197,11 +1197,13 @@ const tsToday = () => toDateStr(new Date());
 function nowStr() {
   return new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
-function noConflict(room, date, start, end, skipId = null) {
-  return !reservations.find(r =>
+function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
+  const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
-    r.status !== '반려' && !(end <= r.start || start >= r.end)
+    (confirmedOnly ? r.status === '확정' : r.status !== '반려') &&
+    !(end <= r.start || start >= r.end)
   );
+  return !conflict;
 }
 
 window.openModal  = (id) => document.getElementById(id).classList.add('open');
@@ -3145,8 +3147,8 @@ window.checkEditAvail = () => {
   const room = editRoom, date = document.getElementById('e-date').value,
         start = document.getElementById('e-start').value, end = document.getElementById('e-end').value;
   const el = document.getElementById('e-avail'); if (!room || !date) { el.innerHTML = ''; return; }
-  const ok = noConflict(room, date, start, end, editId);
-  el.innerHTML = ok ? `<div class="avail-ok">✓ 사용 가능</div>` : `<div class="avail-no">✗ 이미 예약 있음</div>`;
+  const ok = noConflict(room, date, start, end, editId, true);
+  el.innerHTML = ok ? `<div class="avail-ok">✓ 사용 가능</div>` : `<div class="avail-no">✗ 확정된 예약 있음</div>`;
 };
 const MSG_FOOTER = `[THE GREAT I AM
 지극히 작은 자를 섬기는 공간
@@ -3326,7 +3328,7 @@ window.submitEdit = async () => {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
-  if (!noConflict(room, date, start, end, editId)) { T('해당 시간에 이미 예약이 있습니다', '#A32D2D'); return; }
+  if (!noConflict(room, date, start, end, editId, true)) { T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return; }
 
   const data = {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
@@ -3369,7 +3371,7 @@ window.submitEdit = async () => {
           }
         }
 
-        const conflicts = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id));
+        const conflicts = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id, true));
         if (conflicts.length) {
           T(`${conflicts.length}개 날짜에 시간 충돌 (${conflicts.map(x => x.date.slice(5)).join(', ')})`, '#A32D2D'); return;
         }
