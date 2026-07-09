@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대관 신청 관리 — IAM 인트라넷</title>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, doc,
+  getDocs, orderBy, query, serverTimestamp, where }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+const SPACES  = ['아론홀', '샤론홀', '지혜홀'];
+const EQUIP   = ['음향 시스템', '빔프로젝터', '마이크', '케이터링', '화이트보드', '방송 촬영'];
+const STATUSES = {
+  '접수':   { label: '접수완료', color: '#185FA5', bg: '#E6F1FB' },
+  '검토중': { label: '검토 중',  color: '#854F0B', bg: '#FAEEDA' },
+  '승인':   { label: '승인',     color: '#3B6D11', bg: '#EAF3DE' },
+  '거절':   { label: '거절',     color: '#A32D2D', bg: '#FCEBEB' },
+  '취소':   { label: '취소',     color: '#6B7280', bg: '#F3F4F6' },
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let curUser = null;
+let requests = [];
+let curId   = null;
+let curTab  = '전체';
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  curUser = user;
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display   = 'flex';
+  document.getElementById('user-avatar').textContent  = (user.displayName||user.email)[0].toUpperCase();
+  document.getElementById('user-name').textContent    = user.displayName||user.email.split('@')[0];
+  await loadRequests();
+  showNewForm();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block'; showLogin();
+}
+window.doLogin = async () => {
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+};
+window.doLogout = async () => { await signOut(auth); };
+
+// ── 데이터 로드 ────────────────────────────────────────────
+async function loadRequests() {
+  try {
+    const snap = await getDocs(query(collection(db,'venue_requests'), orderBy('createdAt','desc')));
+    requests   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderList();
+  } catch(e) { console.error(e); }
+}
+
+// ── 목록 렌더 ──────────────────────────────────────────────
+window.setTab = t => { curTab = t; renderList(); };
+
+function renderList() {
+  const tabs = ['전체','접수','검토중','승인','거절','취소'];
+  document.getElementById('tab-bar').innerHTML = tabs.map(t =>
+    `<button class="tab${t===curTab?' active':''}" onclick="setTab('${t}')">${t === '전체' ? '전체' : STATUSES[t]?.label || t}</button>`
+  ).join('');
+
+  const filtered = curTab === '전체' ? requests : requests.filter(r => r.status === curTab);
+
+  const el = document.getElementById('req-list');
+  if (!filtered.length) {
+    el.innerHTML = `<div class="empty-msg">신청 내역이 없습니다</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(r => {
+    const st = STATUSES[r.status] || STATUSES['접수'];
+    const dateStr = r.eventDate || '날짜 미정';
+    const active = r.id === curId ? ' active' : '';
+    return `<div class="req-card${active}" onclick="openRequest('${r.id}')">
+      <div class="req-card-top">
+        <span class="req-org">${esc(r.orgName||'–')}</span>
+        <span class="status-chip" style="color:${st.color};background:${st.bg}">${st.label}</span>
+      </div>
+      <div class="req-card-mid">${esc(r.eventName||'(행사명 없음)')}</div>
+      <div class="req-card-bot">
+        <span>${esc(r.space||'–')}</span>
+        <span>${dateStr}</span>
+        <span>${esc(r.managerName||'–')}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 새 신청서 폼 ───────────────────────────────────────────
+window.showNewForm = () => {
+  curId = null;
+  renderList();
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('detail-panel').innerHTML = buildFormHTML(null, today);
+  bindEquipCheckboxes();
+};
+
+function buildFormHTML(r, today) {
+  const isEdit = !!r;
+  const v = (field, def='') => isEdit ? esc(r[field]||def) : def;
+  const spaceOpts = SPACES.map(s =>
+    `<option value="${s}"${isEdit && r.space===s?' selected':''}>${s}</option>`
+  ).join('');
+  const equipChecks = EQUIP.map(e =>
+    `<label class="equip-opt">
+      <input type="checkbox" value="${e}"${isEdit && r.equip?.includes(e)?' checked':''}> ${e}
+    </label>`
+  ).join('');
+
+  return `
+  <div class="detail-header">
+    <div class="detail-title">${isEdit ? '신청서 수정' : '새 대관 신청 접수'}</div>
+    ${isEdit ? `<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>` : ''}
+  </div>
+
+  <div class="form-body">
+    <div class="form-sec">신청 업체 정보</div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">업체·단체명 <span class="req-mark">*</span></div>
+        <input id="f-org" value="${v('orgName')}" placeholder="예: OO교회"></div>
+      <div class="fg"><div class="lbl">담당자 이름 <span class="req-mark">*</span></div>
+        <input id="f-mgr" value="${v('managerName')}" placeholder="홍길동"></div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">연락처 <span class="req-mark">*</span></div>
+        <input id="f-tel" value="${v('tel')}" placeholder="010-0000-0000" oninput="formatTel(this)"></div>
+      <div class="fg"><div class="lbl">이메일</div>
+        <input id="f-email" value="${v('email')}" placeholder="example@email.com"></div>
+    </div>
+
+    <div class="form-sec">행사 정보</div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">행사명</div>
+        <input id="f-name" value="${v('eventName')}" placeholder="예: 청년부 수련회"></div>
+      <div class="fg"><div class="lbl">공간</div>
+        <select id="f-space"><option value="">선택</option>${spaceOpts}</select></div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">날짜</div>
+        <input type="date" id="f-date" value="${v('eventDate', today)}"></div>
+      <div class="fg"><div class="lbl">종료일 (숙박·다일 경우)</div>
+        <input type="date" id="f-date-end" value="${v('eventDateEnd')}"></div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">시작 시간</div>
+        <input type="time" id="f-start" value="${v('timeStart')}"></div>
+      <div class="fg"><div class="lbl">종료 시간</div>
+        <input type="time" id="f-end" value="${v('timeEnd')}"></div>
+      <div class="fg"><div class="lbl">예상 인원</div>
+        <input type="number" id="f-ppl" min="1" value="${v('headcount')}" placeholder="0"></div>
+    </div>
+    <div class="fg"><div class="lbl">행사 내용 / 목적</div>
+      <textarea id="f-purpose" style="min-height:64px" placeholder="행사 목적, 프로그램 내용 등">${v('purpose')}</textarea></div>
+
+    <div class="form-sec">필요 장비 / 서비스</div>
+    <div class="equip-grid">${equipChecks}</div>
+    <div class="fg" style="margin-top:10px"><div class="lbl">기타 요청사항</div>
+      <textarea id="f-etc" style="min-height:56px" placeholder="추가 요청사항">${v('etcRequest')}</textarea></div>
+
+    ${isEdit ? `
+    <div class="form-sec">팀 메모</div>
+    <div class="fg"><div class="lbl">행정 메모</div>
+      <textarea id="f-memo-admin" style="min-height:48px">${v('memoAdmin')}</textarea></div>
+    <div class="fg"><div class="lbl">관리 메모</div>
+      <textarea id="f-memo-mgmt" style="min-height:48px">${v('memoMgmt')}</textarea></div>
+    <div class="fg"><div class="lbl">미디어 메모</div>
+      <textarea id="f-memo-media" style="min-height:48px">${v('memoMedia')}</textarea></div>
+
+    <div class="form-sec">상태</div>
+    <div class="status-btns">
+      ${Object.entries(STATUSES).map(([k,s]) =>
+        `<button class="status-btn${r.status===k?' sel':''}"
+          style="${r.status===k?`background:${s.bg};color:${s.color};border-color:${s.color}`:''}"
+          onclick="setStatus('${r.id}','${k}')">${s.label}</button>`
+      ).join('')}
+    </div>` : ''}
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn-primary" onclick="${isEdit ? `saveEdit('${r.id}')` : 'saveNew()'}">
+        ${isEdit ? '저장' : '접수 등록'}
+      </button>
+      ${isEdit ? `<button class="btn-ghost" onclick="showNewForm()">취소</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function bindEquipCheckboxes() {
+  // nothing extra needed — checkboxes are plain HTML
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+window.formatTel = el => {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length <= 3) el.value = v;
+  else if (v.length <= 7) el.value = v.slice(0,3)+'-'+v.slice(3);
+  else el.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+};
+
+function collectForm(id) {
+  const g = i => document.getElementById(i);
+  const equip = [...document.querySelectorAll('.equip-opt input:checked')].map(c => c.value);
+  const data = {
+    orgName:      g('f-org')?.value.trim()    || '',
+    managerName:  g('f-mgr')?.value.trim()    || '',
+    tel:          g('f-tel')?.value.trim()    || '',
+    email:        g('f-email')?.value.trim()  || '',
+    eventName:    g('f-name')?.value.trim()   || '',
+    space:        g('f-space')?.value         || '',
+    eventDate:    g('f-date')?.value          || '',
+    eventDateEnd: g('f-date-end')?.value      || '',
+    timeStart:    g('f-start')?.value         || '',
+    timeEnd:      g('f-end')?.value           || '',
+    headcount:    parseInt(g('f-ppl')?.value) || 0,
+    purpose:      g('f-purpose')?.value.trim()|| '',
+    equip,
+    etcRequest:   g('f-etc')?.value.trim()   || '',
+  };
+  if (id) {
+    data.memoAdmin = g('f-memo-admin')?.value.trim() || '';
+    data.memoMgmt  = g('f-memo-mgmt')?.value.trim()  || '';
+    data.memoMedia = g('f-memo-media')?.value.trim()  || '';
+  }
+  return data;
+}
+
+window.saveNew = async () => {
+  const data = collectForm(null);
+  if (!data.orgName || !data.managerName || !data.tel) {
+    alert('업체명, 담당자 이름, 연락처는 필수입니다.'); return;
+  }
+  try {
+    const btn = document.querySelector('.btn-primary');
+    btn.disabled = true; btn.textContent = '저장 중...';
+    await addDoc(collection(db,'venue_requests'), {
+      ...data, status: '접수',
+      createdBy: curUser.email, createdAt: serverTimestamp(),
+    });
+    await loadRequests();
+    showNewForm();
+  } catch(e) { alert('저장 실패: ' + e.message); }
+};
+
+window.saveEdit = async (id) => {
+  const data = collectForm(id);
+  try {
+    const btn = document.querySelector('.btn-primary');
+    btn.disabled = true; btn.textContent = '저장 중...';
+    await updateDoc(doc(db,'venue_requests',id), {
+      ...data, updatedBy: curUser.email, updatedAt: serverTimestamp(),
+    });
+    await loadRequests();
+    openRequest(id);
+  } catch(e) { alert('저장 실패: ' + e.message); }
+};
+
+window.setStatus = async (id, status) => {
+  try {
+    await updateDoc(doc(db,'venue_requests',id), {
+      status, updatedBy: curUser.email, updatedAt: serverTimestamp(),
+    });
+    await loadRequests();
+    openRequest(id);
+  } catch(e) { alert('상태 변경 실패: ' + e.message); }
+};
+
+window.openRequest = id => {
+  curId = id;
+  renderList();
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('detail-panel').innerHTML = buildFormHTML(r);
+};
+</script>
+
+<style>
+:root {
+  --blue:#185FA5;--blue-lt:#E6F1FB;--blue-mid:#378ADD;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --bg:#fff;--bg2:#F8FAFD;--bg3:#F0F6FF;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;}
+
+#login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:360px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:32px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
+
+#app-wrap{display:none;flex-direction:column;min-height:100vh;}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border2);height:56px;padding:0 24px;
+  display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 6px rgba(24,95,165,.07);}
+.tb-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.tb-mark{width:30px;height:30px;background:var(--blue);border-radius:7px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:800;}
+.tb-name{font-size:15px;font-weight:800;color:var(--blue);}
+.tb-sep{color:var(--border);font-size:20px;}
+.tb-cur{font-size:14px;font-weight:600;color:var(--text2);}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 5px;border:1px solid var(--border);border-radius:20px;}
+.u-avatar{width:26px;height:26px;background:var(--blue);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.u-name{font-size:13px;font-weight:600;}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;
+  font-family:var(--font);padding:5px 9px;border-radius:6px;transition:all .15s;}
+.logout-btn:hover{background:var(--red-lt);color:var(--red);}
+
+.layout{display:flex;height:calc(100vh - 56px);}
+
+/* ── 목록 패널 ── */
+.list-panel{width:300px;flex-shrink:0;border-right:1px solid var(--border2);
+  background:#fff;display:flex;flex-direction:column;}
+.list-top{padding:14px 14px 0;display:flex;flex-direction:column;gap:10px;}
+.list-top-row{display:flex;align-items:center;justify-content:space-between;}
+.list-heading{font-size:15px;font-weight:800;color:var(--text);}
+.new-btn{padding:6px 12px;border-radius:8px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:13px;font-weight:700;font-family:var(--font);}
+.new-btn:hover{filter:brightness(.92);}
+#tab-bar{display:flex;gap:4px;flex-wrap:wrap;padding-bottom:10px;}
+.tab{padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+  background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+#req-list{flex:1;overflow-y:auto;padding:8px;}
+.empty-msg{text-align:center;padding:40px 16px;font-size:13px;color:var(--text3);}
+.req-card{padding:12px;border-radius:10px;border:1px solid var(--border2);margin-bottom:8px;
+  cursor:pointer;transition:all .15s;background:#fff;}
+.req-card:hover{border-color:var(--blue);background:var(--bg3);}
+.req-card.active{border-color:var(--blue);background:var(--blue-lt);}
+.req-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+.req-org{font-size:13px;font-weight:700;color:var(--text);}
+.status-chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
+.req-card-mid{font-size:12px;color:var(--text2);margin-bottom:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.req-card-bot{display:flex;gap:8px;font-size:11px;color:var(--text3);}
+.req-card-bot span::after{content:'·';margin-left:8px;}
+.req-card-bot span:last-child::after{content:'';}
+
+/* ── 상세 패널 ── */
+.detail-panel{flex:1;overflow-y:auto;padding:24px;}
+.detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.detail-title{font-size:18px;font-weight:800;}
+.form-body{max-width:680px;}
+.form-sec{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.1em;
+  text-transform:uppercase;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--border2);}
+.form-sec:first-child{margin-top:0;padding-top:0;border-top:none;}
+.fg{margin-bottom:12px;}
+.lbl{font-size:12px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.req-mark{color:var(--red);}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border);
+  border-radius:8px;font-size:14px;font-family:var(--font);background:var(--bg);color:var(--text);
+  outline:none;transition:border .15s;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+.fl{display:flex;gap:10px;} .fl>.fg{flex:1;}
+
+.equip-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-opt{display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);
+  border-radius:20px;cursor:pointer;font-size:13px;user-select:none;transition:all .15s;}
+.equip-opt:has(input:checked){border-color:var(--blue);background:var(--blue-lt);color:var(--blue);font-weight:600;}
+.equip-opt input{width:14px;height:14px;accent-color:var(--blue);}
+
+.status-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.status-btn{padding:7px 16px;border-radius:8px;border:1px solid var(--border);
+  background:#fff;font-size:13px;font-family:var(--font);cursor:pointer;transition:all .15s;color:var(--text2);}
+.status-btn:hover{border-color:var(--blue);color:var(--blue);}
+.status-btn.sel{font-weight:700;}
+
+.btn-primary{padding:11px 24px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:14px;font-weight:700;font-family:var(--font);transition:filter .15s;}
+.btn-primary:hover{filter:brightness(.92);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{padding:11px 18px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
+  background:#fff;color:var(--text2);font-size:14px;font-weight:600;font-family:var(--font);transition:all .15s;}
+.btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+
+@media(max-width:760px){
+  .layout{flex-direction:column;height:auto;}
+  .list-panel{width:100%;border-right:none;border-bottom:1px solid var(--border2);max-height:40vh;}
+}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">IAM 인트라넷</div>
+    <div class="login-sub">아이엠센터 구성원 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrap">
+  <div class="topbar">
+    <a class="tb-logo" href="portal.html">
+      <div class="tb-mark">IM</div>
+      <div><div class="tb-name">IAM 인트라넷</div></div>
+    </a>
+    <span class="tb-sep">›</span><span class="tb-cur">대관 신청 관리</span>
+    <div class="tb-right">
+      <div class="user-chip">
+        <div class="u-avatar" id="user-avatar">?</div>
+        <span class="u-name" id="user-name"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="list-panel">
+      <div class="list-top">
+        <div class="list-top-row">
+          <div class="list-heading">대관 신청</div>
+          <button class="new-btn" onclick="showNewForm()">+ 새 접수</button>
+        </div>
+        <div id="tab-bar"></div>
+      </div>
+      <div id="req-list"></div>
+    </div>
+
+    <div class="detail-panel" id="detail-panel">
+      <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:14px">
+        왼쪽에서 신청서를 선택하거나 새 접수를 눌러주세요
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
