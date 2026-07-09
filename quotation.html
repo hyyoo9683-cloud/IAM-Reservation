@@ -525,8 +525,15 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 
   try {
     await addDoc(collection(db,'quotations'), {
-      client: clientNm, venue, purpose, total, supply, vat,
-      date: dateVal, issuedBy: curUser?.email||'', issuedAt: serverTimestamp(),
+      client: clientNm, clientBiz, venue, purpose, total, supply, vat,
+      date: dateVal, dates: quoteDates,
+      qType:        g('q-type')?.value || '',
+      qExtra:       parseInt(g('q-extra')?.value) || 0,
+      qSurcharge:   g('q-surcharge')?.checked || false,
+      qCatering:    document.querySelector('input[name="q-catering"]:checked')?.value || 'none',
+      qCateringMemo: g('q-catering-memo')?.value.trim() || '',
+      memo,
+      issuedBy: curUser?.email||'', issuedAt: serverTimestamp(),
     });
     await loadHistory();
   } catch(e) { console.error('Quote save error:', e); }
@@ -536,31 +543,79 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 async function loadHistory() {
   try {
     const snap = await getDocs(query(collection(db,'quotations'), orderBy('issuedAt','desc')));
-    history    = snap.docs.map(d => ({ id:d.id, ...d.data() })).slice(0,20);
+    history = snap.docs.map(d => ({ id:d.id, ...d.data() })).slice(0,100);
     renderHistory();
   } catch(e) { console.error('History error:', e); }
 }
-function renderHistory() {
+
+window.searchHistory = () => {
+  renderHistory(document.getElementById('hist-search')?.value.trim().toLowerCase() || '');
+};
+
+function renderHistory(q = '') {
+  const filtered = q
+    ? history.filter(h =>
+        (h.client||'').toLowerCase().includes(q) ||
+        (h.purpose||'').toLowerCase().includes(q) ||
+        (h.venue||'').toLowerCase().includes(q))
+    : history;
   const el = document.getElementById('history-list');
-  if (!history.length) {
-    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">발행 이력 없음</div>`;
+  if (!filtered.length) {
+    el.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">${q ? '검색 결과 없음' : '발행 이력 없음'}</div>`;
     return;
   }
-  el.innerHTML = history.map(h => {
-    const d = h.issuedAt?.toDate ? h.issuedAt.toDate() : new Date();
+  el.innerHTML = filtered.map(h => {
+    const d  = h.issuedAt?.toDate ? h.issuedAt.toDate() : new Date();
     const ds = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
     return `<div class="hist-row">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${h.client||'–'}</div>
-        <div style="font-size:11px;color:var(--text3)">${h.venue||''} · ${h.date||''}</div>
+        <div style="font-size:11px;color:var(--text3)">${h.venue||''} · ${h.date||''} ${h.purpose ? '· '+h.purpose : ''}</div>
       </div>
-      <div style="text-align:right;flex-shrink:0">
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
         <div style="font-size:13px;font-weight:700;color:var(--blue)">₩${(h.total||0).toLocaleString()}</div>
         <div style="font-size:10px;color:var(--text3)">${ds}</div>
+        <button class="hist-reissue-btn" onclick="reissue('${h.id}')">재발행</button>
       </div>
     </div>`;
   }).join('');
 }
+
+window.reissue = id => {
+  const h = history.find(x => x.id === id);
+  if (!h) return;
+
+  const venueEl = document.getElementById('q-venue');
+  if (venueEl && h.venue && VENUES[h.venue]) venueEl.value = h.venue;
+  document.getElementById('q-client').value     = h.client    || '';
+  document.getElementById('q-client-biz').value = h.clientBiz || '';
+  document.getElementById('q-purpose').value    = h.purpose   || '';
+  document.getElementById('q-issue-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('q-memo').value       = h.memo      || '';
+
+  quoteDates = (h.dates?.length)
+    ? h.dates.map(d => ({...d}))
+    : [{ date: h.date||'', timeStart:'', timeEnd:'' }];
+  document.getElementById('q-date').value = quoteDates[0]?.date || '';
+
+  switchVenue();
+  renderQuoteDates();
+
+  setTimeout(() => {
+    if (h.qType)    { const el = document.getElementById('q-type');     if (el) el.value = h.qType; }
+    if (h.qExtra)   { const el = document.getElementById('q-extra');    if (el) el.value = h.qExtra; }
+    if (h.qSurcharge) { const el = document.getElementById('q-surcharge'); if (el) el.checked = true; }
+    const cRadio = document.querySelector(`input[name="q-catering"][value="${h.qCatering||'none'}"]`);
+    if (cRadio) cRadio.checked = true;
+    if (h.qCateringMemo) {
+      const el = document.getElementById('q-catering-memo');
+      if (el) { el.value = h.qCateringMemo; document.getElementById('q-catering-memo-wrap').style.display = ''; }
+    }
+    updateCalc();
+  }, 30);
+
+  document.querySelector('.form-panel')?.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 function comma(n) { return Math.round(n).toLocaleString('ko-KR'); }
 
@@ -685,6 +740,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .hist-title{font-size:14px;font-weight:700;margin-bottom:12px;}
 .hist-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);}
 .hist-row:last-child{border-bottom:none;}
+.hist-reissue-btn{font-size:11px;font-weight:700;color:var(--blue);background:var(--blue-lt);
+  border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.hist-reissue-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
 
 .divider{height:1px;background:var(--border2);margin:14px 0;}
 
@@ -921,7 +979,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
       </div>
 
       <div class="hist-card">
-        <div class="hist-title">최근 발행 이력</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="hist-title" style="margin-bottom:0">발행 이력</div>
+        </div>
+        <input id="hist-search" placeholder="업체명·공간·목적 검색" oninput="searchHistory()"
+          style="margin-bottom:12px;font-size:13px;padding:8px 11px;">
         <div id="history-list"><div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">불러오는 중...</div></div>
       </div>
     </div>
