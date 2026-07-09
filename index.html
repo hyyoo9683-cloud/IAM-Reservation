@@ -546,6 +546,10 @@ textarea { resize: vertical; min-height: 60px; }
                   <input type="checkbox" id="m-need-mic" onchange="checkAvail()" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
                   <label for="m-need-mic" style="font-size:13px;cursor:pointer;margin:0">마이크 사용</label>
                 </div>
+                <div id="cb-wrap-pantry" style="display:flex;align-items:center;gap:6px">
+                  <input type="checkbox" id="m-need-pantry" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+                  <label for="m-need-pantry" style="font-size:13px;cursor:pointer;margin:0">탕비실 이용</label>
+                </div>
               </div>
             </div>
             <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="m-memo"></textarea></div>
@@ -561,7 +565,7 @@ textarea { resize: vertical; min-height: 60px; }
             <div style="background:var(--amber-lt);border-radius:7px;padding:7px 10px;font-size:10px;color:var(--amber);font-weight:600;margin-bottom:12px">
               신청 후 관리자 승인이 필요합니다
             </div>
-            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:8px;padding:14px;font-size:16px;font-weight:700;border-radius:10px" onclick="submitApply()">신청 제출</button>
+            <button id="submit-apply-btn" class="btn btn-primary" style="width:100%;justify-content:center;margin-bottom:8px;padding:14px;font-size:16px;font-weight:700;border-radius:10px" onclick="submitApply()">신청 제출</button>
             <button class="btn btn-ghost"   style="width:100%;justify-content:center" onclick="resetApply()">초기화</button>
           </div>
         </div>
@@ -2322,8 +2326,9 @@ window.selApplyRoom = (name) => {
   }
 
   // TV 체크박스: 505·507·508·509호만 활성화, 마이크: 아론홀만
-  const TV_ROOMS  = ['505호', '507호', '508호', '509호'];
-  const MIC_ROOMS = ['아론홀', '샤론홀'];
+  const TV_ROOMS      = ['505호', '507호', '508호', '509호'];
+  const MIC_ROOMS     = ['아론홀', '샤론홀'];
+  const PANTRY_ROOMS  = ['505호','506호','507호','508호','509호','510호','511호'];
   const tvCb  = document.getElementById('m-need-tv');
   const micCb = document.getElementById('m-need-mic');
   if (tvCb) {
@@ -2337,6 +2342,13 @@ window.selApplyRoom = (name) => {
     micCb.disabled = !micOn; if (!micOn) micCb.checked = false;
     const micWrap = document.getElementById('cb-wrap-mic');
     if (micWrap) micWrap.style.opacity = micOn ? '' : '0.35';
+  }
+  const pantryCb = document.getElementById('m-need-pantry');
+  if (pantryCb) {
+    const pantryOn = PANTRY_ROOMS.includes(name);
+    pantryCb.disabled = !pantryOn; if (!pantryOn) pantryCb.checked = false;
+    const pantryWrap = document.getElementById('cb-wrap-pantry');
+    if (pantryWrap) pantryWrap.style.opacity = pantryOn ? '' : '0.35';
   }
 
   checkAvail(); updateApplySummary();
@@ -2545,7 +2557,7 @@ window.resetApply = () => {
   applyRoom = '';
   ['m-type', 'm-subtype', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['m-need-tv', 'm-need-mic', 'm-is-recur', 'm-is-multi'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  ['m-need-tv', 'm-need-mic', 'm-need-pantry', 'm-is-recur', 'm-is-multi'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   multiDates = []; renderMultiDates();
   document.getElementById('m-multi-wrap').style.display = 'none';
   document.getElementById('m-date-row').style.display   = '';
@@ -2621,25 +2633,29 @@ window.submitApply = async () => {
     }
   }
 
-  const submitBtn = document.querySelector('#p-apply .btn-primary');
+  const submitBtn = document.getElementById('submit-apply-btn');
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '신청 중...'; }
 
-  const recurGroup = isRecur ? `recur_${Date.now()}` : isMulti && dates.length > 1 ? `multi_${Date.now()}` : null;
-  const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
-  const subOrg = document.getElementById('m-subtype')?.value || '';
-  const baseData = {
-    type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-    room, start, end, people: parseInt(people), purpose, memo,
-    status: '대기', userEmail: curUser.email,
-    createdAt: serverTimestamp()
-  };
-  if (recurGroup) {
-    baseData.recurGroup = recurGroup;
-    baseData.recurType  = isMulti ? '비정기' : recurLabel;
-    baseData.recurTotal = dates.length;
-  }
-
   try {
+    const recurGroup = isRecur ? `recur_${Date.now()}` : isMulti && dates.length > 1 ? `multi_${Date.now()}` : null;
+    const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
+    const subOrg = document.getElementById('m-subtype')?.value || '';
+    const needTV     = document.getElementById('m-need-tv')?.checked || false;
+    const needMic    = document.getElementById('m-need-mic')?.checked || false;
+    const needPantry = document.getElementById('m-need-pantry')?.checked || false;
+    const baseData = {
+      type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
+      room, start, end, people: parseInt(people), purpose, memo,
+      needTV, needMic, needPantry,
+      status: '대기', userEmail: curUser?.email || '',
+      createdAt: serverTimestamp()
+    };
+    if (recurGroup) {
+      baseData.recurGroup = recurGroup;
+      baseData.recurType  = isMulti ? '비정기' : recurLabel;
+      baseData.recurTotal = dates.length;
+    }
+
     for (let i = 0; i < dates.length; i++) {
       await addDoc(collection(db, 'reservations'), {
         ...baseData,
@@ -2647,23 +2663,23 @@ window.submitApply = async () => {
         history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${dates.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
       });
     }
+
+    resetApply(); go('mylist');
+
+    if (isFlexRoom) {
+      document.getElementById('info-icon').textContent  = '🏢';
+      document.getElementById('info-title').textContent = '신청이 접수되었습니다';
+      document.getElementById('info-body').textContent  = '관리자의 확인 후에 알맞는 실을 배정해드리겠습니다.\n신청 후 담당자가 별도로 안내드립니다.';
+      openModal('modal-info');
+    } else {
+      T(isRecur
+        ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
+        : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+    }
   } catch(e) {
+    console.error('submitApply error:', e);
     T('신청 실패: ' + e.message, '#A32D2D');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '신청 제출'; }
-    return;
-  }
-
-  resetApply(); go('mylist');
-
-  if (isFlexRoom) {
-    document.getElementById('info-icon').textContent  = '🏢';
-    document.getElementById('info-title').textContent = '신청이 접수되었습니다';
-    document.getElementById('info-body').textContent  = '관리자의 확인 후에 알맞는 실을 배정해드리겠습니다.\n신청 후 담당자가 별도로 안내드립니다.';
-    openModal('modal-info');
-  } else {
-    T(isRecur
-      ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
-      : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
   }
 };
 
