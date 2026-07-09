@@ -31,7 +31,7 @@ const VENUES = {
   '아론홀': {
     type: 'hourly',
     stdEquip: ['무선 마이크 2', 'TV', '스피커', '보면대', '마이크 스탠드 1'],
-    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '조명 지원 (BMS)', '빔프로젝터', '케이터링'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '케이터링'],
   },
   '샤론홀': {
     type: 'hourly',
@@ -192,7 +192,10 @@ function buildFormHTML(r) {
   return `
   <div class="detail-header">
     <div class="detail-title">${isEdit?'신청서 수정':'새 대관 신청 접수'}</div>
-    ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>`:''}
+    <div style="display:flex;gap:8px">
+      ${isEdit?`<button class="btn-quote" onclick="openQuotation('${r.id}')">📋 견적서 작성</button>`:''}
+      ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>`:''}
+    </div>
   </div>
   <div class="form-body">
     <input type="hidden" id="f-space" value="${curSpace}">
@@ -385,6 +388,19 @@ window.openRequest = id => {
   document.getElementById('detail-panel').innerHTML = buildFormHTML(r);
 };
 
+window.openQuotation = id => {
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  const params = new URLSearchParams({
+    venue:   r.space     || '',
+    date:    r.eventDate || '',
+    client:  r.orgName   || '',
+    purpose: r.purpose   || '',
+    ref:     id,
+  });
+  window.open(`quotation.html?${params}`, '_blank');
+};
+
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -518,6 +534,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .btn-ghost{padding:11px 18px;border-radius:10px;border:1px solid var(--border);cursor:pointer;
   background:#fff;color:var(--text2);font-size:14px;font-weight:600;font-family:var(--font);transition:all .15s;}
 .btn-ghost:hover{border-color:var(--blue);color:var(--blue);}
+.btn-quote{padding:9px 16px;border-radius:10px;border:1px solid var(--green);cursor:pointer;
+  background:var(--green-lt);color:var(--green);font-size:13px;font-weight:700;font-family:var(--font);transition:all .15s;}
+.btn-quote:hover{background:var(--green);color:#fff;}
 
 @media(max-width:760px){
   .layout{flex-direction:column;height:auto;}

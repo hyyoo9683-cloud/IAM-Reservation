@@ -97,10 +97,24 @@ window.doLogin = async () => {
 window.doLogout = async () => { await signOut(auth); };
 
 function initForm() {
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('q-date').value       = today;
+  const today  = new Date().toISOString().slice(0,10);
+  const params = new URLSearchParams(location.search);
+
   document.getElementById('q-issue-date').value = today;
+  document.getElementById('q-date').value        = params.get('date')    || today;
+  document.getElementById('q-client').value      = params.get('client')  || '';
+  document.getElementById('q-purpose').value     = params.get('purpose') || '';
+
+  const venueParam = params.get('venue');
+  if (venueParam && VENUES[venueParam]) {
+    document.getElementById('q-venue').value = venueParam;
+  }
   switchVenue();
+
+  if (params.get('ref')) {
+    const refNote = document.getElementById('q-memo');
+    if (refNote && !refNote.value) refNote.value = `대관 신청서 ref: ${params.get('ref')}`;
+  }
 }
 
 // ── 공간 전환 ─────────────────────────────────────────────
