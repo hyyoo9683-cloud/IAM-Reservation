@@ -102,7 +102,7 @@ window.updateCalc = () => {
   const venue   = document.getElementById('q-venue').value;
   const type    = document.getElementById('q-type').value;   // 'base3h' | 'base90m'
   const extra   = parseInt(document.getElementById('q-extra').value) || 0;
-  const catering= parseInt(document.getElementById('q-catering').value.replace(/,/g,'')) || 0;
+  const cateringTier = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
   const surOn   = document.getElementById('q-surcharge')?.checked;
   const vInfo   = VENUES[venue];
 
@@ -114,12 +114,11 @@ window.updateCalc = () => {
   if (vInfo.surcharge && surOn) subtotal = Math.round(subtotal * 1.2);
 
   // 케이터링 할인
-  let discountRate = 0;
-  let discountAmt  = 0;
-  if (catering > 0) {
-    discountRate = catering >= 150000 ? 0.5 : 0.3;
-    discountAmt  = Math.round(subtotal * discountRate);
-  }
+  const discountRate = cateringTier === 'over' ? 0.5 : cateringTier === 'under' ? 0.3 : 0;
+  const discountAmt  = Math.round(subtotal * discountRate);
+
+  // 케이터링 메모란 표시
+  document.getElementById('q-catering-memo-wrap').style.display = cateringTier !== 'none' ? '' : 'none';
 
   const total    = subtotal - discountAmt;
   const supply   = Math.round(total / 1.1);
@@ -138,12 +137,6 @@ window.updateCalc = () => {
   document.getElementById('q-surcharge-wrap').style.display = vInfo.surcharge ? '' : 'none';
 };
 
-window.fmtCateringInput = () => {
-  const el  = document.getElementById('q-catering');
-  const raw = el.value.replace(/\D/g,'');
-  el.value  = raw ? comma(parseInt(raw)) : '';
-  updateCalc();
-};
 
 function comma(n) { return n.toLocaleString('ko-KR'); }
 
@@ -154,7 +147,9 @@ window.printQuote = async () => {
   const extra    = parseInt(document.getElementById('q-extra').value) || 0;
   const surOn    = document.getElementById('q-surcharge')?.checked;
   const vInfo    = VENUES[venue];
-  const catering = parseInt(document.getElementById('q-catering').value.replace(/,/g,'')) || 0;
+  const cateringTier = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
+  const catering = cateringTier === 'over' ? 150000 : cateringTier === 'under' ? 1 : 0;
+  const cateringMemo = document.getElementById('q-catering-memo').value.trim();
   const clientNm = document.getElementById('q-client').value.trim() || '(수신처)';
   const clientBiz= document.getElementById('q-client-biz').value.trim();
   const purpose  = document.getElementById('q-purpose').value.trim() || '–';
@@ -181,6 +176,7 @@ window.printQuote = async () => {
     extra ? `추가 ${extra}시간 ${comma(extra * vInfo.extraPh)}원` : '',
     (vInfo.surcharge && surOn) ? '시간대 할증 +20%' : '',
     discountAmt ? `케이터링 할인 ${discountRate*100}%` : '',
+    cateringMemo ? `케이터링: ${cateringMemo}` : '',
     memo,
   ].filter(Boolean).join(' / ');
 
@@ -539,11 +535,25 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
       <div class="sec-title">케이터링 할인</div>
       <div class="fg">
-        <div class="lbl">케이터링 이용 금액 (원)</div>
-        <input id="q-catering" placeholder="0" oninput="fmtCateringInput()">
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">
-          15만원 미만 → 30% 할인 &nbsp;·&nbsp; 15만원 이상 → 50% 할인
+        <div class="lbl">케이터링 이용 여부</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:8px;transition:background .15s" onclick="this.querySelector('input').checked=true;updateCalc()">
+            <input type="radio" name="q-catering" value="none" checked onchange="updateCalc()" style="width:15px;height:15px;accent-color:var(--blue)">
+            <span style="font-size:13px;color:var(--text2)">없음</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:8px;transition:background .15s" onclick="this.querySelector('input').checked=true;updateCalc()">
+            <input type="radio" name="q-catering" value="under" onchange="updateCalc()" style="width:15px;height:15px;accent-color:var(--blue)">
+            <span style="font-size:13px;color:var(--text)">15만원 미만 <span style="color:var(--red);font-weight:700">→ 30% 할인</span></span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:9px 12px;border:1px solid var(--border);border-radius:8px;transition:background .15s" onclick="this.querySelector('input').checked=true;updateCalc()">
+            <input type="radio" name="q-catering" value="over" onchange="updateCalc()" style="width:15px;height:15px;accent-color:var(--blue)">
+            <span style="font-size:13px;color:var(--text)">15만원 이상 <span style="color:var(--red);font-weight:700">→ 50% 할인</span></span>
+          </label>
         </div>
+      </div>
+      <div class="fg" id="q-catering-memo-wrap" style="display:none">
+        <div class="lbl">케이터링 메모 (비고란 표시)</div>
+        <input id="q-catering-memo" placeholder="예: 차폰팩토리 음료 이용">
       </div>
 
       <div class="sec-title">메모</div>
