@@ -568,7 +568,7 @@ textarea { resize: vertical; min-height: 60px; }
     <!-- 내 예약 -->
     <div class="page" id="p-mylist">
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>반려</option><option>취소</option></select>
+        <select id="mylist-status" onchange="renderMyList()" style="width:120px"><option value="">전체 상태</option><option>대기</option><option>확정</option><option>취소</option></select>
       </div>
       <div id="mylist-body"></div>
     </div>
@@ -592,7 +592,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-week"  onclick="setListTab('week')">이번 주</button>
         <button class="filter-chip" id="lst-tab-대기"  onclick="setListTab('대기')">대기</button>
         <button class="filter-chip" id="lst-tab-확정"  onclick="setListTab('확정')">승인</button>
-        <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">반려</button>
+        <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">취소</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
         <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')filterRenderList()">
@@ -697,7 +697,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
         <div class="stat-box"><div class="stat-lbl">총 예약</div><div class="stat-num" id="r-total">0</div></div>
         <div class="stat-box"><div class="stat-lbl">확정</div><div class="stat-num"   id="r-ok"   style="color:var(--green)">0</div></div>
-        <div class="stat-box"><div class="stat-lbl">반려</div><div class="stat-num"   id="r-no"   style="color:var(--red)">0</div></div>
+        <div class="stat-box"><div class="stat-lbl">취소</div><div class="stat-num"   id="r-no"   style="color:var(--red)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">이용 기관</div><div class="stat-num" id="r-orgs">0</div></div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
@@ -955,7 +955,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="divider"></div>
       <div class="fg">
         <div class="lbl">예약 상태</div>
-        <select id="e-status"><option value="대기">대기</option><option value="확정">확정</option><option value="반려">반려</option></select>
+        <select id="e-status"><option value="대기">대기</option><option value="확정">확정</option><option value="취소">취소</option></select>
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -1183,7 +1183,9 @@ function T(msg, col = '#185FA5') {
   T._tm = setTimeout(() => t.style.opacity = 0, 3200);
 }
 function sBadge(s) {
-  return `<span class="badge ${{ '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-no', '취소': 'b-cancel' }[s] || ''}">${s}</span>`;
+  const label = (s === '반려') ? '취소' : s;
+  const cls   = { '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-cancel', '취소': 'b-cancel' }[s] || '';
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 function oBadge(t, short = false) {
   const org = orgsList.find(o => o.name === t);
@@ -1200,7 +1202,7 @@ function nowStr() {
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
-    (confirmedOnly ? r.status === '확정' : r.status !== '반려') &&
+    (confirmedOnly ? r.status === '확정' : !['반려','취소'].includes(r.status)) &&
     !(end <= r.start || start >= r.end)
   );
   return !conflict;
@@ -2073,7 +2075,7 @@ window.runAvailSearch = () => {
   const available = new Set();
   spaces.forEach(sp => {
     const conflict = dates.some(date =>
-      reservations.some(r => r.room === sp.name && r.date === date && r.status !== '반려' && !(et <= r.start || st >= r.end))
+      reservations.some(r => r.room === sp.name && r.date === date && !['반려','취소'].includes(r.status) && !(et <= r.start || st >= r.end))
     );
     if (!conflict) available.add(sp.id);
   });
@@ -2760,7 +2762,7 @@ function parsePeople(s) {
 function parseStatus(s) {
   s = (s || '').trim();
   if (s === '확정' || s === '승인' || s === '승인됨' || s === '확인') return '확정';
-  if (s === '반려' || s === '거절' || s === '불승인') return '반려';
+  if (s === '반려' || s === '거절' || s === '불승인') return '취소';
   if (s === '취소') return '취소';
   return '대기';
 }
@@ -2849,7 +2851,7 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
   html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
     <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>반복</th><th>상태</th></tr></thead><tbody>`;
   _importRows.slice(0, 10).forEach(r => {
-    const sc = r.status === '확정' ? 'var(--green)' : r.status === '반려' ? 'var(--red)' : 'var(--amber)';
+    const sc = r.status === '확정' ? 'var(--green)' : (r.status === '반려' || r.status === '취소') ? 'var(--red)' : 'var(--amber)';
     html += `<tr><td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
       <td>${r.managerName}</td><td>${r.people}명</td>
       <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
@@ -3008,7 +3010,7 @@ window.openDetail = (id) => {
       <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${r.people}명</div></div>
       <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${r.purpose}</div></div>
       ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${r.memo}</div></div>` : ''}
-      ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">반려 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
+      ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">취소 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
     </div>
     <div style="height:1px;background:var(--border2);margin:14px 0"></div>
     <div style="font-size:11px;font-weight:700;margin-bottom:8px">처리 이력</div>
@@ -3038,7 +3040,7 @@ window.openDetail = (id) => {
 
   let btns = '';
   if (isAdmin) {
-    if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">반려</button>`;
+    if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
     if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#185FA5" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
@@ -3072,7 +3074,7 @@ window.assignRoom = async (id) => {
   }
 };
 
-// ── 승인 / 반려 / 삭제 ───────────────────────────────────────────
+// ── 승인 / 취소 / 삭제 ───────────────────────────────────────────
 window.approve = async (id) => {
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
@@ -3092,20 +3094,20 @@ window.approve = async (id) => {
   }
 };
 window.rejectR = async (id) => {
-  const reason = prompt('반려 사유:', '');
+  const reason = prompt('취소 사유:', '');
   if (reason === null) return;
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
     await updateDoc(doc(db, 'reservations', id), {
-      status: '반려', rejectReason: reason || '사유 미입력',
-      history: [...(r.history || []), { time: nowStr(), msg: `반려: ${reason || '사유 미입력'}` }]
+      status: '취소', rejectReason: reason || '사유 미입력',
+      history: [...(r.history || []), { time: nowStr(), msg: `취소: ${reason || '사유 미입력'}` }]
     });
-    T('반려 처리됐습니다', '#A32D2D');
+    T('취소 처리됐습니다', '#A32D2D');
   } catch (e) {
     console.error('rejectR error:', e);
-    T('반려 실패: ' + e.message, '#A32D2D');
+    T('취소 실패: ' + e.message, '#A32D2D');
   }
 };
 window.cancelR = async (id, fromDetail = false) => {
@@ -3464,7 +3466,7 @@ function renderDashboard() {
           <span style="font-size:11px;color:var(--text2)">${r.room} · ${r.date} ${r.start}–${r.end} · ${r.people}명</span>
           <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${r.stewardName} ${r.stewardTel}</span>
           <button class="btn btn-green" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="approve('${r.id}')">승인</button>
-          <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="rejectR('${r.id}')">반려</button>
+          <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="rejectR('${r.id}')">취소</button>
           <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openDetail('${r.id}')">상세</button>
         </div>`
       ).join('');
@@ -3547,7 +3549,7 @@ window.renderList = function renderList() {
   if (fq) data = data.filter(r =>
     (r.managerName + ' ' + r.stewardName + ' ' + r.room + ' ' + r.purpose).toLowerCase().includes(fq)
   );
-  if (listStatusTab) data = data.filter(r => r.status === listStatusTab);
+  if (listStatusTab) data = data.filter(r => listStatusTab === '반려' ? (r.status === '반려' || r.status === '취소') : r.status === listStatusTab);
   if (listWeekFilter) data = data.filter(r => r.date >= weekStart && r.date <= weekEnd);
   if (fds) data = data.filter(r => r.date >= fds);
   if (fde) data = data.filter(r => r.date <= fde);
@@ -3838,7 +3840,7 @@ function renderMyList() {
     .filter(r => curUser ? r.userEmail === curUser.email : false)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  if (statusQ) data = data.filter(r => r.status === statusQ);
+  if (statusQ) data = data.filter(r => statusQ === '취소' ? (r.status === '취소' || r.status === '반려') : r.status === statusQ);
 
   if (!data.length) {
     document.getElementById('mylist-body').innerHTML =
@@ -4012,7 +4014,7 @@ function renderReport() {
   // 통계 카드
   document.getElementById('r-total').textContent = data.length;
   document.getElementById('r-ok').textContent    = data.filter(r => r.status === '확정').length;
-  document.getElementById('r-no').textContent    = data.filter(r => r.status === '반려').length;
+  document.getElementById('r-no').textContent    = data.filter(r => r.status === '반려' || r.status === '취소').length;
   document.getElementById('r-orgs').textContent  = [...new Set(data.map(r => r.type))].filter(Boolean).length;
 
   // ── 공간 그룹별 현황 ────────────────────────────────────────────
