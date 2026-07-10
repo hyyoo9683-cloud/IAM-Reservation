@@ -261,11 +261,11 @@ function render() {
           .map(g => g.room)
           .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
           .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
-        const rooms = roomList.reduce((acc, rm, i) => {
-          acc.push(rm);
-          if ((i+1) % 4 === 0 && i+1 < roomList.length) acc.push('<br>');
-          return acc;
-        }, []).join(', ').replace(/, <br>, /g, '<br>');
+        const chunks = [];
+        for (let i = 0; i < roomList.length; i += 4) {
+          chunks.push(roomList.slice(i, i+4).join(', '));
+        }
+        const rooms = chunks.join('<br>');
 
         const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
 
