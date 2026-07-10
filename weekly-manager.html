@@ -127,7 +127,11 @@ tr:last-child td{border-bottom:none;}
   .topbar h1{font-size:15px;}
   .wbtn{padding:5px 9px;font-size:12px;}
 }
+.dl-btn{background:#1A2533;color:#fff;border-color:#1A2533;}
+.dl-btn:hover{background:#2d3d50;border-color:#2d3d50;}
+.dl-btn:disabled{opacity:.5;cursor:not-allowed;}
 </style>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -141,6 +145,7 @@ tr:last-child td{border-bottom:none;}
   <div class="week-label" id="week-label">불러오는 중…</div>
   <button class="wbtn today-btn" onclick="changeWeek(0)">이번주</button>
   <button class="wbtn" onclick="changeWeek(1)">다음주 ▶</button>
+  <button class="wbtn dl-btn" id="dl-btn" onclick="downloadImages()">📥 저장</button>
 </div>
 
 <div class="body">
@@ -164,9 +169,9 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 const SECTIONS = [
-  { label:'5층 소그룹실', rooms:['505호','506호','507호','508호','509호','510호','511호'] },
-  { label:'아론홀',       rooms:['아론홀'] },
-  { label:'샤론홀',       rooms:['샤론홀'] },
+  { key:'5f',     label:'5층 소그룹실', rooms:['505호','506호','507호','508호','509호','510호','511호'] },
+  { key:'aaron',  label:'아론홀',       rooms:['아론홀'] },
+  { key:'sharon', label:'샤론홀',       rooms:['샤론홀'] },
 ];
 const DOWS      = ['일','월','화','수','목','금','토'];
 const DOW_COLOR = { '일':'#D04F7B','토':'#7B4FD0' };
@@ -282,7 +287,7 @@ function render() {
       });
     });
 
-    return `<div class="section">
+    return `<div class="section" id="section-${sec.key}">
       <div class="section-title">${sec.label}</div>
       <div class="tbl-wrap">
         <table>
@@ -304,6 +309,45 @@ window.changeWeek = dir => {
   weekOffset = dir === 0 ? 0 : weekOffset + dir;
   render();
 };
+
+window.downloadImages = async () => {
+  const btn = document.getElementById('dl-btn');
+  btn.disabled = true; btn.textContent = '생성 중…';
+
+  const { sat, fri } = getWeekRange(weekOffset);
+  const weekStr = `${sat.getFullYear()}_${sat.getMonth()+1}${String(sat.getDate()).padStart(2,'0')}-${fri.getMonth()+1}${String(fri.getDate()).padStart(2,'0')}`;
+  const opt = { scale: 2, backgroundColor: '#F8FAFD', useCORS: true };
+
+  // 1. 5층 소그룹실
+  const sec5f = document.getElementById('section-5f');
+  if (sec5f) {
+    const canvas = await html2canvas(sec5f, opt);
+    saveCanvas(canvas, `5층소그룹실_${weekStr}.png`);
+  }
+
+  // 2. 아론홀 + 샤론홀 합치기
+  const secAaron  = document.getElementById('section-aaron');
+  const secSharon = document.getElementById('section-sharon');
+  if (secAaron || secSharon) {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:16px;width:860px;';
+    if (secAaron)  wrap.appendChild(secAaron.cloneNode(true));
+    if (secSharon) wrap.appendChild(secSharon.cloneNode(true));
+    document.body.appendChild(wrap);
+    const canvas = await html2canvas(wrap, opt);
+    document.body.removeChild(wrap);
+    saveCanvas(canvas, `아론홀샤론홀_${weekStr}.png`);
+  }
+
+  btn.disabled = false; btn.textContent = '📥 저장';
+};
+
+function saveCanvas(canvas, filename) {
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
 
 onSnapshot(collection(db,'reservations'), snap => {
   reservations = snap.docs.map(d => ({id:d.id,...d.data()}));
