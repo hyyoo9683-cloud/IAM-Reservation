@@ -43,15 +43,16 @@
   .room-th { width: 58px; min-width: 58px; max-width: 58px; text-align: left;
               font-size: 12px; word-break: keep-all; }
 
-  /* 예약 칩 — 한 줄 */
-  .chip { display: flex; align-items: baseline; gap: 3px;
-          white-space: nowrap; overflow: hidden;
-          border-radius: 4px; padding: 3px 4px; margin-bottom: 2px; }
+  /* 예약 칩 — 두 줄 */
+  .chip { display: flex; flex-direction: column;
+          border-radius: 4px; padding: 3px 4px; margin-bottom: 2px; overflow: hidden; }
   .chip-ok   { background: var(--blue-lt); color: var(--blue); }
   .chip-none { color: var(--text3); font-size: 12px; padding: 3px 3px; text-align: center; }
   .chip-blk  { background: #F5F5F5; color: #999; font-size: 12px; padding: 3px 3px; text-align: center; }
+  .chip-l1 { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; overflow: hidden; }
+  .chip-l2 { font-size: 10px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .time { font-weight: 700; font-size: 11px; flex-shrink: 0; }
-  .org  { font-size: 11px; opacity: .75; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+  .org  { font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
 
   /* 단일홀 세로 레이아웃 */
   .date-th { min-width: 68px; text-align: left; font-size: 12px; font-weight: 700; }
@@ -64,6 +65,7 @@
     .chip-none, .chip-blk { font-size: 13px; padding: 3px 3px; }
     .time { font-size: 12px; }
     .org  { font-size: 12px; }
+    .chip-l2 { font-size: 11px; }
     th { font-size: 13px; }
     .tab { font-size: 14px; }
     .date-th { min-width: 80px; font-size: 13px; }
@@ -178,9 +180,10 @@ function render() {
       } else {
         res.forEach(r => {
           const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
-          const label = [r.purpose, r.managerName ? r.managerName + swd : swd || ''].filter(Boolean).join(' ');
+          const mgr = r.managerName ? r.managerName + swd : swd || '';
           html += `<div class="chip chip-ok">
-            <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
+            <div class="chip-l1"><span class="time">${r.start}–${r.end}</span>${r.purpose ? `<span class="org"> ${r.purpose}</span>` : ''}</div>
+            ${mgr ? `<div class="chip-l2">${mgr}</div>` : ''}
           </div>`;
         });
       }
@@ -219,9 +222,10 @@ function render() {
         } else {
           res.forEach(r => {
             const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
-          const label = [r.purpose, r.managerName ? r.managerName + swd : swd || ''].filter(Boolean).join(' ');
+            const mgr = r.managerName ? r.managerName + swd : swd || '';
             html += `<div class="chip chip-ok">
-              <span class="time">${r.start}–${r.end}</span>${label ? `<span class="org"> ${label}</span>` : ''}
+              <div class="chip-l1"><span class="time">${r.start}–${r.end}</span>${r.purpose ? `<span class="org"> ${r.purpose}</span>` : ''}</div>
+              ${mgr ? `<div class="chip-l2">${mgr}</div>` : ''}
             </div>`;
           });
         }
