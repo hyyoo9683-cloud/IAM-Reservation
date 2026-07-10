@@ -236,19 +236,34 @@ function render() {
     let rows = '';
     managers.forEach((mgr, idx) => {
       const cls  = idx % 2 === 0 ? 'row-a' : 'row-b';
-      const list = grouped[mgr].slice().sort((a,b) =>
-        a.date.localeCompare(b.date) || a.start.localeCompare(b.start)
+      // 같은 날짜+시간 예약은 묶기
+      const timeMap = {};
+      grouped[mgr].forEach(r => {
+        const key = `${r.date}|${r.start}|${r.end}`;
+        if (!timeMap[key]) timeMap[key] = [];
+        timeMap[key].push(r);
+      });
+      const list = Object.values(timeMap).sort((a,b) =>
+        a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start)
       );
 
-      list.forEach((r, i) => {
+      list.forEach((group, i) => {
+        const r    = group[0];
         const d    = new Date(r.date + 'T00:00:00');
         const dow  = DOWS[d.getDay()];
         const dcol = DOW_COLOR[dow] || '';
         const dowEl = dcol
           ? `<span class="dow" style="background:${dcol}20;color:${dcol}">${dow}</span>`
           : `<span class="dow" style="background:#E8EFF7;color:var(--text2)">${dow}</span>`;
-        const room = r.room.replace(/호/g,'');
-        const purpose = r.purpose || r.org || '';
+
+        // 실 번호 정렬 후 "호" 포함 표기
+        const rooms = group
+          .map(g => g.room)
+          .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
+          .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm)
+          .join(', ');
+
+        const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
 
         rows += `<tr class="${cls}">`;
         if (i === 0) {
@@ -257,7 +272,7 @@ function render() {
         rows += `
           <td class="td-date">${d.getMonth()+1}/${d.getDate()}${dowEl}</td>
           <td class="td-time">${r.start}–${r.end}</td>
-          <td class="td-room">${room}</td>
+          <td class="td-room">${rooms}</td>
           <td class="td-purpose">${purpose}</td>
         </tr>`;
       });
