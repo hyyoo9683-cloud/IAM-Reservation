@@ -194,7 +194,8 @@ function getWeekRange(off) {
   const sat = new Date(today);
   sat.setDate(today.getDate() - daysSinceSat + off * 7);
   const fri = new Date(sat); fri.setDate(sat.getDate() + 6);
-  return { sat, fri };
+  const sun = new Date(sat); sun.setDate(sat.getDate() + 8); // 주일 (다음 일요일)
+  return { sat, fri, sun };
 }
 
 // ── 행 HTML 생성 (모듈 최상단) ──
@@ -256,14 +257,14 @@ function buildSectionHTML(label, tbodyHTML) {
 }
 
 function render() {
-  const { sat, fri } = getWeekRange(weekOffset);
-  const satStr = toStr(sat), friStr = toStr(fri);
+  const { sat, fri, sun } = getWeekRange(weekOffset);
+  const satStr = toStr(sat), friStr = toStr(fri), sunStr = toStr(sun);
 
   document.getElementById('week-label').textContent =
     `${sat.getFullYear()}년  ${sat.getMonth()+1}/${sat.getDate()}(토) – ${fri.getMonth()+1}/${fri.getDate()}(금)`;
 
   const weekRes = reservations.filter(r =>
-    r.status === '확정' && r.date >= satStr && r.date <= friStr
+    r.status === '확정' && r.date >= satStr && r.date <= sunStr
   );
 
   const sumEl = document.getElementById('summary');
@@ -286,7 +287,9 @@ function render() {
 
   let html = '';
   SECTIONS.forEach(sec => {
-    const secRes = weekRes.filter(r => sec.rooms.includes(r.room));
+    // 5층은 토~금, 아론홀·샤론홀은 토~주일
+    const endStr = sec.key === '5f' ? friStr : sunStr;
+    const secRes = weekRes.filter(r => sec.rooms.includes(r.room) && r.date <= endStr);
     if (!secRes.length) { sectionData[sec.key] = []; return; }
 
     if (sec.key === '5f') {
