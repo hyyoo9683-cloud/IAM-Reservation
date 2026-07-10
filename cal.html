@@ -107,7 +107,7 @@ const TABS = [
 const DOWS = ['일','월','화','수','목','금','토'];
 
 let reservations = [], spaces = [], blockedDates = [];
-let weekOffset = 0, curTab = '5f';
+let weekOffset = new URLSearchParams(location.search).has('next') ? 1 : 0, curTab = '5f';
 let loaded = { res: false, sp: false, bd: false };
 
 const isMobile = () => window.innerWidth < 560;
