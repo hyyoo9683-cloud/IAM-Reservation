@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주간 예약 현황 — 아이엠센터</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#185FA5; --blue-lt:#EBF4FF; --blue-mid:#378ADD;
+  --green:#3B6D11; --green-lt:#EAF3DE;
+  --amber:#854F0B; --amber-lt:#FAEEDA;
+  --red:#A32D2D; --red-lt:#FCEBEB;
+  --border:#D4E4F4; --border2:#E8EFF7;
+  --bg:#F8FAFD; --bg2:#fff; --bg3:#F0F6FF;
+  --text:#1A2533; --text2:#4A6078; --text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* 로그인 */
+#login-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:340px;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:40px;margin-bottom:12px;}
+.login-title{font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:28px;}
+.login-btn{width:100%;padding:13px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;
+  padding:8px;background:var(--red-lt);border-radius:7px;}
+
+/* 앱 */
+#app-wrap{display:none;}
+
+/* 상단바 */
+.topbar{background:#fff;border-bottom:1px solid var(--border2);height:54px;padding:0 20px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;
+  box-shadow:0 1px 6px rgba(24,95,165,.07);}
+.tb-back{font-size:14px;font-weight:600;color:var(--blue);text-decoration:none;
+  display:flex;align-items:center;gap:4px;}
+.tb-title{font-size:15px;font-weight:700;color:var(--text);margin-left:4px;}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.user-chip{display:flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;
+  border:1px solid var(--border);border-radius:20px;}
+.u-avatar{width:26px;height:26px;background:var(--blue);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;}
+.u-name{font-size:13px;font-weight:600;color:var(--text);}
+.logout-btn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;
+  font-family:var(--font);padding:5px 8px;border-radius:6px;transition:all .15s;}
+.logout-btn:hover{background:var(--red-lt);color:var(--red);}
+
+/* 주간 네비 */
+.week-nav{
+  background:#fff;border-bottom:1px solid var(--border2);
+  padding:12px 20px;
+  display:flex;align-items:center;gap:10px;
+  position:sticky;top:54px;z-index:99;
+}
+.week-label{flex:1;text-align:center;font-size:14px;font-weight:700;color:var(--text);}
+.nav-btn{
+  background:var(--bg3);border:1px solid var(--border);color:var(--blue);
+  padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:all .15s;
+}
+.nav-btn:hover{background:var(--blue-lt);}
+.nav-btn.today{background:var(--blue);color:#fff;border-color:var(--blue);}
+
+/* 본문 */
+.body{padding:16px 20px;max-width:800px;margin:0 auto;}
+
+/* 요약 배지 행 */
+.summary-row{
+  display:flex;gap:8px;flex-wrap:wrap;
+  margin-bottom:18px;
+  padding:12px 14px;
+  background:#fff;border:1px solid var(--border2);border-radius:10px;
+}
+.sum-chip{
+  font-size:12px;font-weight:600;padding:3px 10px;border-radius:8px;
+  background:var(--blue-lt);color:var(--blue);
+}
+
+/* 담당자 카드 */
+.mgr-card{
+  background:#fff;border:1px solid var(--border2);border-radius:12px;
+  margin-bottom:14px;overflow:hidden;
+}
+.mgr-header{
+  background:var(--bg3);border-bottom:1px solid var(--border2);
+  padding:12px 16px;
+  display:flex;align-items:center;gap:10px;
+}
+.mgr-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--blue);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;flex-shrink:0;
+}
+.mgr-name{font-size:16px;font-weight:700;color:var(--text);}
+.mgr-count{
+  margin-left:auto;font-size:12px;font-weight:600;
+  background:var(--blue);color:#fff;
+  padding:2px 8px;border-radius:10px;
+}
+
+/* 예약 행 */
+.res-list{padding:0 0 4px;}
+.res-row{
+  padding:11px 16px;
+  border-bottom:1px solid var(--border2);
+  display:grid;
+  grid-template-columns:72px 90px 1fr;
+  gap:6px;align-items:center;
+}
+.res-row:last-child{border-bottom:none;}
+.res-date{
+  font-size:12px;font-weight:700;color:var(--text2);
+  white-space:nowrap;
+}
+.res-date .dow{
+  display:inline-block;
+  font-size:11px;padding:1px 5px;border-radius:4px;
+  margin-left:3px;font-weight:600;
+}
+.res-time{
+  font-size:12px;font-weight:700;color:var(--blue);
+  white-space:nowrap;
+}
+.res-info{min-width:0;}
+.res-room{
+  font-size:12px;font-weight:600;
+  display:inline-block;padding:1px 7px;border-radius:5px;
+  background:var(--blue-lt);color:var(--blue);
+  margin-bottom:2px;white-space:nowrap;
+}
+.res-org{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-purpose{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.res-steward{font-size:11px;color:var(--text3);}
+
+/* 빈 상태 */
+.empty{text-align:center;padding:56px 20px;color:var(--text3);font-size:14px;background:#fff;
+  border:1px solid var(--border2);border-radius:12px;}
+.loading{text-align:center;padding:56px;color:var(--text3);}
+
+@media(max-width:560px){
+  .body{padding:12px 12px;}
+  .res-row{grid-template-columns:64px 80px 1fr;gap:4px;padding:10px 12px;}
+  .mgr-header{padding:10px 12px;}
+  .res-org{font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">📅</div>
+    <div class="login-title">주간 예약 현황</div>
+    <div class="login-sub">아이엠센터 관리자 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrap">
+  <div class="topbar">
+    <a class="tb-back" href="index.html">← 공간 예약</a>
+    <span style="color:var(--text3)">›</span>
+    <span class="tb-title">주간 예약 현황</span>
+    <div class="tb-right">
+      <div class="user-chip">
+        <div class="u-avatar" id="user-avatar">?</div>
+        <span class="u-name" id="user-name"></span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="week-nav">
+    <button class="nav-btn" onclick="changeWeek(-1)">◀ 이전주</button>
+    <div class="week-label" id="week-label">불러오는 중…</div>
+    <button class="nav-btn today" onclick="changeWeek(0)">이번주</button>
+    <button class="nav-btn" onclick="changeWeek(1)">다음주 ▶</button>
+  </div>
+
+  <div class="body">
+    <div id="summary-row" class="summary-row" style="display:none"></div>
+    <div id="content"><div class="loading">불러오는 중…</div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, collection, onSnapshot }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const app  = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+const DOWS = ['일','월','화','수','목','금','토'];
+const DOW_COLOR = { '일':'#D04F7B','토':'#7B4FD0' };
+
+let reservations = [];
+let weekOffset   = 0;
+
+// ── 날짜 유틸 ──
+const toDateStr = d =>
+  `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+function getWeekRange(offset) {
+  const today = new Date();
+  const day   = today.getDay(); // 0=일 … 6=토
+  // 이번 주 토요일 (토=6 기준)
+  const daysSinceSat = (day + 1) % 7; // 토=0, 일=1, 월=2 …
+  const sat = new Date(today);
+  sat.setDate(today.getDate() - daysSinceSat + offset * 7);
+  const fri = new Date(sat);
+  fri.setDate(sat.getDate() + 6);
+  return { sat, fri };
+}
+
+function fmtDate(d) {
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+
+// ── 렌더 ──
+function render() {
+  const { sat, fri } = getWeekRange(weekOffset);
+  const satStr = toDateStr(sat);
+  const friStr = toDateStr(fri);
+
+  const days = Array.from({length:7}, (_,i) => {
+    const d = new Date(sat); d.setDate(sat.getDate()+i); return d;
+  });
+
+  // 주간 레이블
+  document.getElementById('week-label').textContent =
+    `${sat.getFullYear()}년 ${sat.getMonth()+1}/${sat.getDate()}(토) – ${fri.getMonth()+1}/${fri.getDate()}(금)`;
+
+  // 해당 주 확정 예약만 필터
+  const weekRes = reservations.filter(r =>
+    r.status === '확정' && r.date >= satStr && r.date <= friStr
+  );
+
+  // 담당자별 그룹핑
+  const grouped = {};
+  weekRes.forEach(r => {
+    const key = r.managerName?.trim() || '담당자 미지정';
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  });
+
+  // 담당자명 정렬 (미지정 후순위)
+  const managers = Object.keys(grouped).sort((a,b) => {
+    if (a === '담당자 미지정') return 1;
+    if (b === '담당자 미지정') return -1;
+    return a.localeCompare(b);
+  });
+
+  // 요약 행
+  const sumEl = document.getElementById('summary-row');
+  if (weekRes.length === 0) {
+    sumEl.style.display = 'none';
+  } else {
+    sumEl.style.display = 'flex';
+    sumEl.innerHTML =
+      `<span class="sum-chip">총 ${weekRes.length}건</span>` +
+      `<span class="sum-chip">담당자 ${managers.length}명</span>` +
+      days.filter(d => {
+        const ds = toDateStr(d);
+        return weekRes.some(r => r.date === ds);
+      }).map(d => {
+        const ds = toDateStr(d);
+        const cnt = weekRes.filter(r => r.date === ds).length;
+        const dow = DOWS[d.getDay()];
+        const col = DOW_COLOR[dow] || '#4A6078';
+        return `<span class="sum-chip" style="background:${col}18;color:${col}">${(d.getMonth()+1)}/${d.getDate()}(${dow}) ${cnt}건</span>`;
+      }).join('');
+  }
+
+  // 본문
+  const content = document.getElementById('content');
+  if (weekRes.length === 0) {
+    content.innerHTML = `<div class="empty">이번 주 확정 예약이 없습니다.</div>`;
+    return;
+  }
+
+  content.innerHTML = managers.map(mgr => {
+    const list = grouped[mgr].slice().sort((a,b) =>
+      a.date.localeCompare(b.date) || a.start.localeCompare(b.start)
+    );
+    const initial = mgr === '담당자 미지정' ? '?' : mgr[0];
+
+    const rows = list.map(r => {
+      const d    = new Date(r.date + 'T00:00:00');
+      const dow  = DOWS[d.getDay()];
+      const col  = DOW_COLOR[dow] || 'var(--text2)';
+      const swd  = r.stewardName && r.stewardName !== r.managerName
+        ? `<span class="res-steward">청지기 ${r.stewardName}</span>` : '';
+      return `<div class="res-row">
+        <div class="res-date">
+          ${(d.getMonth()+1)}/${d.getDate()}<span class="dow" style="background:${col}18;color:${col}">${dow}</span>
+        </div>
+        <div class="res-time">${r.start}–${r.end}</div>
+        <div class="res-info">
+          <span class="res-room">${r.room}</span>
+          <div class="res-org">${r.org || r.managerName || ''}</div>
+          ${r.purpose ? `<div class="res-purpose">${r.purpose}</div>` : ''}
+          ${swd}
+        </div>
+      </div>`;
+    }).join('');
+
+    return `<div class="mgr-card">
+      <div class="mgr-header">
+        <div class="mgr-avatar">${initial}</div>
+        <div class="mgr-name">${mgr}</div>
+        <div class="mgr-count">${list.length}건</div>
+      </div>
+      <div class="res-list">${rows}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── 주 이동 ──
+window.changeWeek = dir => {
+  weekOffset = dir === 0 ? 0 : weekOffset + dir;
+  render();
+};
+
+// ── 인증 ──
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    document.getElementById('login-wrap').style.display = 'flex';
+    document.getElementById('app-wrap').style.display   = 'none';
+    return;
+  }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) {
+    signOut(auth);
+    const el = document.getElementById('login-error');
+    el.textContent = '아이엠센터 관리자만 이용할 수 있습니다.';
+    el.style.display = 'block';
+    document.getElementById('login-wrap').style.display = 'flex';
+    return;
+  }
+  document.getElementById('login-wrap').style.display  = 'none';
+  document.getElementById('app-wrap').style.display    = 'block';
+  document.getElementById('user-avatar').textContent   = (user.displayName||user.email)[0].toUpperCase();
+  document.getElementById('user-name').textContent     = user.displayName || user.email.split('@')[0];
+});
+
+window.doLogin  = async () => {
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({prompt:'select_account'});
+    await signInWithPopup(auth, p);
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') {
+    const el = document.getElementById('login-error');
+    el.textContent = '로그인 실패. 다시 시도해주세요.'; el.style.display = 'block';
+  }}
+};
+window.doLogout = () => signOut(auth);
+
+// ── Firestore 실시간 구독 ──
+onSnapshot(collection(db,'reservations'), snap => {
+  reservations = snap.docs.map(d => ({id:d.id,...d.data()}));
+  render();
+});
+</script>
+</body>
+</html>
