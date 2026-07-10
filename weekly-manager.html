@@ -112,7 +112,7 @@ tr:last-child td{border-bottom:none;}
   font-weight:700;
 }
 .td-time{text-align:center;white-space:nowrap;font-size:12px;font-weight:700;color:var(--blue);}
-.td-room{text-align:center;font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;}
+.td-room{text-align:left;font-size:12px;font-weight:600;color:var(--text2);line-height:1.7;}
 .td-purpose{font-size:13px;color:var(--text);}
 
 /* 빈/로딩 */
@@ -256,12 +256,16 @@ function render() {
           ? `<span class="dow" style="background:${dcol}20;color:${dcol}">${dow}</span>`
           : `<span class="dow" style="background:#E8EFF7;color:var(--text2)">${dow}</span>`;
 
-        // 실 번호 정렬 후 "호" 포함 표기
-        const rooms = group
+        // 실 번호 정렬 후 "호" 포함, 4개마다 줄바꿈
+        const roomList = group
           .map(g => g.room)
           .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
-          .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm)
-          .join(', ');
+          .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
+        const rooms = roomList.reduce((acc, rm, i) => {
+          acc.push(rm);
+          if ((i+1) % 4 === 0 && i+1 < roomList.length) acc.push('<br>');
+          return acc;
+        }, []).join(', ').replace(/, <br>, /g, '<br>');
 
         const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
 
