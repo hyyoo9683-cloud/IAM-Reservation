@@ -363,8 +363,10 @@ window.downloadImages = async () => {
 
   async function captureDiv(innerHTML, filename) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:12px;width:600px;';
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:12px;display:inline-block;';
     wrap.innerHTML = innerHTML;
+    wrap.querySelectorAll('table').forEach(t => t.style.width = 'auto');
+    wrap.querySelectorAll('.tbl-wrap').forEach(t => { t.style.overflow = 'visible'; });
     document.body.appendChild(wrap);
     const canvas = await html2canvas(wrap, opt);
     document.body.removeChild(wrap);
