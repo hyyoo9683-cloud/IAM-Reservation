@@ -363,7 +363,7 @@ window.downloadImages = async () => {
 
   async function captureDiv(innerHTML, filename) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:12px;width:800px;';
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:12px;width:600px;';
     wrap.innerHTML = innerHTML;
     document.body.appendChild(wrap);
     const canvas = await html2canvas(wrap, opt);
