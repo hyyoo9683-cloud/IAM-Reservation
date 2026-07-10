@@ -225,67 +225,81 @@ function render() {
     const secRes = weekRes.filter(r => sec.rooms.includes(r.room));
     if (!secRes.length) return '';
 
-    // 담당자별 그룹
-    const grouped = {};
+    // 같은 날짜+시간 묶기 (전체)
+    const timeMap = {};
     secRes.forEach(r => {
-      const key = r.managerName?.trim() || '미지정';
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push(r);
-    });
-
-    const managers = Object.keys(grouped).sort((a,b) => {
-      if (a==='미지정') return 1; if (b==='미지정') return -1;
-      return a.localeCompare(b, 'ko');
+      const key = `${r.managerName?.trim()||'미지정'}|${r.date}|${r.start}|${r.end}`;
+      if (!timeMap[key]) timeMap[key] = [];
+      timeMap[key].push(r);
     });
 
     let rows = '';
-    managers.forEach((mgr, idx) => {
-      const cls  = idx % 2 === 0 ? 'row-a' : 'row-b';
-      // 같은 날짜+시간 예약은 묶기
-      const timeMap = {};
-      grouped[mgr].forEach(r => {
-        const key = `${r.date}|${r.start}|${r.end}`;
-        if (!timeMap[key]) timeMap[key] = [];
-        timeMap[key].push(r);
+
+    if (sec.key === '5f') {
+      // 5층: 담당자 가나다 순 → 날짜 순
+      const grouped = {};
+      secRes.forEach(r => {
+        const k = r.managerName?.trim() || '미지정';
+        if (!grouped[k]) grouped[k] = {};
+        const tk = `${r.date}|${r.start}|${r.end}`;
+        if (!grouped[k][tk]) grouped[k][tk] = [];
+        grouped[k][tk].push(r);
       });
+      const managers = Object.keys(grouped).sort((a,b) => {
+        if (a==='미지정') return 1; if (b==='미지정') return -1;
+        return a.localeCompare(b, 'ko');
+      });
+      managers.forEach((mgr, idx) => {
+        const cls  = idx % 2 === 0 ? 'row-a' : 'row-b';
+        const list = Object.values(grouped[mgr]).sort((a,b) =>
+          a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start)
+        );
+        list.forEach((group, i) => {
+          rows += buildRow(group, i === 0 ? mgr : null, i === 0 ? list.length : null, cls);
+        });
+      });
+
+    } else {
+      // 아론홀·샤론홀: 날짜 순
       const list = Object.values(timeMap).sort((a,b) =>
         a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start)
       );
-
-      list.forEach((group, i) => {
-        const r    = group[0];
-        const d    = new Date(r.date + 'T00:00:00');
-        const dow  = DOWS[d.getDay()];
-        const dcol = DOW_COLOR[dow] || '';
-        const dowEl = dcol
-          ? `<span class="dow" style="background:${dcol}20;color:${dcol}">${dow}</span>`
-          : `<span class="dow" style="background:#E8EFF7;color:var(--text2)">${dow}</span>`;
-
-        // 실 번호 정렬 후 "호" 포함, 4개마다 줄바꿈
-        const roomList = group
-          .map(g => g.room)
-          .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
-          .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
-        const chunks = [];
-        for (let i = 0; i < roomList.length; i += 4) {
-          chunks.push(roomList.slice(i, i+4).join(', '));
-        }
-        const rooms = chunks.join('<br>');
-
-        const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
-
-        rows += `<tr class="${cls}">`;
-        if (i === 0) {
-          rows += `<td class="mgr-cell" rowspan="${list.length}">${mgr}</td>`;
-        }
-        rows += `
-          <td class="td-date">${d.getMonth()+1}/${d.getDate()}${dowEl}</td>
-          <td class="td-time">${r.start}–${r.end}</td>
-          <td class="td-room">${rooms}</td>
-          <td class="td-purpose">${purpose}</td>
-        </tr>`;
+      list.forEach((group, idx) => {
+        const cls = idx % 2 === 0 ? 'row-a' : 'row-b';
+        const mgr = group[0].managerName?.trim() || '미지정';
+        rows += buildRow(group, mgr, null, cls);
       });
-    });
+    }
+
+    function buildRow(group, mgrLabel, rowspan, cls) {
+      const r   = group[0];
+      const d   = new Date(r.date + 'T00:00:00');
+      const dow = DOWS[d.getDay()];
+      const dc  = DOW_COLOR[dow] || '';
+      const dowEl = `<span class="dow" style="background:${dc?dc+'20':'#E8EFF7'};color:${dc||'var(--text2)'};">${dow}</span>`;
+      const roomList = group
+        .map(g => g.room)
+        .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
+        .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
+      const chunks = [];
+      for (let i = 0; i < roomList.length; i += 4) chunks.push(roomList.slice(i,i+4).join(', '));
+      const rooms   = chunks.join('<br>');
+      const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
+
+      let html = `<tr class="${cls}">`;
+      if (mgrLabel !== null) {
+        html += rowspan
+          ? `<td class="mgr-cell" rowspan="${rowspan}">${mgrLabel}</td>`
+          : `<td class="mgr-cell">${mgrLabel}</td>`;
+      }
+      html += `
+        <td class="td-date">${d.getMonth()+1}/${d.getDate()}${dowEl}</td>
+        <td class="td-time">${r.start}–${r.end}</td>
+        <td class="td-room">${rooms}</td>
+        <td class="td-purpose">${purpose}</td>
+      </tr>`;
+      return html;
+    }
 
     return `<div class="section" id="section-${sec.key}">
       <div class="section-title">${sec.label}</div>
