@@ -175,9 +175,15 @@ const SECTIONS = [
 ];
 const DOWS      = ['일','월','화','수','목','금','토'];
 const DOW_COLOR = { '일':'#D04F7B','토':'#7B4FD0' };
+const MGR_CHUNK = 5; // 5층 이미지당 담당자 수
 
 let reservations = [];
-let weekOffset   = 1; // 기본: 다음 주
+let weekOffset   = 1;
+
+// 다운로드용 처리된 섹션 데이터
+// '5f'   : [{mgr, list}]  (담당자별)
+// 'aaron', 'sharon': [{group}]  (날짜순)
+let sectionData = { '5f': [], 'aaron': [], 'sharon': [] };
 
 const toStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -191,6 +197,64 @@ function getWeekRange(off) {
   return { sat, fri };
 }
 
+// ── 행 HTML 생성 (모듈 최상단) ──
+function buildRow(group, mgrLabel, rowspan, cls) {
+  const r   = group[0];
+  const d   = new Date(r.date + 'T00:00:00');
+  const dow = DOWS[d.getDay()];
+  const dc  = DOW_COLOR[dow] || '';
+  const dowEl = `<span class="dow" style="background:${dc?dc+'20':'#E8EFF7'};color:${dc||'var(--text2)'};">${dow}</span>`;
+  const roomList = group
+    .map(g => g.room)
+    .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
+    .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
+  const chunks = [];
+  for (let i = 0; i < roomList.length; i += 4) chunks.push(roomList.slice(i,i+4).join(', '));
+  const rooms   = chunks.join('<br>');
+  const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
+
+  let html = `<tr class="${cls}">`;
+  if (mgrLabel !== null) {
+    html += rowspan
+      ? `<td class="mgr-cell" rowspan="${rowspan}">${mgrLabel}</td>`
+      : `<td class="mgr-cell">${mgrLabel}</td>`;
+  }
+  html += `
+    <td class="td-date">${d.getMonth()+1}/${d.getDate()}${dowEl}</td>
+    <td class="td-time">${r.start}–${r.end}</td>
+    <td class="td-room">${rooms}</td>
+    <td class="td-purpose">${purpose}</td>
+  </tr>`;
+  return html;
+}
+
+// ── 담당자 배열로 tbody HTML 생성 ──
+function buildMgrRows(mgrList) {
+  let rows = '';
+  mgrList.forEach(({mgr, list}, idx) => {
+    const cls = idx % 2 === 0 ? 'row-a' : 'row-b';
+    list.forEach((group, i) => {
+      rows += buildRow(group, i === 0 ? mgr : null, i === 0 ? list.length : null, cls);
+    });
+  });
+  return rows;
+}
+
+// ── 섹션 HTML 조각 (레이블 + 표) ──
+function buildSectionHTML(label, tbodyHTML) {
+  return `<div class="section">
+    <div class="section-title">${label}</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>예약책임자</th><th>날짜</th><th>시간</th><th>예약실</th><th>예약항목</th>
+        </tr></thead>
+        <tbody>${tbodyHTML}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
 function render() {
   const { sat, fri } = getWeekRange(weekOffset);
   const satStr = toStr(sat), friStr = toStr(fri);
@@ -202,121 +266,82 @@ function render() {
     r.status === '확정' && r.date >= satStr && r.date <= friStr
   );
 
-  // 요약
   const sumEl = document.getElementById('summary');
   if (!weekRes.length) {
     sumEl.style.display = 'none';
   } else {
     sumEl.style.display = 'flex';
-    const managers = [...new Set(weekRes.map(r => r.managerName?.trim() || '미지정'))];
+    const mgrs = [...new Set(weekRes.map(r => r.managerName?.trim() || '미지정'))];
     sumEl.innerHTML =
       `<span class="sum-chip">총 ${weekRes.length}건</span>` +
-      `<span class="sum-chip">담당자 ${managers.length}명</span>`;
+      `<span class="sum-chip">담당자 ${mgrs.length}명</span>`;
   }
 
-  // 섹션별 렌더
   const content = document.getElementById('content');
   if (!weekRes.length) {
     content.innerHTML = `<div class="empty">이번 주 확정 예약이 없습니다.</div>`;
+    sectionData = { '5f': [], 'aaron': [], 'sharon': [] };
     return;
   }
 
-  content.innerHTML = SECTIONS.map(sec => {
+  let html = '';
+  SECTIONS.forEach(sec => {
     const secRes = weekRes.filter(r => sec.rooms.includes(r.room));
-    if (!secRes.length) return '';
-
-    // 같은 날짜+시간 묶기 (전체)
-    const timeMap = {};
-    secRes.forEach(r => {
-      const key = `${r.managerName?.trim()||'미지정'}|${r.date}|${r.start}|${r.end}`;
-      if (!timeMap[key]) timeMap[key] = [];
-      timeMap[key].push(r);
-    });
-
-    let rows = '';
+    if (!secRes.length) { sectionData[sec.key] = []; return; }
 
     if (sec.key === '5f') {
-      // 5층: 담당자 가나다 순 → 날짜 순
+      // 담당자별 그룹 → 가나다 정렬
       const grouped = {};
       secRes.forEach(r => {
-        const k = r.managerName?.trim() || '미지정';
-        if (!grouped[k]) grouped[k] = {};
+        const k  = r.managerName?.trim() || '미지정';
         const tk = `${r.date}|${r.start}|${r.end}`;
+        if (!grouped[k]) grouped[k] = {};
         if (!grouped[k][tk]) grouped[k][tk] = [];
         grouped[k][tk].push(r);
       });
-      const managers = Object.keys(grouped).sort((a,b) => {
-        if (a==='미지정') return 1; if (b==='미지정') return -1;
-        return a.localeCompare(b, 'ko');
-      });
-      managers.forEach((mgr, idx) => {
-        const cls  = idx % 2 === 0 ? 'row-a' : 'row-b';
-        const list = Object.values(grouped[mgr]).sort((a,b) =>
-          a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start)
-        );
-        list.forEach((group, i) => {
-          rows += buildRow(group, i === 0 ? mgr : null, i === 0 ? list.length : null, cls);
-        });
-      });
+      const mgrList = Object.keys(grouped)
+        .sort((a,b) => a==='미지정'?1:b==='미지정'?-1:a.localeCompare(b,'ko'))
+        .map(mgr => ({
+          mgr,
+          list: Object.values(grouped[mgr]).sort((a,b) =>
+            a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start))
+        }));
+      sectionData['5f'] = mgrList;
+      html += `<div class="section" id="section-5f">
+        <div class="section-title">5층 소그룹실</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>예약책임자</th><th>날짜</th><th>시간</th><th>예약실</th><th>예약항목</th></tr></thead>
+          <tbody>${buildMgrRows(mgrList)}</tbody>
+        </table></div>
+      </div>`;
 
     } else {
-      // 아론홀·샤론홀: 날짜 순
-      const list = Object.values(timeMap).sort((a,b) =>
+      // 날짜 순
+      const timeMap = {};
+      secRes.forEach(r => {
+        const tk = `${r.managerName?.trim()||'미지정'}|${r.date}|${r.start}|${r.end}`;
+        if (!timeMap[tk]) timeMap[tk] = [];
+        timeMap[tk].push(r);
+      });
+      const dateList = Object.values(timeMap).sort((a,b) =>
         a[0].date.localeCompare(b[0].date) || a[0].start.localeCompare(b[0].start)
       );
-      list.forEach((group, idx) => {
-        const cls = idx % 2 === 0 ? 'row-a' : 'row-b';
+      sectionData[sec.key] = dateList;
+      const rows = dateList.map((group, idx) => {
         const mgr = group[0].managerName?.trim() || '미지정';
-        rows += buildRow(group, mgr, null, cls);
-      });
-    }
-
-    function buildRow(group, mgrLabel, rowspan, cls) {
-      const r   = group[0];
-      const d   = new Date(r.date + 'T00:00:00');
-      const dow = DOWS[d.getDay()];
-      const dc  = DOW_COLOR[dow] || '';
-      const dowEl = `<span class="dow" style="background:${dc?dc+'20':'#E8EFF7'};color:${dc||'var(--text2)'};">${dow}</span>`;
-      const roomList = group
-        .map(g => g.room)
-        .sort((a,b) => (parseInt(a)||0) - (parseInt(b)||0))
-        .map(rm => /^\d/.test(rm) ? rm.replace(/호?$/, '')+'호' : rm);
-      const chunks = [];
-      for (let i = 0; i < roomList.length; i += 4) chunks.push(roomList.slice(i,i+4).join(', '));
-      const rooms   = chunks.join('<br>');
-      const purpose = [...new Set(group.map(g => g.purpose||g.org||'').filter(Boolean))].join(' / ');
-
-      let html = `<tr class="${cls}">`;
-      if (mgrLabel !== null) {
-        html += rowspan
-          ? `<td class="mgr-cell" rowspan="${rowspan}">${mgrLabel}</td>`
-          : `<td class="mgr-cell">${mgrLabel}</td>`;
-      }
-      html += `
-        <td class="td-date">${d.getMonth()+1}/${d.getDate()}${dowEl}</td>
-        <td class="td-time">${r.start}–${r.end}</td>
-        <td class="td-room">${rooms}</td>
-        <td class="td-purpose">${purpose}</td>
-      </tr>`;
-      return html;
-    }
-
-    return `<div class="section" id="section-${sec.key}">
-      <div class="section-title">${sec.label}</div>
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr>
-            <th>예약책임자</th><th>날짜</th><th>시간</th><th>예약실</th><th>예약항목</th>
-          </tr></thead>
+        return buildRow(group, mgr, null, idx%2===0?'row-a':'row-b');
+      }).join('');
+      html += `<div class="section" id="section-${sec.key}">
+        <div class="section-title">${sec.label}</div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>예약책임자</th><th>날짜</th><th>시간</th><th>예약실</th><th>예약항목</th></tr></thead>
           <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-  }).join('');
+        </table></div>
+      </div>`;
+    }
+  });
 
-  if (!content.innerHTML.trim()) {
-    content.innerHTML = `<div class="empty">이번 주 확정 예약이 없습니다.</div>`;
-  }
+  content.innerHTML = html || `<div class="empty">이번 주 확정 예약이 없습니다.</div>`;
 }
 
 window.changeWeek = dir => {
@@ -324,6 +349,7 @@ window.changeWeek = dir => {
   render();
 };
 
+// ── 이미지 다운로드 ──
 window.downloadImages = async () => {
   const btn = document.getElementById('dl-btn');
   btn.disabled = true; btn.textContent = '생성 중…';
@@ -332,35 +358,43 @@ window.downloadImages = async () => {
   const weekStr = `${sat.getFullYear()}_${sat.getMonth()+1}${String(sat.getDate()).padStart(2,'0')}-${fri.getMonth()+1}${String(fri.getDate()).padStart(2,'0')}`;
   const opt = { scale: 2, backgroundColor: '#F8FAFD', useCORS: true };
 
-  // 1. 5층 소그룹실
-  const sec5f = document.getElementById('section-5f');
-  if (sec5f) {
-    const canvas = await html2canvas(sec5f, opt);
-    saveCanvas(canvas, `5층소그룹실_${weekStr}.png`);
-  }
-
-  // 2. 아론홀 + 샤론홀 합치기
-  const secAaron  = document.getElementById('section-aaron');
-  const secSharon = document.getElementById('section-sharon');
-  if (secAaron || secSharon) {
+  async function captureDiv(innerHTML, filename) {
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:16px;width:860px;';
-    if (secAaron)  wrap.appendChild(secAaron.cloneNode(true));
-    if (secSharon) wrap.appendChild(secSharon.cloneNode(true));
+    wrap.style.cssText = 'position:fixed;left:-9999px;top:0;background:#F8FAFD;padding:12px;width:800px;';
+    wrap.innerHTML = innerHTML;
     document.body.appendChild(wrap);
     const canvas = await html2canvas(wrap, opt);
     document.body.removeChild(wrap);
-    saveCanvas(canvas, `아론홀샤론홀_${weekStr}.png`);
+    saveCanvas(canvas, filename);
   }
+
+  // 1. 5층 소그룹실: 5명씩 분할
+  const mgrs = sectionData['5f'];
+  if (mgrs.length) {
+    const total = Math.ceil(mgrs.length / MGR_CHUNK);
+    for (let i = 0; i < mgrs.length; i += MGR_CHUNK) {
+      const chunk = mgrs.slice(i, i + MGR_CHUNK);
+      const suffix = total > 1 ? `_${Math.floor(i/MGR_CHUNK)+1}` : '';
+      await captureDiv(
+        buildSectionHTML('5층 소그룹실', buildMgrRows(chunk.map((item,j)=>({...item,cls:j%2===0?'row-a':'row-b'})))),
+        `5층소그룹실${suffix}_${weekStr}.png`
+      );
+    }
+  }
+
+  // 2. 아론홀 + 샤론홀 합치기
+  const aaronRows  = (sectionData['aaron']||[]).map((g,i)=>buildRow(g,g[0].managerName?.trim()||'미지정',null,i%2===0?'row-a':'row-b')).join('');
+  const sharonRows = (sectionData['sharon']||[]).map((g,i)=>buildRow(g,g[0].managerName?.trim()||'미지정',null,i%2===0?'row-a':'row-b')).join('');
+  const hallHTML   = (aaronRows ? buildSectionHTML('아론홀', aaronRows) : '') +
+                     (sharonRows ? buildSectionHTML('샤론홀', sharonRows) : '');
+  if (hallHTML) await captureDiv(hallHTML, `아론홀샤론홀_${weekStr}.png`);
 
   btn.disabled = false; btn.textContent = '📥 저장';
 };
 
 function saveCanvas(canvas, filename) {
   const a = document.createElement('a');
-  a.download = filename;
-  a.href = canvas.toDataURL('image/png');
-  a.click();
+  a.download = filename; a.href = canvas.toDataURL('image/png'); a.click();
 }
 
 onSnapshot(collection(db,'reservations'), snap => {
