@@ -2375,7 +2375,7 @@ window.toggleAllSeriesOpts = () => {
   const dateLbl = document.getElementById('e-date-lbl');
   if (dateLbl) {
     dateLbl.innerHTML = on
-      ? '날짜 <span class="req">*</span> <span style="font-size:10px;font-weight:400;color:var(--text3)">(이 회차만 · 다른 회차는 유지)</span>'
+      ? '날짜 <span class="req">*</span> <span style="font-size:10px;font-weight:400;color:var(--text3)">(변경 시 전체 회차 날짜 동일 간격 이동)</span>'
       : '날짜 <span class="req">*</span>';
   }
 };
@@ -3448,8 +3448,16 @@ window.submitEdit = async () => {
           }
         }
 
-        // 현재 회차(editId)의 날짜는 폼의 date 값으로, 나머지 회차는 각자의 원래 날짜로 유지
-        const getEffDate = x => x.id === editId ? date : x.date;
+        // 날짜 변경 시 전체 회차를 동일 간격으로 이동 (예: 일요일→월요일이면 모든 회차 +1일)
+        const dateDeltaMs = date !== r.date
+          ? new Date(date + 'T00:00:00').getTime() - new Date(r.date + 'T00:00:00').getTime()
+          : 0;
+        const getEffDate = x => {
+          if (dateDeltaMs === 0) return x.date;
+          const d = new Date(x.date + 'T00:00:00');
+          d.setTime(d.getTime() + dateDeltaMs);
+          return toDateStr(d);
+        };
         const conflicted = activeSeries.filter(x => !noConflict(room, getEffDate(x), start, end, x.id, true));
         const toUpdate   = activeSeries.filter(x =>  noConflict(room, getEffDate(x), start, end, x.id, true));
 
