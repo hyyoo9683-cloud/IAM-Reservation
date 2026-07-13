@@ -1198,7 +1198,7 @@ function T(msg, col = '#185FA5') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.background = col; t.style.opacity = 1;
   clearTimeout(T._tm);
-  T._tm = setTimeout(() => t.style.opacity = 0, 3200);
+  T._tm = setTimeout(() => t.style.opacity = 0, col === '#A32D2D' ? 6000 : 3200);
 }
 function sBadge(s) {
   const label = (s === '반려') ? '취소' : s;
@@ -2371,6 +2371,13 @@ window.toggleAllSeriesOpts = () => {
   const on = document.getElementById('e-all-series')?.checked;
   const opts = document.getElementById('e-all-series-opts');
   if (opts) opts.style.display = on ? '' : 'none';
+  // 전체 시리즈 수정 시 날짜 칸은 이 회차 날짜만 변경됨을 안내
+  const dateLbl = document.getElementById('e-date-lbl');
+  if (dateLbl) {
+    dateLbl.innerHTML = on
+      ? '날짜 <span class="req">*</span> <span style="font-size:10px;font-weight:400;color:var(--text3)">(이 회차만 · 다른 회차는 유지)</span>'
+      : '날짜 <span class="req">*</span>';
+  }
 };
 window.toggleEditRecur = () => {
   const on = document.getElementById('e-is-recur').checked;
@@ -3387,7 +3394,11 @@ window.submitEdit = async () => {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
-  if (!noConflict(room, date, start, end, editId, true)) { T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return; }
+  // 전체 시리즈 수정 모드에서는 시리즈별 충돌 체크가 아래에서 별도로 수행되므로 여기서는 스킵
+  const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
+  if (!_editAllSeries && !noConflict(room, date, start, end, editId, true)) {
+    T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
+  }
 
   const data = {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
