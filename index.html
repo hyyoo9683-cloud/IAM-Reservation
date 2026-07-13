@@ -3418,6 +3418,7 @@ window.submitEdit = async () => {
         const recurCode = r.recurType?.includes('격') ? 'biweekly' : r.recurType?.includes('달') ? 'monthly' : 'weekly';
         let activeSeries = [...series];
 
+        let cantAddDates = [];
         if (newEndDate && newEndDate !== lastDate) {
           if (newEndDate < series[0].date) { T('종료 날짜가 시작 날짜보다 빠릅니다', '#A32D2D'); return; }
           if (newEndDate < lastDate) {
@@ -3426,30 +3427,51 @@ window.submitEdit = async () => {
             await Promise.all(toDelete.map(x => deleteDoc(doc(db, 'reservations', x.id))));
             activeSeries = series.filter(x => x.date <= newEndDate);
           } else {
-            // 연장: lastDate 이후 날짜 추가
+            // 연장: lastDate 이후 날짜 추가 (충돌 없는 날짜만)
             const addDates = generateAvailDates(lastDate, newEndDate, recurCode).slice(1);
             if (addDates.length) {
-              const newTotal = series.length + addDates.length;
-              data.recurTotal = newTotal;
-              for (const d of addDates) {
-                await addDoc(collection(db, 'reservations'), {
-                  ...data, date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
-                  history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
-                });
+              const canAdd  = addDates.filter(d => noConflict(room, d, start, end, null, true));
+              cantAddDates  = addDates.filter(d => !noConflict(room, d, start, end, null, true));
+              if (canAdd.length) {
+                const newTotal = series.length + canAdd.length;
+                data.recurTotal = newTotal;
+                for (const d of canAdd) {
+                  await addDoc(collection(db, 'reservations'), {
+                    ...data, date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
+                    history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
+                  });
+                }
               }
             }
           }
         }
 
-        const conflicts = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id, true));
-        if (conflicts.length) {
-          T(`${conflicts.length}개 날짜에 시간 충돌 (${conflicts.map(x => x.date.slice(5)).join(', ')})`, '#A32D2D'); return;
+        const conflicted = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id, true));
+        const toUpdate   = activeSeries.filter(x =>  noConflict(room, x.date, start, end, x.id, true));
+
+        if (toUpdate.length) {
+          await Promise.all(toUpdate.map(x => updateDoc(doc(db, 'reservations', x.id), {
+            ...data, date: x.date,
+            history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
+          })));
         }
-        await Promise.all(activeSeries.map(x => updateDoc(doc(db, 'reservations', x.id), {
-          ...data, date: x.date,
-          history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
-        })));
-        T(`정기 예약 ${activeSeries.length}건 전체 수정됐습니다`, '#3B6D11');
+
+        const allConflictDates = [...conflicted.map(x => x.date.slice(5)), ...cantAddDates.map(d => d.slice(5))];
+        if (allConflictDates.length) {
+          closeModal('modal-edit');
+          document.getElementById('info-icon').textContent  = toUpdate.length ? '⚠️' : '❌';
+          document.getElementById('info-title').textContent = toUpdate.length
+            ? `${toUpdate.length}건 수정 완료, ${allConflictDates.length}건 충돌`
+            : `전체 ${allConflictDates.length}건 충돌`;
+          document.getElementById('info-body').innerHTML =
+            (toUpdate.length ? `<div style="color:#3B6D11;margin-bottom:8px">✅ ${toUpdate.length}건이 수정됐습니다.</div>` : '') +
+            `<div style="color:#A32D2D;margin-bottom:6px">⚠️ 아래 날짜는 다른 예약과 시간이 겹쳐 수정되지 않았습니다.<br>각 항목을 개별 선택해 <b>일정수정</b>에서 조정해 주세요.</div>` +
+            `<div style="font-size:12px;background:var(--bg2);border-radius:6px;padding:8px;text-align:left;line-height:2">${allConflictDates.map(d => `• ${d}`).join('<br>')}</div>`;
+          openModal('modal-info');
+        } else {
+          T(`정기 예약 ${toUpdate.length}건 전체 수정됐습니다`, '#3B6D11');
+          closeModal('modal-edit');
+        }
       } else {
         data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
         await updateDoc(doc(db, 'reservations', editId), data);
