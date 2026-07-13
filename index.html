@@ -3490,10 +3490,37 @@ window.submitEdit = async () => {
           const cantAddInfo = cantAddDates.length
             ? `<div style="font-size:11px;color:var(--text3);margin-top:4px">추가 불가 날짜: ${cantAddDates.map(d=>d.slice(5).replace('-','/')).join(', ')}</div>`
             : '';
+
+          // 대안 공간 추천: 전체 시리즈(충돌+성공+확장 날짜) 기준으로 수용 가능한 공간 계산
+          const allSeriesDates = [...activeSeries.map(x => getEffDate(x)), ...cantAddDates];
+          const altRooms = spaces
+            .filter(s => s.name !== room)
+            .map(s => {
+              const fits = allSeriesDates.filter(d => noConflict(s.name, d, start, end, null, true)).length;
+              return { name: s.name, cap: s.cap || '', fits };
+            })
+            .filter(s => s.fits > 0)
+            .sort((a, b) => b.fits - a.fits)
+            .slice(0, 4);
+          const altHtml = altRooms.length ? `
+            <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border2)">
+              <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">💡 대안 공간 추천</div>
+              ${altRooms.map(s => {
+                const allFit = s.fits === allSeriesDates.length;
+                return `<div style="display:flex;align-items:center;justify-content:space-between;
+                  font-size:12px;padding:6px 10px;border-radius:6px;margin-bottom:4px;
+                  background:${allFit ? 'var(--blue-lt)' : 'var(--bg2)'};
+                  color:${allFit ? 'var(--blue)' : 'var(--text2)'}">
+                  <span>${allFit ? '✅' : '▸'} <b>${s.name}</b>${s.cap ? ` · ${s.cap}명` : ''}</span>
+                  <span style="font-size:11px;font-weight:600">${allFit ? '전체 일정 가능' : `${s.fits}/${allSeriesDates.length}건 가능`}</span>
+                </div>`;
+              }).join('')}
+            </div>` : '';
+
           document.getElementById('info-body').innerHTML =
             (toUpdate.length ? `<div style="color:#3B6D11;margin-bottom:8px">✅ ${toUpdate.length}건이 수정됐습니다.</div>` : '') +
             `<div style="color:#A32D2D;margin-bottom:8px;font-size:12px">⚠️ 아래 날짜는 다른 예약과 시간이 겹쳐 수정되지 않았습니다.<br>클릭해서 바로 조정하세요.</div>` +
-            conflictBtns + cantAddInfo;
+            conflictBtns + cantAddInfo + altHtml;
           openModal('modal-info');
         } else {
           T(`정기 예약 ${toUpdate.length}건 전체 수정됐습니다`, '#3B6D11');
