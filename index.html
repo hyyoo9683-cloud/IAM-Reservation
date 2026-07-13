@@ -3446,17 +3446,19 @@ window.submitEdit = async () => {
           }
         }
 
-        const conflicted = activeSeries.filter(x => !noConflict(room, x.date, start, end, x.id, true));
-        const toUpdate   = activeSeries.filter(x =>  noConflict(room, x.date, start, end, x.id, true));
+        // 현재 회차(editId)의 날짜는 폼의 date 값으로, 나머지 회차는 각자의 원래 날짜로 유지
+        const getEffDate = x => x.id === editId ? date : x.date;
+        const conflicted = activeSeries.filter(x => !noConflict(room, getEffDate(x), start, end, x.id, true));
+        const toUpdate   = activeSeries.filter(x =>  noConflict(room, getEffDate(x), start, end, x.id, true));
 
         if (toUpdate.length) {
           await Promise.all(toUpdate.map(x => updateDoc(doc(db, 'reservations', x.id), {
-            ...data, date: x.date,
+            ...data, date: getEffDate(x),
             history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
           })));
         }
 
-        const allConflictDates = [...conflicted.map(x => x.date.slice(5)), ...cantAddDates.map(d => d.slice(5))];
+        const allConflictDates = [...conflicted.map(x => getEffDate(x).slice(5)), ...cantAddDates.map(d => d.slice(5))];
         if (allConflictDates.length) {
           closeModal('modal-edit');
           document.getElementById('info-icon').textContent  = toUpdate.length ? '⚠️' : '❌';
