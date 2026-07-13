@@ -3437,7 +3437,9 @@ window.submitEdit = async () => {
                 data.recurTotal = newTotal;
                 for (const d of canAdd) {
                   await addDoc(collection(db, 'reservations'), {
-                    ...data, date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
+                    ...data,
+                    status: data.status || r.status || '확정',
+                    date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
                     history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
                   });
                 }
