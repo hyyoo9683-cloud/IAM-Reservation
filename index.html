@@ -334,6 +334,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('orgs')"><span class="icon">🏷</span>기관 관리</button>
       <a href="weekly-manager.html" class="nav-btn" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🗓</span>주간 예약 현황</a>
       <a href="checkouts.html" class="nav-btn" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🚪</span>퇴실 체크 이력</a>
+      <button class="nav-btn" onclick="go('memo')"><span class="icon">📝</span>관리자 메모</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <div class="nav-section">사용자 뷰</div>
@@ -810,6 +811,26 @@ textarea { resize: vertical; min-height: 60px; }
             <button class="btn btn-primary" id="btn-recur-fix" style="display:none" onclick="applyRecurFix()">일괄 +1일 보정 실행</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ── 관리자 메모 ── -->
+    <div class="page" id="p-memo">
+      <div style="max-width:680px">
+        <div class="card">
+          <div class="card-title">새 메모</div>
+          <textarea id="memo-input" rows="4" placeholder="공간 관련 메모를 입력하세요…"
+            style="width:100%;box-sizing:border-box;resize:vertical;border:1px solid var(--border);
+            border-radius:8px;padding:10px 12px;font-size:14px;font-family:var(--font);
+            color:var(--text);background:var(--bg2);line-height:1.6"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+            <input id="memo-tag" type="text" placeholder="공간 태그 (선택, 예: 505호)"
+              style="flex:1;min-width:0;padding:7px 10px;border:1px solid var(--border);
+              border-radius:7px;font-size:13px;color:var(--text);background:var(--bg2)">
+            <button class="btn btn-primary" onclick="addMemo()" style="white-space:nowrap">저장</button>
+          </div>
+        </div>
+        <div id="memo-list"></div>
       </div>
     </div>
 
@@ -1388,6 +1409,53 @@ async function loadData() {
     updateAllOrgSelects();
   });
 
+  // 관리자 메모
+  let adminMemos = [];
+  onSnapshot(collection(db, 'adminNotes'), snap => {
+    adminMemos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    if (curPage === 'memo') renderMemo();
+  });
+
+  window.addMemo = async () => {
+    const content = document.getElementById('memo-input').value.trim();
+    if (!content) { T('메모 내용을 입력해주세요', '#A32D2D'); return; }
+    const tag = document.getElementById('memo-tag').value.trim();
+    await addDoc(collection(db, 'adminNotes'), {
+      content, tag,
+      createdAt: new Date().toISOString(),
+      author: curUser?.email || ''
+    });
+    document.getElementById('memo-input').value = '';
+    document.getElementById('memo-tag').value = '';
+    T('메모가 저장됐습니다', '#3B6D11');
+  };
+
+  window.deleteMemo = async (id) => {
+    if (!confirm('이 메모를 삭제할까요?')) return;
+    await deleteDoc(doc(db, 'adminNotes', id));
+  };
+
+  window.renderMemo = () => {
+    const el = document.getElementById('memo-list');
+    if (!el) return;
+    if (!adminMemos.length) {
+      el.innerHTML = '<div style="text-align:center;color:var(--text3);padding:32px;font-size:14px">저장된 메모가 없습니다.</div>';
+      return;
+    }
+    el.innerHTML = adminMemos.map(m => {
+      const dt = m.createdAt ? new Date(m.createdAt).toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      return `<div class="card" style="margin-bottom:10px;position:relative">
+        <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+          ${m.tag ? `<span style="background:var(--blue-lt);color:var(--blue);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0">${m.tag}</span>` : ''}
+          <div style="flex:1;min-width:0;white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text)">${m.content.replace(/</g,'&lt;')}</div>
+          <button onclick="deleteMemo('${m.id}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0;flex-shrink:0" title="삭제">🗑</button>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">${dt}${m.author ? ' · ' + m.author : ''}</div>
+      </div>`;
+    }).join('');
+  };
+
   buildRoomChips();
   populateRoomFilter();
   buildReportYearSelect();
@@ -1572,7 +1640,7 @@ window.go = (page) => {
   const titles = {
     spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
-    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리'
+    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
