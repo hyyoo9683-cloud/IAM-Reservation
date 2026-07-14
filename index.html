@@ -4224,6 +4224,10 @@ function renderReport() {
   if (stf) base = base.filter(r => r.status === stf);
   let data = mo ? base.filter(r => r.date?.slice(5,7) === mo) : base;
 
+  // 목적 카테고리 색상 맵 (org-detail 에서도 사용)
+  const catColorMap = Object.fromEntries(purposeCats.map(c => [c.name, c.color]));
+  catColorMap['기타'] = 'var(--text3)';
+
   // 통계 카드
   document.getElementById('r-total').textContent = data.length;
   document.getElementById('r-ok').textContent    = data.filter(r => r.status === '확정').length;
@@ -4389,34 +4393,86 @@ function renderReport() {
         </div>` : '<div style="flex:1"></div>'}
         <span style="font-size:11px;color:var(--text3);white-space:nowrap">${isOpen ? '▾' : '▸'}</span>
       </div>
-      <!-- 펼쳐지는 상세: 자주 사용한 공간 + 세부기관 -->
-      ${isOpen ? `<div style="padding:10px 14px;border-top:1px solid var(--border2);background:var(--bg)">
-        <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">자주 사용한 공간</div>
-        ${roomsSorted.map(([room, cnt]) => `
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-            <div style="font-size:11px;min-width:80px;font-weight:600">${room}</div>
-            <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
-              <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
-            </div>
-            <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:28px;text-align:right">${cnt}건</div>
-          </div>`).join('')}
-        ${subOrgSummary ? `
-        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">
-          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">세부 기관</div>
-          ${children.map(c => {
-            const cnt = subOrgSummary.subCounts[c.name] || 0;
-            const pct = Math.round(cnt / (orgData.length || 1) * 100);
-            return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-              <div style="font-size:11px;min-width:80px;color:var(--text2)">${c.name}</div>
-              <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
-                <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px"></div>
+      <!-- 펼쳐지는 상세: 자주 사용한 공간 + 모임 목적 + 세부기관 -->
+      ${isOpen ? (() => {
+        // 모임 목적 카테고리 집계 (이 기관만)
+        const orgCatCount = {};
+        orgData.forEach(r => {
+          const cat = classifyPurpose(r.purpose, r.room, r.type);
+          orgCatCount[cat] = (orgCatCount[cat] || 0) + 1;
+        });
+        const orgCatSorted = Object.entries(orgCatCount).sort((a,b) => b[1]-a[1]);
+        const maxCat = orgCatSorted[0]?.[1] || 1;
+
+        // 실제 purpose 텍스트 집계 (상위 8개)
+        const purposeCount = {};
+        orgData.forEach(r => {
+          const p = (r.purpose || '').trim();
+          if (p) purposeCount[p] = (purposeCount[p] || 0) + 1;
+        });
+        const purposeSorted = Object.entries(purposeCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+        const maxP = purposeSorted[0]?.[1] || 1;
+
+        return `<div style="padding:10px 14px;border-top:1px solid var(--border2);background:var(--bg)">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">자주 사용한 공간</div>
+          ${roomsSorted.map(([room, cnt]) => `
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+              <div style="font-size:11px;min-width:80px;font-weight:600">${room}</div>
+              <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
+                <div style="width:${Math.round(cnt/maxR*100)}%;height:100%;background:var(--blue);border-radius:4px"></div>
               </div>
-              <div style="font-size:11px;font-weight:700;color:var(--text2);min-width:28px;text-align:right">${cnt}건</div>
-            </div>`;
-          }).join('')}
-          ${subOrgSummary.noSub > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">미지정: ${subOrgSummary.noSub}건</div>` : ''}
-        </div>` : ''}
-      </div>` : ''}
+              <div style="font-size:11px;font-weight:700;color:var(--blue);min-width:28px;text-align:right">${cnt}건</div>
+            </div>`).join('')}
+
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">모임 목적 분류</div>
+            ${orgCatSorted.map(([cat, cnt], idx) => {
+              const color = (catColorMap || {})[cat] || 'var(--blue)';
+              const pct = Math.round(cnt / maxCat * 100);
+              const rank = idx === 0 ? ' 🥇' : idx === 1 ? ' 🥈' : idx === 2 ? ' 🥉' : '';
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <div style="font-size:11px;min-width:80px;font-weight:${idx<3?'700':'400'};color:${color}">${cat}${rank}</div>
+                <div style="flex:1;height:7px;background:var(--bg2);border-radius:4px">
+                  <div style="width:${pct}%;height:100%;background:${color};border-radius:4px;opacity:0.85"></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:${color};min-width:28px;text-align:right">${cnt}건</div>
+              </div>`;
+            }).join('')}
+          </div>
+
+          ${purposeSorted.length ? `
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">자주 사용하는 모임명</div>
+            ${purposeSorted.map(([p, cnt]) => {
+              const pct = Math.round(cnt / maxP * 100);
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <div style="font-size:11px;min-width:80px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${p.replace(/"/g,'&quot;')}">${p}</div>
+                <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
+                  <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px"></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:var(--text2);min-width:28px;text-align:right">${cnt}건</div>
+              </div>`;
+            }).join('')}
+          </div>` : ''}
+
+          ${subOrgSummary ? `
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border2)">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:7px">세부 기관</div>
+            ${children.map(c => {
+              const cnt = subOrgSummary.subCounts[c.name] || 0;
+              const pct = Math.round(cnt / (orgData.length || 1) * 100);
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+                <div style="font-size:11px;min-width:80px;color:var(--text2)">${c.name}</div>
+                <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
+                  <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px"></div>
+                </div>
+                <div style="font-size:11px;font-weight:700;color:var(--text2);min-width:28px;text-align:right">${cnt}건</div>
+              </div>`;
+            }).join('')}
+            ${subOrgSummary.noSub > 0 ? `<div style="font-size:10px;color:var(--text3);margin-top:4px">미지정: ${subOrgSummary.noSub}건</div>` : ''}
+          </div>` : ''}
+        </div>`;
+      })() : ''}
     </div>`;
   }).join('');
 
@@ -4432,8 +4488,6 @@ function renderReport() {
   });
   const catSorted = Object.entries(catCount).sort((a,b)=>b[1]-a[1]);
   const maxCat = catSorted[0]?.[1] || 1;
-  const catColorMap = Object.fromEntries(purposeCats.map(c => [c.name, c.color]));
-  catColorMap['기타'] = 'var(--text3)';
 
   document.getElementById('report-purpose').innerHTML = catSorted.length
     ? catSorted.map(([cat, cnt]) => {
