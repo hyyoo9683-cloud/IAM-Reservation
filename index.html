@@ -1015,6 +1015,43 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 캘린더 빠른 예약 모달 ════════════ -->
+<div class="modal-bg" id="modal-quick-apply">
+  <div class="modal" style="max-width:400px;width:92%">
+    <div class="modal-title">빠른 예약 신청</div>
+    <div id="qa-room-date" style="font-size:12px;color:var(--blue);background:var(--blue-lt);border-radius:7px;padding:8px 12px;margin-bottom:14px;font-weight:700"></div>
+    <input type="hidden" id="qa-room">
+    <input type="hidden" id="qa-date">
+    <div class="fl">
+      <div class="fg">
+        <div class="lbl">기관 분류 <span class="req">*</span></div>
+        <select id="qa-type" oninput="updateQASubOrgs()"><option value="">선택</option></select>
+      </div>
+      <div class="fg" id="qa-subtype-wrap" style="display:none">
+        <div class="lbl">세부 기관 <span style="font-size:10px;color:var(--text3)">(선택)</span></div>
+        <select id="qa-subtype"><option value="">선택 없음</option></select>
+      </div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">예약 책임자 <span class="req">*</span></div><input id="qa-manager"></div>
+      <div class="fg"><div class="lbl">청지기 성함 <span class="req">*</span></div><input id="qa-steward-name"></div>
+    </div>
+    <div class="fg"><div class="lbl">청지기 연락처 <span class="req">*</span></div><input id="qa-steward-tel" oninput="formatTelInput(this)" placeholder="010-0000-0000"></div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="qa-start" onchange="onQAStartChange()"></select></div>
+      <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="qa-end"></select></div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="qa-people" min="1"></div>
+      <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="qa-purpose" placeholder="소모임, 제자훈련 등"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitQuickApply()" id="qa-submit-btn">신청</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-quick-apply')">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 공간 상세 모달 ════════════ -->
 <div class="modal-bg" id="modal-space-detail">
   <div class="modal" style="max-width:480px;width:92%">
@@ -1212,6 +1249,11 @@ window.onEditStartChange = () => {
   const e = document.getElementById('e-end');
   e.innerHTML = buildEndOpts(v, e.value > v ? e.value : nextSlot(v));
   checkEditAvail();
+};
+window.onQAStartChange = () => {
+  const v = document.getElementById('qa-start').value;
+  const e = document.getElementById('qa-end');
+  e.innerHTML = buildEndOpts(v, e.value > v ? e.value : nextSlot(v));
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────
@@ -1528,14 +1570,17 @@ function syncSubOrgSelect(typeId, wrapId, selId, currentVal = '') {
   }
 }
 
-window.updateMSubOrgs = () => syncSubOrgSelect('m-type', 'm-subtype-wrap', 'm-subtype');
-window.updateESubOrgs = () => syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype');
+window.updateMSubOrgs  = () => syncSubOrgSelect('m-type', 'm-subtype-wrap', 'm-subtype');
+window.updateESubOrgs  = () => syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype');
+window.updateQASubOrgs = () => syncSubOrgSelect('qa-type', 'qa-subtype-wrap', 'qa-subtype');
 
 function updateAllOrgSelects() {
   const mType = document.getElementById('m-type');
   if (mType) mType.innerHTML = buildOrgOptions();
   const eType = document.getElementById('e-type');
   if (eType) eType.innerHTML = buildOrgOptions();
+  const qaType = document.getElementById('qa-type');
+  if (qaType) qaType.innerHTML = buildOrgOptions();
   const ft = document.getElementById('ft');
   if (ft) ft.innerHTML = '<option value="">전체 기관</option>' + buildOrgOptions(false);
   const bts = document.getElementById('bulk-type-sel');
@@ -1772,19 +1817,22 @@ function renderPubCal() {
       const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
       const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
       const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
+      const clickable = curUser && !bd;
       html += `<tr>
         <td class="room-label" style="${dateBg};white-space:nowrap">
           ${dows[i]} · ${d.getMonth()+1}/${d.getDate()}${bdLabel}
         </td>
-        <td style="${rowBg};min-height:44px">`;
+        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${sp.name}','${ds}')"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px">예약불가</div>`;
       } else if (res.length === 0) {
-        html += `<div style="font-size:10px;color:var(--text3);padding:4px 2px">없음</div>`;
+        html += clickable
+          ? `<div style="font-size:10px;color:var(--text3);padding:4px 2px">탭하여 예약</div>`
+          : `<div style="font-size:10px;color:var(--text3);padding:4px 2px">없음</div>`;
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="openDetail('${r.id}')"><span>${r.start}–${r.end} 예약완료</span></div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"><span>${r.start}–${r.end} 예약완료</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -1811,13 +1859,17 @@ function renderPubCal() {
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
       const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
-      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}">`;
+      const clickable = curUser && !bd;
+      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${sp.name}','${ds}')"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
       } else {
+        if (res.length === 0 && clickable) {
+          html += `<div style="font-size:9px;color:var(--text3);padding:3px 2px;text-align:center">탭하여 예약</div>`;
+        }
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="openDetail('${r.id}')">${r.start}–${r.end} 예약완료</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')">${r.start}–${r.end} 예약완료</div>`;
         });
       }
       html += `</td>`;
@@ -2770,6 +2822,72 @@ window.submitApply = async () => {
     console.error('submitApply error:', e);
     T('신청 실패: ' + e.message, '#A32D2D');
     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '신청 제출'; }
+  }
+};
+
+// ── 예약 현황 캘린더 빈 셀 클릭 → 빠른 예약 신청 ──────────────────
+window.openQuickApply = (room, date) => {
+  if (!curUser) return;
+  const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
+  const dow = dowNames[new Date(date + 'T00:00:00').getDay()];
+  document.getElementById('qa-room').value = room;
+  document.getElementById('qa-date').value = date;
+  document.getElementById('qa-room-date').textContent = `${room} · ${date.slice(5).replace('-', '/')} (${dow})`;
+  document.getElementById('qa-type').innerHTML = buildOrgOptions();
+  document.getElementById('qa-type').value = '';
+  syncSubOrgSelect('qa-type', 'qa-subtype-wrap', 'qa-subtype');
+  ['qa-manager', 'qa-steward-name', 'qa-steward-tel', 'qa-people', 'qa-purpose'].forEach(id => document.getElementById(id).value = '');
+  initTimeSelects('qa-start', 'qa-end');
+  openModal('modal-quick-apply');
+};
+
+window.submitQuickApply = async () => {
+  const room    = document.getElementById('qa-room').value;
+  const date    = document.getElementById('qa-date').value;
+  const type    = document.getElementById('qa-type').value;
+  const subOrg  = document.getElementById('qa-subtype')?.value || '';
+  const manager = document.getElementById('qa-manager').value.trim();
+  const sName   = document.getElementById('qa-steward-name').value.trim();
+  const sTel    = document.getElementById('qa-steward-tel').value.trim();
+  const start   = document.getElementById('qa-start').value;
+  const end     = document.getElementById('qa-end').value;
+  const people  = document.getElementById('qa-people').value;
+  const purpose = document.getElementById('qa-purpose').value.trim();
+
+  if (!type || !manager || !sName || !sTel || !people || !purpose) {
+    T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
+  }
+  if (start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
+
+  const bd = getBlockedInfo(date);
+  if (bd) { T(`${date}은(는) 예약 불가 날짜입니다 (${bd.reason})`, '#A32D2D'); return; }
+
+  const sp = spaces.find(s => s.name === room);
+  if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
+
+  if (!noConflict(room, date, start, end)) {
+    T('해당 시간에 이미 예약이 있습니다', '#A32D2D'); return;
+  }
+
+  const submitBtn = document.getElementById('qa-submit-btn');
+  submitBtn.disabled = true; submitBtn.textContent = '신청 중...';
+
+  try {
+    await addDoc(collection(db, 'reservations'), {
+      type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
+      room, date, start, end, people: parseInt(people), purpose, memo: '',
+      needTV: false, needMic: false, needPantry: false,
+      status: '대기', userEmail: curUser?.email || '',
+      createdAt: serverTimestamp(),
+      history: [{ time: nowStr(), msg: '예약 신청 접수 (캘린더 빠른 신청)' }]
+    });
+    closeModal('modal-quick-apply');
+    T('신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+  } catch(e) {
+    console.error('submitQuickApply error:', e);
+    T('신청 실패: ' + e.message, '#A32D2D');
+  } finally {
+    submitBtn.disabled = false; submitBtn.textContent = '신청';
   }
 };
 
