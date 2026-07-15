@@ -179,11 +179,8 @@ function render() {
         html += `<div class="chip-none">–</div>`;
       } else {
         res.forEach(r => {
-          const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
-          const mgr = r.managerName ? r.managerName + swd : swd || '';
           html += `<div class="chip chip-ok">
-            <div class="chip-l1"><span class="time">${r.start}–${r.end}</span>${r.purpose ? `<span class="org"> ${r.purpose}</span>` : ''}</div>
-            ${mgr ? `<div class="chip-l2">${mgr}</div>` : ''}
+            <div class="chip-l1"><span class="time">${r.start}–${r.end} 예약완료</span></div>
           </div>`;
         });
       }
@@ -221,11 +218,8 @@ function render() {
           html += `<div class="chip-none">–</div>`;
         } else {
           res.forEach(r => {
-            const swd = r.stewardName && r.stewardName !== r.managerName ? `(${r.stewardName})` : '';
-            const mgr = r.managerName ? r.managerName + swd : swd || '';
             html += `<div class="chip chip-ok">
-              <div class="chip-l1"><span class="time">${r.start}–${r.end}</span>${r.purpose ? `<span class="org"> ${r.purpose}</span>` : ''}</div>
-              ${mgr ? `<div class="chip-l2">${mgr}</div>` : ''}
+              <div class="chip-l1"><span class="time">${r.start}–${r.end} 예약완료</span></div>
             </div>`;
           });
         }
