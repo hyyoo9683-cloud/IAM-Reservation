@@ -180,7 +180,7 @@ function render() {
       } else {
         res.forEach(r => {
           html += `<div class="chip chip-ok">
-            <div class="chip-l1"><span class="time">${r.start}–${r.end} 예약완료</span></div>
+            <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span style="font-weight:400">예약완료</span></div>
           </div>`;
         });
       }
@@ -219,7 +219,7 @@ function render() {
         } else {
           res.forEach(r => {
             html += `<div class="chip chip-ok">
-              <div class="chip-l1"><span class="time">${r.start}–${r.end} 예약완료</span></div>
+              <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span style="font-weight:400">예약완료</span></div>
             </div>`;
           });
         }
