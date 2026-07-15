@@ -1784,7 +1784,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="openDetail('${r.id}')"><span>${r.start}–${r.end}</span></div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="openDetail('${r.id}')"><span>${r.start}–${r.end} 예약완료</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -1817,7 +1817,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="openDetail('${r.id}')">${r.start}–${r.end}</div>`;
+          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="openDetail('${r.id}')">${r.start}–${r.end} 예약완료</div>`;
         });
       }
       html += `</td>`;
