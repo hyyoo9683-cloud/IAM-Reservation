@@ -1039,8 +1039,9 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="fg"><div class="lbl">청지기 연락처 <span class="req">*</span></div><input id="qa-steward-tel" oninput="formatTelInput(this)" placeholder="010-0000-0000"></div>
     <div class="fl">
       <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="qa-start" onchange="onQAStartChange()"></select></div>
-      <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="qa-end"></select></div>
+      <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="qa-end" onchange="checkQAAvail()"></select></div>
     </div>
+    <div id="qa-avail"></div>
     <div class="fl">
       <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="qa-people" min="1"></div>
       <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="qa-purpose" placeholder="소모임, 제자훈련 등"></div>
@@ -1254,6 +1255,36 @@ window.onQAStartChange = () => {
   const v = document.getElementById('qa-start').value;
   const e = document.getElementById('qa-end');
   e.innerHTML = buildEndOpts(v, e.value > v ? e.value : nextSlot(v));
+  checkQAAvail();
+};
+window.checkQAAvail = () => {
+  const room  = document.getElementById('qa-room').value;
+  const date  = document.getElementById('qa-date').value;
+  const start = document.getElementById('qa-start').value;
+  const end   = document.getElementById('qa-end').value;
+  const el    = document.getElementById('qa-avail');
+  if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
+
+  if (noConflict(room, date, start, end)) {
+    el.innerHTML = `<div class="avail-ok">✓ ${room} 해당 시간 사용 가능합니다</div>`;
+    return;
+  }
+
+  let nextHint = '';
+  const startIdx = SLOTS.indexOf(start);
+  if (startIdx >= 0) {
+    for (let i = startIdx; i < SLOTS.length - 1; i++) {
+      const s = SLOTS[i], e2 = SLOTS[i + 1];
+      if (noConflict(room, date, s, e2)) {
+        const durSlots = SLOTS.indexOf(end) - startIdx;
+        const blockEnd = SLOTS[Math.min(i + durSlots, SLOTS.length - 1)];
+        nextHint = (blockEnd && noConflict(room, date, s, blockEnd)) ? `${s} ~ ${blockEnd}` : `${s}부터`;
+        break;
+      }
+    }
+  }
+  el.innerHTML = `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`
+    + (nextHint ? `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 가능 시간: <strong>${nextHint}</strong></div>` : '');
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────
@@ -2838,6 +2869,7 @@ window.openQuickApply = (room, date) => {
   syncSubOrgSelect('qa-type', 'qa-subtype-wrap', 'qa-subtype');
   ['qa-manager', 'qa-steward-name', 'qa-steward-tel', 'qa-people', 'qa-purpose'].forEach(id => document.getElementById(id).value = '');
   initTimeSelects('qa-start', 'qa-end');
+  checkQAAvail();
   openModal('modal-quick-apply');
 };
 
