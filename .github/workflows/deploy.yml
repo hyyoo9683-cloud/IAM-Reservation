@@ -1,0 +1,18 @@
+name: Firebase 자동 배포
+
+on:
+  push:
+    branches:
+      - claude/space-reservation-system-N6xIM
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Firebase Tools 설치
+        run: npm install -g firebase-tools
+
+      - name: Firebase Hosting 배포
+        run: firebase deploy --only hosting --token ${{ secrets.FIREBASE_TOKEN }} --project iamreservation
