@@ -524,19 +524,30 @@ textarea { resize: vertical; min-height: 60px; }
 .sb-user-info.show{display:block}
 </style>
 
-<style id="iam-apply-notice-styles">
-#iam-apply-notice{position:fixed;inset:0;background:rgba(30,36,32,.55);backdrop-filter:blur(4px);z-index:991;display:none;align-items:center;justify-content:center;padding:20px}
-#iam-apply-notice.open{display:flex}
-#iam-apply-notice .an-card{background:#fff;border-radius:22px;padding:36px 32px 28px;max-width:400px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.22)}
-#iam-apply-notice .an-icon{font-size:36px;margin-bottom:14px}
-#iam-apply-notice .an-title{font-size:18px;font-weight:800;color:#26262A;margin-bottom:14px;letter-spacing:-.3px}
-#iam-apply-notice .an-body{font-size:14.5px;color:#585A5C;line-height:1.8;margin-bottom:10px}
-#iam-apply-notice .an-tel{font-size:15px;font-weight:700;color:#6E8578;margin:10px 0 24px}
-#iam-apply-notice .an-btns{display:flex;gap:10px;justify-content:center}
-#iam-apply-notice .an-btn-ok{background:#6E8578;color:#fff;border:none;border-radius:10px;padding:12px 28px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
-#iam-apply-notice .an-btn-ok:hover{background:#586C60}
-#iam-apply-notice .an-btn-cancel{background:#fff;color:#9A968E;border:1.5px solid #E7E3DA;border-radius:10px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s}
-#iam-apply-notice .an-btn-cancel:hover{background:#F5F3EC}
+<style id="iam-apply-popup-style">
+#iam-apply-popup{position:fixed;inset:0;background:rgba(30,36,32,.52);backdrop-filter:blur(3px);z-index:980;display:none;align-items:center;justify-content:center;padding:20px}
+#iam-apply-popup.open{display:flex}
+#iam-apply-popup .ap-card{background:#fff;border-radius:20px;padding:32px 28px 26px;max-width:400px;width:100%;text-align:center;box-shadow:0 20px 56px rgba(0,0,0,.20)}
+#iam-apply-popup .ap-ico{font-size:36px;margin-bottom:12px}
+#iam-apply-popup .ap-title{font-size:17px;font-weight:800;color:#26262A;margin-bottom:14px;letter-spacing:-.3px}
+#iam-apply-popup .ap-body{font-size:14.5px;color:#585A5C;line-height:1.75;text-align:left;background:#F5F3EC;border-radius:12px;padding:14px 16px;margin-bottom:18px}
+#iam-apply-popup .ap-body b{color:#586C60}
+#iam-apply-popup .ap-contact{font-size:13px;color:#9A968E;margin-bottom:20px}
+#iam-apply-popup .ap-contact b{color:#4F4F51}
+#iam-apply-popup .ap-btns{display:flex;gap:10px}
+#iam-apply-popup .ap-btns button{flex:1;padding:11px;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:background .15s}
+#iam-apply-popup .ap-cancel{background:#F0EDE6;color:#6E6E70}
+#iam-apply-popup .ap-cancel:hover{background:#E7E3DA}
+#iam-apply-popup .ap-ok{background:#6E8578;color:#fff}
+#iam-apply-popup .ap-ok:hover{background:#556A5E}
+</style>
+
+<style id="iam-noauth-styles">
+/* 미로그인: 사이드바 숨김 */
+.shell.no-sidebar .sidebar { display: none !important; }
+.shell.no-sidebar .main    { max-width: 100%; padding: 0; }
+/* 히어로 환영 문구 */
+#hm-eyebrow-text { min-height: 1.4em; display: block; }
 </style>
 </head>
 <body>
@@ -563,15 +574,18 @@ textarea { resize: vertical; min-height: 60px; }
 
 
 <!-- ════ 예약 신청 안내 팝업 ════ -->
-<div id="iam-apply-notice" onclick="if(event.target===this)iamCloseApplyNotice()">
-  <div class="an-card">
-    <div class="an-icon">📋</div>
-    <div class="an-title">예약 신청 전 확인해 주세요</div>
-    <div class="an-body">모든 예약은 각 기관의 <b>예약 책임자</b><br>(목사, 간사, 아이엠센터 내 기관 담당자 등)<br>만 신청하실 수 있습니다.</div>
-    <div class="an-tel">📞 문의 070-7018-1439</div>
-    <div class="an-btns">
-      <button class="an-btn-cancel" onclick="iamCloseApplyNotice()">닫기</button>
-      <button class="an-btn-ok" onclick="iamConfirmApply()">확인 · 로그인</button>
+<div id="iam-apply-popup" onclick="if(event.target===this)iamCloseApplyPopup()">
+  <div class="ap-card">
+    <div class="ap-ico">📋</div>
+    <div class="ap-title">예약 신청 전 확인해 주세요</div>
+    <div class="ap-body">
+      모든 예약은 각 기관의 <b>예약 책임자</b>만 신청할 수 있습니다.<br><br>
+      예약 책임자: <b>목사, 간사, 교사,<br>아이엠센터 내 기관 담당자</b> 등
+    </div>
+    <div class="ap-contact">문의 <b>070-7018-1439</b></div>
+    <div class="ap-btns">
+      <button class="ap-cancel" onclick="iamCloseApplyPopup()">닫기</button>
+      <button class="ap-ok" onclick="iamConfirmApply()">계속하기 →</button>
     </div>
   </div>
 </div>
@@ -683,6 +697,7 @@ textarea { resize: vertical; min-height: 60px; }
       <symbol id="hm-ic-book" viewBox="0 0 24 24"><path d="M5 5.5A1.5 1.5 0 0 1 6.5 4H12v15H6.5A1.5 1.5 0 0 0 5 20.5z"/><path d="M19 5.5A1.5 1.5 0 0 0 17.5 4H12v15h5.5A1.5 1.5 0 0 1 19 20.5z"/></symbol>
       <symbol id="hm-ic-chat-q" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v5A2.5 2.5 0 0 1 16.5 14H11l-3.5 3v-3H7.5A2.5 2.5 0 0 1 5 11.5z"/><path d="M10.3 8.1a1.9 1.9 0 1 1 2.6 1.8c-.6.3-.9.7-.9 1.3v.3"/><circle cx="12" cy="13.3" r=".5" fill="currentColor" stroke="none"/></symbol>
       <symbol id="hm-ic-steps" viewBox="0 0 24 24"><path d="M8.2 4.5c1 0 1.7 1 1.7 2.4 0 1.5-.5 3.7-1.9 3.7S6.2 8.9 6.5 7.3 7.2 4.5 8.2 4.5z"/><path d="M6.6 13.4c1 0 1.7.6 1.7 1.7s-.4 2-1.5 2-1.7-.7-1.6-1.9c.1-1 .4-1.8 1.4-1.8z"/><path d="M15.8 8c-1 0-1.7 1-1.7 2.4 0 1.5.5 3.7 1.9 3.7s1.8-1.7 1.5-3.3S16.8 8 15.8 8z"/><path d="M17.4 16.9c-1 0-1.7.6-1.7 1.7s.4 2 1.5 2 1.7-.7 1.6-1.9c-.1-1-.4-1.8-1.4-1.8z"/></symbol>
+      <symbol id="hm-ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4c-2.5 3-4 5.3-4 8s1.5 5 4 8"/><path d="M12 4c2.5 3 4 5.3 4 8s-1.5 5-4 8"/><line x1="4.3" y1="10" x2="19.7" y2="10"/><line x1="4.3" y1="14" x2="19.7" y2="14"/></symbol>
       <symbol id="hm-ic-shield" viewBox="0 0 24 24"><path d="M12 3.5l6.5 2.4v5.3c0 4-2.8 6.9-6.5 8.3-3.7-1.4-6.5-4.3-6.5-8.3V5.9z"/><path d="M9.3 12l1.9 1.9 3.5-3.7"/></symbol>
       <symbol id="hm-ic-bell" viewBox="0 0 24 24"><path d="M6.4 16c1-1.1 1.6-2.4 1.6-4.6C8 8.9 9.6 7 12 7s4 1.9 4 4.4c0 2.2.6 3.5 1.6 4.6z"/><path d="M10.2 18.5a1.9 1.9 0 0 0 3.6 0"/><path d="M11 5.4a1 1 0 0 1 2 0"/></symbol>
       <symbol id="hm-ic-phone" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.4a11 11 0 0 0 5 5l1.4-2 4 1.5v3a2 2 0 0 1-2 2A14 14 0 0 1 4 6a2 2 0 0 1 2-2z"/></symbol>
@@ -704,7 +719,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="hm-hero-in">
           <div class="iam-logo-light hm-hero-logo" role="img" aria-label="IAM 센터"></div>
           <div class="hm-rule"></div>
-          <p class="hm-eyebrow">공간 예약 시스템</p>
+          <p class="hm-eyebrow"><span id="hm-eyebrow-text"></span></p>
           <p class="hm-sub">아이엠센터에 오신 것을 환영합니다 · 필요한 공간과 시간을 손쉽게 예약하세요</p>
           <div class="hm-search-wrap">
             <div class="hm-search">
@@ -728,7 +743,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-contact')">문의 · 오시는 길</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('apply')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyNotice()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('tel:07070181439')"><div class="hm-chead" style="background:linear-gradient(135deg,#EDF3ED,#DAE6DA)"><div class="hm-badge" style="color:#586C60"><svg class="hm-ic"><use href="#hm-ic-phone"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관 신청은 전화·이메일로 문의해 주세요.</p><span class="hm-more">문의하기 →</span></div></div></div></div>
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('apply')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('tel:07070181439')"><div class="hm-chead" style="background:linear-gradient(135deg,#EDF3ED,#DAE6DA)"><div class="hm-badge" style="color:#586C60"><svg class="hm-ic"><use href="#hm-ic-phone"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관 신청은 전화·이메일로 문의해 주세요.</p><span class="hm-more">문의하기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide"><div class="hm-grid"><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3>이용 수칙</h3><p>공간 이용 시 지켜야 할 기본 수칙을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3>청지기 발자취</h3><p>공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-shield"/></svg></div></div><div class="hm-cbody"><h3>개인정보 안내</h3><p>담당자·청지기 정보는 예약 관리 목적으로만 사용됩니다.</p><span class="hm-more">자세히 보기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-notice">
         <div class="hm-notice" id="hm-notice-dynamic"><div class="hm-notice-empty">공지사항을 불러오는 중…</div></div>
@@ -2030,14 +2045,17 @@ getRedirectResult(auth).then(result => {
 
 onAuthStateChanged(auth, async user => {
   if (!user) {
-    // 미로그인: 앱은 그대로, 사이드바만 업데이트
+    // 미로그인: 사이드바 숨김 + 환영 문구 초기화
     curUser = null; isAdmin = false;
+    document.querySelector('.shell').classList.add('no-sidebar');
     const sbLogin = document.getElementById('sb-login-btn');
     const sbUser  = document.getElementById('sb-user-area');
     if (sbLogin) sbLogin.style.display = '';
     if (sbUser)  sbUser.classList.remove('show');
     document.getElementById('nav-user-links').style.display  = '';
     document.getElementById('nav-admin-links').style.display = 'none';
+    const eyebrow = document.getElementById('hm-eyebrow-text');
+    if (eyebrow) eyebrow.textContent = '';
     // 공개 데이터 로드 (spaces + reservations) — 이미 로드됐으면 스킵
     if (!spaces.length) loadPublicData();
     return;
@@ -2058,6 +2076,13 @@ onAuthStateChanged(auth, async user => {
 
   if (isDomainUser || isAdminUser || isExtAllowed) {
     curUser = user; isAdmin = isAdminUser;
+    // 사이드바 복원
+    document.querySelector('.shell').classList.remove('no-sidebar');
+    // 환영 문구: displayName에서 이름 추출
+    const displayName = user.displayName || '';
+    const firstName = displayName.split(' ')[0] || displayName || email.split('@')[0];
+    const eyebrow = document.getElementById('hm-eyebrow-text');
+    if (eyebrow) eyebrow.textContent = '안녕하세요 ' + firstName + '님, 환영합니다.';
     // 사이드바 업데이트
     const sbLogin = document.getElementById('sb-login-btn');
     const sbUser  = document.getElementById('sb-user-area');
@@ -5909,22 +5934,19 @@ window.ceSaveAbout = ()    => CE.saveAbout();
 window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.toggle('open'); };
 
 /* 로그인 모달 */
-/* 예약 신청 안내 팝업 */
-window.iamOpenApplyNotice = function() {
-  const m = document.getElementById('iam-apply-notice'); if(m) m.classList.add('open');
+
+window.iamOpenApplyPopup = function(type) {
+  window._applyType = type || 'internal';
+  // 이미 로그인된 상태면 팝업 없이 바로 예약 신청으로
+  if (curUser) { go('apply'); return; }
+  document.getElementById('iam-apply-popup').classList.add('open');
 };
-window.iamCloseApplyNotice = function() {
-  const m = document.getElementById('iam-apply-notice'); if(m) m.classList.remove('open');
+window.iamCloseApplyPopup = function() {
+  document.getElementById('iam-apply-popup').classList.remove('open');
 };
 window.iamConfirmApply = function() {
-  iamCloseApplyNotice();
-  // 로그인 상태면 바로 예약 신청으로, 아니면 로그인 모달
-  if (typeof curUser !== 'undefined' && curUser) {
-    go('apply');
-  } else {
-    window._pendingApply = true;
-    iamOpenLogin();
-  }
+  iamCloseApplyPopup();
+  go('apply');
 };
 
 window.iamOpenLogin = function() {
