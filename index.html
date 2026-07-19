@@ -1393,6 +1393,7 @@ textarea { resize: vertical; min-height: 60px; }
 
     <!-- 관리자: 예약 목록 -->
     <div class="page" id="p-list">
+      <div id="list-changereq-banner" style="display:none;margin-bottom:14px"></div>
       <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
         <button class="filter-chip active" id="lst-tab-" onclick="setListTab('')">전체</button>
         <button class="filter-chip" id="lst-tab-week"  onclick="setListTab('week')">이번 주</button>
@@ -2637,11 +2638,12 @@ window.renderChangeRequests = () => {
       ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
       <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
         <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
         <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
         ${done
           ? `<button class="btn btn-ghost" style="color:var(--text3)" onclick="setChangeReqStatus('${r.id}','대기')">대기로 되돌리기</button>`
-          : `<button class="btn btn-primary" onclick="setChangeReqStatus('${r.id}','완료')">처리완료로 표시</button>`}
+          : `<button class="btn btn-ghost" onclick="setChangeReqStatus('${r.id}','완료')">처리완료로 표시</button>`}
       </div>
     </div>`;
   }).join('');
@@ -2702,6 +2704,69 @@ ${MSG_FOOTER}`;
   }
 
   openModal('modal-sms');
+};
+
+// 변경·취소 신청 → 실제 예약 목록에서 확인/처리
+window.jumpToReservationFromRequest = (reqId) => {
+  const r = changeRequests.find(x => x.id === reqId);
+  if (!r) return;
+  go('list');
+  const fr = document.getElementById('fr');
+  const fname = document.getElementById('fname');
+  const fds = document.getElementById('fdate-s');
+  const fde = document.getElementById('fdate-e');
+  if (fr && r.room && [...fr.options].some(o => o.value === r.room)) {
+    fr.value = r.room;
+    if (fname) fname.value = '';
+  } else if (fname) {
+    fname.value = r.room || '';
+  }
+  if (fds) fds.value = r.date || '';
+  if (fde) fde.value = r.date || '';
+  filterRenderList();
+  showChangeReqBanner(reqId);
+};
+
+window.showChangeReqBanner = (reqId) => {
+  const r = changeRequests.find(x => x.id === reqId);
+  const el = document.getElementById('list-changereq-banner');
+  if (!r || !el) return;
+  const isCancel = r.requestType === '취소';
+  const color = isCancel ? 'var(--red)' : 'var(--blue)';
+  const bg    = isCancel ? 'var(--red-lt)' : 'var(--blue-lt)';
+  const done  = (r.status || '대기') === '완료';
+  const time = (r.start || r.end) ? `${r.start||''}${r.start||r.end?'–':''}${r.end||''}` : '';
+  el.innerHTML = `
+    <div class="card" style="border:1.5px solid ${color};background:${bg};padding:14px 16px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <span style="color:${color};font-weight:800;font-size:13px">${isCancel?'✕ 예약 취소':'✏️ 예약 변경'} 요청${done ? ' (처리완료)' : ''}</span>
+          <div style="margin-top:4px;font-size:13px;color:var(--text)">${(r.room||'').replace(/</g,'&lt;')} · ${r.date||''} ${time}${r.purpose ? ' · ' + r.purpose.replace(/</g,'&lt;') : ''}</div>
+          ${r.detail ? `<div style="margin-top:6px;font-size:13px;color:var(--text2);white-space:pre-wrap">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
+          <div style="margin-top:6px;font-size:12px;color:var(--text3)">신청자: ${(r.requesterName||'').replace(/</g,'&lt;')} · ${r.requesterTel||''}</div>
+        </div>
+        <button class="btn btn-ghost" style="padding:2px 8px;font-size:12px" onclick="hideChangeReqBanner()">✕ 닫기</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
+        <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
+        ${done
+          ? ''
+          : `<button class="btn btn-primary" onclick="completeChangeReqFromList('${r.id}')">아래 예약 수정 완료 → 처리완료로 표시</button>`}
+      </div>
+    </div>`;
+  el.style.display = '';
+};
+
+window.hideChangeReqBanner = () => {
+  const el = document.getElementById('list-changereq-banner');
+  if (el) el.style.display = 'none';
+};
+
+window.completeChangeReqFromList = async (id) => {
+  await setChangeReqStatus(id, '완료');
+  showChangeReqBanner(id);
+  T('처리완료로 표시했습니다', '#3B6D11');
 };
 
 async function seedDefaultOrgs() {
