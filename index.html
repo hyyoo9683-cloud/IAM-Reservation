@@ -1437,10 +1437,12 @@ textarea { resize: vertical; min-height: 60px; }
             <th>#</th>
             <th onclick="sortList('type')"      style="cursor:pointer;user-select:none" id="sh-type">기관</th>
             <th onclick="sortList('managerName')" style="cursor:pointer;user-select:none" id="sh-managerName">담당자</th>
+            <th onclick="sortList('stewardName')" style="cursor:pointer;user-select:none" id="sh-stewardName">청지기</th>
             <th onclick="sortList('room')"      style="cursor:pointer;user-select:none" id="sh-room">공간</th>
             <th onclick="sortList('date')"      style="cursor:pointer;user-select:none" id="sh-date">날짜·시간</th>
             <th>목적</th>
             <th onclick="sortList('status')"    style="cursor:pointer;user-select:none" id="sh-status">상태</th>
+            <th onclick="sortList('createdAt')" style="cursor:pointer;user-select:none" id="sh-createdAt">신청일</th>
             <th style="width:100px">액션</th>
           </tr></thead>
           <tbody id="list-body"></tbody>
@@ -2009,6 +2011,21 @@ let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
 let listSortCol = 'date', listSortDir = 1; // 1=오름차순, -1=내림차순
+function listSortValue(r, col) {
+  if (col === 'date') return (r.date || '') + ' ' + (r.start || '');
+  if (col === 'createdAt') {
+    const c = r.createdAt;
+    if (!c) return 0;
+    return c.toDate ? c.toDate().getTime() : new Date(c).getTime() || 0;
+  }
+  return r[col] || '';
+}
+function fmtCreatedAt(c) {
+  if (!c) return '';
+  const d = c.toDate ? c.toDate() : new Date(c);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleString('ko-KR', { year:'2-digit', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
 let expandedGroups = new Set();
 let _selectedGroupIds = new Set();  // 선택된 정기예약 그룹 ID 목록
 let newPhotoFiles = [], existingPhotos = [];
@@ -4854,17 +4871,17 @@ window.renderList = function renderList() {
   // 정렬
   const sortKey = listSortCol;
   data.sort((a, b) => {
-    let va = sortKey === 'date' ? (a.date + ' ' + a.start) : (a[sortKey] || '');
-    let vb = sortKey === 'date' ? (b.date + ' ' + b.start) : (b[sortKey] || '');
+    const va = listSortValue(a, sortKey), vb = listSortValue(b, sortKey);
+    if (typeof va === 'number' || typeof vb === 'number') return ((va || 0) - (vb || 0)) * listSortDir;
     return va.localeCompare(vb, 'ko') * listSortDir;
   });
 
   // 헤더 인디케이터 업데이트
-  ['type','managerName','room','date','status'].forEach(col => {
+  ['type','managerName','stewardName','room','date','status','createdAt'].forEach(col => {
     const th = document.getElementById('sh-' + col);
     if (!th) return;
     const isActive = col === listSortCol;
-    th.innerHTML = { type:'기관', managerName:'담당자', room:'공간', date:'날짜·시간', status:'상태' }[col]
+    th.innerHTML = { type:'기관', managerName:'담당자', stewardName:'청지기', room:'공간', date:'날짜·시간', status:'상태', createdAt:'신청일' }[col]
       + (isActive ? (listSortDir === 1 ? ' ▲' : ' ▼') : ' <span style="color:var(--border);font-size:10px">⇅</span>');
   });
 
@@ -4874,7 +4891,7 @@ window.renderList = function renderList() {
 
   if (!data.length) {
     document.getElementById('list-body').innerHTML =
-      `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`;
+      `<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`;
     return;
   }
 
@@ -4897,8 +4914,10 @@ window.renderList = function renderList() {
       </td>
       <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
       <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${r.managerName}</td>
+      <td>${r.stewardName || ''}</td>
       <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
       <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
+      <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
         <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
         <button class="btn btn-red"   style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="deleteR('${r.id}')">삭제</button>
@@ -4922,10 +4941,12 @@ window.renderList = function renderList() {
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
         <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}${first.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${first.subOrg}</span>` : ''}</td>
         <td style="font-weight:600;cursor:pointer" onclick="${tg}">${first.managerName}</td>
+        <td style="cursor:pointer" onclick="${tg}">${first.stewardName || ''}</td>
         <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
         <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
         <td style="font-size:11px;color:var(--text2);cursor:pointer" onclick="${tg}">${first.purpose}</td>
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
+        <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.createdAt)}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">펼치기</button>
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="openDetail('${first.id}')">상세</button>
@@ -4940,10 +4961,12 @@ window.renderList = function renderList() {
         <td style="color:var(--text3);font-size:10px;padding-left:12px">└ ${r.id?.slice(-4)}</td>
         <td></td>
         <td style="font-size:11px;color:var(--text2)">${r.managerName}</td>
+        <td style="font-size:11px;color:var(--text2)">${r.stewardName || ''}</td>
         <td style="font-size:11px">${r.room}</td>
         <td style="font-weight:600">${r.date} ${r.start}–${r.end}</td>
         <td style="font-size:11px;color:var(--text2)">${r.purpose}</td>
         <td>${sBadge(r.status)}</td>
+        <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
           <button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:var(--blue)" onclick="openQuickEdit('${r.id}')">일정수정</button>
           <button class="btn btn-red"   style="padding:2px 6px;font-size:10px;margin-left:3px" onclick="deleteR('${r.id}')">삭제</button>
@@ -4952,12 +4975,16 @@ window.renderList = function renderList() {
     return headerRow + subRows;
   };
 
-  // 정기 예약은 첫 날짜 기준 정렬, 단건은 날짜 기준 — 섞어서 날짜순 렌더
-  const groupEntries = [...groups.entries()].map(([id, rows]) => ({
-    isGroup: true, id, rows, sortDate: rows.sort((a,b)=>a.date.localeCompare(b.date))[0].date
-  }));
-  const singleEntries = singles.map(r => ({ isGroup: false, r, sortDate: r.date }));
-  const combined = [...groupEntries, ...singleEntries].sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+  // 정기 예약은 첫 날짜 기준 대표값 사용, 단건과 섞어서 선택된 정렬 기준으로 렌더
+  const groupEntries = [...groups.entries()].map(([id, rows]) => {
+    const sorted = rows.sort((a,b)=>a.date.localeCompare(b.date));
+    return { isGroup: true, id, rows: sorted, sortVal: listSortValue(sorted[0], sortKey) };
+  });
+  const singleEntries = singles.map(r => ({ isGroup: false, r, sortVal: listSortValue(r, sortKey) }));
+  const combined = [...groupEntries, ...singleEntries].sort((a, b) => {
+    if (typeof a.sortVal === 'number' || typeof b.sortVal === 'number') return ((a.sortVal||0) - (b.sortVal||0)) * listSortDir;
+    return a.sortVal.localeCompare(b.sortVal, 'ko') * listSortDir;
+  });
 
   document.getElementById('list-body').innerHTML = combined.map(item =>
     item.isGroup ? groupRows(item.id, item.rows) : singleRow(item.r)
