@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>대관 신청 — 아이엠센터</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#185FA5;--blue-lt:#EBF4FF;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --bg:#F8FAFD;--bg2:#fff;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
+
+.header{background:var(--blue);padding:calc(env(safe-area-inset-top) + 18px) 20px 16px;text-align:center;position:relative;}
+.home-btn{position:absolute;top:calc(env(safe-area-inset-top) + 16px);left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.home-btn:hover{background:rgba(255,255,255,.28);}
+.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
+.header-title{font-size:20px;font-weight:800;color:#fff;}
+.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
+
+.card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
+.sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.field{margin-bottom:14px;}
+.lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.req-mark{color:var(--red);}
+input,select,textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
+  outline:none;transition:border .15s;-webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+textarea{min-height:80px;resize:vertical;line-height:1.6;}
+.fl{display:flex;gap:10px;flex-wrap:wrap;} .fl>.field{flex:1;min-width:140px;}
+
+/* 공간 칩 */
+.space-chips{display:flex;gap:10px;flex-wrap:wrap;}
+.space-chip{padding:12px 20px;border-radius:10px;border:2px solid var(--border);
+  background:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  cursor:pointer;color:var(--text2);transition:all .18s;}
+.space-chip.sel{border-color:var(--blue);background:var(--blue);color:#fff;}
+
+/* 기본 장비 태그 */
+.equip-tags{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-tag{padding:6px 13px;border-radius:20px;background:var(--blue-lt);border:1px solid var(--border);
+  font-size:12.5px;font-weight:600;color:var(--blue);}
+
+/* 추가 서비스 체크박스 */
+.equip-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-opt{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--border);
+  border-radius:20px;cursor:pointer;font-size:13.5px;user-select:none;transition:all .15s;}
+.equip-opt:has(input:checked){border-color:var(--amber);background:var(--amber-lt);color:var(--amber);font-weight:700;}
+.equip-opt input{width:16px;height:16px;accent-color:var(--amber);}
+
+/* 날짜/시간 행 */
+.date-row{display:flex;gap:6px;align-items:center;margin-bottom:7px;}
+.date-row input{flex:1;min-width:0;}
+.date-row .rm-btn{flex-shrink:0;width:30px;height:44px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:15px;color:var(--text2);}
+.btn-add-date{padding:8px 14px;border-radius:8px;border:1px dashed var(--border);background:#fff;font-size:13px;font-family:var(--font);cursor:pointer;color:var(--text3);margin-top:4px;}
+
+.file-note{font-size:11.5px;color:var(--text3);margin-top:6px;}
+
+.submit-btn{
+  width:calc(100% - 32px);margin:4px 16px 0;
+  padding:16px;border-radius:12px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:17px;font-weight:700;
+  font-family:var(--font);transition:filter .15s;
+}
+.submit-btn:hover{filter:brightness(.92);}
+.submit-btn:disabled{background:var(--text3);cursor:not-allowed;filter:none;}
+
+#done-wrap{display:none;padding:56px 20px;text-align:center;}
+.done-icon{font-size:56px;margin-bottom:16px;}
+.done-title{font-size:22px;font-weight:800;color:var(--green);margin-bottom:8px;}
+.done-sub{font-size:15px;color:var(--text2);line-height:1.6;}
+.done-home-btn{display:inline-block;margin-top:20px;padding:12px 26px;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;text-decoration:none;font-size:14px;}
+
+.err-msg{font-size:13px;color:var(--red);margin-top:6px;display:none;padding:8px 10px;background:var(--red-lt);border-radius:7px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="home-btn" href="index.html">← 홈으로</a>
+  <div class="header-logo">IAM CENTER</div>
+  <div class="header-title">외부 대관 신청</div>
+  <div class="header-sub">외부 단체·기관의 공간 대관 신청서입니다</div>
+</div>
+
+<div id="form-wrap">
+
+  <div class="card">
+    <div class="sec-label">공간 선택</div>
+    <div class="space-chips" id="space-chips"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">신청 단체 정보</div>
+    <div class="fl">
+      <div class="field"><div class="lbl">단체·기관명 <span class="req-mark">*</span></div>
+        <input id="f-org" placeholder="예: OO교회"></div>
+      <div class="field"><div class="lbl">담당자 이름 <span class="req-mark">*</span></div>
+        <input id="f-mgr" placeholder="홍길동"></div>
+    </div>
+    <div class="fl">
+      <div class="field"><div class="lbl">연락처 <span class="req-mark">*</span></div>
+        <input id="f-tel" placeholder="010-0000-0000" oninput="formatTel(this)"></div>
+      <div class="field"><div class="lbl">이메일</div>
+        <input id="f-email" type="email" placeholder="example@email.com"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">행사 정보</div>
+    <div class="fl">
+      <div class="field"><div class="lbl">행사명</div>
+        <input id="f-name" placeholder="예: 청년부 수련회"></div>
+      <div class="field"><div class="lbl">예상 인원</div>
+        <input type="number" id="f-ppl" min="1" placeholder="0"></div>
+    </div>
+    <div id="sec-hourly">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <div class="lbl" style="margin-bottom:0">날짜 / 시간</div>
+        <button type="button" class="btn-add-date" onclick="addDateRow()">+ 날짜 추가</button>
+      </div>
+      <div id="date-rows"></div>
+    </div>
+    <div id="sec-lodging" style="display:none">
+      <div class="fl">
+        <div class="field"><div class="lbl">날짜</div>
+          <input type="date" id="f-date-in"></div>
+        <div class="field"><div class="lbl">박수</div>
+          <input type="number" id="f-nights" min="1" value="1"></div>
+      </div>
+      <div class="field"><div class="lbl">룸 선택</div>
+        <div class="fl" style="gap:8px">
+          <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 1 (3인실)"> Room 1 (3인실)</label>
+          <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 2 (2인실)"> Room 2 (2인실)</label>
+          <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 3 (2인실)"> Room 3 (2인실)</label>
+        </div>
+      </div>
+    </div>
+    <div class="field"><div class="lbl">행사 내용 / 목적</div>
+      <textarea id="f-purpose" placeholder="행사 목적, 프로그램 등"></textarea></div>
+  </div>
+
+  <div class="card" id="card-std-equip">
+    <div class="sec-label">기본 제공 장비 <span style="font-weight:400;text-transform:none;letter-spacing:0">(해당 공간 기본 사양)</span></div>
+    <div class="equip-tags" id="std-equip"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">추가 서비스 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--amber)">유료 / 사전 협의 필요</span></div>
+    <div class="equip-grid" id="paid-services"></div>
+    <div class="field" style="margin-top:12px"><div class="lbl">기타 요청사항</div>
+      <textarea id="f-etc" placeholder="추가 요청사항"></textarea></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="sec-label">큐시트 <span style="font-weight:400;text-transform:none;letter-spacing:0">(선택, 방송·음향·진행 순서표 등)</span></div>
+    <input type="file" id="f-cuesheet" onchange="onCueSheetSelect(this)">
+    <div class="file-note" id="cuesheet-pending"></div>
+    <div class="err-msg" id="err-msg"></div>
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="submitRequest()">신청서 제출하기</button>
+
+</div><!-- /form-wrap -->
+
+<div id="done-wrap">
+  <div class="done-icon">✅</div>
+  <div class="done-title">대관 신청 완료!</div>
+  <div class="done-sub">신청해 주셔서 감사합니다.<br>담당자 확인 후 연락드리겠습니다.</div>
+  <a class="done-home-btn" href="index.html">홈으로 돌아가기</a>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getFirestore, collection, addDoc, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getStorage, ref, uploadBytes, getDownloadURL }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const db      = getFirestore(app);
+const storage = getStorage(app);
+
+const VENUES = {
+  '아론홀':  { type:'hourly',  stdEquip:['무선 마이크 2','TV','스피커','보면대','마이크 스탠드 1'],
+              paidServices:['방송 촬영 (BMS)','음향 지원 (BMS)','케이터링','다과 별도 준비'] },
+  '샤론홀':  { type:'hourly',  stdEquip:['무선 마이크 2','유선 마이크 2','TV 2대','키보드'],
+              paidServices:['방송 촬영 (BMS)','음향 지원 (BMS)','미디어 지원 (BMS)','케이터링','다과 별도 준비'] },
+  '지혜홀':  { type:'lodging', stdEquip:[],
+              paidServices:['다과 IAM 제공','케이터링','다과 별도 준비','기타 서비스'] },
+};
+
+let curSpace = '아론홀';
+let formDates = [{ date: new Date().toISOString().slice(0,10), timeStart:'', timeEnd:'' }];
+let pendingCueSheet = null;
+
+function renderSpaceChips() {
+  document.getElementById('space-chips').innerHTML = Object.keys(VENUES).map(s =>
+    `<button type="button" class="space-chip${s===curSpace?' sel':''}" onclick="selectSpace('${s}')">${s}</button>`
+  ).join('');
+}
+
+window.selectSpace = (space) => {
+  curSpace = space;
+  renderSpaceChips();
+  const vInfo = VENUES[space];
+  document.getElementById('sec-hourly').style.display  = vInfo.type === 'hourly'  ? '' : 'none';
+  document.getElementById('sec-lodging').style.display = vInfo.type === 'lodging' ? '' : 'none';
+  document.getElementById('card-std-equip').style.display = vInfo.stdEquip.length ? '' : 'none';
+  document.getElementById('std-equip').innerHTML = vInfo.stdEquip.map(e => `<span class="equip-tag">${e}</span>`).join('');
+  document.getElementById('paid-services').innerHTML = vInfo.paidServices.map(e =>
+    `<label class="equip-opt"><input type="checkbox" value="${e}"> ${e}</label>`
+  ).join('');
+};
+
+function renderDateRows() {
+  document.getElementById('date-rows').innerHTML = formDates.map((d,i) => `
+    <div class="date-row">
+      <input type="date" value="${d.date||''}" oninput="syncDR(${i},'date',this.value)">
+      <input type="time" value="${d.timeStart||''}" oninput="syncDR(${i},'timeStart',this.value)">
+      <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
+      <input type="time" value="${d.timeEnd||''}" oninput="syncDR(${i},'timeEnd',this.value)">
+      ${formDates.length > 1 ? `<button type="button" class="rm-btn" onclick="removeDR(${i})">×</button>` : ''}
+    </div>`).join('');
+}
+window.syncDR = (i,f,v) => { if (formDates[i]) formDates[i][f] = v; };
+window.addDateRow = () => {
+  const last = formDates[formDates.length-1];
+  let nextDate = '';
+  if (last?.date) { const d = new Date(last.date); d.setDate(d.getDate()+1); nextDate = d.toISOString().slice(0,10); }
+  formDates.push({ date: nextDate, timeStart:last?.timeStart||'', timeEnd:last?.timeEnd||'' });
+  renderDateRows();
+};
+window.removeDR = i => { formDates.splice(i,1); renderDateRows(); };
+
+window.formatTel = el => {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length <= 3) el.value = v;
+  else if (v.length <= 7) el.value = v.slice(0,3)+'-'+v.slice(3);
+  else el.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+};
+
+window.onCueSheetSelect = (input) => {
+  pendingCueSheet = input.files[0] || null;
+  document.getElementById('cuesheet-pending').textContent = pendingCueSheet ? `선택됨: ${pendingCueSheet.name}` : '';
+};
+
+document.getElementById('f-date-in').value = new Date().toISOString().slice(0,10);
+renderSpaceChips();
+window.selectSpace(curSpace);
+renderDateRows();
+
+function showErr(msg) {
+  const el = document.getElementById('err-msg');
+  el.textContent = msg; el.style.display = 'block';
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+window.submitRequest = async () => {
+  const g = id => document.getElementById(id);
+  const errEl = g('err-msg'); errEl.style.display = 'none';
+
+  const orgName     = g('f-org').value.trim();
+  const managerName = g('f-mgr').value.trim();
+  const tel         = g('f-tel').value.trim();
+  const email       = g('f-email').value.trim();
+
+  if (!orgName)     { showErr('단체·기관명을 입력해 주세요.'); return; }
+  if (!managerName) { showErr('담당자 이름을 입력해 주세요.'); return; }
+  if (!tel)         { showErr('연락처를 입력해 주세요.'); return; }
+
+  const vInfo = VENUES[curSpace];
+  const isHourly = vInfo.type === 'hourly';
+  const dates = isHourly ? formDates.filter(d => d.date) : [];
+  const eventDate    = dates.length ? dates[0].date : (g('f-date-in').value || '');
+  const eventDateEnd = dates.length > 1 ? dates[dates.length-1].date : '';
+  const rooms = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
+  const paidServices = [...document.querySelectorAll('#paid-services input[type=checkbox]:checked')].map(c => c.value);
+
+  const data = {
+    space: curSpace,
+    orgName, managerName, tel, email,
+    eventName: g('f-name').value.trim(),
+    headcount: parseInt(g('f-ppl').value) || 0,
+    eventDate, eventDateEnd, dates,
+    timeStart: dates[0]?.timeStart || '',
+    timeEnd:   dates[0]?.timeEnd   || '',
+    dateIn:  g('f-date-in').value || '',
+    nights:  parseInt(g('f-nights').value) || 0,
+    rooms,
+    purpose: g('f-purpose').value.trim(),
+    paidServices,
+    etcRequest: g('f-etc').value.trim(),
+    status: '접수',
+    source: 'public',
+    createdAt: serverTimestamp(),
+  };
+
+  const btn = g('submit-btn');
+  btn.disabled = true; btn.textContent = '제출 중…';
+
+  try {
+    if (pendingCueSheet) {
+      try {
+        const safeName = pendingCueSheet.name.replace(/[^\w.\-가-힣 ]/g, '_');
+        const sref = ref(storage, `venue_requests/cuesheet_${Date.now()}_${safeName}`);
+        await uploadBytes(sref, pendingCueSheet);
+        data.cueSheetUrl  = await getDownloadURL(sref);
+        data.cueSheetName = pendingCueSheet.name;
+      } catch (fileErr) {
+        // 큐시트 업로드가 실패해도 신청서 자체는 제출되도록 함
+        console.error('큐시트 업로드 실패:', fileErr);
+      }
+    }
+    await addDoc(collection(db, 'venue_requests'), data);
+    document.getElementById('form-wrap').style.display = 'none';
+    document.getElementById('done-wrap').style.display = 'block';
+  } catch (e) {
+    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    btn.disabled = false; btn.textContent = '신청서 제출하기';
+  }
+};
+</script>
+</body>
+</html>
