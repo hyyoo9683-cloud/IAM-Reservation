@@ -394,7 +394,14 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-car{margin:10px 0;font-size:14.5px;color:var(--ab-ink);line-height:1.9}
 #p-about .ab-car .arrow{color:var(--ab-sage);font-weight:700;margin:0 4px}
 #p-about .ab-carnote{font-size:13.5px;color:var(--ab-ink3);margin-top:8px}
-@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}}
+#p-about .ab-floor-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px}
+#p-about .ab-floor-tab{padding:8px 18px;border-radius:999px;border:1.5px solid var(--ab-line);background:#fff;color:var(--ab-ink2);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+#p-about .ab-floor-tab:hover{border-color:var(--ab-sage)}
+#p-about .ab-floor-tab.active{background:var(--ab-sage);border-color:var(--ab-sage);color:#fff}
+#p-about .ab-floor-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;margin-bottom:18px;-webkit-overflow-scrolling:touch}
+#p-about .ab-floor-carousel img{width:280px;height:190px;object-fit:cover;border-radius:14px;flex-shrink:0;scroll-snap-align:center;background:var(--ab-paper2)}
+#p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
+@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-floor-carousel img{width:220px;height:150px}}
 </style>
 
 <style id="iam-faq-styles">
@@ -786,7 +793,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="hm-dropdown" id="hm-dropdown"></div>
           </div>
-          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></span><span class="hm-qlabel">공간 안내</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('apply')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">센터 소개</span></button><button type="button" class="hm-qitem" onclick="window.open('https://sites.google.com/suwoncca.org/iamcenter/공간-안내','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-shield"/></svg></span><span class="hm-qlabel">층별 안내</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
+          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></span><span class="hm-qlabel">공간 안내</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('apply')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
         </div>
       </div>
 
@@ -827,6 +834,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="ce-tabs">
         <button type="button" class="ce-tab active" onclick="ceTab(this,'ce-faq')">FAQ</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-about')">센터 소개</button>
+        <button type="button" class="ce-tab" onclick="ceTab(this,'ce-floors')">층별 소개</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-notices')">공지사항</button>
       </div>
 
@@ -951,6 +959,16 @@ textarea { resize: vertical; min-height: 60px; }
         </div>
       </div>
 
+      <!-- ── 층별 소개 편집 패널 ── -->
+      <div class="ce-panel" id="ce-floors">
+        <div class="ce-floor-list" id="ce-floor-list"></div>
+        <button type="button" class="ce-btn ce-btn-ghost" onclick="ceAddFloor()">＋ 층 추가</button>
+        <div class="ce-save-bar">
+          <span class="ce-save-hint">변경 후 저장하면 센터 소개 &gt; 층별 안내 탭에 즉시 반영됩니다</span>
+          <button type="button" class="ce-btn ce-btn-primary" id="ce-floors-save-btn" onclick="ceSaveFloors()">💾 저장</button>
+        </div>
+      </div>
+
       <!-- ── 공지사항 편집 패널 ── -->
       <div class="ce-panel" id="ce-notices">
         <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
@@ -1022,11 +1040,10 @@ textarea { resize: vertical; min-height: 60px; }
         </div>
       </div>
 
-      <!-- 층별 안내 (준비중) -->
+      <!-- 층별 안내 -->
       <div class="ab-panel" id="ab-floor">
-        <div class="ab-card" style="text-align:center;color:var(--text2);padding:60px 20px">
-          층별 안내 페이지를 준비 중입니다.
-        </div>
+        <div class="ab-floor-tabs" id="ab-floor-tabs"></div>
+        <div id="ab-floor-content"></div>
       </div>
 
       <!-- 오시는 길 -->
@@ -1898,6 +1915,7 @@ const {
 // ── 전역 상태 ──────────────────────────────────────────────────
 let curUser = null, isAdmin = false;
 let reservations = [], spaces = [];
+window.spaces = spaces;
 let curPage = 'spaces';
 let editId = null;
 let spaceEditId = null;
@@ -2017,6 +2035,7 @@ function T(msg, col = '#5E7468') {
   clearTimeout(T._tm);
   T._tm = setTimeout(() => t.style.opacity = 0, col === '#A32D2D' ? 6000 : 3200);
 }
+window.T = T;
 function sBadge(s) {
   const label = (s === '반려') ? '취소' : s;
   const cls   = { '대기': 'b-wait', '확정': 'b-ok', '반려': 'b-cancel', '취소': 'b-cancel' }[s] || '';
@@ -2216,7 +2235,7 @@ onAuthStateChanged(auth, async user => {
 function loadPublicData() {
   const spSnap = getDocs(collection(db, 'spaces'));
   spSnap.then(snap => {
-    spaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    spaces = window.spaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderSpaceChips();
     populateRoomFilter();
   }).catch(() => {});
@@ -2232,7 +2251,7 @@ function loadPublicData() {
 // ── 전체 데이터 로드 (로그인 후) ────────────────────────────────
 async function loadData() {
   const spSnap = await getDocs(collection(db, 'spaces'));
-  spaces = spSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  spaces = window.spaces = spSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   if (spaces.length === 0) await seedDefaultSpaces();
 
   onSnapshot(collection(db, 'reservations'), snap => {
@@ -3147,6 +3166,7 @@ function compressImage(file, maxDim = 1000, quality = 0.80) {
     img.src = url;
   });
 }
+window.compressImage = compressImage;
 
 window.previewPhotos = async (input) => {
   const prev = document.getElementById('photo-preview');
@@ -3193,7 +3213,7 @@ window.submitSpace = async () => {
     const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
       await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
-      spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
+      spaces = window.spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
       T('공간이 수정됐습니다', '#3B6D11');
     } else {
       const r = await withTimeout(addDoc(collection(db, 'spaces'), { ...data, createdAt: serverTimestamp() }), 15000);
@@ -3215,7 +3235,7 @@ window.submitSpace = async () => {
 window.deleteSpace = async (id, name) => {
   if (!confirm(`'${name}' 공간을 삭제하시겠습니까?`)) return;
   await deleteDoc(doc(db, 'spaces', id));
-  spaces = spaces.filter(s => s.id !== id);
+  spaces = window.spaces = spaces.filter(s => s.id !== id);
   buildRoomChips(); populateRoomFilter(); renderManageSpaces();
   T('공간이 삭제됐습니다', '#A32D2D');
 };
@@ -5763,6 +5783,11 @@ window.abTab = function(btn, id){
   btn.classList.add('active');
   var el = document.getElementById(id); if(el) el.classList.add('active');
 };
+window.abFloorTab = function(idx){
+  if (typeof CE === 'undefined') return;
+  CE.floorActiveIdx = idx;
+  CE.renderFloorPage();
+};
 </script>
 <script>
 window.fqToggle = function(i){
@@ -5805,10 +5830,21 @@ const CE = {
     {stop:"잠실역", lines:"1007-1"},
     {stop:"사당역", lines:"7000"}
   ],
+  defaultFloors: [
+    {name:'B1/B2층', body:'', photos:[]},
+    {name:'1층',     body:'', photos:[]},
+    {name:'2층',     body:'', photos:[]},
+    {name:'3층',     body:'', photos:[]},
+    {name:'5층',     body:'', photos:[]},
+    {name:'6층',     body:'', photos:[]}
+  ],
 
   // ── 메모리 캐시 ──
   faqItems: null,    // [{q,a,note}]
   busRoutes: null,   // [{stop,lines}]
+  floors: null,      // [{name,body,photos:[url,...]}]
+  floorActiveIdx: 0,
+  floorNewFiles: {}, // { [floorIndex]: Blob[] } 저장 전 임시 압축 이미지
 
   // ── Firestore helpers ──
   db() { return window._fb && window._fb.db; },
@@ -5829,6 +5865,15 @@ const CE = {
       if (snap.exists()) return snap.data();
     } catch(e) {}
     return null;
+  },
+
+  async loadFloors() {
+    try {
+      const {doc,getDoc} = window._fb;
+      const snap = await getDoc(doc(this.db(),'siteContent','floors'));
+      if (snap.exists() && snap.data().floors && snap.data().floors.length) return snap.data().floors;
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(this.defaultFloors));
   },
 
   // ── FAQ 렌더링 (사용자 뷰) ──
@@ -5886,6 +5931,32 @@ const CE = {
     }
   },
 
+  // ── 층별 안내 렌더링 (사용자 뷰) ──
+  async renderFloorPage() {
+    const tabsEl = document.getElementById('ab-floor-tabs');
+    if (!tabsEl) return;
+    if (!this.floors) this.floors = await this.loadFloors();
+    if (this.floorActiveIdx >= this.floors.length) this.floorActiveIdx = 0;
+    tabsEl.innerHTML = this.floors.map((f,i) =>
+      `<button type="button" class="ab-floor-tab${i===this.floorActiveIdx?' active':''}" onclick="abFloorTab(${i})">${f.name}</button>`
+    ).join('');
+    this.renderFloorContent();
+  },
+
+  renderFloorContent() {
+    const el = document.getElementById('ab-floor-content');
+    if (!el) return;
+    const f = (this.floors || [])[this.floorActiveIdx];
+    if (!f) { el.innerHTML = ''; return; }
+    const photos = (f.photos && f.photos.length)
+      ? `<div class="ab-floor-carousel">${f.photos.map(url => `<img src="${url}" loading="lazy" alt="${f.name}">`).join('')}</div>`
+      : '';
+    const body = f.body
+      ? `<div class="ab-card"><p class="ab-p">${f.body.replace(/\n/g,'<br>')}</p></div>`
+      : (photos ? '' : `<div class="ab-floor-empty">${f.name} 안내 페이지를 준비 중입니다.</div>`);
+    el.innerHTML = photos + body;
+  },
+
   // ── 편집기 초기화 ──
   async initEditor() {
     // FAQ
@@ -5903,6 +5974,11 @@ const CE = {
         : JSON.parse(JSON.stringify(this.defaultBus));
     }
     this.renderBusEditor();
+
+    // 층별 소개
+    if (!this.floors) this.floors = await this.loadFloors();
+    this.floorNewFiles = {};
+    this.renderFloorEditor();
   },
 
   // ── FAQ 편집기 렌더 ──
@@ -5980,12 +6056,12 @@ const CE = {
         updatedAt: new Date().toISOString(),
         updatedBy: (window.curUser && window.curUser.email) || ''
       });
-      T('FAQ 저장 완료! FAQ 페이지에 즉시 반영됩니다 ✓');
+      window.T('FAQ 저장 완료! FAQ 페이지에 즉시 반영됩니다 ✓');
       // 사용자 뷰 캐시 갱신
       this.faqItems = await this.loadFaq();
       await this.renderFaqPage();
     } catch(e) {
-      T('저장 실패: ' + e.message, '#A32D2D');
+      window.T('저장 실패: ' + e.message, '#A32D2D');
     } finally {
       btn.disabled = false; btn.textContent = '💾 저장';
     }
@@ -6012,6 +6088,118 @@ const CE = {
   delBus(i) {
     this.busRoutes.splice(i,1);
     this.renderBusEditor();
+  },
+
+  // ── 층별 소개 편집기 렌더 ──
+  renderFloorEditor() {
+    const list = document.getElementById('ce-floor-list');
+    if (!list) return;
+    list.innerHTML = (this.floors||[]).map((f,i) => `
+      <div class="ce-faq-item" id="ce-floor-${i}">
+        <div class="ce-faq-bar">
+          <span class="ce-faq-num">${i+1}</span>
+          <input class="ce-input" style="flex:1;max-width:220px" value="${(f.name||'').replace(/"/g,'&quot;')}" placeholder="층 이름 (예: 4층)" oninput="CE.floors[${i}].name=this.value">
+          <div class="ce-faq-actions">
+            ${i > 0 ? `<button type="button" class="ce-btn ce-btn-ghost ce-btn-sm" onclick="ceFloorMove(${i},-1)" title="위로">↑</button>` : ''}
+            ${i < (this.floors.length-1) ? `<button type="button" class="ce-btn ce-btn-ghost ce-btn-sm" onclick="ceFloorMove(${i},1)" title="아래로">↓</button>` : ''}
+            <button type="button" class="ce-btn ce-btn-danger ce-btn-sm" onclick="ceFloorDelete(${i})">삭제</button>
+          </div>
+        </div>
+        <div class="ce-faq-body">
+          <div class="ce-field">
+            <label class="ce-label">소개 글</label>
+            <textarea class="ce-input" rows="4" oninput="CE.floors[${i}].body=this.value">${f.body||''}</textarea>
+          </div>
+          <div class="ce-field">
+            <label class="ce-label">사진 (여러 장 업로드 가능 · 자동 압축으로 빠르게 로딩됩니다)</label>
+            <div id="ce-floor-photos-${i}" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">${this._floorPhotoThumbs(i)}</div>
+            <input type="file" accept="image/*" multiple onchange="ceFloorPhotoSelect(${i}, this)">
+          </div>
+        </div>
+      </div>`).join('');
+  },
+
+  _floorPhotoThumbs(i) {
+    const f = this.floors[i];
+    const existing = (f.photos||[]).map((url,pi) =>
+      `<div style="position:relative;display:inline-block">
+        <img class="preview-img" src="${url}" loading="lazy">
+        <button onclick="ceFloorRemoveExistingPhoto(${i},${pi})" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>`);
+    const pending = ((this.floorNewFiles[i])||[]).map((_,ni) =>
+      `<div style="position:relative;display:inline-block">
+        <div class="preview-img" style="display:flex;align-items:center;justify-content:center;background:var(--ed-paper2);color:var(--ed-ink3);font-size:10px">업로드 대기</div>
+        <button onclick="ceFloorRemoveNewPhoto(${i},${ni})" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1;padding:0">×</button>
+      </div>`);
+    return existing.concat(pending).join('');
+  },
+
+  async previewFloorPhotos(i, input) {
+    const compressed = await Promise.all([...input.files].map(f => window.compressImage(f)));
+    if (!this.floorNewFiles[i]) this.floorNewFiles[i] = [];
+    this.floorNewFiles[i] = this.floorNewFiles[i].concat(compressed);
+    document.getElementById(`ce-floor-photos-${i}`).innerHTML = this._floorPhotoThumbs(i);
+    input.value = '';
+  },
+
+  removeFloorNewPhoto(i, ni) {
+    this.floorNewFiles[i].splice(ni,1);
+    document.getElementById(`ce-floor-photos-${i}`).innerHTML = this._floorPhotoThumbs(i);
+  },
+
+  removeFloorExistingPhoto(i, pi) {
+    this.floors[i].photos.splice(pi,1);
+    document.getElementById(`ce-floor-photos-${i}`).innerHTML = this._floorPhotoThumbs(i);
+  },
+
+  addFloor() {
+    if(!this.floors) this.floors=[];
+    this.floors.push({name:'', body:'', photos:[]});
+    this.renderFloorEditor();
+  },
+
+  moveFloor(i,d) {
+    const j = i+d; if (j<0 || j>=this.floors.length) return;
+    [this.floors[i], this.floors[j]] = [this.floors[j], this.floors[i]];
+    const tmp = this.floorNewFiles[i]; this.floorNewFiles[i] = this.floorNewFiles[j]; this.floorNewFiles[j] = tmp;
+    this.renderFloorEditor();
+  },
+
+  deleteFloor(i) {
+    if (!confirm(`"${this.floors[i].name||'이 층'}" 항목을 삭제하시겠습니까?`)) return;
+    this.floors.splice(i,1);
+    delete this.floorNewFiles[i];
+    this.renderFloorEditor();
+  },
+
+  async saveFloors() {
+    const btn = document.getElementById('ce-floors-save-btn');
+    btn.disabled = true; btn.textContent = '저장 중…';
+    try {
+      const {doc, setDoc, ref, uploadBytes, getDownloadURL} = window._fb;
+      for (let i = 0; i < this.floors.length; i++) {
+        const pending = this.floorNewFiles[i] || [];
+        for (const blob of pending) {
+          const storageRef = ref(window._fb.storage, `floors/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`);
+          const snap = await uploadBytes(storageRef, blob);
+          this.floors[i].photos = this.floors[i].photos || [];
+          this.floors[i].photos.push(await getDownloadURL(snap.ref));
+        }
+      }
+      this.floorNewFiles = {};
+      await setDoc(doc(this.db(),'siteContent','floors'), {
+        floors: this.floors,
+        updatedAt: new Date().toISOString(),
+        updatedBy: (window.curUser && window.curUser.email) || ''
+      });
+      window.T('층별 소개 저장 완료! 즉시 반영됩니다 ✓');
+      this.renderFloorEditor();
+      await this.renderFloorPage();
+    } catch(e) {
+      window.T('저장 실패: ' + e.message, '#A32D2D');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 저장';
+    }
   },
 
   // ── About 편집기 값 채우기 ──
@@ -6071,10 +6259,10 @@ const CE = {
         updatedBy: (window.curUser && window.curUser.email)||''
       };
       await setDoc(doc(this.db(),'siteContent','about'), payload);
-      T('센터 소개 저장 완료! 즉시 반영됩니다 ✓');
+      window.T('센터 소개 저장 완료! 즉시 반영됩니다 ✓');
       await this.renderAboutPage();
     } catch(e) {
-      T('저장 실패: ' + e.message, '#A32D2D');
+      window.T('저장 실패: ' + e.message, '#A32D2D');
     } finally {
       btn.disabled = false; btn.textContent = '💾 저장';
     }
@@ -6096,6 +6284,13 @@ window.ceSaveFaq   = ()    => CE.saveFaq();
 window.ceAddBus    = ()    => CE.addBus();
 window.ceDelBus    = (i)   => CE.delBus(i);
 window.ceSaveAbout = ()    => CE.saveAbout();
+window.ceAddFloor              = ()      => CE.addFloor();
+window.ceFloorMove              = (i,d)   => CE.moveFloor(i,d);
+window.ceFloorDelete            = (i)     => CE.deleteFloor(i);
+window.ceFloorPhotoSelect       = (i,inp) => CE.previewFloorPhotos(i,inp);
+window.ceFloorRemoveNewPhoto    = (i,ni)  => CE.removeFloorNewPhoto(i,ni);
+window.ceFloorRemoveExistingPhoto = (i,pi)=> CE.removeFloorExistingPhoto(i,pi);
+window.ceSaveFloors             = ()      => CE.saveFloors();
 window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.toggle('open'); };
 
 /* 로그인 모달 */
@@ -6142,7 +6337,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof _appGo === 'function') _appGo(page);
     if (page === 'content-editor') { if (typeof CE !== 'undefined') { CE.initEditor(); ceLoadNotices(); } }
     if (page === 'faq')  { if (typeof CE !== 'undefined') CE.renderFaqPage(); }
-    if (page === 'about'){ if (typeof CE !== 'undefined') CE.renderAboutPage(); }
+    if (page === 'about'){ if (typeof CE !== 'undefined') { CE.renderAboutPage(); CE.renderFloorPage(); } }
     if (page === 'home') { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }
   };
   // 공개 데이터 로드
@@ -6151,6 +6346,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof CE !== 'undefined') {
     CE.loadFaq().then(items => { CE.faqItems = items; CE.renderFaqPage(); });
     CE.renderAboutPage();
+    CE.renderFloorPage();
   }
   // 공지 로드
   setTimeout(() => { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }, 800);
@@ -6262,10 +6458,10 @@ window.ceAddNotice = async function() {
       title:'새 공지사항', body:'', pinned:false, createdAt:serverTimestamp(),
       createdBy:(window.curUser&&window.curUser.email)||''
     });
-    T('공지 작성됨 — 제목·내용을 입력하고 저장하세요');
+    window.T('공지 작성됨 — 제목·내용을 입력하고 저장하세요');
     await ceLoadNotices();
     document.getElementById('ce-notice-list')?.scrollIntoView({behavior:'smooth'});
-  } catch(e){ T('작성 실패: '+e.message,'#A32D2D'); }
+  } catch(e){ window.T('작성 실패: '+e.message,'#A32D2D'); }
 };
 
 window.ceTogglePin = async function(i) {
@@ -6275,9 +6471,9 @@ window.ceTogglePin = async function(i) {
   try {
     const {doc,updateDoc} = window._fb;
     await updateDoc(doc(window._fb.db,'notices',n.id),{pinned:n.pinned});
-    T(n.pinned?'📌 중요 공지로 고정됐습니다':'일반 공지로 변경됐습니다');
+    window.T(n.pinned?'📌 중요 공지로 고정됐습니다':'일반 공지로 변경됐습니다');
     hmLoadNotices();
-  } catch(e){ T('실패: '+e.message,'#A32D2D'); }
+  } catch(e){ window.T('실패: '+e.message,'#A32D2D'); }
 };
 
 window.ceSaveOneNotice = async function(i) {
@@ -6288,9 +6484,9 @@ window.ceSaveOneNotice = async function(i) {
   try {
     const {doc,updateDoc} = window._fb;
     await updateDoc(doc(window._fb.db,'notices',n.id),{title:n.title||'', body:n.body||''});
-    T('공지 저장 완료 ✓');
+    window.T('공지 저장 완료 ✓');
     hmLoadNotices();
-  } catch(e){ T('저장 실패: '+e.message,'#A32D2D'); }
+  } catch(e){ window.T('저장 실패: '+e.message,'#A32D2D'); }
 };
 
 window.ceDeleteNotice = async function(i) {
@@ -6299,10 +6495,10 @@ window.ceDeleteNotice = async function(i) {
   try {
     const {doc,deleteDoc} = window._fb;
     await deleteDoc(doc(window._fb.db,'notices',n.id));
-    T('공지 삭제됨');
+    window.T('공지 삭제됨');
     ceNotices.splice(i,1); ceRenderNoticeList();
     hmLoadNotices();
-  } catch(e){ T('삭제 실패: '+e.message,'#A32D2D'); }
+  } catch(e){ window.T('삭제 실패: '+e.message,'#A32D2D'); }
 };
 
 /* ─── 검색 라우팅 ─── */
@@ -6313,8 +6509,8 @@ function hmSearchMatches(query) {
   if (!q) return [];
   // spaces 배열(Firestore) + 고정
   const all = [
-    ...(typeof spaces !== 'undefined' ? spaces : []).map(s => ({name:s.name, floor:s.floor||'', fixed:false})),
-    ...FIXED_SPACES.filter(n => !( typeof spaces!=='undefined' && spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',fixed:true}))
+    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', fixed:false})),
+    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',fixed:true}))
   ];
   return all.filter(s => s.name.toLowerCase().includes(q)).slice(0,6);
 }
