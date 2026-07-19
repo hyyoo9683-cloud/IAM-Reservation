@@ -18,7 +18,9 @@
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
 
 /* 헤더 */
-.header{background:var(--blue);padding:18px 20px 16px;text-align:center;}
+.header{background:var(--blue);padding:18px 20px 16px;text-align:center;position:relative;}
+.home-btn{position:absolute;top:16px;left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.home-btn:hover{background:rgba(255,255,255,.28);}
 .header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
 .header-title{font-size:20px;font-weight:800;color:#fff;}
 .header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
@@ -81,6 +83,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
 <body>
 
 <div class="header">
+  <a class="home-btn" href="index.html">← 홈으로</a>
   <div class="header-logo">IAM CENTER</div>
   <div class="header-title">퇴실 체크리스트</div>
   <div class="header-sub">이용 후 아래 항목을 확인하고 제출해 주세요</div>

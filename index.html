@@ -359,8 +359,9 @@ textarea { resize: vertical; min-height: 60px; }
 #p-home .hm-c h4{font-size:13px;color:var(--hm-ink2);font-weight:700;margin:0}
 #p-home .hm-c p{color:var(--hm-ink);font-size:15.5px;font-weight:700;margin:3px 0 0;letter-spacing:-.3px}
 #p-home .hm-c p.hm-sm{font-size:14px;font-weight:600}
+#p-home .hm-grid-guide{grid-template-columns:repeat(2,1fr)}
 @media(max-width:820px){#p-home .hm-quick{max-width:420px}#p-home .hm-quick .hm-qitem{width:80px}#p-home .hm-grid{grid-template-columns:repeat(2,1fr)}#p-home .hm-contact{grid-template-columns:1fr}}
-@media(max-width:520px){#p-home .hm-grid{grid-template-columns:1fr}}
+@media(max-width:520px){#p-home .hm-grid{grid-template-columns:1fr}#p-home .hm-grid-guide{grid-template-columns:1fr}#p-home .hm-tabs{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}#p-home .hm-tab{padding:11px 10px;font-size:13px;white-space:nowrap;flex-shrink:0}#p-home .hm-nitem{flex-wrap:wrap;row-gap:4px;padding:14px 18px}#p-home .hm-nitem .hm-t{flex:1 1 100%;order:1;white-space:normal}#p-home .hm-nitem .hm-nbadge{order:2}#p-home .hm-nitem .hm-d{order:3;margin-left:auto}}
 @media(prefers-reduced-motion:reduce){#p-home *{transition:none!important}}
 </style>
 
@@ -403,7 +404,7 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-car .arrow{color:var(--ab-sage);font-weight:700;margin:0 4px}
 #p-about .ab-carnote{font-size:13.5px;color:var(--ab-ink3);margin-top:8px}
 #p-about .ab-floor-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:22px}
-#p-about .ab-floor-tab{padding:8px 18px;border-radius:999px;border:1.5px solid var(--ab-line);background:#fff;color:var(--ab-ink2);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+#p-about .ab-floor-tab{padding:8px 18px;border-radius:999px;border:1.5px solid var(--ab-line);background:#fff;color:var(--ab-ink2);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
 #p-about .ab-floor-tab:hover{border-color:var(--ab-sage)}
 #p-about .ab-floor-tab.active{background:var(--ab-sage);border-color:var(--ab-sage);color:#fff}
 #p-about .ab-floor-carousel{margin-bottom:12px}
@@ -427,7 +428,7 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-link{display:inline-flex;align-items:center;gap:4px;background:var(--ab-sage-soft);color:var(--ab-sage-dd);font-weight:700;font-size:15px;padding:9px 18px;border-radius:999px;text-decoration:none;transition:background .15s}
 #p-about .ab-floor-link:hover{background:var(--ab-line)}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
-@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-floor-links{padding:0 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
+@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-floor-links{padding:0 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}#p-about .ab-floor-tab{padding:7px 12px;font-size:12.5px}}
 </style>
 
 <style id="iam-faq-styles">
@@ -811,11 +812,11 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="iam-logo-light hm-hero-logo" role="img" aria-label="IAM 센터"></div>
           <div class="hm-rule"></div>
           <p class="hm-eyebrow"><span id="hm-eyebrow-text"></span></p>
-          <p class="hm-sub">아이엠센터에 오신 것을 환영합니다 · 필요한 공간과 시간을 손쉽게 예약하세요</p>
+          <p class="hm-sub">아이엠센터에 오신 것을 환영합니다<br>필요한 공간과 시간을 손쉽게 예약하세요</p>
           <div class="hm-search-wrap">
             <div class="hm-search">
               <span class="hm-ico"><svg class="hm-ic"><use href="#hm-ic-search"/></svg></span>
-              <input type="text" id="hm-search-input" placeholder="예약 가능한 공간을 검색하세요 (예: 지혜홀, 아론홀, 505호)"
+              <input type="text" id="hm-search-input" placeholder="공간 검색 (예: 지혜홀, 505호)"
                 oninput="hmSearchInput(this.value)"
                 onkeydown="if(event.key==='Enter'){hmSearchGo();}"
                 onblur="setTimeout(()=>hmDropClose(),180)">
@@ -823,7 +824,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="hm-dropdown" id="hm-dropdown"></div>
           </div>
-          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="iamOpenApplyPopup()"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
+          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
         </div>
       </div>
 
@@ -835,7 +836,7 @@ textarea { resize: vertical; min-height: 60px; }
 
       <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-about-title">아이엠센터 소개</h3><p id="hmc-about-desc">아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="go('spaces')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-apply-title">예약 신청</h3><p id="hmc-apply-desc">원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-public-title">예약 현황</h3><p id="hmc-public-desc">날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-mylist-title">내 예약</h3><p id="hmc-mylist-desc">내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-steward-title">청지기 발자취</h3><p id="hmc-steward-desc">공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-ext-title">외부 신청</h3><p id="hmc-ext-desc">외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide">
-        <div class="hm-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="hm-grid hm-grid-guide">
           <div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></div></div><div class="hm-cbody"><h3>FAQ</h3><p>공간 이용·예약 관련 자주 묻는 질문을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div>
           <div class="hm-card" style="cursor:default"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-bell"/></svg></div></div><div class="hm-cbody"><h3>공지사항</h3><div id="hm-notice-dynamic" style="margin-top:10px"><div class="hm-notice-empty">공지사항을 불러오는 중…</div></div></div></div>
         </div>
