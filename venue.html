@@ -14,6 +14,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
 import { getFirestore, collection, addDoc, updateDoc, doc,
   getDocs, orderBy, query, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
@@ -55,14 +57,16 @@ const STATUSES = {
   '취소':   { label: '취소',     color: '#6B7280', bg: '#F3F4F6' },
 };
 
-const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db   = getFirestore(app);
+const app     = initializeApp(firebaseConfig);
+const auth    = getAuth(app);
+const db      = getFirestore(app);
+const storage = getStorage(app);
 let curUser  = null;
 let requests = [];
 let curId    = null;
 let curTab   = '전체';
 let formDates = [];
+let pendingCueSheet = null; // 업로드 대기 중인 큐시트 파일
 
 function renderDateRows() {
   const el = document.getElementById('date-rows');
@@ -168,11 +172,26 @@ function renderList() {
 // ── 폼 빌더 ───────────────────────────────────────────────
 window.showNewForm = () => {
   curId = null;
+  pendingCueSheet = null;
   formDates = [{ date: new Date().toISOString().slice(0,10), timeStart: '', timeEnd: '' }];
   renderList();
   document.getElementById('detail-panel').innerHTML = buildFormHTML(null);
   renderDateRows();
 };
+
+window.onCueSheetSelect = (input) => {
+  pendingCueSheet = input.files[0] || null;
+  const label = document.getElementById('cuesheet-pending');
+  if (label) label.textContent = pendingCueSheet ? `선택됨: ${pendingCueSheet.name}` : '';
+};
+
+async function uploadCueSheet(file) {
+  const safeName = file.name.replace(/[^\w.\-가-힣 ]/g, '_');
+  const sref = ref(storage, `venue_requests/cuesheet_${Date.now()}_${safeName}`);
+  await uploadBytes(sref, file);
+  const url = await getDownloadURL(sref);
+  return { url, name: file.name };
+}
 
 function buildFormHTML(r) {
   const isEdit  = !!r;
@@ -294,6 +313,14 @@ function buildFormHTML(r) {
     <div class="fg" style="margin-top:10px"><div class="lbl">기타 요청사항</div>
       <textarea id="f-etc" style="min-height:56px" placeholder="추가 요청사항">${v('etcRequest')}</textarea></div>
 
+    <!-- 큐시트 첨부 -->
+    <div class="form-sec">큐시트 <span style="font-size:11px;font-weight:400;color:var(--text3);letter-spacing:0;text-transform:none">(선택, 방송·음향·진행 순서표 등)</span></div>
+    <div class="fg">
+      ${isEdit && r.cueSheetUrl ? `<div style="margin-bottom:8px;font-size:13px"><a href="${r.cueSheetUrl}" target="_blank" rel="noopener" style="color:var(--blue);font-weight:600;text-decoration:none">📎 ${esc(r.cueSheetName||'첨부파일')} 다운로드</a></div>` : ''}
+      <input type="file" id="f-cuesheet" onchange="onCueSheetSelect(this)">
+      <div id="cuesheet-pending" style="font-size:11px;color:var(--blue);margin-top:4px"></div>
+    </div>
+
     ${isEdit ? `
     <!-- 6. 팀 메모 -->
     <div class="form-sec">팀 메모</div>
@@ -412,10 +439,15 @@ window.saveNew = async () => {
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
+    if (pendingCueSheet) {
+      const { url, name } = await uploadCueSheet(pendingCueSheet);
+      data.cueSheetUrl = url; data.cueSheetName = name;
+    }
     await addDoc(collection(db,'venue_requests'), {
       ...data, status: '접수',
       createdBy: curUser.email, createdAt: serverTimestamp(),
     });
+    pendingCueSheet = null;
     await loadRequests(); showNewForm();
   } catch(e) { alert('저장 실패: ' + e.message); btn.disabled=false; btn.textContent='접수 등록'; }
 };
@@ -425,9 +457,14 @@ window.saveEdit = async id => {
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
+    if (pendingCueSheet) {
+      const { url, name } = await uploadCueSheet(pendingCueSheet);
+      data.cueSheetUrl = url; data.cueSheetName = name;
+    }
     await updateDoc(doc(db,'venue_requests',id), {
       ...data, updatedBy: curUser.email, updatedAt: serverTimestamp(),
     });
+    pendingCueSheet = null;
     await loadRequests(); openRequest(id);
   } catch(e) { alert('저장 실패: ' + e.message); btn.disabled=false; btn.textContent='저장'; }
 };
@@ -443,6 +480,7 @@ window.setStatus = async (id, status) => {
 
 window.openRequest = id => {
   curId = id; renderList();
+  pendingCueSheet = null;
   const r = requests.find(x => x.id === id);
   if (!r) return;
   formDates = (r.dates?.length)
