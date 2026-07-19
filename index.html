@@ -406,10 +406,18 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-tab{padding:8px 18px;border-radius:999px;border:1.5px solid var(--ab-line);background:#fff;color:var(--ab-ink2);font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
 #p-about .ab-floor-tab:hover{border-color:var(--ab-sage)}
 #p-about .ab-floor-tab.active{background:var(--ab-sage);border-color:var(--ab-sage);color:#fff}
-#p-about .ab-floor-carousel{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 10px;margin-bottom:18px;-webkit-overflow-scrolling:touch}
-#p-about .ab-floor-photo{flex-shrink:0;scroll-snap-align:center;display:flex;flex-direction:column;gap:6px}
-#p-about .ab-floor-photo img{width:280px;height:190px;object-fit:cover;border-radius:14px;background:var(--ab-paper2);display:block}
-#p-about .ab-floor-caption{font-size:12.5px;color:var(--ab-ink2);text-align:center;max-width:280px}
+#p-about .ab-floor-carousel{margin-bottom:12px}
+#p-about .ab-floor-photo{position:relative;cursor:zoom-in;width:100%}
+#p-about .ab-floor-photo img{width:100%;height:280px;object-fit:cover;border-radius:14px;background:var(--ab-paper2);display:block}
+#p-about .ab-floor-caption{position:absolute;left:0;right:0;bottom:0;color:#fff;font-size:13px;font-weight:600;text-align:left;padding:26px 14px 10px;border-radius:0 0 14px 14px;background:linear-gradient(to top,rgba(0,0,0,.65),rgba(0,0,0,0))}
+#p-about .ab-floor-nav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#p-about .ab-floor-nav:hover{background:rgba(0,0,0,.65)}
+#p-about .ab-floor-nav.prev{left:10px}
+#p-about .ab-floor-nav.next{right:10px}
+#p-about .ab-floor-count{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
+#p-about .ab-floor-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+#p-about .ab-floor-dot{width:7px;height:7px;border-radius:50%;background:var(--ab-line);cursor:pointer}
+#p-about .ab-floor-dot.active{background:var(--ab-sage);width:18px;border-radius:4px}
 #p-about .ab-floor-size-sm .ab-p{font-size:13px}
 #p-about .ab-floor-size-md .ab-p{font-size:15px}
 #p-about .ab-floor-size-lg .ab-p{font-size:18px}
@@ -418,8 +426,9 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
 #p-about .ab-floor-link{display:inline-flex;align-items:center;gap:4px;background:var(--ab-sage-soft);color:var(--ab-sage-dd);font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;text-decoration:none;transition:background .15s}
 #p-about .ab-floor-link:hover{background:var(--ab-line)}
+#p-about .ab-floor-link-icon{width:18px;height:18px;object-fit:contain;border-radius:4px}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
-@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-floor-photo img{width:220px;height:150px}#p-about .ab-floor-caption{max-width:220px}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
+@media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-floor-photo img{height:200px}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
 </style>
 
 <style id="iam-faq-styles">
@@ -1660,6 +1669,13 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<div class="modal-bg" id="modal-img-zoom" onclick="if(event.target===this)closeModal('modal-img-zoom')">
+  <div style="max-width:94vw;max-height:90vh;position:relative">
+    <img id="modal-img-zoom-img" src="" style="max-width:94vw;max-height:90vh;object-fit:contain;border-radius:8px;display:block">
+    <button type="button" onclick="closeModal('modal-img-zoom')" style="position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;background:#fff;border:none;box-shadow:0 2px 8px rgba(0,0,0,.3);font-size:16px;cursor:pointer;line-height:1">✕</button>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
     <div class="modal-title" id="detail-title">예약 상세</div>
@@ -2096,6 +2112,7 @@ function noConflict(room, date, start, end, skipId = null, confirmedOnly = false
 
 window.openModal  = (id) => document.getElementById(id).classList.add('open');
 window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+window.zoomImg = (url) => { document.getElementById('modal-img-zoom-img').src = url; window.openModal('modal-img-zoom'); };
 document.querySelectorAll('.modal-bg').forEach(m =>
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); })
 );
@@ -5850,8 +5867,11 @@ window.abTab = function(btn, id){
 window.abFloorTab = function(idx){
   if (typeof CE === 'undefined') return;
   CE.floorActiveIdx = idx;
+  CE.floorPhotoIdx[idx] = 0;
   CE.renderFloorPage();
 };
+window.floorPhotoNav = (dir) => CE.floorPhotoNav(dir);
+window.floorPhotoGo = (idx) => CE.floorPhotoGo(idx);
 </script>
 <script>
 window.fqToggle = function(i){
@@ -5920,7 +5940,9 @@ const CE = {
   busRoutes: null,   // [{stop,lines}]
   floors: null,      // [{name,body,photos:[{url,caption},...],fontSize}]
   floorActiveIdx: 0,
+  floorPhotoIdx: {}, // { [floorIndex]: 현재 보여지는 사진 인덱스 }
   floorNewFiles: {}, // { [floorIndex]: {blob,caption}[] } 저장 전 임시 압축 이미지
+  floorLinkNewIcon: {}, // { [floorIndex]: { [linkIndex]: blob } } 링크 로고 이미지 (저장 전)
   homeCards: null,   // { [key]: {title,desc} }
 
   // ── Firestore helpers ──
@@ -6043,18 +6065,50 @@ const CE = {
     if (!el) return;
     const f = (this.floors || [])[this.floorActiveIdx];
     if (!f) { el.innerHTML = ''; return; }
-    const photos = (f.photos && f.photos.length)
-      ? `<div class="ab-floor-carousel">${f.photos.map(p => `<div class="ab-floor-photo"><img src="${p.url}" loading="lazy" alt="${f.name}">${p.caption ? `<div class="ab-floor-caption">${p.caption}</div>` : ''}</div>`).join('')}</div>`
-      : '';
+    const photos = (f.photos && f.photos.length) ? this._floorPhotoSlider(f) : '';
     const links = (f.links && f.links.length)
-      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.label || l.url} ↗</a>`).join('')}</div>`
+      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.iconUrl ? `<img src="${l.iconUrl}" alt="" class="ab-floor-link-icon">` : ''}${l.label || l.url} ↗</a>`).join('')}</div>`
       : '';
     const mainTitle = f.mainTitle ? `<h3 class="ab-floor-title">${f.mainTitle}</h3>` : '';
     const sizeClass = `ab-floor-size-${f.fontSize || 'md'}`;
     const body = f.body
       ? `<div class="ab-card ${sizeClass}">${mainTitle}<p class="ab-p">${f.body.replace(/\n/g,'<br>')}</p></div>`
       : (mainTitle ? `<div class="ab-card ${sizeClass}">${mainTitle}</div>` : (photos ? '' : `<div class="ab-floor-empty">${f.name} 안내 페이지를 준비 중입니다.</div>`));
-    el.innerHTML = photos + links + body;
+    el.innerHTML = photos + body + links;
+  },
+
+  // ── 층별 사진 슬라이더 (한 번에 하나씩, 화살표로 이동) ──
+  _floorPhotoSlider(f) {
+    const total = f.photos.length;
+    const idx = Math.min(this.floorPhotoIdx[this.floorActiveIdx] || 0, total - 1);
+    const p = f.photos[idx];
+    const dots = total > 1
+      ? `<div class="ab-floor-dots">${f.photos.map((_,pi) => `<span class="ab-floor-dot${pi===idx?' active':''}" onclick="event.stopPropagation();floorPhotoGo(${pi})"></span>`).join('')}</div>`
+      : '';
+    return `<div class="ab-floor-carousel">
+      <div class="ab-floor-photo" onclick="zoomImg('${(p.url||'').replace(/'/g,"\\'")}')">
+        <img src="${p.url}" loading="lazy" alt="${f.name}">
+        ${p.caption ? `<div class="ab-floor-caption">${p.caption}</div>` : ''}
+        ${total > 1 ? `<button type="button" class="ab-floor-nav prev" onclick="event.stopPropagation();floorPhotoNav(-1)" aria-label="이전 사진">‹</button>
+        <button type="button" class="ab-floor-nav next" onclick="event.stopPropagation();floorPhotoNav(1)" aria-label="다음 사진">›</button>
+        <div class="ab-floor-count">${idx+1} / ${total}</div>` : ''}
+      </div>
+      ${dots}
+    </div>`;
+  },
+
+  floorPhotoNav(dir) {
+    const f = (this.floors || [])[this.floorActiveIdx];
+    if (!f || !f.photos || !f.photos.length) return;
+    const total = f.photos.length;
+    const cur = this.floorPhotoIdx[this.floorActiveIdx] || 0;
+    this.floorPhotoIdx[this.floorActiveIdx] = (cur + dir + total) % total;
+    this.renderFloorContent();
+  },
+
+  floorPhotoGo(idx) {
+    this.floorPhotoIdx[this.floorActiveIdx] = idx;
+    this.renderFloorContent();
   },
 
   // ── 편집기 초기화 ──
@@ -6299,22 +6353,45 @@ const CE = {
 
   _floorLinksHtml(i) {
     const f = this.floors[i];
-    return (f.links||[]).map((lnk,li) => `
-      <div style="display:flex;gap:6px;margin-bottom:6px">
+    return (f.links||[]).map((lnk,li) => {
+      const pendingIcon = this.floorLinkNewIcon[i] && this.floorLinkNewIcon[i][li];
+      const iconBox = pendingIcon
+        ? `<div class="preview-img" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--ed-paper2);color:var(--ed-ink3);font-size:9px">대기</div>`
+        : (lnk.iconUrl
+            ? `<img src="${lnk.iconUrl}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;border:1px solid var(--ed-line);background:#fff">`
+            : `<div style="width:36px;height:36px;border-radius:6px;border:1.5px dashed var(--ed-line);display:flex;align-items:center;justify-content:center;color:var(--ed-ink3);font-size:9px">로고</div>`);
+      return `
+      <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
+          ${iconBox}
+          <label style="font-size:9px;color:var(--ed-sage-d);cursor:pointer">
+            로고${lnk.iconUrl || pendingIcon ? ' 변경' : ' 추가'}<input type="file" accept="image/*" style="display:none" onchange="ceFloorLinkIconSelect(${i},${li},this)">
+          </label>
+        </div>
         <input class="ce-input" style="flex:1" placeholder="링크 텍스트 (예: 자세히 보기)" value="${(lnk.label||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].label=this.value">
         <input class="ce-input" style="flex:2" placeholder="https://..." value="${(lnk.url||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].url=this.value">
         <button type="button" class="ce-btn ce-btn-danger ce-btn-sm" onclick="ceFloorDelLink(${i},${li})">✕</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   },
 
   addFloorLink(i) {
     if (!this.floors[i].links) this.floors[i].links = [];
-    this.floors[i].links.push({label:'', url:''});
+    this.floors[i].links.push({label:'', url:'', iconUrl:''});
     document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
   },
 
   delFloorLink(i, li) {
     this.floors[i].links.splice(li,1);
+    if (this.floorLinkNewIcon[i]) delete this.floorLinkNewIcon[i][li];
+    document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
+  },
+
+  async previewFloorLinkIcon(i, li, input) {
+    const file = input.files[0]; if (!file) return;
+    const blob = await window.compressImage(file, 200, 0.85);
+    if (!this.floorLinkNewIcon[i]) this.floorLinkNewIcon[i] = {};
+    this.floorLinkNewIcon[i][li] = blob;
     document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
   },
 
@@ -6399,8 +6476,16 @@ const CE = {
           this.floors[i].photos = this.floors[i].photos || [];
           this.floors[i].photos.push({url, caption: nf.caption || ''});
         }
+        const pendingIcons = this.floorLinkNewIcon[i] || {};
+        for (const li of Object.keys(pendingIcons)) {
+          const storageRef = ref(window._fb.storage, `floors/link_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`);
+          const snap = await uploadBytes(storageRef, pendingIcons[li]);
+          const url = await getDownloadURL(snap.ref);
+          if (this.floors[i].links && this.floors[i].links[li]) this.floors[i].links[li].iconUrl = url;
+        }
       }
       this.floorNewFiles = {};
+      this.floorLinkNewIcon = {};
       await setDoc(doc(this.db(),'siteContent','floors'), {
         floors: this.floors,
         updatedAt: new Date().toISOString(),
@@ -6507,6 +6592,7 @@ window.ceFloorRemoveExistingPhoto = (i,pi)=> CE.removeFloorExistingPhoto(i,pi);
 window.ceFloorMovePhoto           = (i,pi,d)=> CE.moveFloorPhoto(i,pi,d);
 window.ceFloorAddLink            = (i)     => CE.addFloorLink(i);
 window.ceFloorDelLink            = (i,li)  => CE.delFloorLink(i,li);
+window.ceFloorLinkIconSelect     = (i,li,inp) => CE.previewFloorLinkIcon(i,li,inp);
 window.ceSaveFloors             = ()      => CE.saveFloors();
 window.ceFloorBold = (i) => {
   const ta = document.getElementById(`ce-floor-body-${i}`);
