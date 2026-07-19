@@ -1043,7 +1043,7 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
           <div class="ce-field">
             <label class="ce-label">네비게이션 안내</label>
-            <input id="ce-about-carnote" class="ce-input" value="※ 네비게이션 사용 시 &quot;아이엠센터&quot;로 검색하시면 됩니다.">
+            <input id="ce-about-carnote" class="ce-input" value="네비게이션 사용 시 &quot;아이엠센터&quot;로 검색하시면 됩니다.">
           </div>
         </div>
 
@@ -1184,7 +1184,7 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="ab-sec-h"><span class="ab-info-ico"><svg class="ab-ic"><use href="#ab-ic-car"/></svg></span>자가용</div>
           <div class="ab-car" id="ab-car1">경부고속도로(수원 I.C.)<span class="arrow">→</span>수원 진입<span class="arrow">→</span>원천유원지<span class="arrow">→</span>중앙기독초등학교(IAM센터)</div>
           <div class="ab-car" id="ab-car2">영동고속도로(동수원 I.C.)<span class="arrow">→</span>월드컵경기장<span class="arrow">→</span>아주대학교<span class="arrow">→</span>국립지리원<span class="arrow">→</span>중앙기독초등학교(IAM센터)</div>
-          <p class="ab-carnote">※ <span id="ab-carnote-text">네비게이션 사용 시 "아이엠센터"로 검색하시면 됩니다.</span> “아이엠센터”로 검색하시면 됩니다.</p>
+          <p class="ab-carnote">※ <span id="ab-carnote-text">네비게이션 사용 시 "아이엠센터"로 검색하시면 됩니다.</span></p>
         </div>
       </div>
     </div>
@@ -6696,30 +6696,32 @@ const CE = {
     const w = data.way || {};
 
     // story
-    if (s.title) { const el = document.getElementById('ab-story-title'); if(el) el.textContent = s.title; }
-    if (s.author) { const el = document.getElementById('ab-story-author'); if(el) el.textContent = s.author; }
-    if (s.quote) { const el = document.getElementById('ab-story-quote'); if(el) el.textContent = s.quote; }
-    if (s.quoteRef) { const el = document.getElementById('ab-story-quote-ref'); if(el) el.textContent = s.quoteRef; }
-    if (s.s1Title) { const el = document.getElementById('ab-s1-title'); if(el) el.textContent = s.s1Title; }
-    if (s.s1Sub) { const el = document.getElementById('ab-s1-sub'); if(el) el.textContent = s.s1Sub; }
-    if (s.s1Body) { const el = document.getElementById('ab-s1-body'); if(el) el.textContent = s.s1Body; }
-    if (s.italic1) { const el = document.getElementById('ab-italic1'); if(el) el.textContent = s.italic1; }
-    if (s.s1Body2) { const el = document.getElementById('ab-s1-body2'); if(el) el.textContent = s.s1Body2; }
-    if (s.italic2) { const el = document.getElementById('ab-italic2'); if(el) el.textContent = s.italic2; }
-    if (s.s1Body3) { const el = document.getElementById('ab-s1-body3'); if(el) el.textContent = s.s1Body3; }
-    if (s.s2Title) { const el = document.getElementById('ab-s2-title'); if(el) el.textContent = s.s2Title; }
-    if (s.s2Body1) { const el = document.getElementById('ab-s2-body1'); if(el) el.textContent = s.s2Body1; }
-    if (s.s2Body2) { const el = document.getElementById('ab-s2-body2'); if(el) el.textContent = s.s2Body2; }
+    // (필드가 저장은 됐지만 빈 문자열로 지워진 경우에도 반영되도록 truthy 체크 대신 undefined 체크 사용 —
+    //  안 그러면 편집기에서 내용을 지워도 페이지엔 기존 기본 HTML 문구가 계속 남아있게 됨)
+    if (s.title !== undefined) { const el = document.getElementById('ab-story-title'); if(el) el.textContent = s.title; }
+    if (s.author !== undefined) { const el = document.getElementById('ab-story-author'); if(el) el.textContent = s.author; }
+    if (s.quote !== undefined) { const el = document.getElementById('ab-story-quote'); if(el) el.textContent = s.quote; }
+    if (s.quoteRef !== undefined) { const el = document.getElementById('ab-story-quote-ref'); if(el) el.textContent = s.quoteRef; }
+    if (s.s1Title !== undefined) { const el = document.getElementById('ab-s1-title'); if(el) el.textContent = s.s1Title; }
+    if (s.s1Sub !== undefined) { const el = document.getElementById('ab-s1-sub'); if(el) el.textContent = s.s1Sub; }
+    if (s.s1Body !== undefined) { const el = document.getElementById('ab-s1-body'); if(el) el.textContent = s.s1Body; }
+    if (s.italic1 !== undefined) { const el = document.getElementById('ab-italic1'); if(el) el.textContent = s.italic1; }
+    if (s.s1Body2 !== undefined) { const el = document.getElementById('ab-s1-body2'); if(el) el.textContent = s.s1Body2; }
+    if (s.italic2 !== undefined) { const el = document.getElementById('ab-italic2'); if(el) el.textContent = s.italic2; }
+    if (s.s1Body3 !== undefined) { const el = document.getElementById('ab-s1-body3'); if(el) el.textContent = s.s1Body3; }
+    if (s.s2Title !== undefined) { const el = document.getElementById('ab-s2-title'); if(el) el.textContent = s.s2Title; }
+    if (s.s2Body1 !== undefined) { const el = document.getElementById('ab-s2-body1'); if(el) el.textContent = s.s2Body1; }
+    if (s.s2Body2 !== undefined) { const el = document.getElementById('ab-s2-body2'); if(el) el.textContent = s.s2Body2; }
 
     // way
-    if (w.addr) { const el = document.getElementById('ab-way-addr'); if(el) el.innerHTML = w.addr.replace(/\n/g,'<br>'); }
-    if (w.phone) { const el = document.getElementById('ab-way-phone'); if(el) el.innerHTML = w.phone.replace(/\n/g,'<br>'); }
-    if (w.busNote1) { const el = document.getElementById('ab-bus-note1'); if(el) el.innerHTML = `"<b>${w.busNote1}</b>"`; }
-    if (w.busNote2) { const el = document.getElementById('ab-bus-note2'); if(el) el.innerHTML = `"<b>${w.busNote2}</b>"`; }
-    if (w.car1) { const el = document.getElementById('ab-car1'); if(el) el.innerHTML = w.car1.replace(/→/g,'<span class="arrow">→</span>'); }
-    if (w.car2) { const el = document.getElementById('ab-car2'); if(el) el.innerHTML = w.car2.replace(/→/g,'<span class="arrow">→</span>'); }
-    if (w.carNote) { const el = document.getElementById('ab-carnote-text'); if(el) el.textContent = w.carNote; }
-    if (w.busRoutes && w.busRoutes.length) {
+    if (w.addr !== undefined) { const el = document.getElementById('ab-way-addr'); if(el) el.innerHTML = (w.addr||'').replace(/\n/g,'<br>'); }
+    if (w.phone !== undefined) { const el = document.getElementById('ab-way-phone'); if(el) el.innerHTML = (w.phone||'').replace(/\n/g,'<br>'); }
+    if (w.busNote1 !== undefined) { const el = document.getElementById('ab-bus-note1'); if(el) el.innerHTML = w.busNote1 ? `"<b>${w.busNote1}</b>"` : ''; }
+    if (w.busNote2 !== undefined) { const el = document.getElementById('ab-bus-note2'); if(el) el.innerHTML = w.busNote2 ? `"<b>${w.busNote2}</b>"` : ''; }
+    if (w.car1 !== undefined) { const el = document.getElementById('ab-car1'); if(el) el.innerHTML = (w.car1||'').replace(/→/g,'<span class="arrow">→</span>'); }
+    if (w.car2 !== undefined) { const el = document.getElementById('ab-car2'); if(el) el.innerHTML = (w.car2||'').replace(/→/g,'<span class="arrow">→</span>'); }
+    if (w.carNote !== undefined) { const el = document.getElementById('ab-carnote-text'); if(el) el.textContent = w.carNote; }
+    if (w.busRoutes !== undefined) {
       const el = document.getElementById('ab-bus-routes');
       if(el) el.innerHTML = w.busRoutes.map(r=>`<div class="ab-route"><span class="stop">${r.stop}</span><span class="lines">${r.lines}</span></div>`).join('');
     }
