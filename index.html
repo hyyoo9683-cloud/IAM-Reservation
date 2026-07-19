@@ -760,6 +760,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="nav-section">관리자</div>
       <button class="nav-btn" onclick="go('dashboard')"><span class="icon">📊</span>대시보드<span class="nav-badge" id="badge-cnt">0</span></button>
       <button class="nav-btn" onclick="go('list')"><span class="icon">📋</span>예약 목록</button>
+      <button class="nav-btn" onclick="go('change-requests')"><span class="icon">🔁</span>변경·취소 신청<span class="nav-badge" id="badge-change-cnt">0</span></button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
       <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
@@ -861,7 +862,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="hm-dropdown" id="hm-dropdown"></div>
           </div>
-          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
+          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('reservation-change.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></span><span class="hm-qlabel">예약 변경·취소</span></button></div>
         </div>
       </div>
 
@@ -871,7 +872,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-contact')">문의 · 오시는 길</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-about-title">아이엠센터 소개</h3><p id="hmc-about-desc">아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="go('spaces')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-apply-title">예약 신청</h3><p id="hmc-apply-desc">원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-public-title">예약 현황</h3><p id="hmc-public-desc">날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-mylist-title">내 예약</h3><p id="hmc-mylist-desc">내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-steward-title">청지기 발자취</h3><p id="hmc-steward-desc">공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-ext-title">외부 신청</h3><p id="hmc-ext-desc">외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-about-title">아이엠센터 소개</h3><p id="hmc-about-desc">아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="go('spaces')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-apply-title">예약 신청</h3><p id="hmc-apply-desc">원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="window.open('reservation-change.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-steward-title">예약 변경·취소 신청</h3><p id="hmc-steward-desc">예약 담당자가 아니어도 예약 변경·취소를 신청할 수 있습니다.</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-public-title">예약 현황</h3><p id="hmc-public-desc">날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-mylist-title">내 예약</h3><p id="hmc-mylist-desc">내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-ext-title">외부 신청</h3><p id="hmc-ext-desc">외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide">
         <div class="hm-grid hm-grid-guide">
           <div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></div></div><div class="hm-cbody"><h3>FAQ</h3><p>공간 이용·예약 관련 자주 묻는 질문을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div>
@@ -1675,6 +1676,16 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
 
+    <!-- 관리자: 예약 변경·취소 신청 -->
+    <div class="page" id="p-change-requests">
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="filter-chip active" id="cr-tab-" onclick="setChangeReqTab('')">전체</button>
+        <button class="filter-chip" id="cr-tab-대기" onclick="setChangeReqTab('대기')">대기</button>
+        <button class="filter-chip" id="cr-tab-완료" onclick="setChangeReqTab('완료')">처리완료</button>
+      </div>
+      <div id="cr-list"></div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -2024,6 +2035,8 @@ const {
 let curUser = null, isAdmin = false;
 let reservations = [], spaces = [];
 window.spaces = spaces;
+let changeRequests = [];
+let changeReqTab = '';
 let curPage = 'spaces';
 let editId = null;
 let spaceEditId = null;
@@ -2387,6 +2400,18 @@ async function loadData() {
     refresh();
   });
 
+  onSnapshot(collection(db, 'changeRequests'), snap => {
+    changeRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const at = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const bt = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return bt - at;
+      });
+    const badge = document.getElementById('badge-change-cnt');
+    if (badge) badge.textContent = changeRequests.filter(r => r.status !== '완료').length;
+    if (curPage === 'change-requests') renderChangeRequests();
+  }, () => {});
+
   onSnapshot(collection(db, 'blockedDates'), snap => {
     blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     blockedDates.sort((a, b) => a.date.localeCompare(b.date));
@@ -2570,6 +2595,111 @@ window.runStorageCleanup = async () => {
   resultCard.style.display = '';
   btn.disabled = false; btn.textContent = '🗜 지금 압축 실행';
   renderStorageCleanup();
+};
+
+// ── 예약 변경·취소 신청 (관리자) ──────────────────────────────
+window.setChangeReqTab = (tab) => {
+  changeReqTab = tab;
+  ['', '대기', '완료'].forEach(t => {
+    const el = document.getElementById('cr-tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
+  renderChangeRequests();
+};
+
+window.renderChangeRequests = () => {
+  const el = document.getElementById('cr-list');
+  if (!el) return;
+  const filtered = changeReqTab ? changeRequests.filter(r => (r.status || '대기') === changeReqTab) : changeRequests;
+  if (!filtered.length) {
+    el.innerHTML = `<div class="card" style="text-align:center;color:var(--text3);padding:32px;font-size:14px">신청 내역이 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = filtered.map(r => {
+    const isCancel = r.requestType === '취소';
+    const badgeColor = isCancel ? 'var(--red)' : 'var(--blue)';
+    const badgeBg    = isCancel ? 'var(--red-lt)' : 'var(--blue-lt)';
+    const done = (r.status || '대기') === '완료';
+    const time = (r.start || r.end) ? `${r.start||''}${r.start||r.end?'–':''}${r.end||''}` : '';
+    return `<div class="card" style="margin-bottom:10px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:12px;padding:3px 10px;border-radius:20px">${isCancel?'취소':'변경'} 신청</span>
+          <span style="font-weight:700;font-size:14px">${(r.room||'').replace(/</g,'&lt;')}</span>
+          <span style="color:var(--text2);font-size:13px">${r.date||''} ${time}</span>
+          ${done ? '<span style="color:var(--green);font-size:12px;font-weight:700">✓ 처리완료</span>' : '<span style="color:var(--amber,#854F0B);font-size:12px;font-weight:700">대기 중</span>'}
+        </div>
+        <div style="font-size:11px;color:var(--text3)">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+      </div>
+      ${r.purpose ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">모임명/담당자: ${r.purpose.replace(/</g,'&lt;')}</div>` : ''}
+      ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
+      <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
+        <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
+        ${done
+          ? `<button class="btn btn-ghost" style="color:var(--text3)" onclick="setChangeReqStatus('${r.id}','대기')">대기로 되돌리기</button>`
+          : `<button class="btn btn-primary" onclick="setChangeReqStatus('${r.id}','완료')">처리완료로 표시</button>`}
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.setChangeReqStatus = async (id, status) => {
+  try {
+    await updateDoc(doc(db, 'changeRequests', id), { status, processedAt: serverTimestamp(), processedBy: curUser?.email || '' });
+  } catch (e) { T('처리 실패: ' + e.message, '#A32D2D'); }
+};
+
+window.openChangeSmsModal = (reqId, type) => {
+  const r = changeRequests.find(x => x.id === reqId);
+  if (!r) return;
+  const isCancel = r.requestType === '취소';
+  const room = roomToSmsName(r.room || '');
+  const time = (r.start && r.end) ? `${r.start}-${r.end}` : (r.start || r.end || '');
+  const ilsi = r.date ? `${dateToSmsFormat(r.date)}${time ? ' ' + time : ''}` : '';
+
+  const header  = isCancel ? '[예약취소 알림]' : '[예약변경 알림]';
+  const bodyMsg = isCancel ? '신청하신 예약이 취소되었습니다.' : '신청하신 예약이 변경되었습니다.';
+
+  const baseBody =
+`${header}
+${bodyMsg}
+
+장소: ${room}
+일시: ${ilsi}
+모임명: ${r.purpose || ''}`;
+
+  let text = '';
+  if (type === 'sms') {
+    text = `${baseBody}
+
+카카오채널 ID를 추가하시면
+바로 소통이 가능합니다.
+http://pf.kakao.com/_Yvxaeb
+
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = '📨 문자 작성';
+  } else {
+    text = `${baseBody}
+
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = '💬 카카오 메시지 작성';
+  }
+  document.getElementById('sms-body').value = text;
+  document.getElementById('sms-copy-msg').textContent = '';
+
+  const tel = r.requesterTel || '';
+  const contactBar = document.getElementById('sms-contact-bar');
+  if (tel) {
+    document.getElementById('sms-contact-name').textContent = r.requesterName || '';
+    document.getElementById('sms-contact-tel').textContent = tel;
+    contactBar.style.display = 'flex';
+  } else {
+    contactBar.style.display = 'none';
+  }
+
+  openModal('modal-sms');
 };
 
 async function seedDefaultOrgs() {
@@ -2756,7 +2886,7 @@ window.go = (page) => {
     home: '홈', about: '아이엠센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
     'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
-    'storage-cleanup': '저장공간 정리'
+    'storage-cleanup': '저장공간 정리', 'change-requests': '예약 변경·취소 신청'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -2799,6 +2929,7 @@ window.go = (page) => {
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
   if (page === 'storage-cleanup') renderStorageCleanup();
+  if (page === 'change-requests') renderChangeRequests();
 };
 
 function refresh() {
@@ -6130,12 +6261,12 @@ const CE = {
     apply:   { title:'예약 신청',       desc:'원하는 공간을 찾아 예약을 신청합니다.' },
     public:  { title:'예약 현황',       desc:'날짜별·공간별 예약 현황을 캘린더로 확인합니다.' },
     mylist:  { title:'내 예약',         desc:'내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.' },
-    steward: { title:'청지기 발자취',   desc:'공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.' },
+    steward: { title:'예약 변경·취소 신청', desc:'예약 담당자가 아니어도 예약 변경·취소를 신청할 수 있습니다.' },
     ext:     { title:'외부 신청',       desc:'외부 기관의 공간 사용 신청입니다.' }
   },
   homeCardLabels: {
     about:'아이엠센터 소개 카드', apply:'예약 신청 카드', public:'예약 현황 카드',
-    mylist:'내 예약 카드', steward:'청지기 발자취 카드', ext:'외부 신청 카드'
+    mylist:'내 예약 카드', steward:'예약 변경·취소 신청 카드', ext:'외부 신청 카드'
   },
 
   // ── 메모리 캐시 ──

@@ -58,5 +58,10 @@ service cloud.firestore {
     match /system/{doc} {
       allow read, write: if request.auth != null;
     }
+    // 예약 변경·취소 신청: 누구나 제출 가능, 조회·처리는 로그인 필요
+    match /changeRequests/{doc} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
   }
 }
