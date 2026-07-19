@@ -13,7 +13,7 @@
   import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query,
     onSnapshot, serverTimestamp }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-  import { getStorage, ref, uploadBytes, getDownloadURL }
+  import { getStorage, ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
 
   // ══════════════════════════════════════════════════════════════
@@ -43,7 +43,7 @@
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
     collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, orderBy, query,
-    ref, uploadBytes, getDownloadURL,
+    ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
 </script>
@@ -768,6 +768,7 @@ textarea { resize: vertical; min-height: 60px; }
       <a href="checkouts.html" class="nav-btn" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🚪</span>퇴실 체크 이력</a>
       <button class="nav-btn" onclick="go('memo')"><span class="icon">📝</span>관리자 메모</button>
       <button class="nav-btn" onclick="go('content-editor')"><span class="icon">✏️</span>콘텐츠 편집</button>
+      <button class="nav-btn" onclick="go('storage-cleanup')"><span class="icon">🗜</span>저장공간 정리</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <button class="nav-btn" onclick="go('admins')"><span class="icon">🔑</span>관리자 관리</button>
@@ -1654,6 +1655,26 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
 
+    <!-- 관리자: 저장공간 정리 -->
+    <div class="page" id="p-storage-cleanup">
+      <div style="max-width:680px">
+        <div class="card">
+          <div class="card-title">오래된 사진·첨부파일 압축</div>
+          <div style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 12px">
+            오늘 기준 <b>6개월</b>이 지난 <b>공간 관리 사진</b>과 <b>대관 신청 큐시트 파일</b>을 찾아 화질을 낮춰 다시 저장합니다.
+            원본 URL은 그대로 유지되므로 기존 화면에 표시되던 링크는 계속 정상 동작합니다. PDF 등 이미지가 아닌 첨부파일은 압축 대상에서 자동 제외됩니다.
+            <br><b>데이터나 파일 자체를 삭제하지 않습니다.</b>
+          </div>
+          <div id="sc-last-run" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+          <button class="btn btn-primary" id="sc-run-btn" onclick="runStorageCleanup()">🗜 지금 압축 실행</button>
+        </div>
+        <div class="card" id="sc-result-card" style="display:none">
+          <div class="card-title">실행 결과</div>
+          <div id="sc-result"></div>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -1994,8 +2015,8 @@ const fb = window._fb;
 const {
   auth, db, storage,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-  collection, doc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
-  ref, uploadBytes, getDownloadURL,
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
+  ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
   ALLOWED_DOMAIN, ADMIN_EMAILS
 } = fb;
 
@@ -2436,6 +2457,121 @@ async function loadData() {
   buildReportYearSelect();
 }
 
+// ── 저장공간 정리 (오래된 사진·첨부파일 압축) ────────────────────
+window.renderStorageCleanup = async () => {
+  const el = document.getElementById('sc-last-run');
+  if (!el) return;
+  el.textContent = '불러오는 중…';
+  try {
+    const snap = await getDoc(doc(db, 'system', 'storageCleanup'));
+    if (snap.exists() && snap.data().lastRunAt) {
+      const raw = snap.data().lastRunAt;
+      const d = raw.toDate ? raw.toDate() : new Date(raw);
+      const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
+      el.textContent = `마지막 실행: ${d.toLocaleDateString('ko-KR')} (${daysAgo}일 전)` +
+        (daysAgo >= 180 ? ' — 6개월이 지났어요. 다시 실행해 주세요.' : '');
+    } else {
+      el.textContent = '아직 실행한 적이 없습니다.';
+    }
+  } catch (e) {
+    el.textContent = '';
+  }
+};
+
+async function compressStorageFileInPlace(fileRef, maxDim = 900, quality = 0.72) {
+  const meta = await getMetadata(fileRef);
+  const beforeSize = meta.size;
+  const contentType = meta.contentType || '';
+  if (!contentType.startsWith('image/')) {
+    return { skipped: true, reason: 'not-image', beforeSize, afterSize: beforeSize };
+  }
+  const bytes = await getBytes(fileRef);
+  const blob = new Blob([bytes], { type: contentType });
+  const objUrl = URL.createObjectURL(blob);
+  let img;
+  try {
+    img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = objUrl; });
+  } finally {
+    URL.revokeObjectURL(objUrl);
+  }
+  let { width, height } = img;
+  if (width > maxDim || height > maxDim) {
+    if (width > height) { height = Math.round(height * maxDim / width); width = maxDim; }
+    else { width = Math.round(width * maxDim / height); height = maxDim; }
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width; canvas.height = height;
+  canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+  const newBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', quality));
+  if (!newBlob || newBlob.size >= beforeSize) {
+    return { skipped: true, reason: 'not-smaller', beforeSize, afterSize: beforeSize };
+  }
+  await uploadBytes(fileRef, newBlob, { contentType: 'image/jpeg' });
+  return { skipped: false, beforeSize, afterSize: newBlob.size };
+}
+
+window.runStorageCleanup = async () => {
+  const btn = document.getElementById('sc-run-btn');
+  const resultCard = document.getElementById('sc-result-card');
+  const resultEl = document.getElementById('sc-result');
+  if (!btn) return;
+  btn.disabled = true; btn.textContent = '압축 진행 중…';
+  resultCard.style.display = 'none';
+
+  const sixMonthsAgo = Date.now() - 1000 * 60 * 60 * 24 * 182; // 약 6개월
+  const summary = { scanned: 0, eligible: 0, compressed: 0, skippedNotImage: 0, skippedNotSmaller: 0, errors: 0, beforeTotal: 0, afterTotal: 0 };
+
+  async function processFolder(path) {
+    let listing;
+    try {
+      listing = await listAll(ref(storage, path));
+    } catch (e) { return; }
+    for (const item of listing.items) {
+      summary.scanned++;
+      const m = item.name.match(/(\d{10,})/);
+      const ts = m ? parseInt(m[1]) : null;
+      if (!ts || ts > sixMonthsAgo) continue; // 6개월 이내거나 시각을 알 수 없으면 건드리지 않음
+      summary.eligible++;
+      try {
+        const r = await compressStorageFileInPlace(item);
+        summary.beforeTotal += r.beforeSize;
+        summary.afterTotal  += r.afterSize;
+        if (r.skipped) {
+          if (r.reason === 'not-image') summary.skippedNotImage++;
+          else summary.skippedNotSmaller++;
+        } else {
+          summary.compressed++;
+        }
+      } catch (e) {
+        summary.errors++;
+      }
+    }
+  }
+
+  await processFolder('spaces');
+  await processFolder('venue_requests');
+
+  try {
+    await setDoc(doc(db, 'system', 'storageCleanup'), { lastRunAt: serverTimestamp(), summary, runBy: curUser?.email || '' });
+  } catch (e) {}
+
+  const savedMB = ((summary.beforeTotal - summary.afterTotal) / 1024 / 1024).toFixed(2);
+  resultEl.innerHTML = `
+    <div style="font-size:13.5px;line-height:2;color:var(--text)">
+      전체 검사: <b>${summary.scanned}개</b><br>
+      6개월 이전 대상: <b>${summary.eligible}개</b><br>
+      압축 완료: <b style="color:var(--green)">${summary.compressed}개</b><br>
+      이미지가 아니라 건너뜀 (예: PDF): <b>${summary.skippedNotImage}개</b><br>
+      이미 최적화되어 건너뜀: <b>${summary.skippedNotSmaller}개</b><br>
+      오류: <b style="color:${summary.errors ? 'var(--red)' : 'var(--text3)'}">${summary.errors}개</b><br>
+      절감된 용량: <b style="color:var(--green)">${savedMB} MB</b>
+    </div>`;
+  resultCard.style.display = '';
+  btn.disabled = false; btn.textContent = '🗜 지금 압축 실행';
+  renderStorageCleanup();
+};
+
 async function seedDefaultOrgs() {
   const defaults = [
     { name:'중앙기독학교',      shortName:'학교', color:'#2563C4', bgColor:'#EBF4FF', isGroup:false, parentId:null, order:1 },
@@ -2619,7 +2755,8 @@ window.go = (page) => {
   const titles = {
     home: '홈', about: '아이엠센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
-    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리'
+    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
+    'storage-cleanup': '저장공간 정리'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -2661,6 +2798,7 @@ window.go = (page) => {
   if (page === 'blocked')        renderBlockedDates();
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
+  if (page === 'storage-cleanup') renderStorageCleanup();
 };
 
 function refresh() {

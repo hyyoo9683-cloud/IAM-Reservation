@@ -54,5 +54,9 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if request.auth != null;
     }
+    // 시스템 메타데이터 (저장공간 정리 마지막 실행 시각 등): 로그인한 사용자만
+    match /system/{doc} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
