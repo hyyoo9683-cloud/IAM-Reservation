@@ -415,6 +415,9 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-size-lg .ab-p{font-size:18px}
 #p-about .ab-floor-size-xl .ab-p{font-size:22px}
 #p-about .ab-floor-title{font-size:20px;font-weight:800;color:var(--ab-ink);letter-spacing:-.3px;margin-bottom:8px}
+#p-about .ab-floor-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+#p-about .ab-floor-link{display:inline-flex;align-items:center;gap:4px;background:var(--ab-sage-soft);color:var(--ab-sage-dd);font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;text-decoration:none;transition:background .15s}
+#p-about .ab-floor-link:hover{background:var(--ab-line)}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
 @media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-floor-photo img{width:220px;height:150px}#p-about .ab-floor-caption{max-width:220px}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
 </style>
@@ -5892,12 +5895,12 @@ const CE = {
     {stop:"사당역", lines:"7000"}
   ],
   defaultFloors: [
-    {name:'B1/B2층', mainTitle:'', body:'', photos:[], fontSize:'md'},
-    {name:'1층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
-    {name:'2층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
-    {name:'3층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
-    {name:'5층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
-    {name:'6층',     mainTitle:'', body:'', photos:[], fontSize:'md'}
+    {name:'B1/B2층', mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
+    {name:'1층',     mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
+    {name:'2층',     mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
+    {name:'3층',     mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
+    {name:'5층',     mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
+    {name:'6층',     mainTitle:'', body:'', photos:[], links:[], fontSize:'md'}
   ],
   defaultHomeCards: {
     about:   { title:'아이엠센터 소개', desc:'아이엠센터와 각 층별 공간을 소개합니다.' },
@@ -5951,6 +5954,7 @@ const CE = {
           ...f,
           mainTitle: f.mainTitle || '',
           fontSize: f.fontSize || 'md',
+          links: f.links || [],
           photos: (f.photos||[]).map(p => typeof p === 'string' ? {url:p, caption:''} : p)
         }));
       }
@@ -6042,12 +6046,15 @@ const CE = {
     const photos = (f.photos && f.photos.length)
       ? `<div class="ab-floor-carousel">${f.photos.map(p => `<div class="ab-floor-photo"><img src="${p.url}" loading="lazy" alt="${f.name}">${p.caption ? `<div class="ab-floor-caption">${p.caption}</div>` : ''}</div>`).join('')}</div>`
       : '';
+    const links = (f.links && f.links.length)
+      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.label || l.url} ↗</a>`).join('')}</div>`
+      : '';
     const mainTitle = f.mainTitle ? `<h3 class="ab-floor-title">${f.mainTitle}</h3>` : '';
     const sizeClass = `ab-floor-size-${f.fontSize || 'md'}`;
     const body = f.body
       ? `<div class="ab-card ${sizeClass}">${mainTitle}<p class="ab-p">${f.body.replace(/\n/g,'<br>')}</p></div>`
       : (mainTitle ? `<div class="ab-card ${sizeClass}">${mainTitle}</div>` : (photos ? '' : `<div class="ab-floor-empty">${f.name} 안내 페이지를 준비 중입니다.</div>`));
-    el.innerHTML = photos + body;
+    el.innerHTML = photos + links + body;
   },
 
   // ── 편집기 초기화 ──
@@ -6281,17 +6288,48 @@ const CE = {
             <div id="ce-floor-photos-${i}" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">${this._floorPhotoThumbs(i)}</div>
             <input type="file" accept="image/*" multiple onchange="ceFloorPhotoSelect(${i}, this)">
           </div>
+          <div class="ce-field">
+            <label class="ce-label">링크 (사진과 함께 표시되는 텍스트 링크, 예: 구글 지도 보기)</label>
+            <div id="ce-floor-links-${i}">${this._floorLinksHtml(i)}</div>
+            <button type="button" class="ce-btn ce-btn-ghost ce-btn-sm" onclick="ceFloorAddLink(${i})">＋ 링크 추가</button>
+          </div>
         </div>
       </div>`).join('');
   },
 
+  _floorLinksHtml(i) {
+    const f = this.floors[i];
+    return (f.links||[]).map((lnk,li) => `
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input class="ce-input" style="flex:1" placeholder="링크 텍스트 (예: 자세히 보기)" value="${(lnk.label||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].label=this.value">
+        <input class="ce-input" style="flex:2" placeholder="https://..." value="${(lnk.url||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].url=this.value">
+        <button type="button" class="ce-btn ce-btn-danger ce-btn-sm" onclick="ceFloorDelLink(${i},${li})">✕</button>
+      </div>`).join('');
+  },
+
+  addFloorLink(i) {
+    if (!this.floors[i].links) this.floors[i].links = [];
+    this.floors[i].links.push({label:'', url:''});
+    document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
+  },
+
+  delFloorLink(i, li) {
+    this.floors[i].links.splice(li,1);
+    document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
+  },
+
   _floorPhotoThumbs(i) {
     const f = this.floors[i];
+    const n = (f.photos||[]).length;
     const existing = (f.photos||[]).map((p,pi) =>
       `<div style="position:relative;display:inline-block;text-align:center">
         <img class="preview-img" src="${p.url}" loading="lazy">
         <button onclick="ceFloorRemoveExistingPhoto(${i},${pi})" style="position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:1;padding:0">×</button>
         <input class="ce-input" style="width:80px;font-size:11px;padding:4px 6px;margin-top:4px" placeholder="소제목(선택)" value="${(p.caption||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].photos[${pi}].caption=this.value">
+        <div style="display:flex;justify-content:center;gap:4px;margin-top:2px">
+          ${pi > 0 ? `<button type="button" class="ce-btn ce-btn-ghost ce-btn-sm" style="padding:2px 8px;font-size:11px" onclick="ceFloorMovePhoto(${i},${pi},-1)" title="왼쪽으로">◀</button>` : ''}
+          ${pi < n-1 ? `<button type="button" class="ce-btn ce-btn-ghost ce-btn-sm" style="padding:2px 8px;font-size:11px" onclick="ceFloorMovePhoto(${i},${pi},1)" title="오른쪽으로">▶</button>` : ''}
+        </div>
       </div>`);
     const pending = ((this.floorNewFiles[i])||[]).map((nf,ni) =>
       `<div style="position:relative;display:inline-block;text-align:center">
@@ -6320,9 +6358,16 @@ const CE = {
     document.getElementById(`ce-floor-photos-${i}`).innerHTML = this._floorPhotoThumbs(i);
   },
 
+  moveFloorPhoto(i, pi, d) {
+    const photos = this.floors[i].photos;
+    const j = pi + d; if (j < 0 || j >= photos.length) return;
+    [photos[pi], photos[j]] = [photos[j], photos[pi]];
+    document.getElementById(`ce-floor-photos-${i}`).innerHTML = this._floorPhotoThumbs(i);
+  },
+
   addFloor() {
     if(!this.floors) this.floors=[];
-    this.floors.push({name:'', body:'', photos:[], fontSize:'md'});
+    this.floors.push({name:'', body:'', photos:[], links:[], fontSize:'md'});
     this.renderFloorEditor();
   },
 
@@ -6459,6 +6504,9 @@ window.ceFloorDelete            = (i)     => CE.deleteFloor(i);
 window.ceFloorPhotoSelect       = (i,inp) => CE.previewFloorPhotos(i,inp);
 window.ceFloorRemoveNewPhoto    = (i,ni)  => CE.removeFloorNewPhoto(i,ni);
 window.ceFloorRemoveExistingPhoto = (i,pi)=> CE.removeFloorExistingPhoto(i,pi);
+window.ceFloorMovePhoto           = (i,pi,d)=> CE.moveFloorPhoto(i,pi,d);
+window.ceFloorAddLink            = (i)     => CE.addFloorLink(i);
+window.ceFloorDelLink            = (i,li)  => CE.delFloorLink(i,li);
 window.ceSaveFloors             = ()      => CE.saveFloors();
 window.ceFloorBold = (i) => {
   const ta = document.getElementById(`ce-floor-body-${i}`);
