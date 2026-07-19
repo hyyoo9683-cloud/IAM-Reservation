@@ -2269,6 +2269,10 @@ const tsToday = () => toDateStr(new Date());
 function nowStr() {
   return new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
+// CSV로 가져온 예약의 이메일은 대소문자·공백이 로그인 이메일과 다를 수 있으므로 정규화 후 비교
+function sameEmail(a, b) {
+  return !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
@@ -3222,7 +3226,7 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          const mine = curUser && r.userEmail === curUser.email;
+          const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
           html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</span></div>`;
         });
@@ -3261,7 +3265,7 @@ function renderPubCal() {
         }
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          const mine = curUser && r.userEmail === curUser.email;
+          const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
           html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</div>`;
         });
@@ -4483,7 +4487,7 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     const tel     = cols.stewardTel!== undefined ? (r[cols.stewardTel]|| '') : '';
     const purpose = cols.purpose   !== undefined ? (r[cols.purpose]   || '') : '';
     const people  = parsePeople(cols.people  !== undefined ? r[cols.people]  : '0');
-    const email   = cols.email     !== undefined ? (r[cols.email]     || '') : '';
+    const email   = cols.email     !== undefined ? (r[cols.email]     || '').trim().toLowerCase() : '';
     const recurRaw = cols.recur   !== undefined ? (r[cols.recur]   || '') : '';
     const endDateRaw= cols.endDate !== undefined ? (r[cols.endDate] || '') : '';
     const recurType = parseRecurType(recurRaw);
@@ -5614,7 +5618,7 @@ function renderMyList() {
   const statusQ = document.getElementById('mylist-status')?.value || '';
 
   let data = [...reservations]
-    .filter(r => curUser ? r.userEmail === curUser.email : false)
+    .filter(r => curUser ? sameEmail(r.userEmail, curUser.email) : false)
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (statusQ) data = data.filter(r => statusQ === '취소' ? (r.status === '취소' || r.status === '반려') : r.status === statusQ);
