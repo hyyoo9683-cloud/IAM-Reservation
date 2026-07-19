@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>공간 예약 시스템 — 아이엠센터</title>
 
 <!-- Firebase SDK (v10) -->
@@ -79,7 +79,7 @@ body { font-family: var(--font); font-size: 16px; color: var(--text); background
 .shell   { display: flex; height: 100vh; }
 .sidebar { width: var(--sidebar); flex-shrink: 0; background: var(--bg3); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 10px; position: relative; z-index: 10; }
 .main    { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-.topbar  { min-height: 50px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: 0 20px; gap: 12px; flex-shrink: 0; background: var(--bg); flex-wrap: wrap; }
+.topbar  { min-height: 50px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: env(safe-area-inset-top) 20px 0 20px; gap: 12px; flex-shrink: 0; background: var(--bg); flex-wrap: wrap; }
 .topbar-home-btn { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg,#6E8578,#556A5E); color: #fff; font-weight: 800; font-size: 13.5px; padding: 8px 16px; border-radius: 999px; border: none; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(85,106,94,.25); transition: opacity .15s; flex-shrink: 0; }
 .topbar-home-btn:hover { opacity: .88; }
 .topbar-login-btn { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #586C60; border: 1.5px solid #B9C7BC; font-weight: 700; font-size: 13px; padding: 7px 16px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background .15s; }
