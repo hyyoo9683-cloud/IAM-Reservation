@@ -163,6 +163,7 @@ textarea { resize: vertical; min-height: 60px; }
 .cal-bar { border-radius: 5px; padding: 4px 7px; font-size: 11px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
 .cal-bar.confirmed { background: var(--green-lt); color: var(--green); }
 .cal-bar.pending   { background: var(--amber-lt); color: var(--amber); }
+.cal-bar.mine      { background: var(--blue-lt); color: var(--blue); border: 1.5px solid var(--blue-mid); font-weight: 700; }
 .legend { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border2); }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
 .legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
@@ -409,6 +410,7 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-size-md .ab-p{font-size:15px}
 #p-about .ab-floor-size-lg .ab-p{font-size:18px}
 #p-about .ab-floor-size-xl .ab-p{font-size:22px}
+#p-about .ab-floor-title{font-size:20px;font-weight:800;color:var(--ab-ink);letter-spacing:-.3px;margin-bottom:8px}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
 @media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-floor-photo img{width:220px;height:150px}#p-about .ab-floor-caption{max-width:220px}}
 </style>
@@ -771,6 +773,7 @@ textarea { resize: vertical; min-height: 60px; }
       <symbol id="hm-ic-steps" viewBox="0 0 24 24"><path d="M8.2 4.5c1 0 1.7 1 1.7 2.4 0 1.5-.5 3.7-1.9 3.7S6.2 8.9 6.5 7.3 7.2 4.5 8.2 4.5z"/><path d="M6.6 13.4c1 0 1.7.6 1.7 1.7s-.4 2-1.5 2-1.7-.7-1.6-1.9c.1-1 .4-1.8 1.4-1.8z"/><path d="M15.8 8c-1 0-1.7 1-1.7 2.4 0 1.5.5 3.7 1.9 3.7s1.8-1.7 1.5-3.3S16.8 8 15.8 8z"/><path d="M17.4 16.9c-1 0-1.7.6-1.7 1.7s.4 2 1.5 2 1.7-.7 1.6-1.9c-.1-1-.4-1.8-1.4-1.8z"/></symbol>
       <symbol id="hm-ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4c-2.5 3-4 5.3-4 8s1.5 5 4 8"/><path d="M12 4c2.5 3 4 5.3 4 8s-1.5 5-4 8"/><line x1="4.3" y1="10" x2="19.7" y2="10"/><line x1="4.3" y1="14" x2="19.7" y2="14"/></symbol>
       <symbol id="hm-ic-shield" viewBox="0 0 24 24"><path d="M12 3.5l6.5 2.4v5.3c0 4-2.8 6.9-6.5 8.3-3.7-1.4-6.5-4.3-6.5-8.3V5.9z"/><path d="M9.3 12l1.9 1.9 3.5-3.7"/></symbol>
+      <symbol id="hm-ic-login" viewBox="0 0 24 24"><path d="M11 4H6.5A1.5 1.5 0 0 0 5 5.5v13A1.5 1.5 0 0 0 6.5 20H11"/><line x1="19" y1="12" x2="10" y2="12"/><polyline points="15 7.5 19.5 12 15 16.5"/></symbol>
       <symbol id="hm-ic-bell" viewBox="0 0 24 24"><path d="M6.4 16c1-1.1 1.6-2.4 1.6-4.6C8 8.9 9.6 7 12 7s4 1.9 4 4.4c0 2.2.6 3.5 1.6 4.6z"/><path d="M10.2 18.5a1.9 1.9 0 0 0 3.6 0"/><path d="M11 5.4a1 1 0 0 1 2 0"/></symbol>
       <symbol id="hm-ic-phone" viewBox="0 0 24 24"><path d="M6 4h3l1.5 4-2 1.4a11 11 0 0 0 5 5l1.4-2 4 1.5v3a2 2 0 0 1-2 2A14 14 0 0 1 4 6a2 2 0 0 1 2-2z"/></symbol>
       <symbol id="hm-ic-mail" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"/><path d="M4.6 7.6l7.4 5.4 7.4-5.4"/></symbol>
@@ -804,7 +807,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="hm-dropdown" id="hm-dropdown"></div>
           </div>
-          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="iamOpenApplyPopup()"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button></div>
+          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="iamOpenApplyPopup()"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button><button type="button" class="hm-qitem" onclick="window.open('checkout.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></span><span class="hm-qlabel">청지기 발자취</span></button><button type="button" class="hm-qitem" id="hm-login-item" style="display:none" onclick="iamOpenLogin()"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-login"/></svg></span><span class="hm-qlabel">로그인하기</span></button></div>
         </div>
       </div>
 
@@ -2195,6 +2198,8 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('nav-user-links').style.display  = '';
     document.getElementById('nav-admin-links').style.display = 'none';
     document.getElementById('nav-intranet-link').style.display = 'none';
+    const hmLogin = document.getElementById('hm-login-item');
+    if (hmLogin) hmLogin.style.display = '';
     const eyebrow = document.getElementById('hm-eyebrow-text');
     if (eyebrow) eyebrow.textContent = '';
     // 공개 데이터 로드 (spaces + reservations) — 이미 로드됐으면 스킵
@@ -2238,6 +2243,8 @@ onAuthStateChanged(auth, async user => {
     const sbUser  = document.getElementById('sb-user-area');
     if (sbLogin) sbLogin.style.display = 'none';
     if (sbUser)  sbUser.classList.add('show');
+    const hmLogin = document.getElementById('hm-login-item');
+    if (hmLogin) hmLogin.style.display = 'none';
     document.getElementById('user-email-display').textContent = email;
     document.getElementById('sb-role').textContent = isAdmin ? '관리자' : '사용자';
     document.getElementById('nav-user-links').style.display  = isAdmin ? 'none' : '';
@@ -2246,8 +2253,8 @@ onAuthStateChanged(auth, async user => {
     // 전체 데이터 로드 (orgs, blockedDates, adminNotes 포함)
     await loadData();
     iamCloseLogin();  // 모달 열려 있으면 닫기
-    // 로그인 모달에서 예약 신청 요청이 있었으면 이동
-    if (window._pendingApply) { window._pendingApply = false; go('apply'); }
+    // 로그인 모달에서 특정 페이지 요청이 있었으면 이동
+    if (window._pendingPage) { const p = window._pendingPage; window._pendingPage = null; go(p); }
     else if (!isAdmin) go('home');
     else go('dashboard');
   } else {
@@ -2553,9 +2560,6 @@ window.go = (page) => {
   ta.innerHTML = (page === 'list' && isAdmin)
     ? `<button class="btn btn-ghost" onclick="openModal('modal-import')">📥 CSV 가져오기</button>
        <button class="btn btn-primary" onclick="openEditModal(null)">+ 예약 추가</button>` : '';
-  if (page !== 'home' && page !== 'apply') {
-    ta.innerHTML += `<button class="btn btn-ghost" onclick="go('home')">🏠 홈으로</button>`;
-  }
 
   if (page === 'spaces') {
     if (!window._keepSpaceFilter) { spaceNameFilter = ''; spaceFloorFilter = ''; }
@@ -2692,7 +2696,8 @@ function renderPubCal() {
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"><span>${r.start}–${r.end} 예약완료</span></div>`;
+          const mine = curUser && r.userEmail === curUser.email;
+          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start;cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"><span>${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -2729,7 +2734,8 @@ function renderPubCal() {
         }
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
-          html += `<div class="cal-bar ${ok ? 'confirmed' : 'pending'}" style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')">${r.start}–${r.end} 예약완료</div>`;
+          const mine = curUser && r.userEmail === curUser.email;
+          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}" style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')">${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</div>`;
         });
       }
       html += `</td>`;
@@ -5883,12 +5889,12 @@ const CE = {
     {stop:"사당역", lines:"7000"}
   ],
   defaultFloors: [
-    {name:'B1/B2층', body:'', photos:[], fontSize:'md'},
-    {name:'1층',     body:'', photos:[], fontSize:'md'},
-    {name:'2층',     body:'', photos:[], fontSize:'md'},
-    {name:'3층',     body:'', photos:[], fontSize:'md'},
-    {name:'5층',     body:'', photos:[], fontSize:'md'},
-    {name:'6층',     body:'', photos:[], fontSize:'md'}
+    {name:'B1/B2층', mainTitle:'', body:'', photos:[], fontSize:'md'},
+    {name:'1층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
+    {name:'2층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
+    {name:'3층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
+    {name:'5층',     mainTitle:'', body:'', photos:[], fontSize:'md'},
+    {name:'6층',     mainTitle:'', body:'', photos:[], fontSize:'md'}
   ],
   defaultHomeCards: {
     about:   { title:'아이엠센터 소개', desc:'아이엠센터와 각 층별 공간을 소개합니다.' },
@@ -5940,6 +5946,7 @@ const CE = {
         // 이전 버전 호환: photos가 문자열 배열이면 {url,caption} 형태로 변환
         return snap.data().floors.map(f => ({
           ...f,
+          mainTitle: f.mainTitle || '',
           fontSize: f.fontSize || 'md',
           photos: (f.photos||[]).map(p => typeof p === 'string' ? {url:p, caption:''} : p)
         }));
@@ -6032,10 +6039,11 @@ const CE = {
     const photos = (f.photos && f.photos.length)
       ? `<div class="ab-floor-carousel">${f.photos.map(p => `<div class="ab-floor-photo"><img src="${p.url}" loading="lazy" alt="${f.name}">${p.caption ? `<div class="ab-floor-caption">${p.caption}</div>` : ''}</div>`).join('')}</div>`
       : '';
+    const mainTitle = f.mainTitle ? `<h3 class="ab-floor-title">${f.mainTitle}</h3>` : '';
     const sizeClass = `ab-floor-size-${f.fontSize || 'md'}`;
     const body = f.body
-      ? `<div class="ab-card ${sizeClass}"><p class="ab-p">${f.body.replace(/\n/g,'<br>')}</p></div>`
-      : (photos ? '' : `<div class="ab-floor-empty">${f.name} 안내 페이지를 준비 중입니다.</div>`);
+      ? `<div class="ab-card ${sizeClass}">${mainTitle}<p class="ab-p">${f.body.replace(/\n/g,'<br>')}</p></div>`
+      : (mainTitle ? `<div class="ab-card ${sizeClass}">${mainTitle}</div>` : (photos ? '' : `<div class="ab-floor-empty">${f.name} 안내 페이지를 준비 중입니다.</div>`));
     el.innerHTML = photos + body;
   },
 
@@ -6248,6 +6256,10 @@ const CE = {
           </div>
         </div>
         <div class="ce-faq-body">
+          <div class="ce-field">
+            <label class="ce-label">메인 타이틀 (예: 리테일 스페이스, 예배 공간)</label>
+            <input class="ce-input" placeholder="사진 아래 표시될 제목" value="${(f.mainTitle||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].mainTitle=this.value">
+          </div>
           <div class="ce-field">
             <label class="ce-label">소개 글</label>
             <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
@@ -6487,7 +6499,7 @@ window.iamOpenLogin = function() {
 };
 window.iamCloseLogin = function() {
   const m = document.getElementById('iam-login-modal'); if(m) m.classList.remove('open');
-  window._pendingApply = false;
+  window._pendingPage = null;
 };
 
 /* go() 래퍼 + 초기화: DOMContentLoaded에서 실행 (모듈 이후 보장) */
@@ -6495,8 +6507,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // 모듈이 정의한 window.go를 여기서 감쌈
   const _appGo = window.go;
   window.go = function(page) {
-    if (page === 'apply' && !window.curUser) {
-      window._pendingApply = true;
+    if ((page === 'apply' || page === 'mylist') && !window.curUser) {
+      window._pendingPage = page;
       iamOpenLogin();
       return;
     }
