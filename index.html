@@ -7213,8 +7213,8 @@ function hmSearchMatches(query) {
   if (!q) return [];
   // spaces 배열(Firestore) + 고정
   const all = [
-    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', categories:getSpaceCategories(s), fixed:false})),
-    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',categories:[],fixed:true}))
+    ...(window.spaces || []).map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
+    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
     s.name.toLowerCase().includes(q) || s.categories.some(c => c.toLowerCase().includes(q))
