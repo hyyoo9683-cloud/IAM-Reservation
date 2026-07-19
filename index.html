@@ -3502,6 +3502,8 @@ window.updateApplySummary = () => {
   ).join('');
 };
 window.resetApply = () => {
+  const submitBtn = document.getElementById('submit-apply-btn');
+  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '신청 제출'; }
   applyRoom = '';
   ['m-type', 'm-subtype', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
