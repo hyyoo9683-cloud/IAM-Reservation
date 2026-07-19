@@ -806,7 +806,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-contact')">문의 · 오시는 길</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3>아이엠센터 소개</h3><p>아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3>아이엠센터 소개</h3><p>아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="go('spaces')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3>청지기 발자취</h3><p>공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide">
         <div class="hm-grid" style="grid-template-columns:repeat(2,1fr)">
           <div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></div></div><div class="hm-cbody"><h3>FAQ</h3><p>공간 이용·예약 관련 자주 묻는 질문을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div>
@@ -1083,6 +1083,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="fc-cap" onclick="toggleSpaceFilter('cap')">인원 적은 순</button>
         <button class="filter-chip" id="fc-tv"  onclick="toggleSpaceFilter('tv')">TV 있음</button>
         <button class="filter-chip active" id="fc-avail" onclick="toggleAvailPanel()">📅 예약 가능 검색</button>
+        <span id="space-name-filter-chip" style="display:none"></span>
       </div>
       <div id="avail-panel" style="background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:14px;border:1px solid var(--border2);overflow:hidden">
         <div id="avail-fields" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
@@ -1927,7 +1928,7 @@ window.spaces = spaces;
 let curPage = 'spaces';
 let editId = null;
 let spaceEditId = null;
-let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null;
+let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '';
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
@@ -2539,6 +2540,9 @@ window.go = (page) => {
   }
 
   if (page === 'spaces') {
+    if (!window._keepSpaceFilter) spaceNameFilter = '';
+    window._keepSpaceFilter = false;
+    updateSpaceNameFilterChip();
     renderSpaces();
     const st = document.getElementById('avail-s-time');
     if (st && !st.options.length) {
@@ -2978,6 +2982,7 @@ function renderSpaces() {
   // 검색 전: 505→511→아론→샤론 / 검색 후: 508→511→505→507→506→아론→샤론
   const sortFn = spaceAvailResult !== null ? searchSpaceSort : spaceSort;
   let list = sortFn(spaces);
+  if (spaceNameFilter) list = list.filter(sp => sp.name.includes(spaceNameFilter));
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
   if (spaceFilterCap) list.sort((a, b) => (a.cap || 0) - (b.cap || 0));
   // 검색 결과 있으면 예약 가능 공간 먼저 (검색 순서 내에서)
@@ -2993,9 +2998,25 @@ function renderSpaces() {
       return ai - bi;
     });
   }
-  // 공실 희망은 항상 맨 앞
-  document.getElementById('spaces-grid').innerHTML = flexRoomCardHtml() + list.map(s => spaceCardHtml(s, false)).join('');
+  // 공실 희망은 항상 맨 앞 (이름 필터 중이면 필터와 일치할 때만)
+  const showFlexRoom = !spaceNameFilter || '공실 희망'.includes(spaceNameFilter);
+  document.getElementById('spaces-grid').innerHTML = (showFlexRoom ? flexRoomCardHtml() : '') + list.map(s => spaceCardHtml(s, false)).join('');
 }
+
+function updateSpaceNameFilterChip() {
+  const el = document.getElementById('space-name-filter-chip');
+  if (!el) return;
+  if (spaceNameFilter) {
+    el.style.display = '';
+    el.innerHTML = `<span class="filter-chip active" style="cursor:default">🔍 "${spaceNameFilter}" <span onclick="clearSpaceNameFilter()" style="cursor:pointer;margin-left:4px">×</span></span>`;
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+window.clearSpaceNameFilter = () => { spaceNameFilter = ''; updateSpaceNameFilterChip(); renderSpaces(); };
+// 다른 script 블록(홈 검색 라우팅)에서 호출하는 브릿지 함수
+window.setSpaceNameFilter = (v) => { spaceNameFilter = v || ''; };
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
 
 window.toggleSpaceFilter = (type) => {
@@ -6540,7 +6561,7 @@ window.hmSearchInput = function(val) {
         <div class="hm-drop-name">${s.name}</div>
         ${s.floor?`<div class="hm-drop-floor">${s.floor}</div>`:''}
       </div>
-      <span class="hm-drop-badge">예약 신청</span>
+      <span class="hm-drop-badge">공간 보기</span>
     </div>`).join('');
   dd.classList.add('open');
 };
@@ -6552,31 +6573,22 @@ window.hmDropClose = function() {
 window.hmSearchSelect = function(name) {
   hmDropClose();
   document.getElementById('hm-search-input').value = name;
-  hmRouteToApply(name);
+  hmRouteToSpaces(name);
 };
 
 window.hmSearchGo = function() {
   const val = (document.getElementById('hm-search-input')||{}).value || '';
   hmDropClose();
   const matches = hmSearchMatches(val);
-  if(matches.length) { hmRouteToApply(matches[0].name); }
+  if(matches.length) { hmRouteToSpaces(matches[0].name); }
   else { go('spaces'); }
 };
 
-window.hmRouteToApply = function(roomName) {
-  // 1) apply 페이지로 이동
-  go('apply');
-  // 2) 공간 칩이 렌더된 뒤 해당 칩 선택 (renderSpaces 후 칩이 생성됨)
-  const trySelect = (attempts) => {
-    const chip = document.getElementById('arc-' + roomName);
-    if (chip) {
-      chip.scrollIntoView({behavior:'smooth', block:'center'});
-      chip.click();  // selApplyRoom 호출
-    } else if (attempts > 0) {
-      setTimeout(() => trySelect(attempts - 1), 120);
-    }
-  };
-  setTimeout(() => trySelect(10), 100);
+window.hmRouteToSpaces = function(roomName) {
+  // 공간 안내 페이지로 이동하며 해당 공간 이름으로 필터링
+  window.setSpaceNameFilter(roomName);
+  window._keepSpaceFilter = true;
+  go('spaces');
 };
 
 /* go() 후크: 위 DOMContentLoaded 블록에서 통합 처리 */
