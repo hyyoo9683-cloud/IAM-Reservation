@@ -90,8 +90,9 @@ body.has-kakao-banner .shell { padding-top: var(--kakao-banner-h, 0px); }
 .topbar-home-btn:hover { opacity: .88; }
 .topbar-login-btn { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #586C60; border: 1.5px solid #B9C7BC; font-weight: 700; font-size: 13px; padding: 7px 16px; border-radius: 999px; cursor: pointer; font-family: inherit; transition: background .15s; }
 .topbar-login-btn:hover { background: #F0F5F1; }
-.page    { flex: 1; overflow-y: auto; padding: 20px; display: none; }
+.page    { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 20px; padding-bottom: max(20px, env(safe-area-inset-bottom)); display: none; }
 .page.active { display: block; }
+@media (max-width: 640px) { .page { padding-bottom: max(40px, env(safe-area-inset-bottom)); } }
 
 /* ── 사이드바 ── */
 .logo-area  { padding: 8px 10px 14px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
@@ -862,7 +863,7 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="hm-dropdown" id="hm-dropdown"></div>
           </div>
-          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="window.open('reservation-change.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></span><span class="hm-qlabel">예약 변경·취소</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button></div>
+          <div class="hm-quick"><button type="button" class="hm-qitem" onclick="go('public')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></span><span class="hm-qlabel">예약 현황</span></button><button type="button" class="hm-qitem" onclick="go('spaces')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></span><span class="hm-qlabel">예약 신청</span></button><button type="button" class="hm-qitem" onclick="window.open('reservation-change.html','_blank')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></span><span class="hm-qlabel">예약 변경·취소</span></button><button type="button" class="hm-qitem" onclick="go('mylist')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></span><span class="hm-qlabel">내 예약</span></button><button type="button" class="hm-qitem" onclick="go('about')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></span><span class="hm-qlabel">아이엠센터 소개</span></button><button type="button" class="hm-qitem" onclick="go('faq')"><span class="hm-qcircle"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></span><span class="hm-qlabel">FAQ</span></button></div>
         </div>
       </div>
 
