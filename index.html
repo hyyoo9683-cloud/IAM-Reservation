@@ -7048,6 +7048,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // 공지 로드
   setTimeout(() => { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }, 800);
+
+  // 딥링크: ?page=about 등 URL 파라미터로 특정 페이지 바로 열기 (카카오톡 채널 등 외부 링크용)
+  const deepLinkPage = new URLSearchParams(location.search).get('page');
+  const PUBLIC_DEEPLINK_PAGES = ['about', 'faq', 'spaces', 'public'];
+  if (deepLinkPage && PUBLIC_DEEPLINK_PAGES.includes(deepLinkPage)) {
+    setTimeout(() => window.go(deepLinkPage), 50);
+  }
 });
 </script>
 <script>
