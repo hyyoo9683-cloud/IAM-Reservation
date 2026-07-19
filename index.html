@@ -635,18 +635,26 @@ textarea { resize: vertical; min-height: 60px; }
   var ua = navigator.userAgent || '';
   if (!/KAKAOTALK/i.test(ua)) return;
   var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var isAndroid = /Android/i.test(ua);
   var banner = document.getElementById('kakao-browser-banner');
   var btn = document.getElementById('kakao-banner-btn');
   document.body.classList.add('has-kakao-banner');
   banner.style.display = 'flex';
+  document.getElementById('kakao-banner-text').textContent =
+    '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.';
   if (isIOS) {
+    btn.textContent = 'Safari로 열기';
     btn.style.display = '';
     btn.onclick = function(){
       location.href = 'x-safari-https://' + location.host + location.pathname + location.search;
     };
-  } else {
-    document.getElementById('kakao-banner-text').textContent =
-      '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요. 우측 상단 ⋮ 메뉴에서 "다른 브라우저로 열기"를 눌러주세요.';
+  } else if (isAndroid) {
+    btn.textContent = 'Chrome으로 열기';
+    btn.style.display = '';
+    btn.onclick = function(){
+      var target = location.host + location.pathname + location.search;
+      location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
+    };
   }
   document.documentElement.style.setProperty('--kakao-banner-h', banner.getBoundingClientRect().height + 'px');
   window.addEventListener('resize', function(){
