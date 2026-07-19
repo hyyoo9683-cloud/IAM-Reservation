@@ -791,13 +791,12 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="hm-tabs">
         <button type="button" class="hm-tab active" onclick="hmTab(this,'hm-space')">공간 &amp; 예약</button>
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-guide')">이용 안내</button>
-        <button type="button" class="hm-tab" onclick="hmTab(this,'hm-notice')">공지사항</button>
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-contact')">문의 · 오시는 길</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('apply')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관의 공간 사용 신청입니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div></div></div>
-      <div class="hm-panel" id="hm-guide"><div class="hm-grid"><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3>이용 수칙</h3><p>공간 이용 시 지켜야 할 기본 수칙을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3>청지기 발자취</h3><p>공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-shield"/></svg></div></div><div class="hm-cbody"><h3>개인정보 안내</h3><p>담당자·청지기 정보는 예약 관리 목적으로만 사용됩니다.</p><span class="hm-more">자세히 보기 →</span></div></div></div></div>
-      <div class="hm-panel" id="hm-notice">
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관의 공간 사용 신청입니다.</p><span class="hm-more">신청하기 →</span></div></div></div></div>
+      <div class="hm-panel" id="hm-guide">
+        <div class="hm-grid"><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></div></div><div class="hm-cbody"><h3>FAQ</h3><p>공간 이용·예약 관련 자주 묻는 질문을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div></div>
         <div class="hm-notice" id="hm-notice-dynamic"><div class="hm-notice-empty">공지사항을 불러오는 중…</div></div>
       </div>
       <div class="hm-panel" id="hm-contact">
@@ -997,6 +996,7 @@ textarea { resize: vertical; min-height: 60px; }
 
       <div class="ab-tabs">
         <button type="button" class="ab-tab active" onclick="abTab(this,'ab-story')">I AM 스토리</button>
+        <button type="button" class="ab-tab" onclick="abTab(this,'ab-floor')">층별 안내</button>
         <button type="button" class="ab-tab" onclick="abTab(this,'ab-way')">오시는 길</button>
       </div>
 
@@ -1017,6 +1017,13 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="ab-h3" id="ab-s2-title">지극히 작은 자를 섬기는 자리로</div>
           <p class="ab-p" id="ab-s2-body1">또한 이 공간이 지극히 작은 자를 섬기는 자리가 되기 원합니다. 이곳에서 부족함이 많은 우리가 예수님으로 충만히 채워져서 타인의 필요를 채우는 자가 되기 원합니다. 궁극적으로는 작은 자 하나에게 베푼 것이 결국 ‘THE GREAT I AM’ 되신 예수님을 섬기는 것임을 기억하는 자리가 되기 원합니다.</p>
           <p class="ab-p" id="ab-s2-body2">코로나로 인해 힘든 상황에서도 I AM … Center를 허락해 주신 하나님께 감사드리며, 함께해 주신 성도님들께 감사드립니다.</p>
+        </div>
+      </div>
+
+      <!-- 층별 안내 (준비중) -->
+      <div class="ab-panel" id="ab-floor">
+        <div class="ab-card" style="text-align:center;color:var(--text2);padding:60px 20px">
+          층별 안내 페이지를 준비 중입니다.
         </div>
       </div>
 
@@ -2098,7 +2105,7 @@ getRedirectResult(auth).then(result => {
 onAuthStateChanged(auth, async user => {
   if (!user) {
     // 미로그인: 사이드바 숨김 + 환영 문구 초기화
-    curUser = null; isAdmin = false;
+    curUser = window.curUser = null; isAdmin = window.isAdmin = false;
     document.querySelector('.shell').classList.add('no-sidebar');
     const sbLogin = document.getElementById('sb-login-btn');
     const sbUser  = document.getElementById('sb-user-area');
@@ -2127,7 +2134,7 @@ onAuthStateChanged(auth, async user => {
   }
 
   if (isDomainUser || isAdminUser || isExtAllowed) {
-    curUser = user; isAdmin = isAdminUser;
+    curUser = window.curUser = user; isAdmin = window.isAdmin = isAdminUser;
     // 사이드바 복원
     document.querySelector('.shell').classList.remove('no-sidebar');
     // 환영 문구: displayName에서 이름 추출
@@ -2454,6 +2461,9 @@ window.go = (page) => {
   ta.innerHTML = (page === 'list' && isAdmin)
     ? `<button class="btn btn-ghost" onclick="openModal('modal-import')">📥 CSV 가져오기</button>
        <button class="btn btn-primary" onclick="openEditModal(null)">+ 예약 추가</button>` : '';
+  if (page !== 'home') {
+    ta.innerHTML += `<button class="btn btn-ghost" onclick="go('home')">🏠 홈으로</button>`;
+  }
 
   if (page === 'spaces') {
     renderSpaces();
@@ -5990,7 +6000,7 @@ window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.togg
 window.iamOpenApplyPopup = function(type) {
   window._applyType = type || 'internal';
   // 이미 로그인된 상태면 팝업 없이 바로 예약 신청으로
-  if (curUser) { go('apply'); return; }
+  if (window.curUser) { go('apply'); return; }
   document.getElementById('iam-apply-popup').classList.add('open');
 };
 window.iamOpenExtPopup = function() {
@@ -6021,7 +6031,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 모듈이 정의한 window.go를 여기서 감쌈
   const _appGo = window.go;
   window.go = function(page) {
-    if (page === 'apply' && typeof curUser !== 'undefined' && !curUser) {
+    if (page === 'apply' && !window.curUser) {
       window._pendingApply = true;
       iamOpenLogin();
       return;
