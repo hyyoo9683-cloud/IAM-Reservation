@@ -1589,6 +1589,14 @@ textarea { resize: vertical; min-height: 60px; }
             <button class="btn btn-primary" style="flex-shrink:0;margin-bottom:0" onclick="addLoginUserManual()">추가</button>
           </div>
         </div>
+        <div class="card">
+          <div class="card-title">기존 예약 데이터에서 가져오기</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;background:var(--blue-lt);border-radius:7px;padding:8px 12px">
+            CSV로 가져온(또는 기존에 등록된) 예약에 담긴 이메일·담당자 이름을 스캔해 이 목록에 채워 넣습니다. 이미 등록된 이메일은 건너뜁니다.
+          </div>
+          <button class="btn btn-primary" onclick="importLoginUsersFromReservations()">📥 예약 데이터에서 가져오기</button>
+          <span id="lu-import-status" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
+        </div>
         <div class="card" style="padding:0;overflow:hidden">
           <table class="tbl">
             <thead><tr><th>이메일</th><th>이름</th><th>최초 로그인</th><th>마지막 로그인</th><th>로그인 횟수</th><th>액션</th></tr></thead>
@@ -6366,6 +6374,46 @@ window.removeLoginUser = async (email) => {
   if (!confirm(`${email} 을(를) 삭제하시겠습니까?`)) return;
   await deleteDoc(doc(db, 'loginUsers', email));
   T('삭제됐습니다', '#A32D2D');
+  renderLoginUsers();
+};
+
+// 기존 예약(CSV 가져오기 등)에 담긴 userEmail/managerName을 스캔해 예약 책임자 목록에 채워 넣기
+window.importLoginUsersFromReservations = async () => {
+  const statusEl = document.getElementById('lu-import-status');
+  const candidates = {};
+  reservations.forEach(r => {
+    const email = (r.userEmail || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) return;
+    const createdMs = r.createdAt ? (r.createdAt.toDate ? r.createdAt.toDate().getTime() : new Date(r.createdAt).getTime()) : 0;
+    if (!candidates[email] || createdMs > candidates[email].createdMs) {
+      candidates[email] = { name: r.managerName || '', createdMs };
+    }
+  });
+  const emails = Object.keys(candidates);
+  if (!emails.length) { T('예약 데이터에서 이메일을 찾지 못했습니다', '#854F0B'); return; }
+
+  const existingSnap = await getDocs(collection(db, 'loginUsers'));
+  const existingEmails = new Set(existingSnap.docs.map(d => d.id));
+  const toAdd = emails.filter(e => !existingEmails.has(e));
+
+  if (!toAdd.length) { T(`이메일 ${emails.length}건 모두 이미 등록되어 있습니다`, '#854F0B'); return; }
+  if (!confirm(`예약 데이터에서 새 이메일 ${toAdd.length}건을 찾았습니다 (기존 ${emails.length - toAdd.length}건은 이미 등록됨). 예약 책임자 목록에 추가하시겠습니까?`)) return;
+
+  statusEl.textContent = '가져오는 중...';
+  const BATCH = 10;
+  let added = 0;
+  for (let i = 0; i < toAdd.length; i += BATCH) {
+    const chunk = toAdd.slice(i, i + BATCH);
+    await Promise.all(chunk.map(email => setDoc(doc(db, 'loginUsers', email), {
+      email, name: candidates[email].name || '',
+      firstLoginAt: null, lastLoginAt: null, loginCount: 0,
+      manual: true, importedFromReservations: true
+    })));
+    added += chunk.length;
+    statusEl.textContent = `${added} / ${toAdd.length}건 추가 중...`;
+  }
+  statusEl.textContent = '';
+  T(`${added}건 추가 완료 (기존 ${emails.length - toAdd.length}건은 건너뜀)`, '#3B6D11');
   renderLoginUsers();
 };
 
