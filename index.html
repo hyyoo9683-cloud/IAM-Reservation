@@ -11,7 +11,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query,
-    onSnapshot, serverTimestamp }
+    onSnapshot, serverTimestamp, increment }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
@@ -42,7 +42,7 @@
   window._fb = {
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, orderBy, query,
+    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, orderBy, query,
     ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
@@ -764,6 +764,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
       <button class="nav-btn" onclick="go('admins')"><span class="icon">🔑</span>관리자 관리</button>
+      <button class="nav-btn" onclick="go('login-users')"><span class="icon">📇</span>예약 책임자</button>
       <div class="nav-section">사용자 뷰</div>
       <button class="nav-btn" onclick="go('home')"><span class="icon">🏡</span>홈</button>
       <button class="nav-btn" onclick="go('spaces')"><span class="icon">🏠</span>공간 안내</button>
@@ -1568,6 +1569,35 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
 
+    <!-- 관리자: 예약 책임자(로그인 사용자) 관리 -->
+    <div class="page" id="p-login-users">
+      <div style="max-width:720px">
+        <div class="card">
+          <div class="card-title">예약 책임자 수동 추가</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;background:var(--blue-lt);border-radius:7px;padding:8px 12px">
+            로그인한 계정은 이메일·로그인 시각과 함께 자동으로 이 목록에 추가됩니다. 아직 로그인하지 않은 예약 책임자를 미리 등록해두려면 아래에서 직접 추가하세요.
+          </div>
+          <div class="fl" style="align-items:flex-end">
+            <div class="fg" style="flex:2;margin-bottom:0">
+              <div class="lbl">이메일 주소 <span class="req">*</span></div>
+              <input id="lu-email" placeholder="example@gmail.com" type="email">
+            </div>
+            <div class="fg" style="flex:1;margin-bottom:0">
+              <div class="lbl">이름 (메모용)</div>
+              <input id="lu-name" placeholder="홍길동">
+            </div>
+            <button class="btn btn-primary" style="flex-shrink:0;margin-bottom:0" onclick="addLoginUserManual()">추가</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>이메일</th><th>이름</th><th>최초 로그인</th><th>마지막 로그인</th><th>로그인 횟수</th><th>액션</th></tr></thead>
+            <tbody id="login-users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- 관리자: 리포트 -->
     <div class="page" id="p-report">
       <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
@@ -2068,7 +2098,7 @@ const fb = window._fb;
 const {
   auth, db, storage,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp,
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment,
   ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
   ALLOWED_DOMAIN, ADMIN_EMAILS
 } = fb;
@@ -2384,6 +2414,7 @@ onAuthStateChanged(auth, async user => {
 
   if (isDomainUser || isAdminUser || isExtAllowed) {
     curUser = window.curUser = user; isAdmin = window.isAdmin = isAdminUser;
+    trackLoginUser(user, isAdminUser);
     // 사이드바 복원
     document.querySelector('.shell').classList.remove('no-sidebar');
     // 환영 문구: displayName에서 이름 추출
@@ -2417,6 +2448,36 @@ onAuthStateChanged(auth, async user => {
     showLoginMsg('접근 권한이 없습니다. 관리자에게 문의하세요.');
   }
 });
+
+// ── 로그인 사용자(예약 책임자) 추적: 로그인마다 이메일·타임스탬프 기록 ──
+async function trackLoginUser(user, isAdminUser) {
+  try {
+    const ref = doc(db, 'loginUsers', user.email);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      const prev = snap.data();
+      await setDoc(ref, {
+        email: user.email,
+        name: user.displayName || prev.name || '',
+        firstLoginAt: prev.firstLoginAt || serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        loginCount: increment(1),
+        isAdmin: isAdminUser,
+        manual: false
+      }, { merge: true });
+    } else {
+      await setDoc(ref, {
+        email: user.email,
+        name: user.displayName || '',
+        firstLoginAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+        loginCount: 1,
+        isAdmin: isAdminUser,
+        manual: false
+      });
+    }
+  } catch (e) { /* 로그인 흐름을 막지 않도록 무시 */ }
+}
 
 // ── 공개 데이터 로드 (로그인 불필요) ────────────────────────────
 function loadPublicData() {
@@ -2996,6 +3057,7 @@ window.go = (page) => {
     home: '홈', about: '아이엠센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
     'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
+    'login-users': '예약 책임자 관리',
     'storage-cleanup': '저장공간 정리', 'change-requests': '예약 변경·취소 신청', login: '로그인'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
@@ -3035,6 +3097,7 @@ window.go = (page) => {
   if (page === 'report')         renderReport();
   if (page === 'ext-users')      renderExtUsers();
   if (page === 'admins')         renderAdmins();
+  if (page === 'login-users')    renderLoginUsers();
   if (page === 'blocked')        renderBlockedDates();
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
@@ -6250,6 +6313,60 @@ window.removeExtUser = async (email) => {
   await deleteDoc(doc(db, 'allowedUsers', email));
   T('삭제됐습니다', '#A32D2D');
   renderExtUsers();
+};
+
+// ── 예약 책임자(로그인 사용자) 관리 ─────────────────────────────
+function fmtLoginTs(ts) {
+  if (!ts) return '–';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  if (isNaN(d.getTime())) return '–';
+  return d.toLocaleString('ko', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+async function renderLoginUsers() {
+  const snap = await getDocs(collection(db, 'loginUsers'));
+  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  users.sort((a, b) => {
+    const ta = a.lastLoginAt ? (a.lastLoginAt.toDate ? a.lastLoginAt.toDate().getTime() : new Date(a.lastLoginAt).getTime()) : 0;
+    const tb = b.lastLoginAt ? (b.lastLoginAt.toDate ? b.lastLoginAt.toDate().getTime() : new Date(b.lastLoginAt).getTime()) : 0;
+    return tb - ta;
+  });
+  const tbody = document.getElementById('login-users-body');
+  tbody.innerHTML = !users.length
+    ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">등록된 예약 책임자가 없습니다</td></tr>`
+    : users.map(u =>
+        `<tr>
+          <td style="color:var(--blue);font-weight:500">${u.id}${u.manual ? ' <span style="color:var(--text3);font-size:10px">(미로그인)</span>' : ''}</td>
+          <td>${u.name || '–'}</td>
+          <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.firstLoginAt)}</td>
+          <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.lastLoginAt)}</td>
+          <td style="text-align:center">${u.loginCount || 0}</td>
+          <td>
+            <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeLoginUser('${u.id}')">삭제</button>
+          </td>
+        </tr>`
+      ).join('');
+}
+
+window.addLoginUserManual = async () => {
+  const email = document.getElementById('lu-email').value.trim().toLowerCase();
+  const name  = document.getElementById('lu-name').value.trim();
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  const ref = doc(db, 'loginUsers', email);
+  const existing = await getDoc(ref);
+  if (existing.exists()) { T('이미 등록된 사용자입니다', '#854F0B'); return; }
+  await setDoc(ref, { email, name, firstLoginAt: null, lastLoginAt: null, loginCount: 0, manual: true });
+  document.getElementById('lu-email').value = '';
+  document.getElementById('lu-name').value  = '';
+  T(`${email} 추가 완료`, '#3B6D11');
+  renderLoginUsers();
+};
+
+window.removeLoginUser = async (email) => {
+  if (!confirm(`${email} 을(를) 삭제하시겠습니까?`)) return;
+  await deleteDoc(doc(db, 'loginUsers', email));
+  T('삭제됐습니다', '#A32D2D');
+  renderLoginUsers();
 };
 
 // ── 관리자 관리 ─────────────────────────────────────────────────
