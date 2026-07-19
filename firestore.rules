@@ -24,6 +24,13 @@ service cloud.firestore {
     match /allowedUsers/{doc} {
       allow read, write: if request.auth != null;
     }
+    // 관리자 목록: 주 관리자(hyyoo9683@gmail.com) 또는 이미 등록된 관리자만 추가/삭제 가능
+    match /admins/{email} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        (request.auth.token.email == 'hyyoo9683@gmail.com' ||
+         exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
+    }
     match /adminNotes/{doc} {
       allow read, write: if request.auth != null;
     }

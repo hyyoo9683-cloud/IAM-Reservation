@@ -700,6 +700,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('content-editor')"><span class="icon">✏️</span>콘텐츠 편집</button>
       <div class="nav-section">사용자 관리</div>
       <button class="nav-btn" onclick="go('ext-users')"><span class="icon">👥</span>외부 사용자</button>
+      <button class="nav-btn" onclick="go('admins')"><span class="icon">🔑</span>관리자 관리</button>
       <div class="nav-section">사용자 뷰</div>
       <button class="nav-btn" onclick="go('home')"><span class="icon">🏡</span>홈</button>
       <button class="nav-btn" onclick="go('spaces')"><span class="icon">🏠</span>공간 안내</button>
@@ -707,7 +708,7 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
 
     <div style="margin-top:auto">
-      <a href="portal.html" class="nav-btn" style="display:flex;text-decoration:none;color:var(--blue);font-weight:600;border-top:1px solid var(--border2);padding-top:10px;margin-top:4px">
+      <a href="portal.html" id="nav-intranet-link" class="nav-btn" style="display:none;text-decoration:none;color:var(--blue);font-weight:600;border-top:1px solid var(--border2);padding-top:10px;margin-top:4px">
         <span class="icon">🏛</span>인트라넷
       </a>
       <!-- 미로그인: 로그인 버튼 -->
@@ -1388,6 +1389,35 @@ textarea { resize: vertical; min-height: 60px; }
           <table class="tbl">
             <thead><tr><th>이메일</th><th>이름</th><th>추가일</th><th>액션</th></tr></thead>
             <tbody id="ext-users-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 관리자: 관리자 관리 -->
+    <div class="page" id="p-admins">
+      <div style="max-width:560px">
+        <div class="card">
+          <div class="card-title">관리자 추가</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:12px;background:var(--blue-lt);border-radius:7px;padding:8px 12px">
+            여기에 추가된 계정은 로그인 시 관리자 권한(대시보드·예약 관리 등)을 갖게 됩니다.
+          </div>
+          <div class="fl" style="align-items:flex-end">
+            <div class="fg" style="flex:2;margin-bottom:0">
+              <div class="lbl">이메일 주소 <span class="req">*</span></div>
+              <input id="admin-email" placeholder="example@gmail.com" type="email">
+            </div>
+            <div class="fg" style="flex:1;margin-bottom:0">
+              <div class="lbl">이름 (메모용)</div>
+              <input id="admin-name" placeholder="홍길동">
+            </div>
+            <button class="btn btn-primary" style="flex-shrink:0;margin-bottom:0" onclick="addAdminUser()">추가</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="tbl">
+            <thead><tr><th>이메일</th><th>이름</th><th>추가일</th><th>액션</th></tr></thead>
+            <tbody id="admins-body"></tbody>
           </table>
         </div>
       </div>
@@ -2113,6 +2143,7 @@ onAuthStateChanged(auth, async user => {
     if (sbUser)  sbUser.classList.remove('show');
     document.getElementById('nav-user-links').style.display  = '';
     document.getElementById('nav-admin-links').style.display = 'none';
+    document.getElementById('nav-intranet-link').style.display = 'none';
     const eyebrow = document.getElementById('hm-eyebrow-text');
     if (eyebrow) eyebrow.textContent = '';
     // 공개 데이터 로드 (spaces + reservations) — 이미 로드됐으면 스킵
@@ -2122,7 +2153,16 @@ onAuthStateChanged(auth, async user => {
 
   const email = user.email;
   const isDomainUser = email.endsWith('@' + ALLOWED_DOMAIN);
-  const isAdminUser  = ADMIN_EMAILS.includes(email);
+
+  // 관리자: 주 관리자(ADMIN_EMAILS) 또는 Firestore admins 컬렉션에 등록된 계정
+  let isFirestoreAdmin = false;
+  if (!ADMIN_EMAILS.includes(email)) {
+    try {
+      const adminSnap = await getDocs(collection(db, 'admins'));
+      isFirestoreAdmin = adminSnap.docs.some(d => d.id === email);
+    } catch (_) {}
+  }
+  const isAdminUser = ADMIN_EMAILS.includes(email) || isFirestoreAdmin;
 
   // 도메인 외 계정은 Firestore 허용 목록 확인
   let isExtAllowed = false;
@@ -2151,6 +2191,7 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('sb-role').textContent = isAdmin ? '관리자' : '사용자';
     document.getElementById('nav-user-links').style.display  = isAdmin ? 'none' : '';
     document.getElementById('nav-admin-links').style.display = isAdmin ? '' : 'none';
+    document.getElementById('nav-intranet-link').style.display = isAdmin ? 'flex' : 'none';
     // 전체 데이터 로드 (orgs, blockedDates, adminNotes 포함)
     await loadData();
     iamCloseLogin();  // 모달 열려 있으면 닫기
@@ -2446,7 +2487,7 @@ window.go = (page) => {
   const titles = {
     home: '홈', about: '센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
     dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
-    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모'
+    'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -2482,6 +2523,7 @@ window.go = (page) => {
   if (page === 'manage-spaces')  renderManageSpaces();
   if (page === 'report')         renderReport();
   if (page === 'ext-users')      renderExtUsers();
+  if (page === 'admins')         renderAdmins();
   if (page === 'blocked')        renderBlockedDates();
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
@@ -5640,6 +5682,51 @@ window.removeExtUser = async (email) => {
   await deleteDoc(doc(db, 'allowedUsers', email));
   T('삭제됐습니다', '#A32D2D');
   renderExtUsers();
+};
+
+// ── 관리자 관리 ─────────────────────────────────────────────────
+async function renderAdmins() {
+  const snap = await getDocs(collection(db, 'admins'));
+  const admins = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const tbody = document.getElementById('admins-body');
+  const primaryRow = ADMIN_EMAILS.map(email =>
+    `<tr>
+      <td style="color:var(--blue);font-weight:500">${email}</td>
+      <td>–</td>
+      <td style="color:var(--text3);font-size:11px">주 관리자</td>
+      <td><span style="color:var(--text3);font-size:11px">삭제 불가</span></td>
+    </tr>`
+  ).join('');
+  const extraRows = admins.map(a =>
+    `<tr>
+      <td style="color:var(--blue);font-weight:500">${a.id}</td>
+      <td>${a.name || '–'}</td>
+      <td style="color:var(--text3);font-size:11px">${a.addedAt || '–'}</td>
+      <td>
+        <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeAdminUser('${a.id}')">삭제</button>
+      </td>
+    </tr>`
+  ).join('');
+  tbody.innerHTML = primaryRow + extraRows;
+}
+
+window.addAdminUser = async () => {
+  const email = document.getElementById('admin-email').value.trim().toLowerCase();
+  const name  = document.getElementById('admin-name').value.trim();
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  if (ADMIN_EMAILS.includes(email)) { T('이미 주 관리자로 등록된 계정입니다', '#854F0B'); return; }
+  await setDoc(doc(db, 'admins', email), { name, addedBy: curUser.email, addedAt: nowStr() });
+  document.getElementById('admin-email').value = '';
+  document.getElementById('admin-name').value  = '';
+  T(`${email} 관리자로 추가 완료`, '#3B6D11');
+  renderAdmins();
+};
+
+window.removeAdminUser = async (email) => {
+  if (!confirm(`${email} 의 관리자 권한을 삭제하시겠습니까?`)) return;
+  await deleteDoc(doc(db, 'admins', email));
+  T('삭제됐습니다', '#A32D2D');
+  renderAdmins();
 };
 </script>
 <script>
