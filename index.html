@@ -423,10 +423,12 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-size-lg .ab-p{font-size:18px}
 #p-about .ab-floor-size-xl .ab-p{font-size:22px}
 #p-about .ab-floor-title{font-size:20px;font-weight:800;color:var(--ab-ink);letter-spacing:-.3px;margin-bottom:8px}
-#p-about .ab-floor-links{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+#p-about .ab-floor-links{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px;justify-content:center;align-items:center}
 #p-about .ab-floor-link{display:inline-flex;align-items:center;gap:4px;background:var(--ab-sage-soft);color:var(--ab-sage-dd);font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;text-decoration:none;transition:background .15s}
 #p-about .ab-floor-link:hover{background:var(--ab-line)}
-#p-about .ab-floor-link-icon{width:18px;height:18px;object-fit:contain;border-radius:4px}
+#p-about .ab-floor-link-logo{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:18px;background:#fff;border:1px solid var(--ab-line);padding:10px;transition:transform .15s,box-shadow .15s}
+#p-about .ab-floor-link-logo:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.12)}
+#p-about .ab-floor-link-logo img{width:100%;height:100%;object-fit:contain}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
 @media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
 </style>
@@ -6067,7 +6069,10 @@ const CE = {
     if (!f) { el.innerHTML = ''; return; }
     const photos = (f.photos && f.photos.length) ? this._floorPhotoSlider(f) : '';
     const links = (f.links && f.links.length)
-      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.iconUrl ? `<img src="${l.iconUrl}" alt="" class="ab-floor-link-icon">` : ''}${l.label || l.url} ↗</a>`).join('')}</div>`
+      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => l.iconUrl
+          ? `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link-logo" title="${l.label || l.url}"><img src="${l.iconUrl}" alt="${l.label || ''}"></a>`
+          : `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.label || l.url} ↗</a>`
+        ).join('')}</div>`
       : '';
     const mainTitle = f.mainTitle ? `<h3 class="ab-floor-title">${f.mainTitle}</h3>` : '';
     const sizeClass = `ab-floor-size-${f.fontSize || 'md'}`;
