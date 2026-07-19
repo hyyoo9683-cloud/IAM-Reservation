@@ -426,9 +426,6 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-links{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px;justify-content:center;align-items:center}
 #p-about .ab-floor-link{display:inline-flex;align-items:center;gap:4px;background:var(--ab-sage-soft);color:var(--ab-sage-dd);font-weight:700;font-size:13px;padding:8px 16px;border-radius:999px;text-decoration:none;transition:background .15s}
 #p-about .ab-floor-link:hover{background:var(--ab-line)}
-#p-about .ab-floor-link-logo{display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:18px;background:#fff;border:1px solid var(--ab-line);padding:10px;transition:transform .15s,box-shadow .15s}
-#p-about .ab-floor-link-logo:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,.12)}
-#p-about .ab-floor-link-logo img{width:100%;height:100%;object-fit:contain}
 #p-about .ab-floor-empty{text-align:center;color:var(--ab-ink3);padding:50px 20px;font-size:14px}
 @media(max-width:640px){#p-about .ab-card,#p-about .ab-sec{padding:22px 20px}#p-about .ab-info-grid{grid-template-columns:1fr}#p-about .ab-route{grid-template-columns:120px 1fr}#p-about .ab-tabs{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}#p-about .ab-tab{padding:11px 14px;font-size:14px;white-space:nowrap;flex-shrink:0}}
 </style>
@@ -5944,7 +5941,6 @@ const CE = {
   floorActiveIdx: 0,
   floorPhotoIdx: {}, // { [floorIndex]: 현재 보여지는 사진 인덱스 }
   floorNewFiles: {}, // { [floorIndex]: {blob,caption}[] } 저장 전 임시 압축 이미지
-  floorLinkNewIcon: {}, // { [floorIndex]: { [linkIndex]: blob } } 링크 로고 이미지 (저장 전)
   homeCards: null,   // { [key]: {title,desc} }
 
   // ── Firestore helpers ──
@@ -6069,10 +6065,7 @@ const CE = {
     if (!f) { el.innerHTML = ''; return; }
     const photos = (f.photos && f.photos.length) ? this._floorPhotoSlider(f) : '';
     const links = (f.links && f.links.length)
-      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => l.iconUrl
-          ? `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link-logo" title="${l.label || l.url}"><img src="${l.iconUrl}" alt="${l.label || ''}"></a>`
-          : `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.label || l.url} ↗</a>`
-        ).join('')}</div>`
+      ? `<div class="ab-floor-links">${f.links.filter(l=>l.url).map(l => `<a href="${l.url}" target="_blank" rel="noopener" class="ab-floor-link">${l.label || l.url} ↗</a>`).join('')}</div>`
       : '';
     const mainTitle = f.mainTitle ? `<h3 class="ab-floor-title">${f.mainTitle}</h3>` : '';
     const sizeClass = `ab-floor-size-${f.fontSize || 'md'}`;
@@ -6358,45 +6351,22 @@ const CE = {
 
   _floorLinksHtml(i) {
     const f = this.floors[i];
-    return (f.links||[]).map((lnk,li) => {
-      const pendingIcon = this.floorLinkNewIcon[i] && this.floorLinkNewIcon[i][li];
-      const iconBox = pendingIcon
-        ? `<div class="preview-img" style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--ed-paper2);color:var(--ed-ink3);font-size:9px">대기</div>`
-        : (lnk.iconUrl
-            ? `<img src="${lnk.iconUrl}" style="width:36px;height:36px;object-fit:contain;border-radius:6px;border:1px solid var(--ed-line);background:#fff">`
-            : `<div style="width:36px;height:36px;border-radius:6px;border:1.5px dashed var(--ed-line);display:flex;align-items:center;justify-content:center;color:var(--ed-ink3);font-size:9px">로고</div>`);
-      return `
+    return (f.links||[]).map((lnk,li) => `
       <div style="display:flex;gap:6px;margin-bottom:6px;align-items:flex-start">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0">
-          ${iconBox}
-          <label style="font-size:9px;color:var(--ed-sage-d);cursor:pointer">
-            로고${lnk.iconUrl || pendingIcon ? ' 변경' : ' 추가'}<input type="file" accept="image/*" style="display:none" onchange="ceFloorLinkIconSelect(${i},${li},this)">
-          </label>
-        </div>
         <input class="ce-input" style="flex:1" placeholder="링크 텍스트 (예: 자세히 보기)" value="${(lnk.label||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].label=this.value">
         <input class="ce-input" style="flex:2" placeholder="https://..." value="${(lnk.url||'').replace(/"/g,'&quot;')}" oninput="CE.floors[${i}].links[${li}].url=this.value">
         <button type="button" class="ce-btn ce-btn-danger ce-btn-sm" onclick="ceFloorDelLink(${i},${li})">✕</button>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   },
 
   addFloorLink(i) {
     if (!this.floors[i].links) this.floors[i].links = [];
-    this.floors[i].links.push({label:'', url:'', iconUrl:''});
+    this.floors[i].links.push({label:'', url:''});
     document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
   },
 
   delFloorLink(i, li) {
     this.floors[i].links.splice(li,1);
-    if (this.floorLinkNewIcon[i]) delete this.floorLinkNewIcon[i][li];
-    document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
-  },
-
-  async previewFloorLinkIcon(i, li, input) {
-    const file = input.files[0]; if (!file) return;
-    const blob = await window.compressImage(file, 200, 0.85);
-    if (!this.floorLinkNewIcon[i]) this.floorLinkNewIcon[i] = {};
-    this.floorLinkNewIcon[i][li] = blob;
     document.getElementById(`ce-floor-links-${i}`).innerHTML = this._floorLinksHtml(i);
   },
 
@@ -6481,16 +6451,8 @@ const CE = {
           this.floors[i].photos = this.floors[i].photos || [];
           this.floors[i].photos.push({url, caption: nf.caption || ''});
         }
-        const pendingIcons = this.floorLinkNewIcon[i] || {};
-        for (const li of Object.keys(pendingIcons)) {
-          const storageRef = ref(window._fb.storage, `floors/link_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`);
-          const snap = await uploadBytes(storageRef, pendingIcons[li]);
-          const url = await getDownloadURL(snap.ref);
-          if (this.floors[i].links && this.floors[i].links[li]) this.floors[i].links[li].iconUrl = url;
-        }
       }
       this.floorNewFiles = {};
-      this.floorLinkNewIcon = {};
       await setDoc(doc(this.db(),'siteContent','floors'), {
         floors: this.floors,
         updatedAt: new Date().toISOString(),
@@ -6597,7 +6559,6 @@ window.ceFloorRemoveExistingPhoto = (i,pi)=> CE.removeFloorExistingPhoto(i,pi);
 window.ceFloorMovePhoto           = (i,pi,d)=> CE.moveFloorPhoto(i,pi,d);
 window.ceFloorAddLink            = (i)     => CE.addFloorLink(i);
 window.ceFloorDelLink            = (i,li)  => CE.delFloorLink(i,li);
-window.ceFloorLinkIconSelect     = (i,li,inp) => CE.previewFloorLinkIcon(i,li,inp);
 window.ceSaveFloors             = ()      => CE.saveFloors();
 window.ceFloorBold = (i) => {
   const ta = document.getElementById(`ce-floor-body-${i}`);
