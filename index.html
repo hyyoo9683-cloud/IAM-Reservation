@@ -1937,7 +1937,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">층</div><input id="sp-floor" placeholder="예: 2층, 5층"></div>
       <div class="fg"><div class="lbl">수용 인원</div><input type="number" id="sp-cap" placeholder="명" min="1"></div>
     </div>
-    <div class="fg"><div class="lbl">카테고리 <span style="font-weight:400;color:var(--text3)">(검색용 태그, 예: 거울방)</span></div><input id="sp-category" placeholder="예: 거울방, 스튜디오"></div>
+    <div class="fg"><div class="lbl">카테고리 <span style="font-weight:400;color:var(--text3)">(검색용 태그, 여러 개는 쉼표로 구분 · 예: 소그룹, TV)</span></div><input id="sp-category" placeholder="예: 거울방, 소그룹, TV"></div>
     <div class="fg"><div class="lbl">설명</div><input id="sp-desc" placeholder="간단한 공간 설명"></div>
     <div class="fg">
       <div class="lbl">의자 / 책상 수량</div>
@@ -2045,7 +2045,7 @@ let changeReqTab = '';
 let curPage = 'spaces';
 let editId = null;
 let spaceEditId = null;
-let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '';
+let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
@@ -2974,7 +2974,7 @@ window.go = (page) => {
   if (topbarHomeBtn) topbarHomeBtn.style.display = (page === 'home') ? 'none' : '';
 
   if (page === 'spaces') {
-    if (!window._keepSpaceFilter) { spaceNameFilter = ''; spaceFloorFilter = ''; }
+    if (!window._keepSpaceFilter) { spaceNameFilter = ''; spaceFloorFilter = ''; spaceCategoryFilter = ''; }
     window._keepSpaceFilter = false;
     updateSpaceNameFilterChip();
     renderSpaces();
@@ -3392,7 +3392,7 @@ function spaceCardHtml(sp, adminMode = false) {
   return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
-      <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span>${sp.category ? `<span style="font-size:10.5px;font-weight:700;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--blue-lt);color:var(--blue);vertical-align:middle">${sp.category}</span>` : ''}</div>
+      <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span>${getSpaceCategories(sp).map(c => `<span style="font-size:10.5px;font-weight:700;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--blue-lt);color:var(--blue);vertical-align:middle">${c}</span>`).join('')}</div>
       <div class="space-cap desk-only">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
       <div class="mob-only">${mobBlock}</div>
       <div class="space-amenity desk-only">${tags}</div>
@@ -3424,6 +3424,7 @@ function renderSpaces() {
   let list = sortFn(spaces);
   if (spaceNameFilter) list = list.filter(sp => sp.name.includes(spaceNameFilter));
   if (spaceFloorFilter) list = list.filter(sp => sp.floor === spaceFloorFilter);
+  if (spaceCategoryFilter) list = list.filter(sp => getSpaceCategories(sp).includes(spaceCategoryFilter));
   if (spaceFilterTV)  list = list.filter(sp => (sp.amenities || []).includes('TV'));
   if (spaceFilterCap) list.sort((a, b) => (a.cap || 0) - (b.cap || 0));
   // 검색 결과 있으면 예약 가능 공간 먼저 (검색 순서 내에서)
@@ -3440,7 +3441,7 @@ function renderSpaces() {
     });
   }
   // 공실 희망은 항상 맨 앞 (필터 중이면 조건과 일치할 때만)
-  const showFlexRoom = (!spaceNameFilter && !spaceFloorFilter) || (spaceNameFilter && '공실 희망'.includes(spaceNameFilter));
+  const showFlexRoom = (!spaceNameFilter && !spaceFloorFilter && !spaceCategoryFilter) || (spaceNameFilter && '공실 희망'.includes(spaceNameFilter));
   document.getElementById('spaces-grid').innerHTML = (showFlexRoom ? flexRoomCardHtml() : '') + list.map(s => spaceCardHtml(s, false)).join('');
 }
 
@@ -3450,6 +3451,9 @@ function updateSpaceNameFilterChip() {
   if (spaceFloorFilter) {
     el.style.display = '';
     el.innerHTML = `<span class="filter-chip active" style="cursor:default">🏢 ${spaceFloorFilter} 전체 <span onclick="clearSpaceNameFilter()" style="cursor:pointer;margin-left:4px">×</span></span>`;
+  } else if (spaceCategoryFilter) {
+    el.style.display = '';
+    el.innerHTML = `<span class="filter-chip active" style="cursor:default">🔍 '${spaceCategoryFilter}' 전체 <span onclick="clearSpaceNameFilter()" style="cursor:pointer;margin-left:4px">×</span></span>`;
   } else if (spaceNameFilter) {
     el.style.display = '';
     el.innerHTML = `<span class="filter-chip active" style="cursor:default">🔍 "${spaceNameFilter}" <span onclick="clearSpaceNameFilter()" style="cursor:pointer;margin-left:4px">×</span></span>`;
@@ -3458,10 +3462,11 @@ function updateSpaceNameFilterChip() {
     el.innerHTML = '';
   }
 }
-window.clearSpaceNameFilter = () => { spaceNameFilter = ''; spaceFloorFilter = ''; updateSpaceNameFilterChip(); renderSpaces(); };
+window.clearSpaceNameFilter = () => { spaceNameFilter = ''; spaceFloorFilter = ''; spaceCategoryFilter = ''; updateSpaceNameFilterChip(); renderSpaces(); };
 // 다른 script 블록(홈 검색 라우팅)에서 호출하는 브릿지 함수
-window.setSpaceNameFilter = (v) => { spaceNameFilter = v || ''; spaceFloorFilter = ''; };
-window.setSpaceFloorFilter = (v) => { spaceFloorFilter = v || ''; spaceNameFilter = ''; };
+window.setSpaceNameFilter = (v) => { spaceNameFilter = v || ''; spaceFloorFilter = ''; spaceCategoryFilter = ''; };
+window.setSpaceFloorFilter = (v) => { spaceFloorFilter = v || ''; spaceNameFilter = ''; spaceCategoryFilter = ''; };
+window.setSpaceCategoryFilter = (v) => { spaceCategoryFilter = v || ''; spaceNameFilter = ''; spaceFloorFilter = ''; };
 function renderManageSpaces() { document.getElementById('manage-spaces-grid').innerHTML = spaces.map(s => spaceCardHtml(s, true)).join(''); }
 
 window.toggleSpaceFilter = (type) => {
@@ -3592,7 +3597,7 @@ window.openSpaceModal = (id = null) => {
     document.getElementById('sp-name').value   = sp.name;
     document.getElementById('sp-floor').value  = sp.floor || '';
     document.getElementById('sp-cap').value    = sp.cap || '';
-    document.getElementById('sp-category').value = sp.category || '';
+    document.getElementById('sp-category').value = getSpaceCategories(sp).join(', ');
     document.getElementById('sp-desc').value   = sp.desc || '';
     document.getElementById('sp-chairs').value = sp.chairs || '';
     document.getElementById('sp-desks').value  = sp.desks  || '';
@@ -3659,7 +3664,7 @@ window.submitSpace = async () => {
   if (!name) { T('공간 이름을 입력해주세요', '#A32D2D'); return; }
   const floor  = document.getElementById('sp-floor').value.trim();
   const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
-  const category = document.getElementById('sp-category').value.trim();
+  const categories = document.getElementById('sp-category').value.split(',').map(c => c.trim()).filter(Boolean);
   const desc   = document.getElementById('sp-desc').value.trim();
   const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
   const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
@@ -3686,7 +3691,7 @@ window.submitSpace = async () => {
       photoUrls.push(await getDownloadURL(snap.ref));
     }
 
-    const data = { name, floor, cap, category, desc, chairs, desks, amenities, photos: photoUrls };
+    const data = { name, floor, cap, categories, desc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
       await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
       spaces = window.spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
@@ -7195,16 +7200,23 @@ window.ceDeleteNotice = async function(i) {
 /* ─── 검색 라우팅 ─── */
 const FIXED_SPACES = ['아론홀','샤론홀','지혜홀','게스트룸','야외테라스','공실 희망'];
 
+// 공간의 카테고리 목록 반환 (신규 categories 배열 / 구버전 category 문자열 모두 지원)
+function getSpaceCategories(sp) {
+  if (Array.isArray(sp.categories)) return sp.categories.filter(Boolean);
+  if (sp.category) return [sp.category];
+  return [];
+}
+
 function hmSearchMatches(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   // spaces 배열(Firestore) + 고정
   const all = [
-    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', category:s.category||'', fixed:false})),
-    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',category:'',fixed:true}))
+    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', categories:getSpaceCategories(s), fixed:false})),
+    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
-    s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q))
+    s.name.toLowerCase().includes(q) || s.categories.some(c => c.toLowerCase().includes(q))
   ).slice(0,6);
 
   // 층 단위 검색: "5" 입력 시 해당 층에 공간이 있으면 "5층 소그룹실"을 최상단에 추가
@@ -7216,6 +7228,14 @@ function hmSearchMatches(query) {
       results.unshift({ name: floorLabel + ' 소그룹실', floor: `${roomsInFloor.length}개 공간`, isFloor: true, floorValue: floorLabel });
     }
   }
+
+  // 카테고리 검색: 검색어와 일치하는 카테고리가 있으면 "'카테고리'에 해당하는 공간 모두 보기"를 최상단에 추가
+  const allCategories = [...new Set((window.spaces || []).flatMap(s => getSpaceCategories(s)))];
+  const matchedCategories = allCategories.filter(c => c.toLowerCase().includes(q));
+  matchedCategories.reverse().forEach(cat => {
+    const count = (window.spaces || []).filter(s => getSpaceCategories(s).includes(cat)).length;
+    results.unshift({ name: `'${cat}'에 해당하는 공간 모두 보기`, floor: `${count}개 공간`, isCategory: true, categoryValue: cat });
+  });
   return results;
 }
 
@@ -7230,13 +7250,13 @@ window.hmSearchInput = function(val) {
     return;
   }
   dd.innerHTML = matches.map(s=>`
-    <div class="hm-drop-item" onclick="${s.isFloor ? `hmSearchSelectFloor('${s.floorValue}')` : `hmSearchSelect('${s.name.replace(/'/g,"\\'")}')`}">
-      <div class="hm-drop-ico">${s.isFloor ? '🏢' : '🏠'}</div>
+    <div class="hm-drop-item" onclick="${s.isCategory ? `hmSearchSelectCategory('${s.categoryValue.replace(/'/g,"\\'")}')` : s.isFloor ? `hmSearchSelectFloor('${s.floorValue}')` : `hmSearchSelect('${s.name.replace(/'/g,"\\'")}')`}">
+      <div class="hm-drop-ico">${s.isCategory ? '🔍' : s.isFloor ? '🏢' : '🏠'}</div>
       <div>
-        <div class="hm-drop-name">${s.name}${s.category ? `<span class="hm-drop-cat">${s.category}</span>` : ''}</div>
+        <div class="hm-drop-name">${s.name}${(s.categories||[]).map(c => `<span class="hm-drop-cat">${c}</span>`).join('')}</div>
         ${s.floor?`<div class="hm-drop-floor">${s.floor}</div>`:''}
       </div>
-      <span class="hm-drop-badge">${s.isFloor ? '층 전체 보기' : '공간 보기'}</span>
+      <span class="hm-drop-badge">${s.isCategory ? '카테고리 보기' : s.isFloor ? '층 전체 보기' : '공간 보기'}</span>
     </div>`).join('');
   dd.classList.add('open');
 };
@@ -7257,13 +7277,20 @@ window.hmSearchSelectFloor = function(floorValue) {
   hmRouteToSpacesByFloor(floorValue);
 };
 
+window.hmSearchSelectCategory = function(category) {
+  hmDropClose();
+  document.getElementById('hm-search-input').value = category;
+  hmRouteToSpacesByCategory(category);
+};
+
 window.hmSearchGo = function() {
   const val = (document.getElementById('hm-search-input')||{}).value || '';
   hmDropClose();
   const matches = hmSearchMatches(val);
   if (matches.length) {
     const m = matches[0];
-    if (m.isFloor) hmRouteToSpacesByFloor(m.floorValue);
+    if (m.isCategory) hmRouteToSpacesByCategory(m.categoryValue);
+    else if (m.isFloor) hmRouteToSpacesByFloor(m.floorValue);
     else hmRouteToSpaces(m.name);
   } else { go('spaces'); }
 };
@@ -7278,6 +7305,13 @@ window.hmRouteToSpaces = function(roomName) {
 window.hmRouteToSpacesByFloor = function(floorValue) {
   // 공간 안내 페이지로 이동하며 해당 층으로 필터링
   window.setSpaceFloorFilter(floorValue);
+  window._keepSpaceFilter = true;
+  go('spaces');
+};
+
+window.hmRouteToSpacesByCategory = function(category) {
+  // 공간 안내 페이지로 이동하며 해당 카테고리로 필터링
+  window.setSpaceCategoryFilter(category);
   window._keepSpaceFilter = true;
   go('spaces');
 };
