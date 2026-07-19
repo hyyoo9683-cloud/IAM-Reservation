@@ -46,6 +46,14 @@
     ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
+
+  // 딥링크: ?page=about 등 URL 파라미터로 특정 페이지 바로 열기 (카카오톡 채널 등 외부 링크용)
+  // 모듈 스크립트 중 가장 먼저 실행되는 지점에서 계산해, onAuthStateChanged 발화 타이밍과 무관하게 항상 값이 준비되도록 함
+  (function() {
+    const p = new URLSearchParams(location.search).get('page');
+    const PUBLIC_DEEPLINK_PAGES = ['about', 'faq', 'spaces', 'public'];
+    if (p && PUBLIC_DEEPLINK_PAGES.includes(p)) window._deepLinkPage = p;
+  })();
 </script>
 
 <style>
@@ -2318,6 +2326,10 @@ onAuthStateChanged(auth, async user => {
     if (eyebrow) eyebrow.textContent = '';
     // 공개 데이터 로드 (spaces + reservations) — 이미 로드됐으면 스킵
     if (!spaces.length) loadPublicData();
+    // 딥링크 페이지 요청이 있으면 그 페이지로 이동
+    // (onAuthStateChanged가 세션 복원 전 null로 먼저 발화했다가 잠시 후 실제 로그인 사용자로 다시 발화하는 경우가 흔하므로,
+    //  이 시점에서는 값을 지우지 않고 남겨둔다 — 로그인 branch에서 최종적으로 소비/삭제함)
+    if (window._deepLinkPage) go(window._deepLinkPage);
     return;
   }
 
@@ -2367,8 +2379,9 @@ onAuthStateChanged(auth, async user => {
     // 전체 데이터 로드 (orgs, blockedDates, adminNotes 포함)
     await loadData();
     iamCloseLogin();  // 모달 열려 있으면 닫기
-    // 로그인 모달에서 특정 페이지 요청이 있었으면 이동
+    // 로그인 모달에서 특정 페이지 요청 또는 딥링크 요청이 있었으면 이동
     if (window._pendingPage) { const p = window._pendingPage; window._pendingPage = null; go(p); }
+    else if (window._deepLinkPage) { const p = window._deepLinkPage; window._deepLinkPage = null; go(p); }
     else if (!isAdmin) go('home');
     else go('dashboard');
   } else {
@@ -7048,13 +7061,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // 공지 로드
   setTimeout(() => { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }, 800);
-
-  // 딥링크: ?page=about 등 URL 파라미터로 특정 페이지 바로 열기 (카카오톡 채널 등 외부 링크용)
-  const deepLinkPage = new URLSearchParams(location.search).get('page');
-  const PUBLIC_DEEPLINK_PAGES = ['about', 'faq', 'spaces', 'public'];
-  if (deepLinkPage && PUBLIC_DEEPLINK_PAGES.includes(deepLinkPage)) {
-    setTimeout(() => window.go(deepLinkPage), 50);
-  }
 });
 </script>
 <script>
