@@ -2346,12 +2346,10 @@ window.googleLogin = async (fromModal = false) => {
       // 이후 페이지 새로고침 → getRedirectResult 에서 처리
     } else {
       // Safari(iOS 포함), 데스크톱: popup 방식
-      const result = await signInWithPopup(auth, provider);
-      const email = result.user.email;
-      if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
-        await signOut(auth);
-        showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
-      }
+      // 도메인·허용 계정 판정은 onAuthStateChanged에서 Firestore(admins/allowedUsers)까지 확인해 일괄 처리함
+      // (여기서 하드코딩된 ADMIN_EMAILS만 보고 미리 signOut 하면, Firestore로 등록된 관리자·외부 허용 사용자가
+      //  onAuthStateChanged의 최종 판정 전에 잘못 로그아웃되는 문제가 있었음)
+      await signInWithPopup(auth, provider);
     }
   } catch (e) {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
@@ -2384,14 +2382,8 @@ window.enterPublic = () => {
 };
 
 // 리다이렉트 로그인 완료 처리
-getRedirectResult(auth).then(result => {
-  if (!result?.user) return;
-  const email = result.user.email;
-  if (!email.endsWith('@' + ALLOWED_DOMAIN) && !ADMIN_EMAILS.includes(email)) {
-    signOut(auth);
-    showLoginMsg(ALLOWED_DOMAIN + ' 계정만 사용할 수 있습니다.');
-  }
-}).catch(() => { /* 잔존 리다이렉트 오류 모두 무시 */ });
+getRedirectResult(auth).catch(() => { /* 잔존 리다이렉트 오류 모두 무시 */ });
+// 도메인·허용 계정 판정은 onAuthStateChanged에서 일괄 처리 (위 popup 분기와 동일한 이유)
 
 onAuthStateChanged(auth, async user => {
   if (!user) {
