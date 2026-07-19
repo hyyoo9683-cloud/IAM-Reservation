@@ -542,6 +542,7 @@ textarea { resize: vertical; min-height: 60px; }
 #p-home .hm-drop-item:hover{background:#F5F2EB}
 #p-home .hm-drop-ico{width:34px;height:34px;border-radius:10px;background:var(--hm-sage-soft,#E2E9E1);color:var(--hm-sage-dd,#586C60);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
 #p-home .hm-drop-name{font-size:15px;font-weight:700;color:#4F4F51}
+#p-home .hm-drop-cat{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--hm-sage-soft,#E2E9E1);color:var(--hm-sage-dd,#586C60);vertical-align:middle}
 #p-home .hm-drop-floor{font-size:12.5px;color:#9A968E;margin-top:1px}
 #p-home .hm-drop-badge{margin-left:auto;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--hm-sage-soft,#E2E9E1);color:var(--hm-sage-dd,#586C60)}
 #p-home .hm-drop-nores{padding:14px 18px;font-size:14px;color:#9A968E;text-align:center}
@@ -1936,6 +1937,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">층</div><input id="sp-floor" placeholder="예: 2층, 5층"></div>
       <div class="fg"><div class="lbl">수용 인원</div><input type="number" id="sp-cap" placeholder="명" min="1"></div>
     </div>
+    <div class="fg"><div class="lbl">카테고리 <span style="font-weight:400;color:var(--text3)">(검색용 태그, 예: 거울방)</span></div><input id="sp-category" placeholder="예: 거울방, 스튜디오"></div>
     <div class="fg"><div class="lbl">설명</div><input id="sp-desc" placeholder="간단한 공간 설명"></div>
     <div class="fg">
       <div class="lbl">의자 / 책상 수량</div>
@@ -3390,7 +3392,7 @@ function spaceCardHtml(sp, adminMode = false) {
   return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
-      <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span></div>
+      <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span>${sp.category ? `<span style="font-size:10.5px;font-weight:700;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--blue-lt);color:var(--blue);vertical-align:middle">${sp.category}</span>` : ''}</div>
       <div class="space-cap desk-only">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
       <div class="mob-only">${mobBlock}</div>
       <div class="space-amenity desk-only">${tags}</div>
@@ -3590,6 +3592,7 @@ window.openSpaceModal = (id = null) => {
     document.getElementById('sp-name').value   = sp.name;
     document.getElementById('sp-floor').value  = sp.floor || '';
     document.getElementById('sp-cap').value    = sp.cap || '';
+    document.getElementById('sp-category').value = sp.category || '';
     document.getElementById('sp-desc').value   = sp.desc || '';
     document.getElementById('sp-chairs').value = sp.chairs || '';
     document.getElementById('sp-desks').value  = sp.desks  || '';
@@ -3599,7 +3602,7 @@ window.openSpaceModal = (id = null) => {
     renderExistingPhotos();
   } else {
     document.getElementById('space-modal-title').textContent = '새 공간 추가';
-    ['sp-name', 'sp-floor', 'sp-desc'].forEach(id2 => document.getElementById(id2).value = '');
+    ['sp-name', 'sp-floor', 'sp-desc', 'sp-category'].forEach(id2 => document.getElementById(id2).value = '');
     document.getElementById('sp-cap').value = '';
     existingPhotos = [];
     document.getElementById('existing-photos').innerHTML = '';
@@ -3656,6 +3659,7 @@ window.submitSpace = async () => {
   if (!name) { T('공간 이름을 입력해주세요', '#A32D2D'); return; }
   const floor  = document.getElementById('sp-floor').value.trim();
   const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
+  const category = document.getElementById('sp-category').value.trim();
   const desc   = document.getElementById('sp-desc').value.trim();
   const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
   const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
@@ -3682,7 +3686,7 @@ window.submitSpace = async () => {
       photoUrls.push(await getDownloadURL(snap.ref));
     }
 
-    const data = { name, floor, cap, desc, chairs, desks, amenities, photos: photoUrls };
+    const data = { name, floor, cap, category, desc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
       await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
       spaces = window.spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
@@ -7196,10 +7200,12 @@ function hmSearchMatches(query) {
   if (!q) return [];
   // spaces 배열(Firestore) + 고정
   const all = [
-    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', fixed:false})),
-    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',fixed:true}))
+    ...(window.spaces || []).map(s => ({name:s.name, floor:s.floor||'', category:s.category||'', fixed:false})),
+    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,floor:'',category:'',fixed:true}))
   ];
-  const results = all.filter(s => s.name.toLowerCase().includes(q)).slice(0,6);
+  const results = all.filter(s =>
+    s.name.toLowerCase().includes(q) || (s.category && s.category.toLowerCase().includes(q))
+  ).slice(0,6);
 
   // 층 단위 검색: "5" 입력 시 해당 층에 공간이 있으면 "5층 소그룹실"을 최상단에 추가
   const floorQuery = q.replace(/층$/,'').trim();
@@ -7227,7 +7233,7 @@ window.hmSearchInput = function(val) {
     <div class="hm-drop-item" onclick="${s.isFloor ? `hmSearchSelectFloor('${s.floorValue}')` : `hmSearchSelect('${s.name.replace(/'/g,"\\'")}')`}">
       <div class="hm-drop-ico">${s.isFloor ? '🏢' : '🏠'}</div>
       <div>
-        <div class="hm-drop-name">${s.name}</div>
+        <div class="hm-drop-name">${s.name}${s.category ? `<span class="hm-drop-cat">${s.category}</span>` : ''}</div>
         ${s.floor?`<div class="hm-drop-floor">${s.floor}</div>`:''}
       </div>
       <span class="hm-drop-badge">${s.isFloor ? '층 전체 보기' : '공간 보기'}</span>
