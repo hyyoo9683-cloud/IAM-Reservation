@@ -549,6 +549,27 @@ textarea { resize: vertical; min-height: 60px; }
 /* 히어로 환영 문구 */
 #hm-eyebrow-text { min-height: 1.4em; display: block; }
 </style>
+
+<style id="iam-ext-popup-style">
+#iam-ext-popup{position:fixed;inset:0;background:rgba(30,36,32,.52);backdrop-filter:blur(3px);z-index:980;display:none;align-items:center;justify-content:center;padding:20px}
+#iam-ext-popup.open{display:flex}
+#iam-ext-popup .ep-card{background:#fff;border-radius:20px;padding:32px 28px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 56px rgba(0,0,0,.20);position:relative}
+#iam-ext-popup .ep-close{position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#9A968E;cursor:pointer;line-height:1;padding:4px}
+#iam-ext-popup .ep-ico{font-size:36px;margin-bottom:12px}
+#iam-ext-popup .ep-title{font-size:17px;font-weight:800;color:#26262A;margin-bottom:6px;letter-spacing:-.3px}
+#iam-ext-popup .ep-desc{font-size:13.5px;color:#6E6E70;margin-bottom:20px}
+#iam-ext-popup .ep-contacts{display:flex;flex-direction:column;gap:10px;margin-bottom:22px}
+#iam-ext-popup .ep-row{display:flex;align-items:center;gap:12px;background:#F5F3EC;border-radius:12px;padding:13px 16px;text-align:left}
+#iam-ext-popup .ep-row-ico{width:36px;height:36px;border-radius:10px;background:#E2E9E1;color:#586C60;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+#iam-ext-popup .ep-row-lbl{font-size:11.5px;color:#9A968E;font-weight:700;margin-bottom:2px}
+#iam-ext-popup .ep-row-val{font-size:15px;font-weight:700;color:#26262A;letter-spacing:-.2px}
+#iam-ext-popup .ep-btns{display:flex;gap:10px}
+#iam-ext-popup .ep-btns button{flex:1;padding:12px;border-radius:10px;font-size:14.5px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:background .15s}
+#iam-ext-popup .ep-cancel{background:#F0EDE6;color:#6E6E70}
+#iam-ext-popup .ep-cancel:hover{background:#E7E3DA}
+#iam-ext-popup .ep-ok{background:#6E8578;color:#fff}
+#iam-ext-popup .ep-ok:hover{background:#556A5E}
+</style>
 </head>
 <body>
 
@@ -572,6 +593,37 @@ textarea { resize: vertical; min-height: 60px; }
 </div>
 
 
+
+
+<!-- ════ 외부 신청 팝업 ════ -->
+<div id="iam-ext-popup" onclick="if(event.target===this)iamCloseExtPopup()">
+  <div class="ep-card">
+    <button class="ep-close" onclick="iamCloseExtPopup()" aria-label="닫기">×</button>
+    <div class="ep-ico">🌐</div>
+    <div class="ep-title">외부 기관 대관 신청</div>
+    <div class="ep-desc">아래 연락처로 먼저 문의해 주세요</div>
+    <div class="ep-contacts">
+      <div class="ep-row">
+        <div class="ep-row-ico">📞</div>
+        <div>
+          <div class="ep-row-lbl">Tel.</div>
+          <div class="ep-row-val">070-7018-1439</div>
+        </div>
+      </div>
+      <div class="ep-row">
+        <div class="ep-row-ico">✉️</div>
+        <div>
+          <div class="ep-row-lbl">E-mail</div>
+          <div class="ep-row-val">iamspace@suwoncca.org</div>
+        </div>
+      </div>
+    </div>
+    <div class="ep-btns">
+      <button class="ep-cancel" onclick="iamCloseExtPopup()">닫기</button>
+      <button class="ep-ok" onclick="iamCloseExtPopup()">대관 신청 (준비 중)</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════ 예약 신청 안내 팝업 ════ -->
 <div id="iam-apply-popup" onclick="if(event.target===this)iamCloseApplyPopup()">
@@ -683,7 +735,7 @@ textarea { resize: vertical; min-height: 60px; }
 
 
     <!-- ════════════════ 홈 (신규 랜딩) ════════════════ -->
-    <div class="page" id="p-home">
+    <div class="page active" id="p-home">
 
     <!-- ▼▼ IAM 홈 아이콘 스프라이트 (커스텀 라인 세트) ▼▼ -->
     <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -743,7 +795,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-contact')">문의 · 오시는 길</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('apply')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="window.open('tel:07070181439')"><div class="hm-chead" style="background:linear-gradient(135deg,#EDF3ED,#DAE6DA)"><div class="hm-badge" style="color:#586C60"><svg class="hm-ic"><use href="#hm-ic-phone"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관 신청은 전화·이메일로 문의해 주세요.</p><span class="hm-more">문의하기 →</span></div></div></div></div>
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('apply')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-building"/></svg></div></div><div class="hm-cbody"><h3>공간 안내</h3><p>아이엠센터 내 다양한 공간과 시설을 확인하세요.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3>예약 신청</h3><p>모임에 필요한 공간을 신청합니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3>예약 현황</h3><p>날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-edit"/></svg></div></div><div class="hm-cbody"><h3>예약 변경·취소</h3><p>신청한 예약을 변경하거나 취소합니다.</p><span class="hm-more">내 예약 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3>내 예약</h3><p>내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div><div class="hm-card" onclick="iamOpenExtPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-globe"/></svg></div></div><div class="hm-cbody"><h3>외부 신청</h3><p>외부 기관의 공간 사용 신청입니다. (로그인 필요)</p><span class="hm-more">신청하기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide"><div class="hm-grid"><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3>이용 수칙</h3><p>공간 이용 시 지켜야 할 기본 수칙을 확인하세요.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card" onclick="window.open('checkout.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-steps"/></svg></div></div><div class="hm-cbody"><h3>청지기 발자취</h3><p>공간을 섬기며 함께한 청지기들의 이야기를 소개합니다.</p><span class="hm-more">보러 가기 →</span></div></div><div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-shield"/></svg></div></div><div class="hm-cbody"><h3>개인정보 안내</h3><p>담당자·청지기 정보는 예약 관리 목적으로만 사용됩니다.</p><span class="hm-more">자세히 보기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-notice">
         <div class="hm-notice" id="hm-notice-dynamic"><div class="hm-notice-empty">공지사항을 불러오는 중…</div></div>
@@ -5941,6 +5993,12 @@ window.iamOpenApplyPopup = function(type) {
   if (curUser) { go('apply'); return; }
   document.getElementById('iam-apply-popup').classList.add('open');
 };
+window.iamOpenExtPopup = function() {
+  document.getElementById('iam-ext-popup').classList.add('open');
+};
+window.iamCloseExtPopup = function() {
+  document.getElementById('iam-ext-popup').classList.remove('open');
+};
 window.iamCloseApplyPopup = function() {
   document.getElementById('iam-apply-popup').classList.remove('open');
 };
@@ -5958,26 +6016,31 @@ window.iamCloseLogin = function() {
   window._pendingApply = false;
 };
 
-/* go() 후크: content-editor 진입 시 편집기 초기화 */
-const _origGo = window.go;
-window.go = function(page) {
-  _origGo(page);
-  if (page === 'content-editor') CE.initEditor();
-  if (page === 'faq') CE.renderFaqPage();
-  if (page === 'about') CE.renderAboutPage();
-};
-
-/* 앱 로드 시 공개 데이터 + FAQ/About 프리로드 */
+/* go() 래퍼 + 초기화: DOMContentLoaded에서 실행 (모듈 이후 보장) */
 document.addEventListener('DOMContentLoaded', () => {
-  // 공개 데이터 먼저 로드 (로그인 불필요)
-  loadPublicData();
-  // 홈 화면으로 시작
-  setTimeout(() => { if (typeof go === 'function') go('home'); }, 50);
+  // 모듈이 정의한 window.go를 여기서 감쌈
+  const _appGo = window.go;
+  window.go = function(page) {
+    if (page === 'apply' && typeof curUser !== 'undefined' && !curUser) {
+      window._pendingApply = true;
+      iamOpenLogin();
+      return;
+    }
+    if (typeof _appGo === 'function') _appGo(page);
+    if (page === 'content-editor') { if (typeof CE !== 'undefined') { CE.initEditor(); ceLoadNotices(); } }
+    if (page === 'faq')  { if (typeof CE !== 'undefined') CE.renderFaqPage(); }
+    if (page === 'about'){ if (typeof CE !== 'undefined') CE.renderAboutPage(); }
+    if (page === 'home') { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }
+  };
+  // 공개 데이터 로드
+  if (typeof loadPublicData === 'function') loadPublicData();
   // FAQ/About 프리로드
-  CE.loadFaq().then(items => { CE.faqItems = items; CE.renderFaqPage(); });
-  CE.renderAboutPage();
+  if (typeof CE !== 'undefined') {
+    CE.loadFaq().then(items => { CE.faqItems = items; CE.renderFaqPage(); });
+    CE.renderAboutPage();
+  }
   // 공지 로드
-  setTimeout(hmLoadNotices, 800);
+  setTimeout(() => { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }, 800);
 });
 </script>
 <script>
@@ -6199,29 +6262,7 @@ window.hmRouteToApply = function(roomName) {
   setTimeout(() => trySelect(10), 100);
 };
 
-/* ─── go() 후크 확장 ─── */
-const _ceOrigGo = window.go;
-window.go = function(page) {
-  // 예약 신청: 로그인 게이트
-  if (page === 'apply' && !curUser) {
-    window._pendingApply = true;
-    iamOpenLogin();
-    return;
-  }
-  _ceOrigGo(page);
-  if (page === 'content-editor') { CE.initEditor(); ceLoadNotices(); }
-  if (page === 'faq') CE.renderFaqPage();
-  if (page === 'about') CE.renderAboutPage();
-  if (page === 'home') hmLoadNotices();
-};
-
-/* 앱 로드 시 공지 프리로드 */
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof orderBy === 'undefined') {
-    // Firestore orderBy는 window._fb에서 사용, 여기선 로드 후 호출
-  }
-  setTimeout(hmLoadNotices, 1200); // Firebase 초기화 이후
-});
+/* go() 후크: 위 DOMContentLoaded 블록에서 통합 처리 */
 </script>
 </body>
 </html>
