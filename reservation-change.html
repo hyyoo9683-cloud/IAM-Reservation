@@ -100,9 +100,9 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     </div>
     <div class="fl">
       <div class="field"><div class="lbl">시작 시간</div>
-        <input type="time" id="f-start"></div>
+        <select id="f-start"></select></div>
       <div class="field"><div class="lbl">종료 시간</div>
-        <input type="time" id="f-end"></div>
+        <select id="f-end"></select></div>
     </div>
     <div class="field"><div class="lbl">모임명 / 담당자 이름</div>
       <input id="f-purpose" placeholder="예약 시 등록한 모임명 또는 담당자 이름"></div>
@@ -154,6 +154,27 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 let curType = '변경';
+
+// 예약 신청과 동일하게 30분 단위, 07:00~22:00 범위로 시간 선택
+const SLOTS = [];
+for (let h = 7; h <= 22; h++) {
+  SLOTS.push(String(h).padStart(2, '0') + ':00');
+  if (h < 22) SLOTS.push(String(h).padStart(2, '0') + ':30');
+}
+const buildStartOpts = () =>
+  '<option value="">선택 안 함</option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+const buildEndOpts = (start) =>
+  '<option value="">선택 안 함</option>' + SLOTS.filter(s => !start || s > start).map(s => `<option value="${s}">${s}</option>`).join('');
+
+document.getElementById('f-start').innerHTML = buildStartOpts();
+document.getElementById('f-end').innerHTML = buildEndOpts('');
+document.getElementById('f-start').addEventListener('change', () => {
+  const startVal = document.getElementById('f-start').value;
+  const endEl = document.getElementById('f-end');
+  const prevEnd = endEl.value;
+  endEl.innerHTML = buildEndOpts(startVal);
+  if (prevEnd && prevEnd > startVal) endEl.value = prevEnd;
+});
 
 window.selectType = (type) => {
   curType = type;
