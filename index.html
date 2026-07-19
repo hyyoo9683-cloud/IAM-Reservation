@@ -437,6 +437,22 @@ textarea { resize: vertical; min-height: 60px; }
 #p-about .ab-floor-dot.active{background:var(--ab-sage);width:18px;border-radius:4px}
 #p-about .ab-floor-size-sm .ab-p{font-size:13px}
 #p-about .ab-floor-size-md .ab-p{font-size:15px}
+
+/* 공간 안내 상세 팝업: 사진 캐러셀 + 가운데 정렬 */
+#modal-space-detail .modal-title{text-align:center}
+#modal-space-detail #sd-body{text-align:center}
+#modal-space-detail .sd-carousel{position:relative;margin-bottom:16px}
+#modal-space-detail .sd-photo{position:relative;cursor:zoom-in;width:100%}
+#modal-space-detail .sd-photo img{width:100%;aspect-ratio:16/9;height:auto;object-fit:cover;border-radius:14px;background:var(--bg2);display:block}
+#modal-space-detail .sd-nav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#modal-space-detail .sd-nav:hover{background:rgba(0,0,0,.65)}
+#modal-space-detail .sd-nav.prev{left:10px}
+#modal-space-detail .sd-nav.next{right:10px}
+#modal-space-detail .sd-count{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.5);color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px}
+#modal-space-detail .sd-dots{display:flex;justify-content:center;gap:6px;margin-top:10px}
+#modal-space-detail .sd-dot{width:7px;height:7px;border-radius:50%;background:var(--border2);cursor:pointer;border:none;padding:0}
+#modal-space-detail .sd-dot.active{background:var(--blue);width:18px;border-radius:4px}
+#modal-space-detail .space-amenity{display:flex;justify-content:center;flex-wrap:wrap}
 #p-about .ab-floor-size-lg .ab-p{font-size:18px}
 #p-about .ab-floor-size-xl .ab-p{font-size:22px}
 #p-about .ab-floor-title{font-size:20px;font-weight:800;color:var(--ab-ink);letter-spacing:-.3px;margin-bottom:8px}
@@ -1995,9 +2011,9 @@ textarea { resize: vertical; min-height: 60px; }
 <div class="modal-bg" id="modal-space-detail">
   <div class="modal" style="max-width:680px;width:94%">
     <div class="modal-title" id="sd-title" style="font-size:22px"></div>
-    <div id="sd-photos" style="display:flex;gap:10px;overflow-x:auto;margin-bottom:16px"></div>
+    <div id="sd-photos"></div>
     <div id="sd-body" style="font-size:15.5px"></div>
-    <div id="sd-actions" style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+    <div id="sd-actions" style="margin-top:16px;display:flex;gap:8px;justify-content:center">
       <button class="btn btn-ghost" onclick="closeModal('modal-space-detail')">닫기</button>
     </div>
   </div>
@@ -3654,13 +3670,47 @@ window.runAvailSearch = () => {
   renderSpaces();
 };
 
+let sdPhotos = [];
+let sdPhotoIdx = 0;
+
+function renderSdPhotos() {
+  const el = document.getElementById('sd-photos');
+  if (!el) return;
+  if (!sdPhotos.length) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text3);font-size:13px;margin-bottom:16px">등록된 사진 없음</div>';
+    return;
+  }
+  const total = sdPhotos.length;
+  const idx = Math.min(sdPhotoIdx, total - 1);
+  const url = sdPhotos[idx];
+  const dots = total > 1
+    ? `<div class="sd-dots">${sdPhotos.map((_, i) => `<button type="button" class="sd-dot${i === idx ? ' active' : ''}" onclick="sdPhotoGo(${i})" aria-label="${i + 1}번째 사진"></button>`).join('')}</div>`
+    : '';
+  el.innerHTML = `<div class="sd-carousel">
+    <div class="sd-photo" onclick="zoomImg('${(url || '').replace(/'/g, "\\'")}')">
+      <img src="${url}" alt="" loading="lazy">
+      ${total > 1 ? `<button type="button" class="sd-nav prev" onclick="event.stopPropagation();sdPhotoNav(-1)" aria-label="이전 사진">‹</button>
+      <button type="button" class="sd-nav next" onclick="event.stopPropagation();sdPhotoNav(1)" aria-label="다음 사진">›</button>
+      <div class="sd-count">${idx + 1} / ${total}</div>` : ''}
+    </div>
+    ${dots}
+  </div>`;
+}
+
+window.sdPhotoNav = (dir) => {
+  if (!sdPhotos.length) return;
+  const total = sdPhotos.length;
+  sdPhotoIdx = (sdPhotoIdx + dir + total) % total;
+  renderSdPhotos();
+};
+window.sdPhotoGo = (idx) => { sdPhotoIdx = idx; renderSdPhotos(); };
+
 window.openSpaceDetail = (id) => {
   const sp = spaces.find(s => s.id === id); if (!sp) return;
   document.getElementById('sd-title').textContent = sp.name + (sp.floor ? ' · ' + sp.floor : '');
-  const photos = sp.photos && sp.photos.length
-    ? sp.photos.map(url => `<img src="${url}" alt="" loading="lazy" style="height:280px;border-radius:10px;flex-shrink:0;object-fit:cover">`).join('')
-    : '<span style="color:var(--text3);font-size:13px">등록된 사진 없음</span>';
-  document.getElementById('sd-photos').innerHTML = photos;
+  sdPhotos = sp.photos || [];
+  sdPhotoIdx = 0;
+  renderSdPhotos();
   const countTags = [
     sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
     sp.desks  > 0 ? `책상 ${sp.desks}개`  : null,
