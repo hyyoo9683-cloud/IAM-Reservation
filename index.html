@@ -578,6 +578,7 @@ textarea { resize: vertical; min-height: 60px; }
 /* 미로그인: 사이드바 숨김 */
 .shell.no-sidebar .sidebar { display: none !important; }
 .shell.no-sidebar .main    { max-width: 100%; padding: 0; }
+.shell.no-sidebar #mobile-hamburger { display: none !important; }
 /* 히어로 환영 문구 */
 #hm-eyebrow-text { min-height: 1.4em; display: block; font-family: var(--hm-sans); font-style: normal; font-weight: 800; }
 </style>
@@ -2545,6 +2546,7 @@ function buildReportYearSelect() {
 
 // ── 모바일 사이드바 드로어 ─────────────────────────────────────────
 window.toggleSidebar = () => {
+  if (document.querySelector('.shell').classList.contains('no-sidebar')) return;
   document.querySelector('.sidebar').classList.toggle('open');
   document.getElementById('sidebar-overlay').classList.toggle('open');
 };
