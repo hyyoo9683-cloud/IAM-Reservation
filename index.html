@@ -2101,7 +2101,8 @@ textarea { resize: vertical; min-height: 60px; }
 <div class="modal-bg" id="modal-purpose-cat">
   <div class="modal" style="max-width:520px;width:96%">
     <div class="modal-title">모임 목적 카테고리 편집</div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">카테고리 이름과 매칭 키워드(쉼표로 구분)를 설정합니다. 예약 목적 텍스트에 키워드가 포함되면 해당 카테고리로 분류됩니다.</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">카테고리 이름과 매칭 키워드(쉼표로 구분)를 설정합니다. 예약 목적 텍스트에 키워드가 포함되면 해당 카테고리로 분류됩니다.<br>
+      <b style="color:var(--text2)">위에 있는 카테고리가 먼저 검사됩니다</b> — 목적에 여러 키워드가 동시에 포함된 경우(예: "모임"과 "예배"가 같이 있는 경우), 더 우선하고 싶은 카테고리를 ↑ 버튼으로 위로 올려주세요.</div>
     <div id="purpose-cat-list" style="max-height:400px;overflow-y:auto"></div>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="addPurposeCatRow()">+ 카테고리 추가</button>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -5762,7 +5763,11 @@ function renderPurposeCatList() {
                oninput="purposeCatTmp[${i}].color=this.value">
         <input value="${c.name}" placeholder="카테고리명" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600"
                oninput="purposeCatTmp[${i}].name=this.value">
-        <button onclick="deletePurposeCatRow(${i})" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">✕</button>
+        <div style="margin-left:auto;display:flex;gap:2px;flex-shrink:0">
+          ${i > 0 ? `<button onclick="movePurposeCatRow(${i},-1)" title="위로 (먼저 검사됨)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1">↑</button>` : ''}
+          ${i < list.length - 1 ? `<button onclick="movePurposeCatRow(${i},1)" title="아래로" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1">↓</button>` : ''}
+          <button onclick="deletePurposeCatRow(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1">✕</button>
+        </div>
       </div>
       <div style="display:grid;gap:5px">
         <div style="display:flex;align-items:center;gap:6px">
@@ -5784,11 +5789,19 @@ function renderPurposeCatList() {
     </div>`).join('');
 }
 window.addPurposeCatRow = () => {
-  (window.purposeCatTmp = window.purposeCatTmp || []).push({ name: '', keywords: [], rooms: [], orgs: [], color: '#4F9DD0' });
+  // 위쪽(먼저 검사되는 순서)에 추가 — 새로 추가한 카테고리가 기존 카테고리보다 먼저 매칭되도록 함
+  (window.purposeCatTmp = window.purposeCatTmp || []).unshift({ name: '', keywords: [], rooms: [], orgs: [], color: '#4F9DD0' });
   renderPurposeCatList();
 };
 window.deletePurposeCatRow = (i) => {
   (window.purposeCatTmp || []).splice(i, 1);
+  renderPurposeCatList();
+};
+window.movePurposeCatRow = (i, dir) => {
+  const list = window.purposeCatTmp || [];
+  const j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  [list[i], list[j]] = [list[j], list[i]];
   renderPurposeCatList();
 };
 window.savePurposeCats = () => {
