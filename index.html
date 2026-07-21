@@ -5,6 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>공간 예약 시스템 — 아이엠센터</title>
 
+<!-- ══════════════════════════════════════════════════════════════
+     📧 예약 신청 알림 이메일 설정 (EmailJS)
+     1) https://www.emailjs.com 무료 가입
+     2) Email Services 에서 서비스 추가(Gmail 등 연결) → Service ID 확인
+     3) Email Templates 에서 템플릿 생성, "To Email" 필드에 {{to_email}} 입력,
+        본문에 {{org}} {{manager}} {{steward_name}} {{steward_tel}} {{room}}
+        {{dates}} {{time_range}} {{people}} {{purpose}} {{submitted_by}} 등 사용
+        → Template ID 확인
+     4) Account → General 에서 Public Key 확인
+     5) 아래 세 값과 알림 받을 이메일을 입력하면 즉시 동작 (값을 채우기 전까진 조용히 무시됨)
+════════════════════════════════════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+  window.EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+  window.EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+  window.EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+  window.NOTIFY_EMAILS = ['hyyoo9683@gmail.com'];
+  window.notifyNewReservation = function(params) {
+    if (!window.emailjs || window.EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') return;
+    try {
+      emailjs.init({ publicKey: window.EMAILJS_PUBLIC_KEY });
+      emailjs.send(window.EMAILJS_SERVICE_ID, window.EMAILJS_TEMPLATE_ID, {
+        to_email: (window.NOTIFY_EMAILS || []).join(','),
+        ...params
+      }).catch(e => console.error('예약 알림 이메일 발송 실패:', e));
+    } catch (e) { console.error('예약 알림 이메일 발송 실패:', e); }
+  };
+</script>
+
 <!-- Firebase SDK (v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
@@ -4285,6 +4314,14 @@ window.submitApply = async () => {
         ...baseData,
         date: dates[i],
         history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${dates.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
+      });
+    }
+
+    if (typeof window.notifyNewReservation === 'function') {
+      window.notifyNewReservation({
+        org: type, manager, steward_name: sName, steward_tel: sTel,
+        room, dates: dates.join(', '), time_range: `${start} - ${end}`,
+        people, purpose, submitted_by: curUser?.email || ''
       });
     }
 
