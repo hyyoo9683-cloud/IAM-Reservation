@@ -5,35 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>공간 예약 시스템 — 아이엠센터</title>
 
-<!-- ══════════════════════════════════════════════════════════════
-     📧 예약 신청 알림 이메일 설정 (EmailJS)
-     1) https://www.emailjs.com 무료 가입
-     2) Email Services 에서 서비스 추가(Gmail 등 연결) → Service ID 확인
-     3) Email Templates 에서 템플릿 생성, "To Email" 필드에 {{to_email}} 입력,
-        본문에 {{org}} {{manager}} {{steward_name}} {{steward_tel}} {{room}}
-        {{dates}} {{time_range}} {{people}} {{purpose}} {{submitted_by}} 등 사용
-        → Template ID 확인
-     4) Account → General 에서 Public Key 확인
-     5) 아래 세 값과 알림 받을 이메일을 입력하면 즉시 동작 (값을 채우기 전까진 조용히 무시됨)
-════════════════════════════════════════════════════════════════ -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>
-  window.EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
-  window.EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
-  window.EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-  window.NOTIFY_EMAILS = ['hyyoo9683@gmail.com'];
-  window.notifyNewReservation = function(params) {
-    if (!window.emailjs || window.EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') return;
-    try {
-      emailjs.init({ publicKey: window.EMAILJS_PUBLIC_KEY });
-      emailjs.send(window.EMAILJS_SERVICE_ID, window.EMAILJS_TEMPLATE_ID, {
-        to_email: (window.NOTIFY_EMAILS || []).join(','),
-        ...params
-      }).catch(e => console.error('예약 알림 이메일 발송 실패:', e));
-    } catch (e) { console.error('예약 알림 이메일 발송 실패:', e); }
-  };
-</script>
-
 <!-- Firebase SDK (v10) -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
@@ -2319,6 +2290,14 @@ function nowStr() {
 function sameEmail(a, b) {
   return !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
 }
+// 당일 예약 및 전날 20시 이후의 익일 예약은 온라인 신청 차단 (유선/카카오톡 문의 유도)
+function isLastMinuteDate(dateStr) {
+  const now = new Date();
+  if (dateStr === tsToday()) return true;
+  const tomorrow = toDateStr(new Date(now.getTime() + 86400000));
+  if (dateStr === tomorrow && now.getHours() >= 20) return true;
+  return false;
+}
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
@@ -4264,6 +4243,16 @@ window.submitApply = async () => {
 
   let dates = isMulti ? [...multiDates] : isRecur ? generateAvailDates(date, endDate, recur) : [date];
 
+  const lastMinuteDates = dates.filter(d => isLastMinuteDate(d));
+  if (lastMinuteDates.length > 0) {
+    document.getElementById('info-icon').textContent  = '⏰';
+    document.getElementById('info-title').textContent = '당일 예약은 온라인 신청이 어렵습니다';
+    document.getElementById('info-body').textContent  =
+      `모든 예약은 최소 3일 전 신청을 부탁드립니다.\n\n${lastMinuteDates.join(', ')} 예약은 당일 신청이 어려워 온라인으로 접수해드리기 어렵습니다.\n유선(070-7018-1439) 또는 카카오톡 채널 '아이엠센터'로 문의해 주시기 바랍니다.`;
+    openModal('modal-info');
+    return;
+  }
+
   // 차단일: 단일 날짜면 차단, 정기/비정기면 해당 날짜만 제외하고 계속
   if (!isRecur && !isMulti) {
     const bd = getBlockedInfo(dates[0]);
@@ -4314,14 +4303,6 @@ window.submitApply = async () => {
         ...baseData,
         date: dates[i],
         history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${dates.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
-      });
-    }
-
-    if (typeof window.notifyNewReservation === 'function') {
-      window.notifyNewReservation({
-        org: type, manager, steward_name: sName, steward_tel: sTel,
-        room, dates: dates.join(', '), time_range: `${start} - ${end}`,
-        people, purpose, submitted_by: curUser?.email || ''
       });
     }
 
