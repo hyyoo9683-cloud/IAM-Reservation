@@ -2298,13 +2298,12 @@ function isLastMinuteDate(dateStr) {
   if (dateStr === tomorrow && now.getHours() >= 20) return true;
   return false;
 }
-function showLastMinuteNotice(dateLabel) {
+function showLastMinuteNotice() {
   document.getElementById('info-icon').textContent  = '⏰';
   document.getElementById('info-title').textContent = '당일 예약은 온라인 신청이 어렵습니다';
   document.getElementById('info-body').innerHTML =
-    `${dateLabel} 예약은 당일 신청이 어려워 온라인으로 접수해드리기 어렵습니다.<br>` +
-    `유선(070-7018-1439) 또는 카카오톡 채널 '아이엠센터'로 문의해 주시기 바랍니다.<br>` +
-    `<b>모든 예약은 최소 2일 전 신청을 부탁드립니다.</b>`;
+    `<b>모든 예약은 최소 2일 전 신청을 부탁드립니다.</b><br>` +
+    `예약을 희망하실 경우, 유선 또는 카카오톡 채널 '아이엠센터'로 문의해주시기 바랍니다. (070-7018-1439)`;
   openModal('modal-info');
 }
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
@@ -4254,7 +4253,7 @@ window.submitApply = async () => {
 
   const lastMinuteDates = dates.filter(d => isLastMinuteDate(d));
   if (lastMinuteDates.length > 0) {
-    showLastMinuteNotice(lastMinuteDates.join(', '));
+    showLastMinuteNotice();
     return;
   }
 
@@ -4333,7 +4332,7 @@ window.submitApply = async () => {
 // ── 예약 현황 캘린더 빈 셀 클릭 → 빠른 예약 신청 ──────────────────
 window.openQuickApply = (room, date) => {
   if (!curUser) return;
-  if (isLastMinuteDate(date)) { showLastMinuteNotice(date); return; }
+  if (isLastMinuteDate(date)) { showLastMinuteNotice(); return; }
   const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
   const dow = dowNames[new Date(date + 'T00:00:00').getDay()];
   document.getElementById('qa-room').value = room;
@@ -4368,7 +4367,7 @@ window.submitQuickApply = async () => {
 
   if (isLastMinuteDate(date)) {
     closeModal('modal-quick-apply');
-    showLastMinuteNotice(date);
+    showLastMinuteNotice();
     return;
   }
 
