@@ -1458,7 +1458,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="lst-tab-반려"  onclick="setListTab('반려')">취소</button>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-        <input id="fname" placeholder="이름·공간·목적 검색" style="width:180px" onkeydown="if(event.key==='Enter')filterRenderList()">
+        <input id="fname" placeholder="이름·공간·목적·연락처 검색" style="width:180px" onkeydown="if(event.key==='Enter')filterRenderList()">
         <select id="fr" onchange="filterRenderList()" style="width:110px"><option value="">전체 공간</option></select>
         <select id="ft" onchange="filterRenderList()" style="width:140px"><option value="">전체 기관</option></select>
         <select id="f-suborg" onchange="filterRenderList()" style="width:130px">
@@ -5447,8 +5447,10 @@ window.renderList = function renderList() {
   }
 
   let data = [...reservations];
+  const fqDigits = fq.replace(/\D/g, '');
   if (fq) data = data.filter(r =>
-    (r.managerName + ' ' + r.stewardName + ' ' + r.room + ' ' + r.purpose).toLowerCase().includes(fq)
+    (r.managerName + ' ' + r.stewardName + ' ' + r.room + ' ' + r.purpose).toLowerCase().includes(fq) ||
+    (fqDigits && (r.stewardTel || '').replace(/\D/g, '').includes(fqDigits))
   );
   if (listStatusTab) data = data.filter(r => listStatusTab === '반려' ? (r.status === '반려' || r.status === '취소') : r.status === listStatusTab);
   if (listWeekFilter) data = data.filter(r => r.date >= weekStart && r.date <= weekEnd);
