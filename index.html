@@ -4063,7 +4063,12 @@ window.checkAvail = () => {
   const start = document.getElementById('m-start').value;
   const end   = document.getElementById('m-end').value;
   const el    = document.getElementById('m-avail');
-  if (!room || !date || !start || !end) { el.innerHTML = ''; return; }
+  if (!date) { el.innerHTML = ''; return; }
+  if (isLastMinuteDate(date)) {
+    el.innerHTML = `<div class="avail-no">당일 예약은 신청이 어렵습니다. (문의 070-7018-1439 / 카카오톡 채널 '아이엠센터')</div>`;
+    return;
+  }
+  if (!room || !start || !end) { el.innerHTML = ''; return; }
 
   // 차단일 확인 (단일 날짜)
   const bd = getBlockedInfo(date);
