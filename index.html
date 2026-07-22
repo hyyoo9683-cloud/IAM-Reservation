@@ -2777,7 +2777,9 @@ window.renderChangeRequests = () => {
         </div>
         <div style="font-size:11px;color:var(--text3)">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
       </div>
-      ${r.purpose ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">모임명/담당자: ${r.purpose.replace(/</g,'&lt;')}</div>` : ''}
+      ${(r.purpose || r.managerName) ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">
+        ${r.purpose ? `모임명: ${r.purpose.replace(/</g,'&lt;')}` : ''}${r.purpose && r.managerName ? ' · ' : ''}${r.managerName ? `담당자: ${r.managerName.replace(/</g,'&lt;')}` : ''}
+      </div>` : ''}
       ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
       ${!isCancel ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px">
         <label style="font-size:11px;color:var(--text3);white-space:nowrap">변경된 장소</label>

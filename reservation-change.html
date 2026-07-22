@@ -104,8 +104,12 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
       <div class="field"><div class="lbl">종료 시간</div>
         <select id="f-end"></select></div>
     </div>
-    <div class="field"><div class="lbl">모임명 또는 담당자 이름</div>
-      <input id="f-purpose" placeholder="예약 시 등록한 모임명 또는 담당자 이름 중 하나만 입력"></div>
+    <div class="fl">
+      <div class="field"><div class="lbl">모임명</div>
+        <input id="f-purpose" placeholder="예약 시 등록한 모임명"></div>
+      <div class="field"><div class="lbl">담당자 이름</div>
+        <input id="f-manager" placeholder="예약 담당자 이름"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -221,6 +225,7 @@ window.submitRequest = async () => {
     start: g('f-start').value || '',
     end:   g('f-end').value   || '',
     purpose: g('f-purpose').value.trim(),
+    managerName: g('f-manager').value.trim(),
     detail:  g('f-detail').value.trim(),
     requesterName: name,
     requesterTel:  tel,
