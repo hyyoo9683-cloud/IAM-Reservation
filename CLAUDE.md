@@ -82,6 +82,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 ## 정기 예약 (allSeries) 처리
 - `recurGroup` 필드로 같은 시리즈 예약들이 연결됨
 - 수정 모달에서 "전체 N회 모두 수정" 체크박스(`e-all-series`) 선택 시 allSeries 모드
+- "적용 시작일"(`e-series-from-date`, 기본값 현재 수정 중인 회차의 날짜)을 지정하면 그 이전 회차는 그대로 두고 이후 회차만 수정됨 (예: 6/6~10/17 시리즈에서 7/25부터만 공간·시간 변경)
 - `dateDeltaMs`로 날짜 이동 delta 계산, `getEffDate(x)`로 각 건의 이동된 날짜 반환
 - 충돌되는 건은 제외하고 가능한 건만 업데이트, 충돌 건은 모달로 안내
 - 대안 공간 추천 기능 포함

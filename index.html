@@ -5061,6 +5061,11 @@ window.openEditModal = (id) => {
         </label>
         <div id="e-all-series-opts" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
           <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:600;white-space:nowrap">적용 시작일</span>
+            <input type="date" id="e-series-from-date" value="${r.date}" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap">이전 회차는 그대로 유지</span>
+          </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:11px;font-weight:600;white-space:nowrap">종료 날짜 변경</span>
             <input type="date" id="e-series-end-date" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
@@ -5174,6 +5179,13 @@ window.submitEdit = async () => {
               }
             }
           }
+        }
+
+        // 적용 시작일: 이 날짜 이전 회차는 수정 대상에서 제외 (그대로 유지)
+        const fromDate = document.getElementById('e-series-from-date')?.value || series[0].date;
+        activeSeries = activeSeries.filter(x => x.date >= fromDate);
+        if (activeSeries.length === 0) {
+          T('적용 시작일 이후의 회차가 없습니다', '#A32D2D'); return;
         }
 
         // 날짜 변경 시 전체 회차를 동일 간격으로 이동 (예: 일요일→월요일이면 모든 회차 +1일)
