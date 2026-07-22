@@ -2298,6 +2298,15 @@ function isLastMinuteDate(dateStr) {
   if (dateStr === tomorrow && now.getHours() >= 20) return true;
   return false;
 }
+function showLastMinuteNotice(dateLabel) {
+  document.getElementById('info-icon').textContent  = '⏰';
+  document.getElementById('info-title').textContent = '당일 예약은 온라인 신청이 어렵습니다';
+  document.getElementById('info-body').innerHTML =
+    `${dateLabel} 예약은 당일 신청이 어려워 온라인으로 접수해드리기 어렵습니다.<br>` +
+    `유선(070-7018-1439) 또는 카카오톡 채널 '아이엠센터'로 문의해 주시기 바랍니다.<br>` +
+    `<b>모든 예약은 최소 2일 전 신청을 부탁드립니다.</b>`;
+  openModal('modal-info');
+}
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
@@ -4245,11 +4254,7 @@ window.submitApply = async () => {
 
   const lastMinuteDates = dates.filter(d => isLastMinuteDate(d));
   if (lastMinuteDates.length > 0) {
-    document.getElementById('info-icon').textContent  = '⏰';
-    document.getElementById('info-title').textContent = '당일 예약은 온라인 신청이 어렵습니다';
-    document.getElementById('info-body').textContent  =
-      `모든 예약은 최소 3일 전 신청을 부탁드립니다.\n\n${lastMinuteDates.join(', ')} 예약은 당일 신청이 어려워 온라인으로 접수해드리기 어렵습니다.\n유선(070-7018-1439) 또는 카카오톡 채널 '아이엠센터'로 문의해 주시기 바랍니다.`;
-    openModal('modal-info');
+    showLastMinuteNotice(lastMinuteDates.join(', '));
     return;
   }
 
@@ -4328,6 +4333,7 @@ window.submitApply = async () => {
 // ── 예약 현황 캘린더 빈 셀 클릭 → 빠른 예약 신청 ──────────────────
 window.openQuickApply = (room, date) => {
   if (!curUser) return;
+  if (isLastMinuteDate(date)) { showLastMinuteNotice(date); return; }
   const dowNames = ['일', '월', '화', '수', '목', '금', '토'];
   const dow = dowNames[new Date(date + 'T00:00:00').getDay()];
   document.getElementById('qa-room').value = room;
@@ -4362,11 +4368,7 @@ window.submitQuickApply = async () => {
 
   if (isLastMinuteDate(date)) {
     closeModal('modal-quick-apply');
-    document.getElementById('info-icon').textContent  = '⏰';
-    document.getElementById('info-title').textContent = '당일 예약은 온라인 신청이 어렵습니다';
-    document.getElementById('info-body').textContent  =
-      `모든 예약은 최소 3일 전 신청을 부탁드립니다.\n\n${date} 예약은 당일 신청이 어려워 온라인으로 접수해드리기 어렵습니다.\n유선(070-7018-1439) 또는 카카오톡 채널 '아이엠센터'로 문의해 주시기 바랍니다.`;
-    openModal('modal-info');
+    showLastMinuteNotice(date);
     return;
   }
 
