@@ -2779,6 +2779,11 @@ window.renderChangeRequests = () => {
       </div>
       ${r.purpose ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">모임명/담당자: ${r.purpose.replace(/</g,'&lt;')}</div>` : ''}
       ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
+      ${!isCancel ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+        <label style="font-size:11px;color:var(--text3);white-space:nowrap">변경된 장소</label>
+        <input type="text" id="cr-newroom-${r.id}" value="${(r.newRoom||'').replace(/"/g,'&quot;')}" placeholder="비워두면 기존 장소로 안내"
+          style="flex:1;max-width:200px;font-size:12px;padding:5px 8px" onchange="setChangeReqNewRoom('${r.id}', this.value)">
+      </div>` : ''}
       <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
@@ -2798,13 +2803,20 @@ window.setChangeReqStatus = async (id, status) => {
   } catch (e) { T('처리 실패: ' + e.message, '#A32D2D'); }
 };
 
+window.setChangeReqNewRoom = async (id, value) => {
+  try {
+    await updateDoc(doc(db, 'changeRequests', id), { newRoom: value.trim() });
+  } catch (e) { T('저장 실패: ' + e.message, '#A32D2D'); }
+};
+
 window.openChangeSmsModal = (reqId, type) => {
   const r = changeRequests.find(x => x.id === reqId);
   if (!r) return;
   const isCancel = r.requestType === '취소';
-  const room = roomToSmsName(r.room || '');
+  const room = roomToSmsName(r.newRoom || r.room || '');
   const time = (r.start && r.end) ? `${r.start}-${r.end}` : (r.start || r.end || '');
   const ilsi = r.date ? `${dateToSmsFormat(r.date)}${time ? ' ' + time : ''}` : '';
+  const meetingName = (r.purpose || '').split('/')[0].trim();
 
   const header  = isCancel ? '[예약취소 알림]' : '[예약변경 알림]';
   const bodyMsg = isCancel ? '신청하신 예약이 취소되었습니다.' : '신청하신 예약이 변경되었습니다.';
@@ -2815,7 +2827,7 @@ ${bodyMsg}
 
 장소: ${room}
 일시: ${ilsi}
-모임명: ${r.purpose || ''}`;
+모임명: ${meetingName}`;
 
   let text = '';
   if (type === 'sms') {
