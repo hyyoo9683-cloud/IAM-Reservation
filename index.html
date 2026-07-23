@@ -5464,10 +5464,12 @@ function renderDashboard() {
         const done  = items.filter(i => i.checked).length;
         const total = items.length;
         const allDone = total > 0 && done === total;
+        const dateLabel = occDate === today ? '오늘' : occDate.slice(5).replace('-','/');
+        const timeLabel = (c.start || c.end) ? ` ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
         return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
           <span style="background:var(--blue-lt);color:var(--blue);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(c.room||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
           <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'(제목 없음)').replace(/</g,'&lt;')}</span>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${occDate === today ? '오늘' : occDate.slice(5).replace('-','/')}</span>
           <span style="font-size:11px;font-weight:700;color:${allDone ? 'var(--green)' : 'var(--text2)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
         </div>`;
       }).join('');
