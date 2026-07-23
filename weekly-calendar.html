@@ -141,6 +141,9 @@ function render() {
     const items = reservations
       .filter(r => cat.rooms.includes(r.room) && r.date === ds && r.status === '확정')
       .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+    const rangeLabel = items.length
+      ? ` · ${items[0].start}-${items.reduce((max, r) => r.end > max ? r.end : max, items[0].end)}`
+      : '';
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
@@ -149,7 +152,7 @@ function render() {
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
           </div>`).join('');
-    return `<div class="cat"><div class="cat-hd">${cat.label}</div><div class="cat-body">${body}</div></div>`;
+    return `<div class="cat"><div class="cat-hd">${cat.label}${rangeLabel}</div><div class="cat-body">${body}</div></div>`;
   }).join('');
 
   document.getElementById('body').innerHTML = html;
