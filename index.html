@@ -1445,6 +1445,8 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
       <div class="card"><div class="card-title">변경·취소 신청 대기</div><div id="pending-change-list"></div></div>
       <div class="card"><div class="card-title">오늘의 체크리스트</div><div id="today-checklist-list"></div></div>
+      <div class="card"><div class="card-title">대관 신청</div><div id="venue-request-list"></div></div>
+      <div class="card"><div class="card-title">청지기 퇴실 체크</div><div id="checkout-list"></div></div>
       <div class="card"><div class="card-title">최근 예약</div><div id="recent-list"></div></div>
     </div>
 
@@ -2142,6 +2144,8 @@ let reservations = [], spaces = [];
 window.spaces = spaces;
 let changeRequests = [];
 let eventChecklists = [];
+let venueRequests = [];
+let checkouts = [];
 let changeReqTab = '';
 let curPage = 'spaces';
 let editId = null;
@@ -2569,6 +2573,16 @@ async function loadData() {
 
   onSnapshot(collection(db, 'eventChecklists'), snap => {
     eventChecklists = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (curPage === 'dashboard') renderDashboard();
+  }, () => {});
+
+  onSnapshot(collection(db, 'venue_requests'), snap => {
+    venueRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (curPage === 'dashboard') renderDashboard();
+  }, () => {});
+
+  onSnapshot(collection(db, 'checkouts'), snap => {
+    checkouts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (curPage === 'dashboard') renderDashboard();
   }, () => {});
 
@@ -4952,6 +4966,9 @@ const MSG_FOOTER = `[THE GREAT I AM
 IAM center]
 담당자 070.7018.1439`;
 
+// checkout.html/checkouts.html의 CHK_LABELS 키와 동일 (퇴실 체크 완료 항목 판별용)
+const CHECKOUT_KEYS = ['trash', 'furniture', 'equipment', 'power', 'nodamage'];
+
 function roomToSmsName(room) {
   const m = room.match(/^(\d+)호$/);
   return m ? `I-${m[1]}` : room;
@@ -5422,6 +5439,31 @@ function renderDashboard() {
       }).join('');
 
   const createdMs = r => r.createdAt?.toDate ? r.createdAt.toDate().getTime() : 0;
+
+  const newVenueReqs = venueRequests.filter(v => v.status === '접수').sort((a, b) => createdMs(b) - createdMs(a));
+  document.getElementById('venue-request-list').innerHTML = !newVenueReqs.length
+    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">새로 접수된 대관 신청이 없습니다</div>'
+    : newVenueReqs.map(v => `
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('venue.html','_blank')">
+          <span style="background:#E6F1FB;color:#185FA5;font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(v.space||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(v.orgName||'').replace(/</g,'&lt;')} · ${(v.eventName||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${v.eventDate || v.dateIn || ''}</span>
+        </div>`).join('');
+
+  const createdMs2 = c => c.submittedAt?.toDate ? c.submittedAt.toDate().getTime() : 0;
+  const recentCheckouts = [...checkouts].sort((a, b) => createdMs2(b) - createdMs2(a)).slice(0, 6);
+  document.getElementById('checkout-list').innerHTML = !recentCheckouts.length
+    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">제출된 퇴실 체크가 없습니다</div>'
+    : recentCheckouts.map(c => {
+        const allOk = CHECKOUT_KEYS.every(k => (c.checked || []).includes(k));
+        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('checkouts.html','_blank')">
+          <span style="font-size:12px;font-weight:700;flex-shrink:0">${(c.space||'').replace(/</g,'&lt;')}</span>
+          <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.org||'').replace(/</g,'&lt;')} · ${(c.name||'').replace(/</g,'&lt;')}</span>
+          ${c.note ? '<span style="font-size:10px;color:var(--red);flex-shrink:0">⚠️ 특이사항</span>' : ''}
+          <span style="font-size:11px;font-weight:700;color:${allOk ? 'var(--green)' : 'var(--amber)'};flex-shrink:0;white-space:nowrap">${allOk ? '✓ 완료' : '미완료 항목'}</span>
+        </div>`;
+      }).join('');
+
   document.getElementById('recent-list').innerHTML = !reservations.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">예약 데이터가 없습니다</div>'
     : [...reservations].sort((a, b) => createdMs(b) - createdMs(a)).slice(0, 6).map(r => `
