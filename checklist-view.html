@@ -207,17 +207,23 @@ async function loadAndRender() {
     return;
   }
   const c = snap.data();
-  isRecurring = !!c.recurGroup;
+  isRecurring = !!c.isRecur;
   const todayStr = new Date().toISOString().slice(0,10);
   checklist = (isRecurring && c.activeDate !== todayStr)
     ? (c.items || []).map(it => ({ ...it, checked: false }))
     : (c.items || []).map(it => ({ ...it }));
 
+  const RECUR_LABEL = { weekly: '매주', biweekly: '격주', monthly: '매달 동일 요일' };
+  const time = (c.start || c.end) ? ` · ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
+  const dateLabel = isRecurring
+    ? `🔁 ${RECUR_LABEL[c.recurType]||'정기'} (~${c.endDate||''}) · 오늘 ${todayStr}${time}`
+    : `${c.date || ''}${time}`;
+
   content.innerHTML = `
     <div class="card">
       <div class="event-meta">
         <span class="room-badge">${(c.room || '').replace(/</g,'&lt;')}</span>
-        <span class="event-date">${isRecurring ? `🔁 매주 반복 · 오늘 ${todayStr}` : (c.date || '')}</span>
+        <span class="event-date">${dateLabel}</span>
         <span id="progress-pill" class="progress-pill"></span>
       </div>
       <div class="event-title">${(c.eventName || '(제목 없음)').replace(/</g,'&lt;')}</div>

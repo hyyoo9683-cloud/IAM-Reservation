@@ -2320,6 +2320,22 @@ function showLastMinuteNotice() {
     `예약을 희망하실 경우, 유선 또는 카카오톡 채널 '아이엠센터'로 문의해주시기 바랍니다. (070-7018-1439)`;
   openModal('modal-info');
 }
+// event-checklist.html의 정기 체크리스트 판정과 동일한 규칙:
+// 매주/격주 = anchorDate로부터 N일 간격, 매달 = 같은 달의 n번째 같은 요일
+function isRecurOccurrence(anchorDate, recurType, endDate, checkDate) {
+  if (!anchorDate || !endDate) return false;
+  if (checkDate < anchorDate || checkDate > endDate) return false;
+  const a = new Date(anchorDate + 'T00:00:00');
+  const c = new Date(checkDate + 'T00:00:00');
+  const diffDays = Math.round((c - a) / 86400000);
+  if (recurType === 'weekly')   return diffDays % 7 === 0;
+  if (recurType === 'biweekly') return diffDays % 14 === 0;
+  if (recurType === 'monthly') {
+    if (a.getDay() !== c.getDay()) return false;
+    return Math.floor((a.getDate() - 1) / 7) === Math.floor((c.getDate() - 1) / 7);
+  }
+  return false;
+}
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
     r.id !== skipId && r.room === room && r.date === date &&
@@ -5423,13 +5439,13 @@ function renderDashboard() {
         </div>`;
       }).join('');
 
-  const todayChecklists = eventChecklists.filter(c => c.recurGroup
-    ? reservations.some(r => r.recurGroup === c.recurGroup && r.date === today && r.status === '확정')
+  const todayChecklists = eventChecklists.filter(c => c.isRecur
+    ? isRecurOccurrence(c.date, c.recurType, c.endDate, today)
     : c.date === today);
   document.getElementById('today-checklist-list').innerHTML = !todayChecklists.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 등록된 행사 체크리스트가 없습니다</div>'
     : todayChecklists.map(c => {
-        const items = c.recurGroup && c.activeDate !== today
+        const items = c.isRecur && c.activeDate !== today
           ? (c.items || []).map(i => ({ ...i, checked: false }))
           : (c.items || []);
         const done  = items.filter(i => i.checked).length;
@@ -5437,7 +5453,7 @@ function renderDashboard() {
         const allDone = total > 0 && done === total;
         return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
           <span style="background:var(--blue-lt);color:var(--blue);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(c.room||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.recurGroup ? '🔁 ' : ''}${(c.eventName||'(제목 없음)').replace(/</g,'&lt;')}</span>
+          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'(제목 없음)').replace(/</g,'&lt;')}</span>
           <span style="font-size:11px;font-weight:700;color:${allDone ? 'var(--green)' : 'var(--text2)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
         </div>`;
       }).join('');
