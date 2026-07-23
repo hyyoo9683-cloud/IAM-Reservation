@@ -295,8 +295,8 @@ function renderEventList() {
     const { main, time, purpose } = fmtDatePlace(r, curCat === '전체');
     return `
     <div class="ev-item${r.id===curResId?' active':''}" onclick="selectEvent('${r.id}')">
-      <div class="ev-line1">${main}</div>
-      <div class="ev-line2">${time}${purpose ? ' · ' + escapeHtml(purpose) : ''}</div>
+      <div class="ev-line1">${main}${purpose ? ' · ' + escapeHtml(purpose) : ''}</div>
+      <div class="ev-line2">${time}</div>
     </div>`;
   }).join('');
 }
