@@ -13,7 +13,8 @@
 | portal.html | 인트라넷 포털 | 필요 |
 | quotation.html | 견적서 발급 | 필요 |
 | venue.html | 대관 신청 관리 | 필요 |
-| weekly-manager.html | 주간 예약 현황 | 불필요 |
+| weekly-calendar.html | 주간 예약 현황 (캘린더 형식) | 불필요 |
+| weekly-manager.html | 예약현황(예약책임자별) | 불필요 |
 | firestore.rules | Firestore 보안 규칙 | — |
 
 ## index.html SPA 페이지 구조

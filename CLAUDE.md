@@ -25,7 +25,10 @@
 | `portal.html` | 인트라넷 포털 |
 | `quotation.html` | 견적서 발급 |
 | `venue.html` | 대관 신청 관리 |
-| `weekly-manager.html` | 주간 예약 현황 |
+| `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요) |
+| `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
+| `weekly-calendar.html` | 주간 예약 현황 (캘린더 형식, 공간별) |
+| `weekly-manager.html` | 예약현황(예약책임자별) |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 |
 
