@@ -27,7 +27,7 @@
 | `venue.html` | 대관 신청 관리 |
 | `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요) |
 | `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
-| `weekly-calendar.html` | 주간 예약 현황 (캘린더 형식, 공간별) |
+| `weekly-calendar.html` | 주간 예약 현황 (목록 형식 — 5층 소그룹실/아론홀/샤론홀 분류 후 시간순, 클릭 시 상세) |
 | `weekly-manager.html` | 예약현황(예약책임자별) |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 |

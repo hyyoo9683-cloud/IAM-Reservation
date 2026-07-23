@@ -8,84 +8,82 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --blue: #185FA5; --blue-lt: #EBF4FF;
-    --bg: #FFFFFF; --bg2: #F7F8FA;
-    --border: #D1D5DB; --border2: #E5E7EB;
-    --text: #111827; --text2: #4B5563; --text3: #9CA3AF;
+    --green: #3B6D11; --green-lt: #EAF3DE;
+    --red: #A32D2D; --red-lt: #FCEBEB;
+    --bg: #F8FAFD; --bg2: #fff;
+    --border: #D4E4F4; --border2: #E8EFF7;
+    --text: #1A2533; --text2: #4A6078; --text3: #8AA3BC;
   }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', sans-serif;
-         background: var(--bg); color: var(--text); font-size: 15px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', sans-serif;
+         background: var(--bg); color: var(--text); font-size: 15px; min-height: 100vh; padding-bottom: 40px; }
 
-  /* 헤더 */
-  .header { background: var(--blue); color: #fff; padding: 10px 12px;
-             display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .header { background: var(--blue); color: #fff; padding: 14px 16px;
+             display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .header h1 { font-size: 16px; font-weight: 700; white-space: nowrap; }
-  .week-label { font-size: 14px; opacity: .85; flex: 1; text-align: center; }
+  .date-label { font-size: 15px; font-weight: 700; flex: 1; text-align: center; }
   .nav-btns { display: flex; gap: 4px; }
   .nav-btns button { background: rgba(255,255,255,.18); border: none; color: #fff;
-                      padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+                      padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
-  /* 탭 */
-  .tabs { display: flex; border-bottom: 2px solid var(--border); background: var(--bg); }
-  .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; font-weight: 600;
-          color: var(--text3); cursor: pointer; border: none; background: none;
-          border-bottom: 3px solid transparent; margin-bottom: -2px; transition: .15s; }
-  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .blocked-banner { margin: 12px 14px 0; background: #F5F5F5; color: #777; border-radius: 8px;
+                     padding: 10px 14px; font-size: 13px; text-align: center; }
 
-  /* 테이블 */
-  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { width: 100%; border-collapse: collapse; }
-  th, td { border: 1px solid var(--border2); padding: 4px 4px; vertical-align: top; }
-  th { background: var(--bg2); font-size: 12px; font-weight: 700; text-align: center;
-        color: var(--text2); white-space: nowrap; }
-  th.today-col { background: var(--blue-lt); color: var(--blue); }
-  th.sun { color: #D04F7B; } th.sat { color: #7B4FD0; }
-  .room-th { width: 58px; min-width: 58px; max-width: 58px; text-align: left;
-              font-size: 12px; word-break: keep-all; }
+  .cat { margin: 14px 14px 0; background: var(--bg2); border-radius: 12px; overflow: hidden;
+         box-shadow: 0 1px 4px rgba(24,95,165,.06); }
+  .cat-hd { padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--blue);
+            background: var(--blue-lt); }
+  .cat-body { padding: 4px 0; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+          border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
+  .item:first-child { border-top: none; }
+  .item:hover { background: var(--bg); }
+  .item-time { font-weight: 700; font-size: 13px; color: var(--blue); flex-shrink: 0; min-width: 96px; }
+  .item-purpose { font-size: 14px; color: var(--text); flex: 1; min-width: 0;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-room { font-size: 11px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
+  .empty-row { padding: 18px 16px; text-align: center; color: var(--text3); font-size: 13px; }
+  .loading { text-align: center; padding: 60px; color: var(--text3); }
 
-  /* 예약 칩 — 두 줄 */
-  .chip { display: flex; flex-direction: column;
-          border-radius: 4px; padding: 3px 4px; margin-bottom: 2px; overflow: hidden; }
-  .chip-ok   { background: var(--blue-lt); color: var(--blue); }
-  .chip-none { color: var(--text3); font-size: 12px; padding: 3px 3px; text-align: center; }
-  .chip-blk  { background: #F5F5F5; color: #999; font-size: 12px; padding: 3px 3px; text-align: center; }
-  .chip-l1 { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; overflow: hidden; }
-  .chip-l2 { font-size: 10px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-  .time { font-weight: 700; font-size: 11px; flex-shrink: 0; }
-  .purpose { font-size: 11px; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
-
-  /* 단일홀 세로 레이아웃 */
-  .date-th { min-width: 68px; text-align: left; font-size: 12px; font-weight: 700; }
-  .loading  { text-align: center; padding: 40px; color: var(--text3); }
-
-  @media (min-width: 560px) {
-    th, td { padding: 5px 6px; }
-    .room-th { width: 72px; min-width: 72px; max-width: 72px; font-size: 13px; }
-    .chip { padding: 3px 5px; }
-    .chip-none, .chip-blk { font-size: 13px; padding: 3px 3px; }
-    .time { font-size: 12px; }
-    .purpose  { font-size: 12px; }
-    .chip-l2 { font-size: 11px; }
-    th { font-size: 13px; }
-    .tab { font-size: 14px; }
-    .date-th { min-width: 80px; font-size: 13px; }
-  }
+  /* 상세 모달 */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999;
+              display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 16px; max-width: 420px; width: 100%;
+           padding: 26px; position: relative; }
+  .modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none;
+                 font-size: 22px; cursor: pointer; color: var(--text3); }
+  .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 16px; padding-right: 20px; }
+  .modal-row { display: flex; gap: 10px; padding: 7px 0; font-size: 14px; border-top: 1px solid var(--border2); }
+  .modal-row:first-of-type { border-top: none; }
+  .modal-row .k { color: var(--text3); width: 76px; flex-shrink: 0; }
+  .modal-row .v { color: var(--text); flex: 1; word-break: break-word; }
+  .status-badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+  .status-대기 { background: #FAEEDA; color: #854F0B; }
+  .status-확정 { background: var(--green-lt); color: var(--green); }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1>📅 주간 예약 현황</h1>
-  <span class="week-label" id="week-label"></span>
+  <span class="date-label" id="date-label"></span>
   <div class="nav-btns">
-    <button onclick="changeWeek(-1)">◀</button>
-    <button onclick="changeWeek(0)">오늘</button>
-    <button onclick="changeWeek(1)">▶</button>
+    <button onclick="changeDay(-1)">◀</button>
+    <button onclick="changeDay(0)">오늘</button>
+    <button onclick="changeDay(1)">▶</button>
   </div>
 </div>
 
-<div class="tabs" id="tabs"></div>
-<div class="tbl-wrap"><div id="cal-body"><div class="loading">불러오는 중…</div></div></div>
+<div id="blocked-banner-wrap"></div>
+<div id="body"><div class="loading">불러오는 중…</div></div>
+
+<div class="modal-bg" id="modal-detail">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDetail()">×</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp }           from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
@@ -101,162 +99,87 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-const TABS = [
-  { key: '5f',     label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'] },
-  { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'] },
-  { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'] },
+// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀
+const CATS = [
+  { key: '5f',     label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], showRoom: true  },
+  { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'], showRoom: false },
+  { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
 ];
 const DOWS = ['일','월','화','수','목','금','토'];
 
-let reservations = [], spaces = [], blockedDates = [];
-let weekOffset = new URLSearchParams(location.search).has('next') ? 1 : 0, curTab = '5f';
-let loaded = { res: false, sp: false, bd: false };
-
-const isMobile = () => window.innerWidth < 560;
+let reservations = [], blockedDates = [];
+let dayOffset = 0;
+let loaded = { res: false, bd: false };
 
 const toDateStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tsToday = () => toDateStr(new Date());
 const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-function getViewDays() {
-  const today = new Date();
-  if (isMobile()) {
-    // 모바일: 오늘 기준 3일씩 이동
-    const base = new Date(today);
-    base.setDate(today.getDate() + weekOffset * 3);
-    return Array.from({ length: 3 }, (_, i) => {
-      const d = new Date(base); d.setDate(base.getDate() + i); return d;
-    });
-  } else {
-    // 데스크탑: 월~일 7일
-    const ref = new Date(today); ref.setDate(today.getDate() + weekOffset * 7);
-    const dw = ref.getDay();
-    const mon = new Date(ref); mon.setDate(ref.getDate() - dw + (dw === 0 ? -6 : 1));
-    return Array.from({ length: 7 }, (_, i) => { const d = new Date(mon); d.setDate(mon.getDate() + i); return d; });
-  }
+function curDate() {
+  const d = new Date();
+  d.setDate(d.getDate() + dayOffset);
+  return d;
 }
 
 function render() {
-  if (!loaded.res || !loaded.sp || !loaded.bd) return;
+  if (!loaded.res || !loaded.bd) return;
 
-  const days   = getViewDays();
+  const d     = curDate();
+  const ds    = toDateStr(d);
   const todayS = tsToday();
-  const tab    = TABS.find(t => t.key === curTab);
-  const fmt    = d => `${d.getMonth()+1}/${d.getDate()}`;
-  document.getElementById('week-label').textContent =
-    isMobile()
-      ? `${DOWS[days[0].getDay()]} ${fmt(days[0])} – ${DOWS[days[days.length-1].getDay()]} ${fmt(days[days.length-1])}`
-      : `${days[0].toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} – ${days[6].toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })}`;
+  const dow   = DOWS[d.getDay()];
+  document.getElementById('date-label').textContent =
+    `${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}`;
 
-  const tabRooms = tab.rooms.map(name => spaces.find(s => s.name === name) || { name, cap: '' });
+  const bd = blockedDates.find(b => b.date === ds);
+  document.getElementById('blocked-banner-wrap').innerHTML = bd
+    ? `<div class="blocked-banner">🚫 이 날짜는 예약이 불가능합니다 (${esc(bd.reason)})</div>`
+    : '';
 
-  let html = '';
+  const html = CATS.map(cat => {
+    const items = reservations
+      .filter(r => cat.rooms.includes(r.room) && r.date === ds && r.status === '확정')
+      .sort((a, b) => a.start.localeCompare(b.start));
+    const body = !items.length
+      ? '<div class="empty-row">예약 없음</div>'
+      : items.map(r => `
+          <div class="item" onclick='showDetail(${JSON.stringify(r.id)})'>
+            <span class="item-time">${r.start}–${r.end}</span>
+            <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+            ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
+          </div>`).join('');
+    return `<div class="cat"><div class="cat-hd">${cat.label}</div><div class="cat-body">${body}</div></div>`;
+  }).join('');
 
-  if (tabRooms.length === 1) {
-    // 단일 홀: 날짜 세로
-    const sp = tabRooms[0];
-    html = `<table><thead><tr>
-      <th class="date-th">날짜</th>
-      <th>${sp.name}${sp.cap ? ' · ' + sp.cap + '명' : ''}</th>
-    </tr></thead><tbody>`;
-    days.forEach(d => {
-      const ds  = toDateStr(d);
-      const isT = ds === todayS;
-      const bd  = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정')
-                              .sort((a,b) => a.start.localeCompare(b.start));
-      const dow = DOWS[d.getDay()];
-      const isW = d.getDay() === 0 || d.getDay() === 6;
-      const bgT = isT ? 'background:var(--blue-lt)' : '';
-      html += `<tr>
-        <td style="${bgT};white-space:nowrap;font-weight:600;color:${isW?'#D04F7B':isT?'var(--blue)':'var(--text2)'}">
-          ${dow} ${d.getMonth()+1}/${d.getDate()}${isT ? '<br><span style="font-size:9px">◀오늘</span>' : ''}
-        </td>
-        <td style="${bd ? 'background:#F5F5F5' : bgT}">`;
-      if (bd) {
-        html += `<div class="chip-blk">🚫 ${esc(bd.reason)}</div>`;
-      } else if (!res.length) {
-        html += `<div class="chip-none">–</div>`;
-      } else {
-        res.forEach(r => {
-          html += `<div class="chip chip-ok">
-            <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span class="purpose">${esc(r.purpose)}</span></div>
-          </div>`;
-        });
-      }
-      html += `</td></tr>`;
-    });
-    html += '</tbody></table>';
-
-  } else {
-    // 다중 공간: 날짜 가로
-    html = `<table><thead><tr><th class="room-th">공간</th>`;
-    days.forEach(d => {
-      const ds  = toDateStr(d);
-      const isT = ds === todayS;
-      const dow = DOWS[d.getDay()];
-      const isS = d.getDay() === 6, isSu = d.getDay() === 0;
-      const cls = [isT ? 'today-col' : '', isSu ? 'sun' : isS ? 'sat' : ''].filter(Boolean).join(' ');
-      html += `<th class="${cls}">${dow}<br>${d.getMonth()+1}/${d.getDate()}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-
-    tabRooms.forEach(sp => {
-      const shortName = sp.name.replace('호', '');
-      html += `<tr><td class="room-th" style="font-weight:600">${isMobile() ? shortName : sp.name}</td>`;
-      days.forEach(d => {
-        const ds  = toDateStr(d);
-        const isT = ds === todayS;
-        const bd  = blockedDates.find(b => b.date === ds);
-        const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정')
-                                .sort((a,b) => a.start.localeCompare(b.start));
-        const bg  = bd ? 'background:#F5F5F5' : isT ? 'background:var(--blue-lt)' : '';
-        html += `<td style="${bg}">`;
-        if (bd) {
-          html += `<div class="chip-blk">🚫</div>`;
-        } else if (!res.length) {
-          html += `<div class="chip-none">–</div>`;
-        } else {
-          res.forEach(r => {
-            html += `<div class="chip chip-ok">
-              <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span class="purpose">${esc(r.purpose)}</span></div>
-            </div>`;
-          });
-        }
-        html += '</td>';
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-  }
-
-  document.getElementById('cal-body').innerHTML = html;
+  document.getElementById('body').innerHTML = html;
 }
 
-// 탭 렌더링
-document.getElementById('tabs').innerHTML = TABS.map(t =>
-  `<button class="tab${t.key === curTab ? ' active' : ''}" onclick="setTab('${t.key}')">${t.label}</button>`
-).join('');
+window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
 
-window.setTab = (key) => {
-  curTab = key;
-  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.textContent === (TABS.find(t=>t.key===key)?.label)));
-  render();
+window.showDetail = (id) => {
+  const r = reservations.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('detail-content').innerHTML = `
+    <div class="modal-title">${esc(r.purpose) || '(목적 미기재)'}</div>
+    <div class="modal-row"><span class="k">공간</span><span class="v">${esc(r.room)}</span></div>
+    <div class="modal-row"><span class="k">일시</span><span class="v">${esc(r.date)} ${esc(r.start)}–${esc(r.end)}</span></div>
+    <div class="modal-row"><span class="k">기관</span><span class="v">${esc(r.type)}${r.subOrg ? ' · ' + esc(r.subOrg) : ''}</span></div>
+    <div class="modal-row"><span class="k">담당자</span><span class="v">${esc(r.managerName)}</span></div>
+    <div class="modal-row"><span class="k">청지기</span><span class="v">${esc(r.stewardName)} ${esc(r.stewardTel)}</span></div>
+    <div class="modal-row"><span class="k">인원</span><span class="v">${esc(r.people)}명</span></div>
+    <div class="modal-row"><span class="k">상태</span><span class="v"><span class="status-badge status-${esc(r.status)}">${esc(r.status)}</span></span></div>
+  `;
+  document.getElementById('modal-detail').classList.add('open');
 };
-window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
+window.closeDetail = () => document.getElementById('modal-detail').classList.remove('open');
+document.getElementById('modal-detail').addEventListener('click', e => {
+  if (e.target.id === 'modal-detail') closeDetail();
+});
 
-// 화면 크기 바뀌면 재렌더 (가로/세로 회전 등)
-window.addEventListener('resize', () => render());
-
-// Firestore 실시간 구독 (인증 없이)
 onSnapshot(collection(db, 'reservations'), snap => {
   reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   loaded.res = true; render();
-});
-onSnapshot(collection(db, 'spaces'), snap => {
-  spaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  loaded.sp = true; render();
 });
 onSnapshot(collection(db, 'blockedDates'), snap => {
   blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
