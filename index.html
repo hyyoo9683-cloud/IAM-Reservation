@@ -1874,6 +1874,12 @@ textarea { resize: vertical; min-height: 60px; }
       <span id="sms-contact-name" style="font-weight:700;color:var(--text)"></span>
       <span id="sms-contact-tel" style="font-weight:700;color:var(--blue);margin-left:auto;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>{this.style.opacity='.4';setTimeout(()=>this.style.opacity='1',800)})" title="클릭하여 복사"></span>
     </div>
+    <div id="sms-series-toggle-wrap" style="display:none;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none">
+        <input type="checkbox" id="sms-series-toggle" checked onchange="renderSmsBody()">
+        전체 시리즈 일정 포함 <span style="color:var(--text3)">(해제 시 이 회차 일정만 안내)</span>
+      </label>
+    </div>
     <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하세요.</div>
     <textarea id="sms-body" style="width:100%;height:220px;font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;font-family:inherit;background:var(--bg2)"></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -2137,6 +2143,7 @@ let changeRequests = [];
 let changeReqTab = '';
 let curPage = 'spaces';
 let editId = null;
+let smsCtxId = null, smsCtxType = null;
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
@@ -4809,7 +4816,7 @@ window.openDetail = (id) => {
   let btns = '';
   if (isAdmin) {
     if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
-    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
+    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms',false)">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao',false)">💬 카카오</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
@@ -4948,9 +4955,41 @@ function dateToSmsFormat(dateStr) {
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]})`;
 }
 
-window.openSmsModal = (id, type) => {
+window.openSmsModal = (id, type, seriesDefault = true) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
+  smsCtxId = id; smsCtxType = type;
+
+  const toggleWrap = document.getElementById('sms-series-toggle-wrap');
+  const toggle = document.getElementById('sms-series-toggle');
+  if (r.recurGroup) {
+    toggleWrap.style.display = '';
+    toggle.checked = seriesDefault;
+  } else {
+    toggleWrap.style.display = 'none';
+  }
+
+  renderSmsBody();
+
+  // 연락처 바 표시
+  const tel = r.stewardTel || '';
+  const contactBar = document.getElementById('sms-contact-bar');
+  if (tel) {
+    document.getElementById('sms-contact-name').textContent = r.stewardName || '';
+    document.getElementById('sms-contact-tel').textContent = tel;
+    contactBar.style.display = 'flex';
+  } else {
+    contactBar.style.display = 'none';
+  }
+
+  openModal('modal-sms');
+};
+
+window.renderSmsBody = () => {
+  const r = reservations.find(x => x.id === smsCtxId);
+  if (!r) return;
+  const type = smsCtxType;
+  const seriesMode = !!document.getElementById('sms-series-toggle')?.checked;
   const room    = roomToSmsName(r.room);
   const purpose = r.purpose || '';
   const time    = `${r.start}-${r.end}`;
@@ -4958,7 +4997,7 @@ window.openSmsModal = (id, type) => {
   // 일시 문자열 구성 (정기: "7.9-9.10 (매주 목 19:30-21:00)", 단건: "2026.7.9(목) 19:30-21:00")
   const DOWS_KR = ['일','월','화','수','목','금','토'];
   let ilsi;
-  if (r.recurGroup) {
+  if (r.recurGroup && seriesMode) {
     const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
     // 비정기이거나 시리즈 내 시간이 제각각이면 날짜별 나열
     const timesUniform = series.every(x => x.start === series[0].start && x.end === series[0].end);
@@ -5009,19 +5048,6 @@ ${MSG_FOOTER}`;
   }
   document.getElementById('sms-body').value = text;
   document.getElementById('sms-copy-msg').textContent = '';
-
-  // 연락처 바 표시
-  const tel = r.stewardTel || '';
-  const contactBar = document.getElementById('sms-contact-bar');
-  if (tel) {
-    document.getElementById('sms-contact-name').textContent = r.stewardName || '';
-    document.getElementById('sms-contact-tel').textContent = tel;
-    contactBar.style.display = 'flex';
-  } else {
-    contactBar.style.display = 'none';
-  }
-
-  openModal('modal-sms');
 };
 
 window.copySms = () => {
