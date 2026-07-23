@@ -234,6 +234,8 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   renderChecklist();
   await loadSavedList();
+  const linkedId = new URLSearchParams(location.search).get('id');
+  if (linkedId) await window.openChecklist(linkedId);
 });
 
 function showLogin() {
