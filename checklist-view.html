@@ -95,7 +95,11 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
 </head>
 <body>
 
-<div id="login-wrap">
+<div id="loading-wrap" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:150">
+  <div style="color:var(--text3);font-size:14px">불러오는 중…</div>
+</div>
+
+<div id="login-wrap" style="display:none">
   <div class="login-card">
     <div class="login-emblem">✝️</div>
     <div class="login-title">체크리스트</div>
@@ -159,12 +163,14 @@ onAuthStateChanged(auth, async user => {
   const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
   if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
   curUser = user;
+  document.getElementById('loading-wrap').style.display = 'none';
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app-wrap').style.display   = 'block';
   await loadAndRender();
 });
 
 function showLogin() {
+  document.getElementById('loading-wrap').style.display = 'none';
   document.getElementById('login-wrap').style.display = 'flex';
   document.getElementById('app-wrap').style.display   = 'none';
 }
