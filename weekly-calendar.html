@@ -140,7 +140,7 @@ function render() {
   const html = CATS.map(cat => {
     const items = reservations
       .filter(r => cat.rooms.includes(r.room) && r.date === ds && r.status === '확정')
-      .sort((a, b) => a.start.localeCompare(b.start));
+      .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
