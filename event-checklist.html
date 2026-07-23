@@ -367,12 +367,20 @@ window.addChecklistItem = (phase) => {
 
 function showErr(msg) {
   const el = document.getElementById('err-msg');
+  el.style.color = ''; el.style.background = '';
+  el.textContent = msg; el.style.display = 'block';
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function showInfo(msg) {
+  const el = document.getElementById('err-msg');
+  el.style.color = 'var(--blue)'; el.style.background = 'var(--blue-lt)';
   el.textContent = msg; el.style.display = 'block';
   el.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 
 window.resetForm = () => {
   editingId = null;
+  document.getElementById('err-msg').style.display = 'none';
   document.getElementById('form-title').textContent = '새 체크리스트 작성';
   document.getElementById('cancel-edit-btn').style.display = 'none';
   document.getElementById('f-room').value = '아론홀';
@@ -470,6 +478,7 @@ async function loadSavedList() {
         <div class="saved-item-meta">
           <span>📅 ${c.date || ''}${time}${c.isRecur ? ` ~ ${c.endDate||''}` : ''}</span>
           <span>✓ ${doneCount}/${total}</span>
+          <button type="button" class="btn-ghost-sm" style="margin-left:auto;padding:4px 10px;font-size:12px" onclick="event.stopPropagation();copyChecklist('${d.id}')">📋 복사해서 새로 만들기</button>
         </div>
       </div>`;
     }).join('');
@@ -499,6 +508,32 @@ window.openChecklist = async (id) => {
   checklist = applyRecurFreshness(c);
   renderChecklist();
   document.querySelector('.card:nth-of-type(2)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// 양일 행사 등 기존 체크리스트와 항목이 동일한 새 체크리스트를 만들 때 사용.
+// 기존 문서를 수정하는 게 아니라, 같은 설정으로 새 문서를 저장하도록 준비만 함.
+window.copyChecklist = async (id) => {
+  const snap = await getDoc(doc(db, 'eventChecklists', id));
+  if (!snap.exists()) return;
+  const c = snap.data();
+  editingId = null;
+  document.getElementById('form-title').textContent = '체크리스트 복사 (새로 저장)';
+  document.getElementById('cancel-edit-btn').style.display = '';
+  document.getElementById('f-room').value = c.room || '아론홀';
+  document.getElementById('f-event').value = c.eventName || '';
+  document.getElementById('f-date').value = c.date || '';
+  document.getElementById('f-start').value = c.start || '';
+  document.getElementById('f-end').innerHTML = buildEndOpts(c.start || '');
+  document.getElementById('f-end').value = c.end || '';
+  document.getElementById('f-notes').value = c.notes || '';
+  document.getElementById('f-is-recur').checked = !!c.isRecur;
+  document.getElementById('f-recur-type').value = c.recurType || 'weekly';
+  document.getElementById('f-recur-end').value = c.endDate || '';
+  document.getElementById('recur-opts').style.display = c.isRecur ? 'block' : 'none';
+  checklist = (c.items || []).map(it => ({ ...it, checked: false }));
+  renderChecklist();
+  document.querySelector('.card:nth-of-type(2)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  showInfo('날짜(및 필요시 행사명)를 확인하고 저장하세요. "저장하기"를 누르면 새 체크리스트로 저장됩니다.');
 };
 </script>
 </body>
