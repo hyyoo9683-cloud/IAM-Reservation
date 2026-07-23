@@ -5421,9 +5421,10 @@ function renderDashboard() {
         </div>`;
       }).join('');
 
+  const createdMs = r => r.createdAt?.toDate ? r.createdAt.toDate().getTime() : 0;
   document.getElementById('recent-list').innerHTML = !reservations.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">예약 데이터가 없습니다</div>'
-    : [...reservations].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(r => `
+    : [...reservations].sort((a, b) => createdMs(b) - createdMs(a)).slice(0, 6).map(r => `
         <div class="row" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border2);margin-bottom:5px;cursor:pointer" onclick="openDetail('${r.id}')">
           <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.managerName}</span>
           <span style="font-size:11px;color:var(--text2);flex-shrink:0;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.room}</span>
