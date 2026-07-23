@@ -61,9 +61,13 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
 
 /* 체크리스트 */
 .checklist{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.phase-group{margin-bottom:18px;}
+.phase-group:last-child{margin-bottom:0;}
+.phase-label{font-size:12px;font-weight:700;color:var(--blue);letter-spacing:.04em;margin-bottom:8px;padding-left:2px;}
+.phase-empty{font-size:12.5px;color:var(--text3);padding:8px 2px;}
 .check-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
   border:1.5px solid var(--border2);border-radius:11px;cursor:pointer;
-  transition:all .15s;user-select:none;background:#fff;}
+  transition:all .15s;user-select:none;background:#fff;margin-bottom:8px;}
 .check-item.checked{border-color:var(--green);background:var(--green-lt);}
 .chk-box{width:22px;height:22px;flex-shrink:0;border-radius:6px;
   border:2px solid var(--border);background:#fff;
@@ -71,9 +75,10 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
   transition:all .15s;font-size:13px;line-height:1;color:#fff;}
 .check-item.checked .chk-box{background:var(--green);border-color:var(--green);}
 .check-text{font-size:14.5px;color:var(--text);line-height:1.4;flex:1;}
-.check-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;flex-shrink:0;}
+.check-edit,.check-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;flex-shrink:0;}
+.check-edit:hover{color:var(--blue);}
 .check-del:hover{color:var(--red);}
-.add-item-row{display:flex;gap:8px;}
+.add-item-row{display:flex;gap:8px;margin-top:6px;}
 .add-item-row input{flex:1;}
 .btn-add-item{flex-shrink:0;padding:0 16px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);}
 .btn-add-item:hover{background:var(--blue-lt);}
@@ -157,10 +162,6 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
       <div id="recur-note" style="display:none;font-size:12px;color:var(--blue);background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px">🔁 정기 예약입니다. 이 체크리스트 하나만 저장해두면 매주 자동으로 오늘의 체크리스트에 표시됩니다 (체크 상태는 매주 자동 초기화).</div>
       <div id="recur-existing-note" style="display:none;font-size:12px;color:var(--amber,#854F0B);background:#FAEEDA;border-radius:8px;padding:8px 10px;margin-bottom:8px"></div>
       <div class="checklist" id="checklist"></div>
-      <div class="add-item-row">
-        <input id="new-item-text" placeholder="항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
-        <button type="button" class="btn-add-item" onclick="addChecklistItem()">+ 추가</button>
-      </div>
     </div>
 
     <div class="field" style="margin-bottom:0">
@@ -208,20 +209,24 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 let curUser = null;
 
+const PHASES = [
+  { key: 'before', label: '행사 전' },
+  { key: 'after',  label: '행사 후' },
+];
 const DEFAULT_ITEMS = [
-  '공간 청소 상태 확인',
-  '냉난방 작동 확인',
-  '음향·마이크 점검',
-  '좌석·테이블 배치',
-  '프로젝터·스크린 점검',
-  '다과·케이터링 준비 확인',
-  '안내 표지판 부착',
-  '주차 안내 준비',
-  '행사 종료 후 정리정돈',
-  '쓰레기 처리 및 기물 파손 확인'
+  { text: '공간 청소 상태 확인',             phase: 'before' },
+  { text: '냉난방 작동 확인',                 phase: 'before' },
+  { text: '음향·마이크 점검',                 phase: 'before' },
+  { text: '좌석·테이블 배치',                 phase: 'before' },
+  { text: '프로젝터·스크린 점검',             phase: 'before' },
+  { text: '다과·케이터링 준비 확인',           phase: 'before' },
+  { text: '안내 표지판 부착',                 phase: 'before' },
+  { text: '주차 안내 준비',                   phase: 'before' },
+  { text: '행사 종료 후 정리정돈',             phase: 'after' },
+  { text: '쓰레기 처리 및 기물 파손 확인',     phase: 'after' },
 ];
 
-let checklist = DEFAULT_ITEMS.map(text => ({ text, checked: false }));
+let checklist = DEFAULT_ITEMS.map(it => ({ ...it, checked: false }));
 let editingId = null;
 let curRecurGroup = null;
 let editingIsRecurring = false;
@@ -295,20 +300,40 @@ window.doLogin = async () => {
 };
 
 function renderChecklist() {
-  document.getElementById('checklist').innerHTML = checklist.map((it, i) => `
-    <div class="check-item${it.checked ? ' checked' : ''}" onclick="toggleItem(${i})">
-      <div class="chk-box">${it.checked ? '✓' : ''}</div>
-      <div class="check-text">${it.text}</div>
-      <button type="button" class="check-del" onclick="event.stopPropagation();removeItem(${i})">✕</button>
-    </div>`).join('');
+  document.getElementById('checklist').innerHTML = PHASES.map(p => {
+    const rows = checklist.map((it, i) => ({ it, i })).filter(({ it }) => (it.phase || 'before') === p.key);
+    return `
+      <div class="phase-group">
+        <div class="phase-label">${p.label}</div>
+        ${rows.length ? rows.map(({ it, i }) => `
+          <div class="check-item${it.checked ? ' checked' : ''}" onclick="toggleItem(${i})">
+            <div class="chk-box">${it.checked ? '✓' : ''}</div>
+            <div class="check-text">${(it.text || '').replace(/</g,'&lt;')}</div>
+            <button type="button" class="check-edit" onclick="event.stopPropagation();editItemText(${i})">✎</button>
+            <button type="button" class="check-del" onclick="event.stopPropagation();removeItem(${i})">✕</button>
+          </div>`).join('') : `<div class="phase-empty">등록된 항목이 없습니다</div>`}
+        <div class="add-item-row">
+          <input id="new-item-${p.key}" placeholder="${p.label} 항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem('${p.key}');}">
+          <button type="button" class="btn-add-item" onclick="addChecklistItem('${p.key}')">+ 추가</button>
+        </div>
+      </div>`;
+  }).join('');
 }
 window.toggleItem = (i) => { checklist[i].checked = !checklist[i].checked; renderChecklist(); };
 window.removeItem = (i) => { checklist.splice(i, 1); renderChecklist(); };
-window.addChecklistItem = () => {
-  const input = document.getElementById('new-item-text');
+window.editItemText = (i) => {
+  const next = prompt('항목 내용 수정', checklist[i].text);
+  if (next === null) return;
+  const trimmed = next.trim();
+  if (!trimmed) return;
+  checklist[i].text = trimmed;
+  renderChecklist();
+};
+window.addChecklistItem = (phase) => {
+  const input = document.getElementById('new-item-' + phase);
   const text = input.value.trim();
   if (!text) return;
-  checklist.push({ text, checked: false });
+  checklist.push({ text, checked: false, phase });
   input.value = '';
   renderChecklist();
 };
@@ -330,7 +355,7 @@ window.resetForm = () => {
   document.getElementById('f-event').value = '';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-notes').value = '';
-  checklist = DEFAULT_ITEMS.map(text => ({ text, checked: false }));
+  checklist = DEFAULT_ITEMS.map(it => ({ ...it, checked: false }));
   renderChecklist();
   window.handleRecurAutofill();
 };
@@ -383,7 +408,7 @@ function applyRecurFreshness(c) {
   if (!c.recurGroup) return items;
   const todayStr = new Date().toISOString().slice(0,10);
   if (c.activeDate === todayStr) return items;
-  return items.map(it => ({ text: it.text, checked: false }));
+  return items.map(it => ({ ...it, checked: false }));
 }
 
 async function loadSavedList() {
