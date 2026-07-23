@@ -46,6 +46,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 /* 좌측: 예약 검색/목록 */
 #ev-col{width:360px;flex-shrink:0;}
+.cat-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.cat-tab{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:#fff;
+  color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.cat-tab:hover{background:var(--bg3);}
+.cat-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 .ev-search-wrap{margin-bottom:12px;}
 .ev-search-wrap input{width:100%;padding:11px 14px;border:1px solid var(--border);
   border-radius:10px;font-size:14px;font-family:var(--font);outline:none;}
@@ -137,6 +142,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <div class="layout">
 
     <div id="ev-col" class="card">
+      <div id="cat-tabs" class="cat-tabs"></div>
       <div class="ev-search-wrap">
         <input id="ev-search" type="text" placeholder="공간·목적·담당자·날짜로 검색" oninput="filterEvents()">
       </div>
@@ -195,7 +201,9 @@ let curResId = null;
 let myChecklist = null;      // { id, items:[{text,done}] }
 let otherChecklists = [];    // 다른 담당자 체크리스트
 let unsubOthers = null;
+let curCat = '전체';
 const DAYS = ['일','월','화','수','목','금','토'];
+const CATS = ['전체', '아론홀', '샤론홀'];
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -237,15 +245,28 @@ async function loadReservations() {
     if (aFuture !== bFuture) return aFuture ? -1 : 1;
     return aFuture ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
   });
+  renderCatTabs();
   renderEventList();
 }
 
-function fmtEvent(r) {
+function fmtDatePlace(r) {
   const d = new Date(r.date + 'T00:00:00');
   const dow = DAYS[d.getDay()];
-  const label = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '(제목 없음)';
-  return `${r.date.slice(5).replace('-','/')}(${dow}) ${r.start}–${r.end} · ${r.room} · ${label}`;
+  return { main: `${r.date.slice(5).replace('-','/')}(${dow}) · ${r.room}`, time: `${r.start}–${r.end}` };
 }
+
+function fmtEventFull(r) {
+  const { main, time } = fmtDatePlace(r);
+  const label = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '(제목 없음)';
+  return `${main} ${time} · ${label}`;
+}
+
+function renderCatTabs() {
+  document.getElementById('cat-tabs').innerHTML = CATS.map(c =>
+    `<button class="cat-tab${c===curCat?' active':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+}
+window.setCat = (c) => { curCat = c; renderCatTabs(); renderEventList(); };
 
 window.filterEvents = () => renderEventList();
 
@@ -253,6 +274,7 @@ function renderEventList() {
   const kw = document.getElementById('ev-search').value.trim().toLowerCase();
   const list = reservations.filter(r => {
     if (r.status === '취소') return false;
+    if (curCat !== '전체' && r.room !== curCat) return false;
     if (!kw) return true;
     const hay = [r.room, r.type, r.subOrg, r.purpose, r.managerName, r.stewardName, r.date].join(' ').toLowerCase();
     return hay.includes(kw);
@@ -263,11 +285,14 @@ function renderEventList() {
     el.innerHTML = `<div class="empty">일치하는 예약이 없습니다.</div>`;
     return;
   }
-  el.innerHTML = list.map(r => `
+  el.innerHTML = list.map(r => {
+    const { main, time } = fmtDatePlace(r);
+    return `
     <div class="ev-item${r.id===curResId?' active':''}" onclick="selectEvent('${r.id}')">
-      <div class="ev-line1">${fmtEvent(r)}</div>
-      <div class="ev-line2">담당: ${r.managerName || '미지정'} · <span class="ev-status s-${r.status}">${r.status}</span></div>
-    </div>`).join('');
+      <div class="ev-line1">${main}</div>
+      <div class="ev-line2">${time}</div>
+    </div>`;
+  }).join('');
 }
 
 window.selectEvent = (id) => {
@@ -276,7 +301,7 @@ window.selectEvent = (id) => {
   document.getElementById('cl-empty').style.display = 'none';
   document.getElementById('checklist-panel').style.display = 'block';
   const r = reservations.find(x => x.id === id);
-  document.getElementById('cl-event-title').textContent = fmtEvent(r);
+  document.getElementById('cl-event-title').textContent = fmtEventFull(r);
   loadMyChecklist();
   watchOthers();
   if (window.innerWidth <= 820) {
