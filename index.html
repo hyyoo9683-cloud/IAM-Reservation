@@ -5451,7 +5451,12 @@ function renderDashboard() {
         </div>`).join('');
 
   const createdMs2 = c => c.submittedAt?.toDate ? c.submittedAt.toDate().getTime() : 0;
-  const recentCheckouts = [...checkouts].sort((a, b) => createdMs2(b) - createdMs2(a)).slice(0, 6);
+  const CHECKOUT_ROOM_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
+  const checkoutRoomRank = s => (CHECKOUT_ROOM_ORDER.indexOf(s) + 1) || 999;
+  const recentCheckouts = [...checkouts]
+    .sort((a, b) => createdMs2(b) - createdMs2(a))
+    .slice(0, 6)
+    .sort((a, b) => checkoutRoomRank(a.space) - checkoutRoomRank(b.space));
   document.getElementById('checkout-list').innerHTML = !recentCheckouts.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">제출된 퇴실 체크가 없습니다</div>'
     : recentCheckouts.map(c => {
