@@ -5318,7 +5318,8 @@ function renderDashboard() {
   ];
   let todayHtml = '';
   TODAY_CATS.forEach(cat => {
-    const items = todayConfirmed.filter(r => cat.rooms.includes(r.room));
+    const items = todayConfirmed.filter(r => cat.rooms.includes(r.room))
+      .sort((a, b) => cat.rooms.indexOf(a.room) - cat.rooms.indexOf(b.room) || a.start.localeCompare(b.start));
     if (!items.length) return;
     todayHtml += `
       <div style="margin-bottom:14px">
