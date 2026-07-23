@@ -7609,7 +7609,7 @@ window.hmShowNotice = async function(id) {
       ${n.pinned?'<span style="background:#FBEFD9;color:#A07030;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px">📌 중요</span><br><br>':''}
       <h2 style="font-size:20px;font-weight:800;color:#26262A;margin:0 0 8px">${n.title||''}</h2>
       <div style="font-size:13px;color:#9A968E;margin-bottom:18px">${dateStr}</div>
-      <div style="font-size:15px;color:#585A5C;line-height:1.8;white-space:pre-wrap">${n.body||''}</div>
+      <div style="font-size:15px;color:#585A5C;line-height:1.8;white-space:pre-wrap">${n.content||n.body||''}</div>
     </div>`;
     modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -7656,7 +7656,7 @@ function ceRenderNoticeList() {
         </div>
         <div>
           <label class="ce-label">내용</label>
-          <textarea class="ce-input" rows="4" oninput="ceNotices[${i}].body=this.value" placeholder="공지 내용">${n.body||''}</textarea>
+          <textarea class="ce-input" rows="4" oninput="ceNotices[${i}].content=this.value" placeholder="공지 내용">${n.content||n.body||''}</textarea>
         </div>
         <div style="display:flex;justify-content:flex-end">
           <button type="button" class="ce-btn ce-btn-primary ce-btn-sm" onclick="ceSaveOneNotice(${i})">💾 저장</button>
@@ -7670,7 +7670,7 @@ window.ceAddNotice = async function() {
   try {
     const {collection,addDoc,serverTimestamp} = window._fb;
     const ref = await addDoc(collection(window._fb.db,'notices'),{
-      title:'새 공지사항', body:'', pinned:false, createdAt:serverTimestamp(),
+      title:'새 공지사항', content:'', pinned:false, createdAt:serverTimestamp(),
       createdBy:(window.curUser&&window.curUser.email)||''
     });
     window.T('공지 작성됨 — 제목·내용을 입력하고 저장하세요');
@@ -7695,10 +7695,10 @@ window.ceSaveOneNotice = async function(i) {
   const n = ceNotices[i]; if(!n) return;
   // textarea 최신값 sync
   const ta = document.querySelector(`#ceni-${i} textarea`);
-  if(ta) n.body = ta.value;
+  if(ta) n.content = ta.value;
   try {
     const {doc,updateDoc} = window._fb;
-    await updateDoc(doc(window._fb.db,'notices',n.id),{title:n.title||'', body:n.body||''});
+    await updateDoc(doc(window._fb.db,'notices',n.id),{title:n.title||'', content:n.content||''});
     window.T('공지 저장 완료 ✓');
     hmLoadNotices();
   } catch(e){ window.T('저장 실패: '+e.message,'#A32D2D'); }
