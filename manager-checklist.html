@@ -201,9 +201,9 @@ let curResId = null;
 let myChecklist = null;      // { id, items:[{text,done}] }
 let otherChecklists = [];    // 다른 담당자 체크리스트
 let unsubOthers = null;
-let curCat = '전체';
+let curCat = '아론홀';
 const DAYS = ['일','월','화','수','목','금','토'];
-const CATS = ['전체', '아론홀', '샤론홀'];
+const CATS = ['아론홀', '샤론홀', '전체'];
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -249,10 +249,16 @@ async function loadReservations() {
   renderEventList();
 }
 
-function fmtDatePlace(r) {
+function fmtDatePlace(r, showRoom = true) {
   const d = new Date(r.date + 'T00:00:00');
   const dow = DAYS[d.getDay()];
-  return { main: `${r.date.slice(5).replace('-','/')}(${dow}) · ${r.room}`, time: `${r.start}–${r.end}` };
+  const purpose = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '';
+  const dateStr = `${r.date.slice(5).replace('-','/')}(${dow})`;
+  return {
+    main: showRoom ? `${dateStr} · ${r.room}` : dateStr,
+    time: `${r.start}–${r.end}`,
+    purpose,
+  };
 }
 
 function fmtEventFull(r) {
@@ -286,11 +292,11 @@ function renderEventList() {
     return;
   }
   el.innerHTML = list.map(r => {
-    const { main, time } = fmtDatePlace(r);
+    const { main, time, purpose } = fmtDatePlace(r, curCat === '전체');
     return `
     <div class="ev-item${r.id===curResId?' active':''}" onclick="selectEvent('${r.id}')">
       <div class="ev-line1">${main}</div>
-      <div class="ev-line2">${time}</div>
+      <div class="ev-line2">${time}${purpose ? ' · ' + escapeHtml(purpose) : ''}</div>
     </div>`;
   }).join('');
 }
