@@ -277,7 +277,7 @@ function buildFormHTML(r) {
     <div class="form-sec">신청 업체 정보</div>
     <div class="fl">
       <div class="fg"><div class="lbl">업체·단체명 <span class="req-mark">*</span></div>
-        <input id="f-org" value="${v('orgName')}" placeholder="예: OO교회"></div>
+        <input id="f-org" value="${v('orgName')}"></div>
       <div class="fg"><div class="lbl">담당자 이름 <span class="req-mark">*</span></div>
         <input id="f-mgr" value="${v('managerName')}" placeholder="홍길동"></div>
     </div>
@@ -292,7 +292,7 @@ function buildFormHTML(r) {
     <div class="form-sec">행사 정보</div>
     <div class="fl">
       <div class="fg"><div class="lbl">행사명</div>
-        <input id="f-name" value="${v('eventName')}" placeholder="예: 청년부 수련회"></div>
+        <input id="f-name" value="${v('eventName')}" placeholder="예: 세미나"></div>
       <div class="fg"><div class="lbl">예상 인원</div>
         <input type="number" id="f-ppl" min="1" value="${v('headcount')}" placeholder="0"></div>
     </div>
