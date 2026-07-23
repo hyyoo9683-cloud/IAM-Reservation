@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>체크리스트 — 아이엠센터</title>
+<style>
+:root{
+  --blue:#185FA5;--blue-lt:#EBF4FF;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --amber:#854F0B;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --bg:#F8FAFD;--bg2:#fff;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
+
+/* 로그인 */
+#login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);z-index:200;}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:340px;max-width:90vw;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:32px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
+
+/* 헤더 */
+.header{background:var(--blue);padding:18px 20px 16px;text-align:center;position:relative;}
+.home-btn{position:absolute;top:16px;left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.home-btn:hover{background:rgba(255,255,255,.28);}
+.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
+.header-title{font-size:20px;font-weight:800;color:#fff;}
+.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
+
+/* 카드 */
+.card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
+.field{margin-bottom:14px;}
+.lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+input,textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
+  outline:none;transition:border .15s;-webkit-appearance:none;
+}
+input:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+textarea{min-height:80px;resize:vertical;line-height:1.6;}
+.fl{display:flex;gap:10px;flex-wrap:wrap;} .fl>.field{flex:1;min-width:140px;}
+
+.event-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.event-title{font-size:19px;font-weight:800;color:var(--text)}
+.room-badge{font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;background:var(--blue-lt);color:var(--blue);flex-shrink:0}
+.event-date{font-size:13px;color:var(--text2)}
+.progress-pill{font-size:12px;font-weight:700;padding:3px 11px;border-radius:999px;margin-left:auto}
+.progress-pill.done{background:var(--green-lt);color:var(--green)}
+.progress-pill.pending{background:#FAEEDA;color:var(--amber)}
+
+/* 체크리스트 */
+.checklist{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.check-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border:1.5px solid var(--border2);border-radius:11px;cursor:pointer;
+  transition:all .15s;user-select:none;background:#fff;}
+.check-item.checked{border-color:var(--green);background:var(--green-lt);}
+.chk-box{width:22px;height:22px;flex-shrink:0;border-radius:6px;
+  border:2px solid var(--border);background:#fff;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;font-size:13px;line-height:1;color:#fff;}
+.check-item.checked .chk-box{background:var(--green);border-color:var(--green);}
+.check-text{font-size:14.5px;color:var(--text);line-height:1.4;flex:1;}
+.check-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;flex-shrink:0;}
+.check-del:hover{color:var(--red);}
+.add-item-row{display:flex;gap:8px;}
+.add-item-row input{flex:1;}
+.btn-add-item{flex-shrink:0;padding:0 16px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);}
+.btn-add-item:hover{background:var(--blue-lt);}
+
+.submit-btn{
+  width:100%;padding:15px;border-radius:12px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:16px;font-weight:700;
+  font-family:var(--font);transition:filter .15s;margin-top:4px;
+}
+.submit-btn:hover{filter:brightness(.92);}
+.submit-btn:disabled{background:var(--text3);cursor:not-allowed;filter:none;}
+
+.empty-row{text-align:center;padding:40px 20px;color:var(--text3);font-size:14px;}
+.empty-row a{color:var(--blue);font-weight:700;text-decoration:none;}
+.save-msg{text-align:center;font-size:12px;color:var(--green);margin-top:8px;height:16px}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">체크리스트</div>
+    <div class="login-sub">아이엠센터 구성원 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrap" style="display:none">
+  <div class="header">
+    <a class="home-btn" href="index.html">← 홈으로</a>
+    <div class="header-logo">IAM CENTER</div>
+    <div class="header-title">체크리스트</div>
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let curUser = null;
+
+const checklistId = new URLSearchParams(location.search).get('id');
+let checklist = [];
+let isRecurring = false;
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  curUser = user;
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display   = 'block';
+  await loadAndRender();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block'; showLogin();
+}
+window.doLogin = async () => {
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
+  } catch (e) { showLoginError('로그인 실패: ' + (e.message || e.code)); }
+};
+
+async function loadAndRender() {
+  const content = document.getElementById('content');
+  if (!checklistId) {
+    content.innerHTML = `<div class="card"><div class="empty-row">체크리스트를 찾을 수 없습니다.<br><a href="event-checklist.html">행사 체크리스트 관리로 이동</a></div></div>`;
+    return;
+  }
+  const snap = await getDoc(doc(db, 'eventChecklists', checklistId));
+  if (!snap.exists()) {
+    content.innerHTML = `<div class="card"><div class="empty-row">체크리스트를 찾을 수 없습니다.<br><a href="event-checklist.html">행사 체크리스트 관리로 이동</a></div></div>`;
+    return;
+  }
+  const c = snap.data();
+  isRecurring = !!c.recurGroup;
+  const todayStr = new Date().toISOString().slice(0,10);
+  checklist = (isRecurring && c.activeDate !== todayStr)
+    ? (c.items || []).map(it => ({ text: it.text, checked: false }))
+    : (c.items || []).map(it => ({ ...it }));
+
+  content.innerHTML = `
+    <div class="card">
+      <div class="event-meta">
+        <span class="room-badge">${(c.room || '').replace(/</g,'&lt;')}</span>
+        <span class="event-date">${isRecurring ? `🔁 매주 반복 · 오늘 ${todayStr}` : (c.date || '')}</span>
+        <span id="progress-pill" class="progress-pill"></span>
+      </div>
+      <div class="event-title">${(c.eventName || '(제목 없음)').replace(/</g,'&lt;')}</div>
+    </div>
+    <div class="card">
+      <div class="lbl">체크리스트</div>
+      <div class="checklist" id="checklist"></div>
+      <div class="add-item-row">
+        <input id="new-item-text" placeholder="항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
+        <button type="button" class="btn-add-item" onclick="addChecklistItem()">+ 추가</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="field" style="margin-bottom:0">
+        <div class="lbl">특이사항</div>
+        <textarea id="f-notes">${(c.notes || '')}</textarea>
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="saveChecklist()">저장하기</button>
+      <div class="save-msg" id="save-msg"></div>
+    </div>
+  `;
+  renderChecklist();
+}
+
+function updateProgressPill() {
+  const done  = checklist.filter(i => i.checked).length;
+  const total = checklist.length;
+  const pill = document.getElementById('progress-pill');
+  if (!pill) return;
+  const allDone = total > 0 && done === total;
+  pill.textContent = `✓ ${done}/${total}`;
+  pill.className = 'progress-pill ' + (allDone ? 'done' : 'pending');
+}
+
+function renderChecklist() {
+  document.getElementById('checklist').innerHTML = checklist.map((it, i) => `
+    <div class="check-item${it.checked ? ' checked' : ''}" onclick="toggleItem(${i})">
+      <div class="chk-box">${it.checked ? '✓' : ''}</div>
+      <div class="check-text">${(it.text || '').replace(/</g,'&lt;')}</div>
+      <button type="button" class="check-del" onclick="event.stopPropagation();removeItem(${i})">✕</button>
+    </div>`).join('');
+  updateProgressPill();
+}
+window.toggleItem = (i) => { checklist[i].checked = !checklist[i].checked; renderChecklist(); };
+window.removeItem = (i) => { checklist.splice(i, 1); renderChecklist(); };
+window.addChecklistItem = () => {
+  const input = document.getElementById('new-item-text');
+  const text = input.value.trim();
+  if (!text) return;
+  checklist.push({ text, checked: false });
+  input.value = '';
+  renderChecklist();
+};
+
+window.saveChecklist = async () => {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '저장 중…';
+  try {
+    await setDoc(doc(db, 'eventChecklists', checklistId), {
+      items: checklist,
+      notes: document.getElementById('f-notes').value.trim(),
+      ...(isRecurring ? { activeDate: new Date().toISOString().slice(0,10) } : {}),
+      updatedAt: serverTimestamp(),
+      updatedBy: curUser.email
+    }, { merge: true });
+    document.getElementById('save-msg').textContent = '✅ 저장됐습니다';
+    setTimeout(() => { document.getElementById('save-msg').textContent = ''; }, 2500);
+  } catch (e) {
+    document.getElementById('save-msg').textContent = '저장 실패: ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '저장하기';
+  }
+};
+</script>
+</body>
+</html>

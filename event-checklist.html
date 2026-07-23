@@ -154,7 +154,8 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
 
     <div class="field">
       <div class="lbl">체크리스트</div>
-      <div id="recur-note" style="display:none;font-size:12px;color:var(--blue);background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px">🔁 정기 예약: 지난 회차와 동일한 체크리스트가 자동으로 채워졌습니다</div>
+      <div id="recur-note" style="display:none;font-size:12px;color:var(--blue);background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px">🔁 정기 예약입니다. 이 체크리스트 하나만 저장해두면 매주 자동으로 오늘의 체크리스트에 표시됩니다 (체크 상태는 매주 자동 초기화).</div>
+      <div id="recur-existing-note" style="display:none;font-size:12px;color:var(--amber,#854F0B);background:#FAEEDA;border-radius:8px;padding:8px 10px;margin-bottom:8px"></div>
       <div class="checklist" id="checklist"></div>
       <div class="add-item-row">
         <input id="new-item-text" placeholder="항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem();}">
@@ -223,11 +224,17 @@ const DEFAULT_ITEMS = [
 let checklist = DEFAULT_ITEMS.map(text => ({ text, checked: false }));
 let editingId = null;
 let curRecurGroup = null;
+let editingIsRecurring = false;
 
-// 선택한 공간·날짜가 정기 예약이면 같은 시리즈의 최근 체크리스트 항목을 자동으로 불러옴
+// 선택한 공간·날짜가 정기 예약이면, 이 시리즈에 이미 체크리스트가 있는지 확인.
+// 이미 있으면 새로 만들 필요 없이 기존 것을 안내하고, 없으면 이번에 만드는 것이
+// 시리즈 전체(매주)에 자동으로 쓰이게 됨을 안내한다.
 window.handleRecurAutofill = async () => {
   curRecurGroup = null;
   document.getElementById('recur-note').style.display = 'none';
+  document.getElementById('recur-existing-note').style.display = 'none';
+  const submitBtn = document.getElementById('submit-btn');
+  submitBtn.disabled = false;
   if (editingId) return;
   const room = document.getElementById('f-room').value;
   const date = document.getElementById('f-date').value;
@@ -238,20 +245,20 @@ window.handleRecurAutofill = async () => {
     const rsnap = await getDocs(rq);
     const recurGroup = rsnap.docs.map(d => d.data().recurGroup).find(Boolean);
     if (!recurGroup) return;
-    curRecurGroup = recurGroup;
 
     const cq = query(collection(db, 'eventChecklists'), where('recurGroup', '==', recurGroup));
     const csnap = await getDocs(cq);
-    const prior = csnap.docs.map(d => d.data())
-      .filter(c => c.date && c.date < date)
-      .sort((a, b) => b.date.localeCompare(a.date))[0];
-    if (!prior) return;
-
-    document.getElementById('f-event').value = prior.eventName || '';
-    checklist = (prior.items || []).map(it => ({ text: it.text, checked: false }));
-    renderChecklist();
+    if (!csnap.empty) {
+      const existingId = csnap.docs[0].id;
+      const el = document.getElementById('recur-existing-note');
+      el.innerHTML = `이 정기 예약에는 이미 체크리스트가 등록되어 있어 매주 자동으로 오늘의 체크리스트에 표시됩니다. <a href="checklist-view.html?id=${existingId}" target="_blank" style="font-weight:700">기존 체크리스트 보기 →</a>`;
+      el.style.display = 'block';
+      submitBtn.disabled = true;
+      return;
+    }
+    curRecurGroup = recurGroup;
     document.getElementById('recur-note').style.display = 'block';
-  } catch (e) { console.error('정기 예약 체크리스트 자동 채움 실패:', e); }
+  } catch (e) { console.error('정기 예약 확인 실패:', e); }
 };
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
@@ -315,6 +322,7 @@ function showErr(msg) {
 window.resetForm = () => {
   editingId = null;
   curRecurGroup = null;
+  editingIsRecurring = false;
   document.getElementById('recur-note').style.display = 'none';
   document.getElementById('form-title').textContent = '새 체크리스트 작성';
   document.getElementById('cancel-edit-btn').style.display = 'none';
@@ -342,11 +350,13 @@ window.saveChecklist = async () => {
   btn.disabled = true; btn.textContent = '저장 중…';
 
   try {
+    const isRecurring = !!curRecurGroup || editingIsRecurring;
     const payload = {
       room, date, eventName: event,
       items: checklist,
       notes: g('f-notes').value.trim(),
       ...(curRecurGroup ? { recurGroup: curRecurGroup } : {}),
+      ...(isRecurring ? { activeDate: new Date().toISOString().slice(0,10) } : {}),
       updatedAt: serverTimestamp(),
       updatedBy: curUser.email
     };
@@ -366,6 +376,16 @@ window.saveChecklist = async () => {
   }
 };
 
+// 정기 체크리스트(recurGroup 있음)는 마지막 저장일(activeDate)이 오늘이 아니면
+// 체크 상태를 화면상에서 초기화해서 보여줌 (매주 자동 초기화)
+function applyRecurFreshness(c) {
+  const items = (c.items || []).map(it => ({ ...it }));
+  if (!c.recurGroup) return items;
+  const todayStr = new Date().toISOString().slice(0,10);
+  if (c.activeDate === todayStr) return items;
+  return items.map(it => ({ text: it.text, checked: false }));
+}
+
 async function loadSavedList() {
   const el = document.getElementById('saved-list');
   try {
@@ -374,15 +394,16 @@ async function loadSavedList() {
     if (snap.empty) { el.innerHTML = '<div class="empty-row">저장된 체크리스트가 없습니다</div>'; return; }
     el.innerHTML = snap.docs.map(d => {
       const c = d.data();
-      const doneCount = (c.items || []).filter(i => i.checked).length;
-      const total = (c.items || []).length;
+      const freshItems = applyRecurFreshness(c);
+      const doneCount = freshItems.filter(i => i.checked).length;
+      const total = freshItems.length;
       return `<div class="saved-item" onclick="openChecklist('${d.id}')">
         <div class="saved-item-top">
-          <div class="saved-item-title">${c.eventName || '(제목 없음)'}</div>
+          <div class="saved-item-title">${c.eventName || '(제목 없음)'}${c.recurGroup ? ' <span style="font-size:11px;color:var(--blue);font-weight:700">🔁 정기</span>' : ''}</div>
           <div class="saved-item-room">${c.room || ''}</div>
         </div>
         <div class="saved-item-meta">
-          <span>📅 ${c.date || ''}</span>
+          <span>📅 ${c.date || ''}${c.recurGroup ? ' (매주)' : ''}</span>
           <span>✓ ${doneCount}/${total}</span>
         </div>
       </div>`;
@@ -403,7 +424,8 @@ window.openChecklist = async (id) => {
   document.getElementById('f-event').value = c.eventName || '';
   document.getElementById('f-date').value = c.date || '';
   document.getElementById('f-notes').value = c.notes || '';
-  checklist = (c.items || []).map(it => ({ ...it }));
+  checklist = applyRecurFreshness(c);
+  editingIsRecurring = !!c.recurGroup;
   renderChecklist();
   document.querySelector('.card:nth-of-type(2)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
