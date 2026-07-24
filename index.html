@@ -123,6 +123,7 @@ body.has-kakao-banner .shell { padding-top: var(--kakao-banner-h, 0px); }
 .btn-red     { background: var(--red);   color: #fff; }
 .btn-amber   { background: var(--amber); color: #fff; }
 .btn-ghost   { background: var(--bg2);   color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 .badge       { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 .b-wait   { background: var(--amber-lt); color: var(--amber); }
 .b-ok     { background: var(--green-lt); color: var(--green); }
@@ -146,6 +147,8 @@ textarea { resize: vertical; min-height: 60px; }
 .tbl td   { padding: 10px 12px; border-bottom: 1px solid var(--border2); color: var(--text); vertical-align: middle; }
 .tbl tr:last-child td { border-bottom: none; }
 .tbl tr.row:hover td  { background: var(--bg3); cursor: pointer; }
+#manual-table th, #manual-table td { padding: 5px 6px; }
+#manual-table input, #manual-table select { font-size: 11px; padding: 4px 5px; border: 1px solid var(--border); border-radius: 5px; }
 .rc     { display: inline-block; padding: 7px 14px; border-radius: 14px; font-size: 13px; cursor: pointer; border: 1px solid var(--border); color: var(--text2); background: var(--bg2); margin: 2px; user-select: none; transition: all .15s; font-weight: 500; }
 .rc.sel { background: var(--blue-lt); color: var(--blue); border-color: #A9BBAE; font-weight: 600; }
 .toast  { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; padding: 13px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
@@ -1792,28 +1795,58 @@ textarea { resize: vertical; min-height: 60px; }
 <!-- ════════════ 예약 상세 모달 ════════════ -->
 <!-- ════════════ CSV 가져오기 모달 ════════════ -->
 <div class="modal-bg" id="modal-import">
-  <div class="modal" style="max-width:740px;width:96%">
+  <div class="modal" style="max-width:960px;width:96%">
     <div class="modal-title">📥 예약 데이터 가져오기</div>
-    <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">
-      <strong>① 컬럼 헤더 행(1행)</strong>을 복사해서 아래 <em>헤더</em> 칸에 붙여넣기<br>
-      <strong>② 데이터 행</strong>을 복사해서 아래 <em>데이터</em> 칸에 붙여넣기 → <strong>③ 분석</strong> → 확인 후 <strong>④ 가져오기</strong>
+    <div style="display:flex;gap:6px;margin-bottom:14px">
+      <button class="btn btn-ghost mi-mode-btn active" id="im-mode-paste" onclick="setImportMode('paste')" style="flex:1;justify-content:center">📋 시트 복사·붙여넣기</button>
+      <button class="btn btn-ghost mi-mode-btn" id="im-mode-manual" onclick="setImportMode('manual')" style="flex:1;justify-content:center">✏️ 직접 입력 (표)</button>
     </div>
-    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">헤더 행 (시트 1행 — 컬럼명)</div>
-    <input type="text" id="import-header" placeholder="예) 장소	날짜	시작 시간	종료 시간	담당자 …  (Google Sheets 1행 복사 후 붙여넣기)"
-      style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);background:var(--bg2);margin-bottom:10px">
-    <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">데이터 행 (시트에서 가져올 행 범위 선택 후 복사)</div>
-    <textarea id="import-text" rows="6"
-      placeholder="데이터 행만 선택해서 붙여넣으세요 (헤더 행 제외 가능)"
-      style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);background:var(--bg2)"></textarea>
-    <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="previewImportText()">🔍 분석</button>
-      <button class="btn btn-ghost" onclick="document.getElementById('import-header').value='';document.getElementById('import-text').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
-      <label style="font-size:11px;color:var(--text3);margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
-        파일로 가져오기:
-        <input type="file" id="import-file" onchange="previewImport(this)" style="font-size:11px;max-width:180px">
-      </label>
+
+    <div id="import-paste-ui">
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:12px">
+        <strong>① 컬럼 헤더 행(1행)</strong>을 복사해서 아래 <em>헤더</em> 칸에 붙여넣기<br>
+        <strong>② 데이터 행</strong>을 복사해서 아래 <em>데이터</em> 칸에 붙여넣기 → <strong>③ 분석</strong> → 확인 후 <strong>④ 가져오기</strong>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">헤더 행 (시트 1행 — 컬럼명)</div>
+      <input type="text" id="import-header" placeholder="예) 장소	날짜	시작 시간	종료 시간	담당자 …  (Google Sheets 1행 복사 후 붙여넣기)"
+        style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);background:var(--bg2);margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">데이터 행 (시트에서 가져올 행 범위 선택 후 복사)</div>
+      <textarea id="import-text" rows="6"
+        placeholder="데이터 행만 선택해서 붙여넣으세요 (헤더 행 제외 가능)"
+        style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);background:var(--bg2)"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="previewImportText()">🔍 분석</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('import-header').value='';document.getElementById('import-text').value='';document.getElementById('import-preview').innerHTML='';document.getElementById('import-submit-btn').style.display='none'">초기화</button>
+        <label style="font-size:11px;color:var(--text3);margin-left:auto;display:flex;align-items:center;gap:6px;cursor:pointer">
+          파일로 가져오기:
+          <input type="file" id="import-file" onchange="previewImport(this)" style="font-size:11px;max-width:180px">
+        </label>
+      </div>
+      <div id="import-preview" style="margin-top:14px"></div>
     </div>
-    <div id="import-preview" style="margin-top:14px"></div>
+
+    <div id="import-manual-ui" style="display:none">
+      <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:10px">
+        엑셀·구글시트처럼 <strong>행을 추가</strong>하며 셀에 바로 입력하고, 다 채우면 <strong>표 내용 저장</strong>을 누르세요.
+      </div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
+        <table class="tbl" id="manual-table" style="font-size:11px;white-space:nowrap">
+          <thead><tr>
+            <th>공간</th><th>날짜</th><th>시작</th><th>종료</th><th>기관분류</th><th>담당자</th>
+            <th>청지기</th><th>연락처</th><th>인원</th><th>목적</th>
+            <th>🎭공연명</th><th>🎭리허설시작</th><th>🎭리허설종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
+            <th>상태</th><th></th>
+          </tr></thead>
+          <tbody id="manual-rows"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="addManualRow()">+ 행 추가</button>
+        <button class="btn btn-ghost" onclick="addManualRow(5)">+ 5행 추가</button>
+        <button class="btn btn-primary" style="margin-left:auto" onclick="runManualImport()">💾 표 내용 저장</button>
+      </div>
+    </div>
+
     <div style="background:var(--red-lt);border:1px solid #f5c2c2;border-radius:6px;padding:10px 14px;margin-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span style="font-size:12px;color:var(--red);font-weight:600">⚠️ 기존 예약 전체 삭제</span>
       <span style="font-size:11px;color:var(--text2);flex:1">새로 가져오기 전에 기존 데이터를 모두 지웁니다</span>
@@ -4795,7 +4828,7 @@ window.runImport = async () => {
         status: r.status, managerName: r.managerName,
         stewardName: r.stewardName, stewardTel: r.stewardTel,
         purpose: r.purpose, people: r.people,
-        type: '', memo: '', userEmail: r.email,
+        type: r.type || '', memo: '', userEmail: r.email,
         ...(r.recurGroup ? { recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: r.recurTotal } : {}),
         ...(r.showName        !== undefined ? { showName: r.showName } : {}),
         ...(r.rehearsalStart  !== undefined ? { rehearsalStart: r.rehearsalStart } : {}),
@@ -4804,7 +4837,7 @@ window.runImport = async () => {
         ...(r.roomsUsed       !== undefined ? { roomsUsed: r.roomsUsed } : {}),
         ...(r.parking         !== undefined ? { parking: r.parking } : {}),
         ...(r.etcNote         !== undefined ? { etcNote: r.etcNote } : {}),
-        history: [{ time: nowStr(), msg: r.recurGroup ? `CSV 가져오기 (정기 예약 ${r.recurType})` : 'CSV 가져오기' }],
+        history: [{ time: nowStr(), msg: r.recurGroup ? `${r._source || 'CSV 가져오기'} (정기 예약 ${r.recurType})` : (r._source || 'CSV 가져오기') }],
         createdAt: serverTimestamp()
       })));
       done += chunk.length;
@@ -4819,6 +4852,7 @@ window.runImport = async () => {
       document.getElementById('import-header').value = '';
       document.getElementById('import-text').value = '';
       document.getElementById('import-preview').innerHTML = '';
+      document.getElementById('manual-rows').innerHTML = '';
       btn.style.display = 'none';
     }
   } catch(e) {
@@ -4829,6 +4863,81 @@ window.runImport = async () => {
     abortBtn.style.display = 'none';
     if (!_importAborted) { btn.disabled = false; }
   }
+};
+
+// ── 직접 입력(표) 모드 ──────────────────────────────────────────────
+window.setImportMode = (mode) => {
+  document.getElementById('im-mode-paste').classList.toggle('active', mode === 'paste');
+  document.getElementById('im-mode-manual').classList.toggle('active', mode === 'manual');
+  document.getElementById('import-paste-ui').style.display   = mode === 'paste'  ? '' : 'none';
+  document.getElementById('import-manual-ui').style.display  = mode === 'manual' ? '' : 'none';
+  if (mode === 'manual' && !document.getElementById('manual-rows').children.length) addManualRow(3);
+};
+
+function manualRowHtml() {
+  const roomOpts = spaceSort(spaces).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+  const orgOpts  = '<option value="">-</option>' + orgsList.filter(o => !o.parentId).map(o => `<option value="${o.name}">${o.name}</option>`).join('');
+  return `<tr>
+    <td><select class="mi-room" style="width:90px"><option value="">선택</option>${roomOpts}</select></td>
+    <td><input type="date" class="mi-date" style="width:118px"></td>
+    <td><input type="time" class="mi-start" style="width:88px"></td>
+    <td><input type="time" class="mi-end" style="width:88px"></td>
+    <td><select class="mi-type" style="width:90px">${orgOpts}</select></td>
+    <td><input type="text" class="mi-manager" style="width:80px"></td>
+    <td><input type="text" class="mi-steward" style="width:80px"></td>
+    <td><input type="text" class="mi-tel" style="width:110px" oninput="formatTelInput(this)"></td>
+    <td><input type="number" class="mi-people" min="0" style="width:56px"></td>
+    <td><input type="text" class="mi-purpose" style="width:120px"></td>
+    <td><input type="text" class="mi-showname" style="width:110px"></td>
+    <td><input type="time" class="mi-rehearsal-start" style="width:88px"></td>
+    <td><input type="time" class="mi-rehearsal-end" style="width:88px"></td>
+    <td><input type="number" class="mi-audience" min="0" style="width:60px"></td>
+    <td><input type="text" class="mi-rooms-used" style="width:100px"></td>
+    <td><input type="text" class="mi-parking" style="width:90px"></td>
+    <td><input type="text" class="mi-etc" style="width:100px"></td>
+    <td><select class="mi-status" style="width:66px"><option value="확정" selected>확정</option><option value="대기">대기</option></select></td>
+    <td><button type="button" class="btn btn-ghost" style="padding:2px 8px;color:var(--red)" onclick="this.closest('tr').remove()">×</button></td>
+  </tr>`;
+}
+window.addManualRow = (n = 1) => {
+  const tbody = document.getElementById('manual-rows');
+  for (let i = 0; i < n; i++) {
+    tbody.insertAdjacentHTML('beforeend', manualRowHtml());
+    const lastRoom = tbody.lastElementChild.querySelector('.mi-room');
+    if (lastRoom && [...lastRoom.options].some(o => o.value === '아이엠홀')) lastRoom.value = '아이엠홀';
+  }
+};
+window.runManualImport = () => {
+  const rows = [...document.querySelectorAll('#manual-rows tr')];
+  if (!rows.length) { T('입력된 행이 없습니다', '#A32D2D'); return; }
+  const built = [];
+  for (const tr of rows) {
+    const g = cls => tr.querySelector('.' + cls)?.value || '';
+    const room = g('mi-room'), date = g('mi-date'), start = g('mi-start'), end = g('mi-end');
+    if (!room && !date && !start && !end) continue; // 완전히 빈 행은 무시
+    if (!room || !date || !start || !end) { T('공간·날짜·시작·종료는 모든 행에 필수입니다', '#A32D2D'); return; }
+    if (start >= end) { T(`${room} ${date} 행: 종료 시간이 시작보다 늦어야 합니다`, '#A32D2D'); return; }
+    const iamFields = {};
+    const showName = g('mi-showname'), rehStart = g('mi-rehearsal-start'), rehEnd = g('mi-rehearsal-end'),
+          audience = g('mi-audience'), roomsUsed = g('mi-rooms-used'), parking = g('mi-parking'), etcNote = g('mi-etc');
+    if (showName) iamFields.showName = showName;
+    if (rehStart) iamFields.rehearsalStart = rehStart;
+    if (rehEnd)   iamFields.rehearsalEnd = rehEnd;
+    if (audience) iamFields.audienceCount = parseInt(audience) || 0;
+    if (roomsUsed) iamFields.roomsUsed = roomsUsed;
+    if (parking)  iamFields.parking = parking;
+    if (etcNote)  iamFields.etcNote = etcNote;
+    built.push({
+      room, date, start, end, type: g('mi-type'),
+      managerName: g('mi-manager'), stewardName: g('mi-steward') || g('mi-manager'), stewardTel: g('mi-tel'),
+      people: parseInt(g('mi-people')) || 0, purpose: g('mi-purpose'), status: g('mi-status') || '확정',
+      email: '', recurType: null, ...iamFields, _source: '표 직접 입력'
+    });
+  }
+  if (!built.length) { T('입력된 행이 없습니다', '#A32D2D'); return; }
+  _importRows = built;
+  document.getElementById('import-submit-btn').textContent = `가져오기 (${built.length}건)`;
+  runImport();
 };
 
 // ── 상세 모달 ────────────────────────────────────────────────────
