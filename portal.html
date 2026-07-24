@@ -32,12 +32,26 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 
 onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
-  const allowed = user.email.endsWith('@' + ALLOWED_DOMAIN) || ADMIN_EMAILS.includes(user.email);
-  if (!allowed) {
+  const email = user.email;
+  const isDomainUser = email.endsWith('@' + ALLOWED_DOMAIN);
+
+  // 관리자: 주 관리자(ADMIN_EMAILS) 또는 Firestore admins 컬렉션에 등록된 계정
+  let isFirestoreAdmin = false;
+  if (!ADMIN_EMAILS.includes(email)) {
+    try {
+      const adminSnap = await getDocs(collection(db, 'admins'));
+      isFirestoreAdmin = adminSnap.docs.some(d => d.id === email);
+    } catch (_) {}
+  }
+  const isAdmin = ADMIN_EMAILS.includes(email) || isFirestoreAdmin;
+
+  if (!isDomainUser && !isAdmin) {
     await signOut(auth);
     showLoginError('이 서비스는 아이엠센터 구성원만 이용할 수 있습니다.');
     return;
   }
+  document.getElementById('admin-section').style.display      = isAdmin ? '' : 'none';
+  document.getElementById('admin-section-grid').style.display = isAdmin ? '' : 'none';
   showPortal(user);
 });
 
@@ -439,12 +453,25 @@ body{font-family:var(--font);background:var(--paper);color:var(--ink);min-height
         <div class="mc-foot">주간 현황 →</div>
       </a>
 
-      <a class="mc c-teal" href="weekly-manager.html">
-        <div class="mc-ico">🗓️</div>
-        <div class="mc-title">예약현황(예약책임자별)</div>
-        <div class="mc-desc">예약책임자별로 정리된 주간 예약 현황, 이미지로 저장 가능</div>
-        <div class="mc-foot">현황 보기 →</div>
+      <a class="mc c-ink" href="notice.html">
+        <div class="mc-ico">📣</div>
+        <div class="mc-title">공지사항</div>
+        <div class="mc-desc">센터 공지·이용 규정·팀 소식 등 내부 공지 관리</div>
+        <div class="mc-foot">공지 보기 →</div>
       </a>
+
+      <a class="mc c-teal" href="manager-checklist.html">
+        <div class="mc-ico">✅</div>
+        <div class="mc-title">체크리스트</div>
+        <div class="mc-desc">담당 행사를 선택해 나만의 체크리스트 작성·관리</div>
+        <div class="mc-foot">체크리스트 작성 →</div>
+      </a>
+
+    </div>
+
+    <!-- 공간 담당자 전용 -->
+    <div class="sec-hd" id="admin-section" style="display:none">공간 담당자 전용</div>
+    <div class="mgrid" id="admin-section-grid" style="display:none">
 
       <a class="mc c-green" href="quotation.html">
         <div class="badge-live">운영 중</div>
@@ -474,89 +501,6 @@ body{font-family:var(--font);background:var(--paper);color:var(--ink);min-height
         <div class="mc-title">행사 체크리스트</div>
         <div class="mc-desc">아론홀·샤론홀 행사 준비 체크리스트 작성·관리, 구글 캘린더 연동</div>
         <div class="mc-foot">체크리스트 작성 →</div>
-      </a>
-
-      <a class="mc c-ink" href="notice.html">
-        <div class="mc-ico">📣</div>
-        <div class="mc-title">공지사항</div>
-        <div class="mc-desc">센터 공지·이용 규정·팀 소식 등 내부 공지 관리</div>
-        <div class="mc-foot">공지 보기 →</div>
-      </a>
-
-    </div>
-
-    <!-- 관리 도구 -->
-    <div class="sec-hd">관리 도구</div>
-    <div class="mgrid">
-
-      <a class="mc c-sage" href="index.html">
-        <div class="mc-ico">🏢</div>
-        <div class="mc-title">공간 관리</div>
-        <div class="mc-desc">공간 정보·수용 인원·시설 항목 추가·수정·삭제</div>
-        <div class="mc-foot">공간 설정 →</div>
-      </a>
-
-      <a class="mc c-sage" href="index.html">
-        <div class="mc-ico">🏷️</div>
-        <div class="mc-title">기관 관리</div>
-        <div class="mc-desc">예약 기관 목록·분류 관리, 기관 추가·수정</div>
-        <div class="mc-foot">기관 설정 →</div>
-      </a>
-
-      <a class="mc c-teal" href="index.html">
-        <div class="mc-ico">👥</div>
-        <div class="mc-title">외부 사용자</div>
-        <div class="mc-desc">suwoncca.org 외 허용 계정 추가·관리 (개인 구글 계정 등)</div>
-        <div class="mc-foot">사용자 관리 →</div>
-      </a>
-
-      <a class="mc c-amber" href="index.html">
-        <div class="mc-ico">🚫</div>
-        <div class="mc-title">차단일 관리</div>
-        <div class="mc-desc">예약 불가 날짜·기간 설정 (공휴일·센터 행사·청소일 등)</div>
-        <div class="mc-foot">차단일 설정 →</div>
-      </a>
-
-      <a class="mc c-ink" href="index.html">
-        <div class="mc-ico">📝</div>
-        <div class="mc-title">관리자 메모</div>
-        <div class="mc-desc">운영팀 내부 메모·인수인계 사항 기록</div>
-        <div class="mc-foot">메모 보기 →</div>
-      </a>
-
-      <a class="mc c-green" href="index.html">
-        <div class="mc-ico">✏️</div>
-        <div class="mc-title">콘텐츠 편집</div>
-        <div class="mc-desc">홈 공지사항·FAQ·센터 소개 내용 수정 (배포 없이 즉시 반영)</div>
-        <div class="mc-foot">콘텐츠 편집 →</div>
-      </a>
-
-    </div>
-
-    <!-- 리포트 -->
-    <div class="sec-hd">분석 · 리포트</div>
-    <div class="mgrid">
-
-      <a class="mc c-purple" href="index.html">
-        <div class="mc-ico">📈</div>
-        <div class="mc-title">예약 리포트</div>
-        <div class="mc-desc">기간별·공간별·기관별 예약 통계, 이용률 히트맵 분석</div>
-        <div class="mc-foot">리포트 보기 →</div>
-      </a>
-
-      <a class="mc c-teal" href="https://docs.google.com/spreadsheets/d/1wjACP5oLxEQ2K-iBs4jQj0c48nf5I3Awe6t28qOnwGc/edit" target="_blank">
-        <div class="badge-live">Google Sheets</div>
-        <div class="mc-ico">🗂️</div>
-        <div class="mc-title">예약 신청 현황 시트</div>
-        <div class="mc-desc">폼 응답 원본·주간달력·충돌검사·월간달력 등 상세 시트</div>
-        <div class="mc-foot">시트 열기 →</div>
-      </a>
-
-      <a class="mc c-green" href="https://docs.google.com/forms/d/e/1FAIpQLSdwUle0UV5yhdHfub6Tks4RHUHZZTftJWNZhQ2ysHjZdLqYrA/viewform" target="_blank">
-        <div class="mc-ico">👣</div>
-        <div class="mc-title">청지기 발자취</div>
-        <div class="mc-desc">공간을 섬긴 청지기 기록 제출·확인</div>
-        <div class="mc-foot">폼 열기 →</div>
       </a>
 
     </div>

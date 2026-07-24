@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/space-reservation-system-N6xIM
+  workflow_dispatch: {}
 
 jobs:
   deploy:

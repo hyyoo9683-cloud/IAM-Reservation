@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>체크리스트 — 아이엠센터</title>
+<style>
+:root{
+  --blue:#185FA5;--blue-lt:#EBF4FF;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --bg:#F8FAFD;--bg2:#fff;--bg3:#F0F6FF;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
+
+/* 로그인 */
+#login-wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);z-index:200;}
+.login-card{background:#fff;border-radius:20px;padding:48px 40px;width:340px;max-width:90vw;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:32px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:filter .15s;}
+.login-btn:hover{filter:brightness(.92);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
+
+/* 헤더 */
+.header{background:var(--blue);padding:18px 20px 16px;text-align:center;position:relative;}
+.home-btn{position:absolute;top:16px;left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.home-btn:hover{background:rgba(255,255,255,.28);}
+.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
+.header-title{font-size:20px;font-weight:800;color:#fff;}
+.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
+
+/* 레이아웃 */
+.layout{display:flex;gap:16px;max-width:1080px;margin:16px auto 0;padding:0 16px;align-items:flex-start;}
+.card{background:var(--bg2);border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
+
+/* 좌측: 예약 검색/목록 */
+#ev-col{width:360px;flex-shrink:0;}
+.cat-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.cat-tab{padding:7px 14px;border-radius:999px;border:1px solid var(--border);background:#fff;
+  color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.cat-tab:hover{background:var(--bg3);}
+.cat-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.ev-search-wrap{margin-bottom:12px;}
+.ev-search-wrap input{width:100%;padding:11px 14px;border:1px solid var(--border);
+  border-radius:10px;font-size:14px;font-family:var(--font);outline:none;}
+.ev-search-wrap input:focus{border-color:var(--blue);}
+#ev-list{max-height:640px;overflow-y:auto;}
+.ev-item{padding:11px 12px;border-radius:9px;cursor:pointer;margin-bottom:3px;transition:background .12s;}
+.ev-item:hover{background:var(--bg3);}
+.ev-item.active{background:var(--blue-lt);}
+.ev-line1{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.ev-line2{font-size:11px;color:var(--text3);}
+.ev-status{font-weight:700;}
+.s-확정{color:var(--green);} .s-대기{color:var(--amber);} .s-반려{color:var(--red);}
+
+/* 우측: 체크리스트 */
+#cl-col{flex:1;min-width:0;}
+.back-link{display:none;font-size:13px;color:var(--text3);cursor:pointer;margin-bottom:12px;}
+#cl-event-title{font-size:15px;font-weight:700;margin-bottom:20px;
+  padding:12px 16px;background:var(--blue-lt);border-radius:10px;color:var(--blue);}
+
+.sec-label{font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.06em;margin:20px 0 10px;}
+.sec-label:first-of-type{margin-top:0;}
+
+.add-row{display:flex;gap:8px;margin-bottom:12px;}
+.add-row input{flex:1;padding:10px 13px;border:1px solid var(--border);border-radius:9px;
+  font-size:14px;font-family:var(--font);outline:none;}
+.add-row input:focus{border-color:var(--blue);}
+.add-row button{padding:10px 18px;border-radius:9px;border:none;background:var(--blue);
+  color:#fff;font-weight:700;font-size:14px;cursor:pointer;font-family:var(--font);}
+.add-row button:hover{filter:brightness(.92);}
+
+.chk-item{display:flex;align-items:center;gap:10px;padding:9px 11px;background:#fff;
+  border:1px solid var(--border2);border-radius:9px;margin-bottom:6px;}
+.chk-item input[type=checkbox]{width:17px;height:17px;cursor:pointer;flex-shrink:0;}
+.chk-text{flex:1;font-size:14px;color:var(--text);word-break:break-word;}
+.chk-item.done .chk-text{text-decoration:line-through;color:var(--text3);}
+.chk-del{background:none;border:none;color:var(--text3);font-size:19px;cursor:pointer;
+  line-height:1;padding:0 4px;flex-shrink:0;}
+.chk-del:hover{color:var(--red);}
+.chk-item.readonly{background:var(--bg);}
+.chk-dot{font-size:12px;color:var(--text3);flex-shrink:0;}
+.chk-item.readonly.done .chk-text{text-decoration:line-through;color:var(--text3);}
+
+.other-card{border:1px solid var(--border2);border-radius:11px;padding:12px;margin-bottom:10px;}
+.other-name{font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;}
+
+.empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:13px;}
+.empty-sm{text-align:center;padding:14px;color:var(--text3);font-size:12px;}
+
+@media(max-width:820px){
+  .layout{flex-direction:column;padding:0 12px;}
+  #ev-col{width:100%;}
+  #cl-col{display:none;width:100%;}
+  #cl-col.show{display:block;}
+  #ev-col.hide{display:none;}
+  .back-link{display:inline-block;}
+}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">✝️</div>
+    <div class="login-title">체크리스트</div>
+    <div class="login-sub">아이엠센터 구성원 전용</div>
+    <button class="login-btn" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.258h2.908C16.658 14.251 17.64 11.942 17.64 9.2z" fill="#4285F4"/>
+        <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+        <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+      </svg>
+      Google 계정으로 로그인
+    </button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrap" style="display:none">
+
+  <div class="header">
+    <a class="home-btn" href="portal.html">← 인트라넷</a>
+    <div class="header-logo">IAM CENTER</div>
+    <div class="header-title">체크리스트</div>
+    <div class="header-sub">담당 행사를 선택해 나만의 체크리스트를 작성하세요</div>
+  </div>
+
+  <div class="layout">
+
+    <div id="ev-col" class="card">
+      <div id="cat-tabs" class="cat-tabs"></div>
+      <div class="ev-search-wrap">
+        <input id="ev-search" type="text" placeholder="공간·목적·담당자·날짜로 검색" oninput="filterEvents()">
+      </div>
+      <div id="ev-list"><div class="empty">불러오는 중…</div></div>
+    </div>
+
+    <div id="cl-col" class="card">
+      <div class="back-link" onclick="backToList()">← 예약 목록으로</div>
+      <div id="checklist-panel" style="display:none">
+        <div id="cl-event-title"></div>
+
+        <div class="sec-label">내 체크리스트</div>
+        <div class="add-row">
+          <input id="new-item" type="text" placeholder="체크리스트 항목 입력 후 Enter" onkeydown="onItemKey(event)">
+          <button onclick="addItem()">추가</button>
+        </div>
+        <div id="my-items"></div>
+
+        <div class="sec-label">다른 담당자 체크리스트</div>
+        <div id="other-lists"></div>
+      </div>
+      <div id="cl-empty" class="empty">왼쪽에서 예약 건을 선택하세요.</div>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
+  onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, getDocs, setDoc, onSnapshot,
+  query, where, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ALLOWED_DOMAIN = "suwoncca.org";
+const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let curUser = null;
+let reservations = [];
+let curResId = null;
+let myChecklist = null;      // { id, items:[{text,done}] }
+let otherChecklists = [];    // 다른 담당자 체크리스트
+let unsubOthers = null;
+let curCat = '아론홀';
+const DAYS = ['일','월','화','수','목','금','토'];
+const CATS = ['아론홀', '샤론홀', '전체'];
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  const domain  = user.email.split('@')[1];
+  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  curUser = user;
+  document.getElementById('login-wrap').style.display = 'none';
+  document.getElementById('app-wrap').style.display    = 'block';
+  await loadReservations();
+});
+
+function showLogin() {
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('app-wrap').style.display   = 'none';
+}
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block'; showLogin();
+}
+window.doLogin = async () => {
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider();
+    p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+};
+window.doLogout = async () => { await signOut(auth); location.href = 'portal.html'; };
+
+async function loadReservations() {
+  const snap = await getDocs(collection(db, 'reservations'));
+  reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const today = new Date().toISOString().slice(0,10);
+  reservations.sort((a, b) => {
+    const aFuture = a.date >= today, bFuture = b.date >= today;
+    if (aFuture !== bFuture) return aFuture ? -1 : 1;
+    return aFuture ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
+  });
+  renderCatTabs();
+  renderEventList();
+}
+
+function fmtDatePlace(r, showRoom = true) {
+  const d = new Date(r.date + 'T00:00:00');
+  const dow = DAYS[d.getDay()];
+  const purpose = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '';
+  const dateStr = `${r.date.slice(5).replace('-','/')}(${dow})`;
+  return {
+    main: showRoom ? `${dateStr} · ${r.room}` : dateStr,
+    time: `${r.start}–${r.end}`,
+    purpose,
+  };
+}
+
+function fmtEventFull(r) {
+  const { main, time } = fmtDatePlace(r);
+  const label = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '(제목 없음)';
+  return `${main} ${time} · ${label}`;
+}
+
+function renderCatTabs() {
+  document.getElementById('cat-tabs').innerHTML = CATS.map(c =>
+    `<button class="cat-tab${c===curCat?' active':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+}
+window.setCat = (c) => { curCat = c; renderCatTabs(); renderEventList(); };
+
+window.filterEvents = () => renderEventList();
+
+function renderEventList() {
+  const kw = document.getElementById('ev-search').value.trim().toLowerCase();
+  const list = reservations.filter(r => {
+    if (r.status === '취소') return false;
+    if (curCat !== '전체' && r.room !== curCat) return false;
+    if (!kw) return true;
+    const hay = [r.room, r.type, r.subOrg, r.purpose, r.managerName, r.stewardName, r.date].join(' ').toLowerCase();
+    return hay.includes(kw);
+  }).slice(0, 200);
+
+  const el = document.getElementById('ev-list');
+  if (!list.length) {
+    el.innerHTML = `<div class="empty">일치하는 예약이 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const { main, time, purpose } = fmtDatePlace(r, curCat === '전체');
+    return `
+    <div class="ev-item${r.id===curResId?' active':''}" onclick="selectEvent('${r.id}')">
+      <div class="ev-line1">${main}${purpose ? ' · ' + escapeHtml(purpose) : ''}</div>
+      <div class="ev-line2">${time}</div>
+    </div>`;
+  }).join('');
+}
+
+window.selectEvent = (id) => {
+  curResId = id;
+  renderEventList();
+  document.getElementById('cl-empty').style.display = 'none';
+  document.getElementById('checklist-panel').style.display = 'block';
+  const r = reservations.find(x => x.id === id);
+  document.getElementById('cl-event-title').textContent = fmtEventFull(r);
+  loadMyChecklist();
+  watchOthers();
+  if (window.innerWidth <= 820) {
+    document.getElementById('ev-col').classList.add('hide');
+    document.getElementById('cl-col').classList.add('show');
+  }
+};
+window.backToList = () => {
+  document.getElementById('ev-col').classList.remove('hide');
+  document.getElementById('cl-col').classList.remove('show');
+};
+
+function myDocId() {
+  return `${curResId}__${curUser.email}`;
+}
+
+async function loadMyChecklist() {
+  const snap = await getDocs(query(collection(db, 'managerChecklists'),
+    where('reservationId', '==', curResId), where('authorEmail', '==', curUser.email)));
+  const d = snap.docs[0];
+  myChecklist = d ? { id: d.id, ...d.data() } : { id: myDocId(), items: [] };
+  renderMyChecklist();
+}
+
+async function saveMyChecklist() {
+  const r = reservations.find(x => x.id === curResId);
+  await setDoc(doc(db, 'managerChecklists', myChecklist.id), {
+    reservationId: curResId,
+    room: r?.room || '', date: r?.date || '', start: r?.start || '', end: r?.end || '',
+    authorEmail: curUser.email,
+    authorName: curUser.displayName || curUser.email.split('@')[0],
+    items: myChecklist.items,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+function renderMyChecklist() {
+  const el = document.getElementById('my-items');
+  if (!myChecklist.items.length) {
+    el.innerHTML = `<div class="empty-sm">아직 추가한 항목이 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = myChecklist.items.map((it, i) => `
+    <div class="chk-item${it.done?' done':''}">
+      <input type="checkbox" ${it.done?'checked':''} onchange="toggleItem(${i})">
+      <span class="chk-text">${escapeHtml(it.text)}</span>
+      <button class="chk-del" onclick="deleteItem(${i})">×</button>
+    </div>`).join('');
+}
+
+window.addItem = async () => {
+  const inp = document.getElementById('new-item');
+  const text = inp.value.trim();
+  if (!text) return;
+  myChecklist.items.push({ text, done: false });
+  inp.value = '';
+  renderMyChecklist();
+  await saveMyChecklist();
+};
+window.toggleItem = async (i) => {
+  myChecklist.items[i].done = !myChecklist.items[i].done;
+  renderMyChecklist();
+  await saveMyChecklist();
+};
+window.deleteItem = async (i) => {
+  myChecklist.items.splice(i, 1);
+  renderMyChecklist();
+  await saveMyChecklist();
+};
+window.onItemKey = (e) => { if (e.key === 'Enter') addItem(); };
+
+function watchOthers() {
+  if (unsubOthers) unsubOthers();
+  unsubOthers = onSnapshot(
+    query(collection(db, 'managerChecklists'), where('reservationId', '==', curResId)),
+    snap => {
+      otherChecklists = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(c => c.authorEmail !== curUser.email);
+      renderOthers();
+    }
+  );
+}
+
+function renderOthers() {
+  const el = document.getElementById('other-lists');
+  if (!otherChecklists.length) {
+    el.innerHTML = `<div class="empty-sm">다른 담당자가 작성한 체크리스트가 없습니다.</div>`;
+    return;
+  }
+  el.innerHTML = otherChecklists.map(c => `
+    <div class="other-card">
+      <div class="other-name">${escapeHtml(c.authorName || c.authorEmail)}</div>
+      ${(c.items||[]).map(it => `
+        <div class="chk-item readonly${it.done?' done':''}">
+          <span class="chk-dot">${it.done?'✔':'○'}</span>
+          <span class="chk-text">${escapeHtml(it.text)}</span>
+        </div>`).join('') || '<div class="empty-sm">항목 없음</div>'}
+    </div>`).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
