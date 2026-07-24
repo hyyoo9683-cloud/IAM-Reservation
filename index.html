@@ -3073,6 +3073,8 @@ const ROOM_CHIP_LABEL = {
   '아론홀': '아론홀(20-50명)',
   '샤론홀': '샤론홀(50인 이상)',
 };
+// 일반 사용자 셀프 예약 신청 대상이 아닌 공간 (관리자가 별도 절차로 등록)
+const SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀'];
 
 function buildRoomChips() {
   const labelTag = (text, color = 'var(--blue-mid)', bg = 'var(--blue-lt)') =>
@@ -3089,8 +3091,8 @@ function buildRoomChips() {
       sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')" style="margin:0">${lbl}</span>`; grouped.add(s.name); });
       html += '</div>';
     });
-    // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로
-    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name));
+    // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로 (셀프 신청 제외 공간은 노출 안 함)
+    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name) && !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
     const floors = {};
     rest.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
     Object.entries(floors).forEach(([fl, sps]) => {

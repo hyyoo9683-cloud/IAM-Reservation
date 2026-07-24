@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>지혜홀 숙박 신청 — 아이엠센터</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#185FA5;--blue-lt:#EBF4FF;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --border:#D4E4F4;--border2:#E8EFF7;
+  --bg:#F8FAFD;--bg2:#fff;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
+
+.header{background:var(--blue);padding:calc(env(safe-area-inset-top) + 18px) 20px 16px;text-align:center;position:relative;}
+.home-btn{position:absolute;top:calc(env(safe-area-inset-top) + 16px);left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
+.home-btn:hover{background:rgba(255,255,255,.28);}
+.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
+.header-title{font-size:20px;font-weight:800;color:#fff;}
+.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
+
+.card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
+.sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.field{margin-bottom:14px;}
+.lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.req-mark{color:var(--red);}
+input,select,textarea{
+  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
+  font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
+  outline:none;transition:border .15s;-webkit-appearance:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
+textarea{min-height:80px;resize:vertical;line-height:1.6;}
+.fl{display:flex;gap:10px;flex-wrap:wrap;} .fl>.field{flex:1;min-width:140px;}
+
+.equip-grid{display:flex;flex-wrap:wrap;gap:8px;}
+.equip-opt{display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--border);
+  border-radius:20px;cursor:pointer;font-size:13.5px;user-select:none;transition:all .15s;}
+.equip-opt:has(input:checked){border-color:var(--blue);background:var(--blue-lt);color:var(--blue);font-weight:700;}
+.equip-opt input{width:16px;height:16px;accent-color:var(--blue);}
+
+.submit-btn{
+  width:calc(100% - 32px);margin:4px 16px 0;
+  padding:16px;border-radius:12px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:17px;font-weight:700;
+  font-family:var(--font);transition:filter .15s;
+}
+.submit-btn:hover{filter:brightness(.92);}
+.submit-btn:disabled{background:var(--text3);cursor:not-allowed;filter:none;}
+
+#done-wrap{display:none;padding:56px 20px;text-align:center;}
+.done-icon{font-size:56px;margin-bottom:16px;}
+.done-title{font-size:22px;font-weight:800;color:var(--green);margin-bottom:8px;}
+.done-sub{font-size:15px;color:var(--text2);line-height:1.6;}
+.done-home-btn{display:inline-block;margin-top:20px;padding:12px 26px;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;text-decoration:none;font-size:14px;}
+
+.err-msg{font-size:13px;color:var(--red);margin-top:6px;display:none;padding:8px 10px;background:var(--red-lt);border-radius:7px;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <a class="home-btn" href="index.html">← 홈으로</a>
+  <div class="header-logo">IAM CENTER</div>
+  <div class="header-title">지혜홀 숙박 신청</div>
+  <div class="header-sub">상담 후 안내받으신 분만 신청해 주세요</div>
+</div>
+
+<div id="form-wrap">
+
+  <div class="card">
+    <div class="sec-label">신청 단체 정보</div>
+    <div class="fl">
+      <div class="field"><div class="lbl">단체·기관명 <span class="req-mark">*</span></div>
+        <input id="f-org"></div>
+      <div class="field"><div class="lbl">담당자 이름 <span class="req-mark">*</span></div>
+        <input id="f-mgr" placeholder="홍길동"></div>
+    </div>
+    <div class="fl">
+      <div class="field"><div class="lbl">연락처 <span class="req-mark">*</span></div>
+        <input id="f-tel" placeholder="010-0000-0000" oninput="formatTel(this)"></div>
+      <div class="field"><div class="lbl">이메일</div>
+        <input id="f-email" type="email" placeholder="example@email.com"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">숙박 정보</div>
+    <div class="fl">
+      <div class="field"><div class="lbl">체크인 날짜 <span class="req-mark">*</span></div>
+        <input type="date" id="f-date-in"></div>
+      <div class="field"><div class="lbl">박수 <span class="req-mark">*</span></div>
+        <input type="number" id="f-nights" min="1" value="1"></div>
+      <div class="field"><div class="lbl">예상 인원</div>
+        <input type="number" id="f-ppl" min="1" placeholder="0"></div>
+    </div>
+    <div class="field"><div class="lbl">룸 선택</div>
+      <div class="equip-grid">
+        <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 1 (3인실)"> Room 1 (3인실)</label>
+        <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 2 (2인실)"> Room 2 (2인실)</label>
+        <label class="equip-opt"><input type="checkbox" name="f-rooms" value="Room 3 (2인실)"> Room 3 (2인실)</label>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0"><div class="lbl">목적 / 특이사항</div>
+      <textarea id="f-purpose" placeholder="숙박 목적, 요청사항 등"></textarea></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="err-msg" id="err-msg"></div>
+  </div>
+
+  <button class="submit-btn" id="submit-btn" onclick="submitRequest()">신청서 제출하기</button>
+
+</div><!-- /form-wrap -->
+
+<div id="done-wrap">
+  <div class="done-icon">✅</div>
+  <div class="done-title">신청 완료!</div>
+  <div class="done-sub">신청해 주셔서 감사합니다.<br>담당자 확인 후 연락드리겠습니다.</div>
+  <a class="done-home-btn" href="index.html">홈으로 돌아가기</a>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getFirestore, collection, addDoc, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const db = getFirestore(app);
+
+document.getElementById('f-date-in').value = new Date().toISOString().slice(0,10);
+
+window.formatTel = el => {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length <= 3) el.value = v;
+  else if (v.length <= 7) el.value = v.slice(0,3)+'-'+v.slice(3);
+  else el.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+};
+
+function showErr(msg) {
+  const el = document.getElementById('err-msg');
+  el.textContent = msg; el.style.display = 'block';
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+window.submitRequest = async () => {
+  const g = id => document.getElementById(id);
+  const errEl = g('err-msg'); errEl.style.display = 'none';
+
+  const orgName     = g('f-org').value.trim();
+  const managerName = g('f-mgr').value.trim();
+  const tel         = g('f-tel').value.trim();
+  const email       = g('f-email').value.trim();
+  const dateIn      = g('f-date-in').value;
+  const nights      = parseInt(g('f-nights').value) || 0;
+
+  if (!orgName)     { showErr('단체·기관명을 입력해 주세요.'); return; }
+  if (!managerName) { showErr('담당자 이름을 입력해 주세요.'); return; }
+  if (!tel)         { showErr('연락처를 입력해 주세요.'); return; }
+  if (!dateIn)      { showErr('체크인 날짜를 입력해 주세요.'); return; }
+  if (!nights)      { showErr('박수를 입력해 주세요.'); return; }
+
+  const rooms = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
+
+  const data = {
+    space: '지혜홀',
+    orgName, managerName, tel, email,
+    eventName: `지혜홀 숙박 (${nights}박)`,
+    headcount: parseInt(g('f-ppl').value) || 0,
+    eventDate: dateIn,
+    dateIn, nights, rooms,
+    purpose: g('f-purpose').value.trim(),
+    status: '접수',
+    source: 'public',
+    createdAt: serverTimestamp(),
+  };
+
+  const btn = g('submit-btn');
+  btn.disabled = true; btn.textContent = '제출 중…';
+
+  try {
+    await addDoc(collection(db, 'venue_requests'), data);
+    document.getElementById('form-wrap').style.display = 'none';
+    document.getElementById('done-wrap').style.display = 'block';
+  } catch (e) {
+    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    btn.disabled = false; btn.textContent = '신청서 제출하기';
+  }
+};
+</script>
+</body>
+</html>

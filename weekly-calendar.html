@@ -26,6 +26,11 @@
                       padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
+  .view-toggle { display: flex; width: 100%; gap: 6px; padding: 10px 16px 0; }
+  .vt-btn { flex: 1; background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+            padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700; }
+  .vt-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
   .blocked-banner { margin: 12px 14px 0; background: #F5F5F5; color: #777; border-radius: 8px;
                      padding: 10px 14px; font-size: 13px; text-align: center; }
 
@@ -68,10 +73,10 @@
 <div class="header">
   <h1>📅 주간 예약 현황</h1>
   <span class="date-label" id="date-label"></span>
-  <div class="nav-btns">
-    <button onclick="changeDay(-1)">◀</button>
-    <button onclick="changeDay(0)">오늘</button>
-    <button onclick="changeDay(1)">▶</button>
+  <div class="nav-btns" id="nav-btns"></div>
+  <div class="view-toggle">
+    <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
+    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (아론홀·샤론홀·아이엠홀)</button>
   </div>
 </div>
 
@@ -99,16 +104,22 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀
+// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀
 const CATS = [
   { key: '5f',     label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], showRoom: true  },
   { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'], showRoom: false },
   { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
+  { key: 'iam',    label: '아이엠홀',      rooms: ['아이엠홀'], showRoom: false },
+  { key: 'jihye',  label: '지혜홀',        rooms: ['지혜홀'], showRoom: false },
 ];
+// 주간(홀) 보기 대상 공간
+const WEEK_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
 const DOWS = ['일','월','화','수','목','금','토'];
 
 let reservations = [], blockedDates = [];
+let mode = 'day';
 let dayOffset = 0;
+let weekOffset = 0;
 let loaded = { res: false, bd: false };
 
 const toDateStr = d =>
@@ -122,9 +133,45 @@ function curDate() {
   return d;
 }
 
+function weekStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay() + weekOffset * 7); // 이번 주 일요일 기준
+  return d;
+}
+
+window.setMode = (m) => {
+  mode = m;
+  document.getElementById('vt-day').classList.toggle('active', m === 'day');
+  document.getElementById('vt-week').classList.toggle('active', m === 'week');
+  render();
+};
+
+function renderNav() {
+  const navEl = document.getElementById('nav-btns');
+  if (mode === 'day') {
+    navEl.innerHTML = `
+      <button onclick="changeDay(-1)">◀</button>
+      <button onclick="changeDay(0)">오늘</button>
+      <button onclick="changeDay(1)">▶</button>`;
+  } else {
+    navEl.innerHTML = `
+      <button onclick="changeWeek(-1)">◀ 이전주</button>
+      <button onclick="changeWeek(0)">이번주</button>
+      <button onclick="changeWeek(1)">다음주 ▶</button>`;
+  }
+}
+
+window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
+window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
+
 function render() {
   if (!loaded.res || !loaded.bd) return;
+  renderNav();
+  if (mode === 'day') renderDay();
+  else renderWeek();
+}
 
+function renderDay() {
   const d     = curDate();
   const ds    = toDateStr(d);
   const todayS = tsToday();
@@ -158,7 +205,34 @@ function render() {
   document.getElementById('body').innerHTML = html;
 }
 
-window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
+function renderWeek() {
+  const start = weekStart();
+  const todayS = tsToday();
+  const endD = new Date(start); endD.setDate(endD.getDate() + 6);
+  document.getElementById('date-label').textContent =
+    `${start.getMonth()+1}.${start.getDate()} ~ ${endD.getMonth()+1}.${endD.getDate()}${weekOffset === 0 ? ' · 이번주' : ''}`;
+  document.getElementById('blocked-banner-wrap').innerHTML = '';
+
+  const html = Array.from({ length: 7 }, (_, i) => {
+    const d  = new Date(start); d.setDate(d.getDate() + i);
+    const ds = toDateStr(d);
+    const dow = DOWS[d.getDay()];
+    const items = reservations
+      .filter(r => WEEK_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
+      .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+    const body = !items.length
+      ? '<div class="empty-row">예약 없음</div>'
+      : items.map(r => `
+          <div class="item" onclick='showDetail(${JSON.stringify(r.id)})'>
+            <span class="item-time">${r.start}–${r.end}</span>
+            <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+            <span class="item-room">${esc(r.room)}</span>
+          </div>`).join('');
+    return `<div class="cat"><div class="cat-hd">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</div><div class="cat-body">${body}</div></div>`;
+  }).join('');
+
+  document.getElementById('body').innerHTML = html;
+}
 
 window.showDetail = (id) => {
   const r = reservations.find(x => x.id === id);

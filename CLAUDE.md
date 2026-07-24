@@ -27,8 +27,9 @@
 | `venue.html` | 대관 신청 관리 |
 | `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요) |
 | `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
-| `weekly-calendar.html` | 주간 예약 현황 (목록 형식 — 5층 소그룹실/아론홀/샤론홀 분류 후 시간순, 클릭 시 상세) |
+| `weekly-calendar.html` | 주간 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀 분류 후 시간순 / 주간: 아론홀·샤론홀·아이엠홀만 요일별 목록, 클릭 시 상세) |
 | `weekly-manager.html` | 예약현황(예약책임자별) |
+| `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 |
 
@@ -95,6 +96,13 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - `ALLOWED_DOMAIN = "suwoncca.org"` — 허용 도메인
 - `allowedUsers` 컬렉션 — 외부 허용 계정
 - `curUser` (로그인 객체), `isAdmin` (관리자 여부) — 전역 변수
+
+## 셀프 예약 불가 공간 (아이엠홀·지혜홀)
+- `index.html`의 `SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀']` — 일반 사용자 예약 신청 칩(`buildRoomChips()`)에서 제외됨
+- 관리자 전용 예약 등록·수정 모달(`editChipsHtml()`)에는 모든 공간이 그대로 노출되므로, 관리자가 대관 신청·상담 이후 받은 예약을 수동으로 등록 가능
+- 아이엠홀: 대관 신청 후 관리자가 직접 예약 등록 (venue.html 연동은 금액/항목 미확정으로 보류)
+- 지혜홀(숙박): `jihye-apply.html`에서 신청서 접수 → `venue_requests` 컬렉션에 저장 (venue.html 숙박 항목과 동일한 필드 구조: `dateIn`, `nights`, `rooms`, `eventDate`, `eventName`)
+- 두 공간 모두 `spaces` 컬렉션에 문서로 등록되어 있어야 예약 등록이 가능 — **공간 관리(관리자) 페이지에서 관리자가 직접 추가해야 함**
 
 ## 공개 페이지 개인정보 정책
 - 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김
