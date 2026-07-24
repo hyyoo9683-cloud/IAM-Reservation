@@ -3074,7 +3074,10 @@ const ROOM_CHIP_LABEL = {
   '샤론홀': '샤론홀(50인 이상)',
 };
 // 일반 사용자 셀프 예약 신청 대상이 아닌 공간 (관리자가 별도 절차로 등록)
+// 예약 신청 칩뿐 아니라 공간 안내/홈 검색/공간 가용성 검색/대체 공간 추천 등
+// 일반 사용자에게 노출되는 모든 곳에서 제외해야 함 (관리자 전용 화면은 예외)
 const SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀'];
+const publicSpaces = () => spaces.filter(s => !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
 
 function buildRoomChips() {
   const labelTag = (text, color = 'var(--blue-mid)', bg = 'var(--blue-lt)') =>
@@ -3625,7 +3628,7 @@ function flexRoomCardHtml() {
 function renderSpaces() {
   // 검색 전: 505→511→아론→샤론 / 검색 후: 508→511→505→507→506→아론→샤론
   const sortFn = spaceAvailResult !== null ? searchSpaceSort : spaceSort;
-  let list = sortFn(spaces);
+  let list = sortFn(publicSpaces());
   if (spaceNameFilter) list = list.filter(sp => sp.name.includes(spaceNameFilter));
   if (spaceFloorFilter) list = list.filter(sp => sp.floor === spaceFloorFilter);
   if (spaceCategoryFilter) list = list.filter(sp => getSpaceCategories(sp).includes(spaceCategoryFilter));
@@ -3728,7 +3731,8 @@ window.runAvailSearch = () => {
   const dates = generateAvailDates(sd, effectiveEd, recur);
   if (!dates.length) { T('해당 조건에 맞는 날짜가 없습니다', '#A32D2D'); return; }
   const available = new Set();
-  spaces.forEach(sp => {
+  const searchable = publicSpaces();
+  searchable.forEach(sp => {
     const conflict = dates.some(date =>
       reservations.some(r => r.room === sp.name && r.date === date && !['반려','취소'].includes(r.status) && !(et <= r.start || st >= r.end))
     );
@@ -3738,7 +3742,7 @@ window.runAvailSearch = () => {
   const recurLabel = {once:'1회', weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일'}[recur] || recur;
   const dateRange  = isOnce ? sd : `${sd} ~ ${effectiveEd}`;
   document.getElementById('avail-summary').innerHTML =
-    `<strong>${dateRange} · ${recurLabel} · ${st}–${et}</strong> (총 ${dates.length}회) — 예약 가능 <strong style="color:var(--green)">${available.size}개</strong> / 전체 ${spaces.length}개`;
+    `<strong>${dateRange} · ${recurLabel} · ${st}–${et}</strong> (총 ${dates.length}회) — 예약 가능 <strong style="color:var(--green)">${available.size}개</strong> / 전체 ${searchable.length}개`;
   renderSpaces();
 };
 
@@ -4204,8 +4208,8 @@ window.checkAvail = () => {
     html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${firstConflict}은(는) 남은 시간 중 가능한 슬롯이 없습니다</div>`;
   }
 
-  // 대체 공간: 모든 충돌 날짜에서 가능한 공간만
-  const alts = spaces.filter(sp => {
+  // 대체 공간: 모든 충돌 날짜에서 가능한 공간만 (셀프 신청 불가 공간은 제외)
+  const alts = publicSpaces().filter(sp => {
     if (sp.name === room) return false;
     if (conflictDates.some(d => !noConflict(sp.name, d, start, end))) return false;
     if (people && sp.cap < people) return false;
@@ -7764,10 +7768,11 @@ function getSpaceCategories(sp) {
 function hmSearchMatches(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
-  // spaces 배열(Firestore) + 고정
+  // spaces 배열(Firestore) + 고정 (셀프 신청 불가 공간은 검색에서 제외)
+  const visible = (window.spaces || []).filter(s => !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
   const all = [
-    ...(window.spaces || []).map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
-    ...FIXED_SPACES.filter(n => !(window.spaces && window.spaces.some(s=>s.name===n))).map(n=>({name:n,categories:[],fixed:true}))
+    ...visible.map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
+    ...FIXED_SPACES.filter(n => !SELF_SERVICE_EXCLUDED_ROOMS.includes(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
     s.name.toLowerCase().includes(q) || s.categories.some(c => c.toLowerCase().includes(q))
@@ -7777,17 +7782,17 @@ function hmSearchMatches(query) {
   const floorQuery = q.replace(/층$/,'').trim();
   if (floorQuery && /^\d+$/.test(floorQuery)) {
     const floorLabel = floorQuery + '층';
-    const roomsInFloor = (window.spaces || []).filter(s => s.floor === floorLabel);
+    const roomsInFloor = visible.filter(s => s.floor === floorLabel);
     if (roomsInFloor.length) {
       results.unshift({ name: floorLabel + ' 소그룹실', floor: `${roomsInFloor.length}개 공간`, isFloor: true, floorValue: floorLabel });
     }
   }
 
   // 카테고리 검색: 검색어와 일치하는 카테고리가 있으면 "'카테고리'에 해당하는 공간 모두 보기"를 최상단에 추가
-  const allCategories = [...new Set((window.spaces || []).flatMap(s => getSpaceCategories(s)))];
+  const allCategories = [...new Set(visible.flatMap(s => getSpaceCategories(s)))];
   const matchedCategories = allCategories.filter(c => c.toLowerCase().includes(q));
   matchedCategories.reverse().forEach(cat => {
-    const count = (window.spaces || []).filter(s => getSpaceCategories(s).includes(cat)).length;
+    const count = visible.filter(s => getSpaceCategories(s).includes(cat)).length;
     results.unshift({ name: `'${cat}'에 해당하는 공간 모두 보기`, floor: `${count}개 공간`, isCategory: true, categoryValue: cat });
   });
   return results;
