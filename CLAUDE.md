@@ -69,6 +69,14 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
   recurGroup: 'uuid',       // 정기 예약 그룹 ID (단일 예약은 없음)
   recurType: '매주',        // 정기 유형
   history: [{time, msg}],   // 처리 이력
+
+  // room === '아이엠홀'일 때만 사용하는 공연장 전용 세부사항 (선택)
+  showName: '공연명',
+  rehearsalStart: '13:00', rehearsalEnd: '14:00',
+  audienceCount: 200,       // 예상 관객 수 (people과 별개 — people은 신청 폼의 예상 인원)
+  roomsUsed: '대기실, 분장실',
+  parking: '차량 3대',
+  etcNote: '기타 특이사항',
 }
 ```
 
@@ -103,6 +111,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - 아이엠홀: 대관 신청 후 관리자가 직접 예약 등록 (venue.html 연동은 금액/항목 미확정으로 보류)
 - 지혜홀(숙박): `jihye-apply.html`에서 신청서 접수 → `venue_requests` 컬렉션에 저장 (venue.html 숙박 항목과 동일한 필드 구조: `dateIn`, `nights`, `rooms`, `eventDate`, `eventName`)
 - 두 공간 모두 `spaces` 컬렉션에 문서로 등록되어 있어야 예약 등록이 가능 — **공간 관리(관리자) 페이지에서 관리자가 직접 추가해야 함**
+- 예약 목록 페이지의 **"📥 CSV 가져오기"**로 구글 시트 붙여넣기 일괄 등록 가능 (`detectCols()`가 헤더 텍스트로 컬럼 자동 인식). 아이엠홀 세부사항(공연명/행사명, 리허설 시작·종료, 관객 수, 사용하는 실, 주차, 기타) 컬럼도 헤더에 해당 단어가 포함되면 자동 인식되어 함께 저장됨
 
 ## 공개 페이지 개인정보 정책
 - 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김

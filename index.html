@@ -1949,6 +1949,21 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="e-purpose"></div>
     </div>
     <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="e-memo"></textarea></div>
+    <div id="e-iam-details" style="display:none">
+      <div class="divider"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🎭 아이엠홀 세부사항</div>
+      <div class="fg"><div class="lbl">공연명 / 행사명</div><input id="e-iam-showname"></div>
+      <div class="fl">
+        <div class="fg"><div class="lbl">리허설 시작</div><input type="time" id="e-iam-rehearsal-start"></div>
+        <div class="fg"><div class="lbl">리허설 종료</div><input type="time" id="e-iam-rehearsal-end"></div>
+      </div>
+      <div class="fl">
+        <div class="fg"><div class="lbl">예상 관객 수</div><input type="number" id="e-iam-audience" min="0"></div>
+        <div class="fg"><div class="lbl">사용하는 실</div><input id="e-iam-rooms-used" placeholder="예: 대기실, 분장실"></div>
+      </div>
+      <div class="fg"><div class="lbl">주차</div><input id="e-iam-parking" placeholder="예: 차량 3대"></div>
+      <div class="fg"><div class="lbl">기타</div><textarea id="e-iam-etc"></textarea></div>
+    </div>
     <div id="e-admin-opts" style="display:none">
       <div class="divider"></div>
       <div class="fg">
@@ -4524,13 +4539,21 @@ function detectCols(headers) {
     if (s.includes('연락처') && m.stewardTel === undefined) m.stewardTel= i;
     if (s.includes('장소'))                                m.room      = i;
     if (s.includes('날짜'))                                m.date      = i;
-    if (s.includes('시작') && s.includes('시간'))          m.start     = i;
-    if ((s.includes('종료') || s.includes('종료 시간')) && s.includes('시간')) m.end = i;
+    if (s.includes('시작') && s.includes('시간') && !s.includes('리허설'))          m.start     = i;
+    if ((s.includes('종료') || s.includes('종료 시간')) && s.includes('시간') && !s.includes('리허설')) m.end = i;
     if (s.includes('1회') || (s.includes('반복') && !s.includes('종료')) || (s.includes('기간') && !s.includes('종료'))) m.recur = i;
-    if (s.includes('종료') && !s.includes('시간') && !s.includes('1회')) m.endDate= i;
+    if (s.includes('종료') && !s.includes('시간') && !s.includes('1회') && !s.includes('리허설')) m.endDate= i;
     if (s.includes('목적'))                                m.purpose   = i;
     if (s.includes('인원'))                                m.people    = i;
     if (s.includes('승인') || s.includes('취소') || s.includes('상태')) m.status = i;
+    // 아이엠홀(공연장) 전용 세부사항 컬럼
+    if (s.includes('공연') || s.includes('행사명'))         m.showName        = i;
+    if (s.includes('리허설') && s.includes('시작'))         m.rehearsalStart  = i;
+    if (s.includes('리허설') && (s.includes('종료') || s.includes('끝'))) m.rehearsalEnd = i;
+    if (s.includes('관객'))                                m.audienceCount   = i;
+    if (s.includes('사용하는 실') || s.includes('사용실') || (s.includes('사용') && s.includes('실') && !s.includes('사용자'))) m.roomsUsed = i;
+    if (s.includes('주차'))                                m.parking         = i;
+    if (s.includes('기타'))                                m.etcNote         = i;
   });
   return m;
 }
@@ -4637,15 +4660,25 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     const recurType = parseRecurType(recurRaw);
     const recurEndDate = endDateRaw ? parseKorDate(endDateRaw) : '';
 
+    // 아이엠홀(공연장) 전용 세부사항 컬럼 (해당 컬럼이 있을 때만 값 채움)
+    const iamFields = {};
+    if (cols.showName        !== undefined) iamFields.showName       = r[cols.showName] || '';
+    if (cols.rehearsalStart  !== undefined) iamFields.rehearsalStart = parseKorTime(r[cols.rehearsalStart] || '');
+    if (cols.rehearsalEnd    !== undefined) iamFields.rehearsalEnd   = parseKorTime(r[cols.rehearsalEnd] || '');
+    if (cols.audienceCount   !== undefined) iamFields.audienceCount  = parsePeople(r[cols.audienceCount] || '');
+    if (cols.roomsUsed       !== undefined) iamFields.roomsUsed      = r[cols.roomsUsed] || '';
+    if (cols.parking         !== undefined) iamFields.parking        = r[cols.parking] || '';
+    if (cols.etcNote         !== undefined) iamFields.etcNote        = r[cols.etcNote] || '';
+
     // 정기 예약 행: 시작날짜 ~ 종료날짜 범위를 모두 확장해서 등록
     if (recurType && recurEndDate && recurEndDate >= date) {
       const recurCode = recurType.includes('격') ? 'biweekly' : recurType.includes('달') ? 'monthly' : 'weekly';
       const allDates = generateAvailDates(date, recurEndDate, recurCode);
       allDates.forEach(d => _importRows.push({ room, date: d, start, end, status, managerName: manager,
-        stewardName: steward, stewardTel: tel, purpose, people, email, recurType }));
+        stewardName: steward, stewardTel: tel, purpose, people, email, recurType, ...iamFields }));
     } else {
       _importRows.push({ room, date, start, end, status, managerName: manager,
-        stewardName: steward, stewardTel: tel, purpose, people, email, recurType: recurType || null });
+        stewardName: steward, stewardTel: tel, purpose, people, email, recurType: recurType || null, ...iamFields });
     }
   }
 
@@ -4659,6 +4692,10 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     총 ${total}건 인식됨 (헤더: ${headerIdx+1}행, 데이터 시작: ${headerIdx+2}행) — 아래 최대 10건 미리보기</div>`;
   const seriesCount = new Set(_importRows.filter(r => r.recurType).map(r => `${r.managerName}|${r.room}|${r.start}|${r.end}|${r.recurType}`)).size;
   if (seriesCount > 0) html += `<div style="font-size:11px;color:var(--green);font-weight:600;margin-bottom:6px">🔁 정기 예약 시리즈 ${seriesCount}개 감지됨 — 자동으로 묶어서 등록합니다</div>`;
+  const iamColKeys = ['showName','rehearsalStart','rehearsalEnd','audienceCount','roomsUsed','parking','etcNote'];
+  if (Object.keys(cols).some(k => iamColKeys.includes(k))) {
+    html += `<div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:6px">🎭 아이엠홀 세부사항 컬럼(공연명·리허설·관객수 등) 인식됨 — 함께 저장됩니다</div>`;
+  }
   html += `<div style="overflow-x:auto"><table class="tbl" style="font-size:11px">
     <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>반복</th><th>상태</th></tr></thead><tbody>`;
   _importRows.slice(0, 10).forEach(r => {
@@ -4760,6 +4797,13 @@ window.runImport = async () => {
         purpose: r.purpose, people: r.people,
         type: '', memo: '', userEmail: r.email,
         ...(r.recurGroup ? { recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: r.recurTotal } : {}),
+        ...(r.showName        !== undefined ? { showName: r.showName } : {}),
+        ...(r.rehearsalStart  !== undefined ? { rehearsalStart: r.rehearsalStart } : {}),
+        ...(r.rehearsalEnd    !== undefined ? { rehearsalEnd: r.rehearsalEnd } : {}),
+        ...(r.audienceCount   !== undefined ? { audienceCount: r.audienceCount } : {}),
+        ...(r.roomsUsed       !== undefined ? { roomsUsed: r.roomsUsed } : {}),
+        ...(r.parking         !== undefined ? { parking: r.parking } : {}),
+        ...(r.etcNote         !== undefined ? { etcNote: r.etcNote } : {}),
         history: [{ time: nowStr(), msg: r.recurGroup ? `CSV 가져오기 (정기 예약 ${r.recurType})` : 'CSV 가져오기' }],
         createdAt: serverTimestamp()
       })));
@@ -4788,6 +4832,22 @@ window.runImport = async () => {
 };
 
 // ── 상세 모달 ────────────────────────────────────────────────────
+// 아이엠홀(공연장) 전용 세부사항 표시 — 상세 팝업에서 공통 사용
+function iamDetailHtml(r) {
+  const rows = [
+    r.showName                        ? ['공연명 / 행사명', r.showName] : null,
+    (r.rehearsalStart || r.rehearsalEnd) ? ['리허설', `${r.rehearsalStart || '-'} – ${r.rehearsalEnd || '-'}`] : null,
+    r.audienceCount                   ? ['예상 관객 수', `${r.audienceCount}명`] : null,
+    r.roomsUsed                       ? ['사용하는 실', r.roomsUsed] : null,
+    r.parking                         ? ['주차', r.parking] : null,
+    r.etcNote                         ? ['기타', r.etcNote] : null,
+  ].filter(Boolean);
+  if (!rows.length) return '';
+  return `<div style="grid-column:1/3;padding:10px 12px;background:var(--blue-lt);border-radius:7px">
+    <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px">🎭 아이엠홀 세부사항</div>
+    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:90px;flex-shrink:0">${k}</span><span>${v}</span></div>`).join('')}
+  </div>`;
+}
 window.openDetail = (id) => {
   const r = reservations.find(x => x.id === id); if (!r) return;
 
@@ -4828,6 +4888,7 @@ window.openDetail = (id) => {
       <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${r.people}명</div></div>
       <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${r.purpose}</div></div>
       ${reqTags.length ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 시설 요청</div><div class="space-amenity" style="margin-top:4px">${reqTags.map(t => `<span class="amenity-tag">${t}</span>`).join('')}</div></div>` : ''}
+      ${r.room === '아이엠홀' ? iamDetailHtml(r) : ''}
       ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${r.memo}</div></div>` : ''}
       ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">취소 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
     </div>
@@ -4962,6 +5023,8 @@ window.selEditRoom = (name) => {
   document.getElementById('e-room').value = name;
   document.querySelectorAll('[id^=erc-]').forEach(c => c.classList.remove('sel'));
   const el = document.getElementById('erc-' + name); if (el) el.classList.add('sel');
+  const iamDetails = document.getElementById('e-iam-details');
+  if (iamDetails) iamDetails.style.display = (name === '아이엠홀') ? '' : 'none';
   checkEditAvail();
 };
 window.checkEditAvail = () => {
@@ -5162,14 +5225,24 @@ window.openEditModal = (id) => {
     document.getElementById('e-memo').value         = r.memo || '';
     initTimeSelects('e-start', 'e-end', r.start, r.end);
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
+    document.getElementById('e-iam-showname').value        = r.showName || '';
+    document.getElementById('e-iam-rehearsal-start').value = r.rehearsalStart || '';
+    document.getElementById('e-iam-rehearsal-end').value   = r.rehearsalEnd || '';
+    document.getElementById('e-iam-audience').value        = r.audienceCount || '';
+    document.getElementById('e-iam-rooms-used').value      = r.roomsUsed || '';
+    document.getElementById('e-iam-parking').value         = r.parking || '';
+    document.getElementById('e-iam-etc').value             = r.etcNote || '';
+    document.getElementById('e-iam-details').style.display = (r.room === '아이엠홀') ? '' : 'none';
     editRoom = r.room;
     document.getElementById('e-room').value = r.room;
     setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); checkEditAvail(); }, 40);
   } else {
     document.getElementById('edit-modal-title').textContent = '예약 추가 (관리자)';
     document.getElementById('edit-submit-btn').textContent  = '추가';
-    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo']
+    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo',
+     'e-iam-showname', 'e-iam-rehearsal-start', 'e-iam-rehearsal-end', 'e-iam-audience', 'e-iam-rooms-used', 'e-iam-parking', 'e-iam-etc']
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
+    document.getElementById('e-iam-details').style.display = 'none';
     document.getElementById('e-room').value = '';
     document.getElementById('e-is-recur').checked = false;
     document.getElementById('e-recur-wrap').style.display    = '';
@@ -5210,6 +5283,15 @@ window.submitEdit = async () => {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
     room, date, start, end, people: parseInt(people), purpose, memo
   };
+  if (room === '아이엠홀') {
+    data.showName        = document.getElementById('e-iam-showname').value.trim();
+    data.rehearsalStart  = document.getElementById('e-iam-rehearsal-start').value;
+    data.rehearsalEnd    = document.getElementById('e-iam-rehearsal-end').value;
+    data.audienceCount   = parseInt(document.getElementById('e-iam-audience').value) || 0;
+    data.roomsUsed       = document.getElementById('e-iam-rooms-used').value.trim();
+    data.parking         = document.getElementById('e-iam-parking').value.trim();
+    data.etcNote         = document.getElementById('e-iam-etc').value.trim();
+  }
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
   try {

@@ -237,6 +237,14 @@ function renderWeek() {
 window.showDetail = (id) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
+  const iamRows = r.room === '아이엠홀' ? [
+    r.showName                          ? `<div class="modal-row"><span class="k">공연명</span><span class="v">${esc(r.showName)}</span></div>` : '',
+    (r.rehearsalStart || r.rehearsalEnd) ? `<div class="modal-row"><span class="k">리허설</span><span class="v">${esc(r.rehearsalStart)||'-'}–${esc(r.rehearsalEnd)||'-'}</span></div>` : '',
+    r.audienceCount                     ? `<div class="modal-row"><span class="k">관객 수</span><span class="v">${esc(r.audienceCount)}명</span></div>` : '',
+    r.roomsUsed                         ? `<div class="modal-row"><span class="k">사용하는 실</span><span class="v">${esc(r.roomsUsed)}</span></div>` : '',
+    r.parking                           ? `<div class="modal-row"><span class="k">주차</span><span class="v">${esc(r.parking)}</span></div>` : '',
+    r.etcNote                           ? `<div class="modal-row"><span class="k">기타</span><span class="v">${esc(r.etcNote)}</span></div>` : '',
+  ].join('') : '';
   document.getElementById('detail-content').innerHTML = `
     <div class="modal-title">${esc(r.purpose) || '(목적 미기재)'}</div>
     <div class="modal-row"><span class="k">공간</span><span class="v">${esc(r.room)}</span></div>
@@ -245,6 +253,7 @@ window.showDetail = (id) => {
     <div class="modal-row"><span class="k">담당자</span><span class="v">${esc(r.managerName)}</span></div>
     <div class="modal-row"><span class="k">청지기</span><span class="v">${esc(r.stewardName)} ${esc(r.stewardTel)}</span></div>
     <div class="modal-row"><span class="k">인원</span><span class="v">${esc(r.people)}명</span></div>
+    ${iamRows}
     <div class="modal-row"><span class="k">상태</span><span class="v"><span class="status-badge status-${esc(r.status)}">${esc(r.status)}</span></span></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
