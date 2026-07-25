@@ -1499,7 +1499,8 @@ textarea { resize: vertical; min-height: 60px; }
         </div>
       </div>
       <div class="card" style="padding:0;overflow:hidden">
-        <table class="tbl">
+        <div style="overflow-x:auto">
+        <table class="tbl" style="white-space:nowrap">
           <thead><tr id="list-thead">
             <th style="width:32px"><input type="checkbox" id="chk-all" onclick="toggleSelectAll(this)" style="cursor:pointer;width:14px;height:14px"></th>
             <th>#</th>
@@ -1515,6 +1516,7 @@ textarea { resize: vertical; min-height: 60px; }
           </tr></thead>
           <tbody id="list-body"></tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -1556,10 +1558,12 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <table class="tbl">
+          <div style="overflow-x:auto">
+          <table class="tbl" style="white-space:nowrap">
             <thead><tr><th>이메일</th><th>이름</th><th>추가일</th><th>액션</th></tr></thead>
             <tbody id="ext-users-body"></tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1585,10 +1589,12 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <table class="tbl">
+          <div style="overflow-x:auto">
+          <table class="tbl" style="white-space:nowrap">
             <thead><tr><th>이메일</th><th>이름</th><th>추가일</th><th>액션</th></tr></thead>
             <tbody id="admins-body"></tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1622,10 +1628,12 @@ textarea { resize: vertical; min-height: 60px; }
           <span id="lu-import-status" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <table class="tbl">
+          <div style="overflow-x:auto">
+          <table class="tbl" style="white-space:nowrap">
             <thead><tr><th>이메일</th><th>이름</th><th>최초 로그인</th><th>마지막 로그인</th><th>로그인 횟수</th><th>액션</th></tr></thead>
             <tbody id="login-users-body"></tbody>
           </table>
+          </div>
         </div>
       </div>
     </div>
@@ -1716,10 +1724,12 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <table class="tbl">
+          <div style="overflow-x:auto">
+          <table class="tbl" style="white-space:nowrap">
             <thead><tr><th>날짜</th><th>사유</th><th>구분</th><th>액션</th></tr></thead>
             <tbody id="blocked-body"></tbody>
           </table>
+          </div>
         </div>
 
         <!-- 정기 예약 날짜 보정 -->
@@ -5838,7 +5848,7 @@ window.renderList = function renderList() {
       <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${r.managerName}</td>
       <td>${r.stewardName || ''}</td>
       <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
-      <td>${r.purpose}</td><td>${sBadge(r.status)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td><td>${sBadge(r.status)}</td>
       <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
         <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
@@ -5866,7 +5876,7 @@ window.renderList = function renderList() {
         <td style="cursor:pointer" onclick="${tg}">${first.stewardName || ''}</td>
         <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
         <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date} ~ ${last.date}</span></td>
-        <td style="font-size:11px;color:var(--text2);cursor:pointer" onclick="${tg}">${first.purpose}</td>
+        <td style="font-size:11px;color:var(--text2);cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(first.purpose||'').replace(/"/g,'&quot;')}" onclick="${tg}">${first.purpose}</td>
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.createdAt)}</td>
         <td style="white-space:nowrap">
@@ -5886,7 +5896,7 @@ window.renderList = function renderList() {
         <td style="font-size:11px;color:var(--text2)">${r.stewardName || ''}</td>
         <td style="font-size:11px">${r.room}</td>
         <td style="font-weight:600">${r.date} ${r.start}–${r.end}</td>
-        <td style="font-size:11px;color:var(--text2)">${r.purpose}</td>
+        <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td>
         <td>${sBadge(r.status)}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
