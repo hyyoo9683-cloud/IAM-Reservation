@@ -1962,6 +1962,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div id="e-room-chips" style="margin-bottom:6px"></div>
       <input type="hidden" id="e-room">
       <div id="e-avail" style="margin-bottom:4px"></div>
+      <div id="e-date-context"></div>
     </div>
     <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
@@ -5010,6 +5011,7 @@ window.openDetail = (id) => {
       ${r.room === '아이엠홀' ? iamDetailHtml(r) : ''}
       ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${r.memo}</div></div>` : ''}
       ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">취소 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
+      ${isAdmin ? `<div style="grid-column:1/3">${dateContextHtml(r.date, r.id)}</div>` : ''}
     </div>
     <div style="height:1px;background:var(--border2);margin:14px 0"></div>
     <div style="font-size:11px;font-weight:700;margin-bottom:8px">처리 이력</div>
@@ -5187,11 +5189,34 @@ window.selEditRoom = (name) => {
   if (iamDetails) iamDetails.style.display = (name === '아이엠홀') ? '' : 'none';
   checkEditAvail();
 };
+// 특정 날짜의 다른 예약 목록 (관리자가 등록/승인 전 그날 현황을 파악하기 위함)
+function dateContextHtml(date, excludeId) {
+  if (!date) return '';
+  const others = reservations.filter(r => r.date === date && r.id !== excludeId && !['취소', '반려'].includes(r.status))
+    .sort((a, b) => a.start.localeCompare(b.start));
+  if (!others.length) {
+    return `<div style="font-size:11px;color:var(--text3);padding:6px 0">📅 ${date}에 다른 예약이 없습니다</div>`;
+  }
+  return `<div style="margin-top:6px">
+    <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:6px">📅 ${date} 다른 예약 (${others.length}건)</div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto">
+      ${others.map(r => `
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 8px;background:var(--bg);border-radius:6px;cursor:pointer" onclick="openDetail('${r.id}')">
+          <span style="font-weight:700;color:var(--blue);flex-shrink:0">${r.room}</span>
+          <span style="color:var(--text2);flex-shrink:0;white-space:nowrap">${r.start}–${r.end}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.purpose || ''}</span>
+          ${sBadge(r.status)}
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
 window.checkEditAvail = () => {
   const room = editRoom, date = document.getElementById('e-date').value,
         start = document.getElementById('e-start').value, end = document.getElementById('e-end').value;
   const el = document.getElementById('e-avail');
   if (!el) return;
+  const ctxEl = document.getElementById('e-date-context');
+  if (ctxEl) ctxEl.innerHTML = dateContextHtml(date, editId);
   if (!room || !date) { el.innerHTML = ''; return; }
   if (room === '공실 희망') {
     el.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:4px 0">실을 선택하면 이용 가능 여부를 확인할 수 있습니다</div>`;
