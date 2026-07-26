@@ -5051,7 +5051,12 @@ window.openDetail = (id) => {
 
   let btns = '';
   if (isAdmin) {
-    if (r.status === '대기') btns += `<button class="btn btn-green" onclick="approve('${r.id}');closeModal('modal-detail')">승인</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
+    if (r.status === '대기') {
+      // 정기예약이면 배정(assignRoom)과 마찬가지로 승인도 시리즈 전체에 적용
+      const seriesIds = r.recurGroup ? reservations.filter(x => x.recurGroup === r.recurGroup).map(x => x.id).join(',') : '';
+      const approveAction = r.recurGroup ? `approveGroup('${seriesIds}')` : `approve('${r.id}')`;
+      btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
+    }
     if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms',false)">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao',false)">💬 카카오</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
