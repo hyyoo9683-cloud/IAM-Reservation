@@ -2253,6 +2253,9 @@ function makeSorter(order) {
 }
 const spaceSort       = makeSorter(SPACE_ORDER);
 const searchSpaceSort = makeSorter(SEARCH_SPACE_ORDER);
+// 공실 배정 드롭다운 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀
+const ASSIGN_ROOM_ORDER = [...SPACE_ORDER, '아이엠홀'];
+const assignRoomSort = makeSorter(ASSIGN_ROOM_ORDER);
 // 탭별 공간 목록
 const PUB_TABS = {
   '5f':     { label: '5층 예약 현황',  rooms: ['505호','506호','507호','508호','509호','510호','511호'] },
@@ -5027,16 +5030,22 @@ window.openDetail = (id) => {
   // 공실 희망 → 관리자 배정 UI
   let assignHtml = '';
   if (isAdmin && r.room === '공실 희망') {
-    const roomOpts = spaces.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    const roomOpts = assignRoomSort(spaces).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    const series = r.recurGroup ? reservations.filter(x => x.recurGroup === r.recurGroup) : null;
+    const seriesNote = series
+      ? `<div style="font-size:11px;color:var(--text2);margin-bottom:8px">🔁 정기예약 ${series.length}건 — 공간을 선택하면 전체 회차의 배정 가능 여부를 확인합니다</div>`
+      : '';
     assignHtml = `
       <div style="margin-top:14px;padding:12px;background:var(--green-lt);border-radius:8px;border:1px solid var(--green)">
         <div style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">🏢 공실 배정</div>
+        ${seriesNote}
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <select id="assign-room-sel" style="flex:1;min-width:120px">
+          <select id="assign-room-sel" style="flex:1;min-width:120px" onchange="checkFlexAssignSeries('${r.id}')">
             <option value="">공간 선택</option>${roomOpts}
           </select>
           <button class="btn btn-green" style="white-space:nowrap" onclick="assignRoom('${r.id}')">배정하기</button>
         </div>
+        <div id="flex-assign-check" style="margin-top:8px"></div>
       </div>`;
   }
 
@@ -5057,6 +5066,26 @@ window.openDetail = (id) => {
   openModal('modal-detail');
 };
 
+window.checkFlexAssignSeries = (id) => {
+  const room = document.getElementById('assign-room-sel')?.value;
+  const el = document.getElementById('flex-assign-check');
+  if (!el) return;
+  if (!room) { el.innerHTML = ''; return; }
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  if (!r.recurGroup) { el.innerHTML = ''; return; }
+  const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a, b) => a.date.localeCompare(b.date));
+  const checked = series.map(x => ({ x, ok: noConflict(room, x.date, x.start, x.end, x.id, true) }));
+  const bad = checked.filter(c => !c.ok);
+  if (!bad.length) {
+    el.innerHTML = `<div class="avail-ok">✓ ${room}: 전체 ${series.length}건 모두 배정 가능합니다</div>`;
+  } else {
+    const ok = checked.length - bad.length;
+    el.innerHTML = `
+      <div class="avail-no">✗ ${room}: ${series.length}건 중 ${ok}건만 배정 가능 (${bad.length}건 충돌)</div>
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">충돌 날짜: ${bad.map(c => c.x.date).join(', ')}</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">배정하기를 누르면 가능한 ${ok}건만 ${room}(으)로 배정되고, 나머지 ${bad.length}건은 공실 희망 상태로 남습니다.</div>`;
+  }
+};
 window.assignRoom = async (id) => {
   const newRoom = document.getElementById('assign-room-sel')?.value;
   if (!newRoom) { T('배정할 공간을 선택해주세요', '#A32D2D'); return; }
@@ -5064,11 +5093,25 @@ window.assignRoom = async (id) => {
   if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
-    await updateDoc(doc(db, 'reservations', id), {
-      room: newRoom,
-      history: [...(r.history || []), { time: nowStr(), msg: `공실 배정: ${newRoom} (관리자)` }]
-    });
-    T(`${newRoom} 으로 배정했습니다`, '#3B6D11');
+    if (r.recurGroup) {
+      const series = reservations.filter(x => x.recurGroup === r.recurGroup);
+      const toAssign = series.filter(x => noConflict(newRoom, x.date, x.start, x.end, x.id, true));
+      const skipped  = series.length - toAssign.length;
+      if (!toAssign.length) { T(`${newRoom}: 배정 가능한 회차가 없습니다`, '#A32D2D'); return; }
+      await Promise.all(toAssign.map(x => updateDoc(doc(db, 'reservations', x.id), {
+        room: newRoom,
+        history: [...(x.history || []), { time: nowStr(), msg: `공실 배정: ${newRoom} (관리자, 정기예약 일부)` }]
+      })));
+      T(skipped
+        ? `${toAssign.length}건 ${newRoom}(으)로 배정 완료 (${skipped}건은 충돌로 보류)`
+        : `${toAssign.length}건 모두 ${newRoom}(으)로 배정했습니다`, '#3B6D11');
+    } else {
+      await updateDoc(doc(db, 'reservations', id), {
+        room: newRoom,
+        history: [...(r.history || []), { time: nowStr(), msg: `공실 배정: ${newRoom} (관리자)` }]
+      });
+      T(`${newRoom} 으로 배정했습니다`, '#3B6D11');
+    }
     closeModal('modal-detail');
   } catch (e) {
     console.error('assignRoom error:', e);
