@@ -1843,8 +1843,8 @@ textarea { resize: vertical; min-height: 60px; }
         <table class="tbl" id="manual-table" style="font-size:11px;white-space:nowrap">
           <thead><tr>
             <th>공간</th><th>날짜</th><th>시작</th><th>종료</th><th>기관분류</th><th>담당자</th>
-            <th>청지기</th><th>연락처</th><th>인원</th><th>목적</th>
-            <th>🎭공연명</th><th>🎭리허설시작</th><th>🎭리허설종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
+            <th>연락처</th><th>인원</th><th>공연명/목적</th>
+            <th>🎭리허설시작</th><th>🎭리허설종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
             <th>상태</th><th></th>
           </tr></thead>
           <tbody id="manual-rows"></tbody>
@@ -4892,20 +4892,19 @@ window.setImportMode = (mode) => {
 function manualRowHtml() {
   const roomOpts = spaceSort(spaces).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
   const orgOpts  = '<option value="">-</option>' + orgsList.filter(o => !o.parentId).map(o => `<option value="${o.name}">${o.name}</option>`).join('');
+  const timeOpts = '<option value="">--:--</option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
   return `<tr>
     <td><select class="mi-room" style="width:90px"><option value="">선택</option>${roomOpts}</select></td>
     <td><input type="date" class="mi-date" style="width:118px"></td>
-    <td><input type="time" class="mi-start" style="width:88px"></td>
-    <td><input type="time" class="mi-end" style="width:88px"></td>
+    <td><select class="mi-start" style="width:78px">${timeOpts}</select></td>
+    <td><select class="mi-end" style="width:78px">${timeOpts}</select></td>
     <td><select class="mi-type" style="width:90px">${orgOpts}</select></td>
     <td><input type="text" class="mi-manager" style="width:80px"></td>
-    <td><input type="text" class="mi-steward" style="width:80px"></td>
     <td><input type="text" class="mi-tel" style="width:110px" oninput="formatTelInput(this)"></td>
     <td><input type="number" class="mi-people" min="0" style="width:56px"></td>
-    <td><input type="text" class="mi-purpose" style="width:120px"></td>
-    <td><input type="text" class="mi-showname" style="width:110px"></td>
-    <td><input type="time" class="mi-rehearsal-start" style="width:88px"></td>
-    <td><input type="time" class="mi-rehearsal-end" style="width:88px"></td>
+    <td><input type="text" class="mi-showname" style="width:140px" placeholder="공연명 또는 목적"></td>
+    <td><select class="mi-rehearsal-start" style="width:78px">${timeOpts}</select></td>
+    <td><select class="mi-rehearsal-end" style="width:78px">${timeOpts}</select></td>
     <td><input type="number" class="mi-audience" min="0" style="width:60px"></td>
     <td><input type="text" class="mi-rooms-used" style="width:100px"></td>
     <td><input type="text" class="mi-parking" style="width:90px"></td>
@@ -4932,20 +4931,22 @@ window.runManualImport = () => {
     if (!room && !date && !start && !end) continue; // 완전히 빈 행은 무시
     if (!room || !date || !start || !end) { T('공간·날짜·시작·종료는 모든 행에 필수입니다', '#A32D2D'); return; }
     if (start >= end) { T(`${room} ${date} 행: 종료 시간이 시작보다 늦어야 합니다`, '#A32D2D'); return; }
+    const title = g('mi-showname');
     const iamFields = {};
-    const showName = g('mi-showname'), rehStart = g('mi-rehearsal-start'), rehEnd = g('mi-rehearsal-end'),
+    const rehStart = g('mi-rehearsal-start'), rehEnd = g('mi-rehearsal-end'),
           audience = g('mi-audience'), roomsUsed = g('mi-rooms-used'), parking = g('mi-parking'), etcNote = g('mi-etc');
-    if (showName) iamFields.showName = showName;
+    if (room === '아이엠홀' && title) iamFields.showName = title;
     if (rehStart) iamFields.rehearsalStart = rehStart;
     if (rehEnd)   iamFields.rehearsalEnd = rehEnd;
     if (audience) iamFields.audienceCount = parseInt(audience) || 0;
     if (roomsUsed) iamFields.roomsUsed = roomsUsed;
     if (parking)  iamFields.parking = parking;
     if (etcNote)  iamFields.etcNote = etcNote;
+    // 아이엠홀 등 관리자 직접 등록은 청지기 구분이 필요 없어 담당자와 동일하게 저장
     built.push({
       room, date, start, end, type: g('mi-type'),
-      managerName: g('mi-manager'), stewardName: g('mi-steward') || g('mi-manager'), stewardTel: g('mi-tel'),
-      people: parseInt(g('mi-people')) || 0, purpose: g('mi-purpose'), status: g('mi-status') || '확정',
+      managerName: g('mi-manager'), stewardName: g('mi-manager'), stewardTel: g('mi-tel'),
+      people: parseInt(g('mi-people')) || 0, purpose: title, status: g('mi-status') || '확정',
       email: '', recurType: null, ...iamFields, _source: '표 직접 입력'
     });
   }
