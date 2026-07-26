@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>주간 예약 현황 — 아이엠센터</title>
+<title>전체 예약 현황 — 아이엠센터</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -27,9 +27,9 @@
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
   .view-toggle { display: flex; width: 100%; gap: 6px; padding: 10px 16px 0; }
-  .vt-btn { flex: 1; background: var(--bg2); border: 1px solid var(--border); color: var(--text2);
+  .vt-btn { flex: 1; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); color: #fff;
             padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700; }
-  .vt-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .vt-btn.active { background: #fff; border-color: #fff; color: var(--blue); }
 
   .blocked-banner { margin: 12px 14px 0; background: #F5F5F5; color: #777; border-radius: 8px;
                      padding: 10px 14px; font-size: 13px; text-align: center; }
@@ -71,7 +71,7 @@
 <body>
 
 <div class="header">
-  <h1>📅 주간 예약 현황</h1>
+  <h1>📅 전체 예약 현황</h1>
   <span class="date-label" id="date-label"></span>
   <div class="nav-btns" id="nav-btns"></div>
   <div class="view-toggle">

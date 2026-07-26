@@ -27,7 +27,7 @@
 | `venue.html` | 대관 신청 관리 |
 | `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요) |
 | `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
-| `weekly-calendar.html` | 주간 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀 분류 후 시간순 / 주간: 아론홀·샤론홀·아이엠홀만 요일별 목록, 클릭 시 상세) |
+| `weekly-calendar.html` | 전체 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀 분류 후 시간순 / 주간: 아론홀·샤론홀·아이엠홀만 요일별 목록, 클릭 시 상세) |
 | `weekly-manager.html` | 예약현황(예약책임자별) |
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `firestore.rules` | Firestore 보안 규칙 |
