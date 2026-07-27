@@ -206,6 +206,14 @@ let reservations = [];
 let weekOffset   = 1;
 let searchFilter = null; // { name }
 const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// 관리자 링크(?admin=1)로 들어온 경우에만 전체 표 기본 노출. 그 외(공유용 링크)는
+// 이름 검색 전까지 아무 예약도 보이지 않음 — 이메일로 전체 예약책임자에게
+// 공유해도 검색 전에는 남의 정보가 노출되지 않도록.
+const isAdminView = new URLSearchParams(location.search).get('admin') === '1';
+if (!isAdminView) {
+  document.getElementById('dl-btn').style.display = 'none';
+  document.getElementById('clear-search-btn').textContent = '다시 검색하기';
+}
 
 // 다운로드용 처리된 섹션 데이터
 // '5f'   : [{mgr, list}]  (담당자별)
@@ -329,7 +337,7 @@ window.clearSearch = () => {
   searchFilter = null;
   document.getElementById('s-name').value = '';
   document.getElementById('clear-search-btn').style.display = 'none';
-  document.getElementById('dl-btn').style.display = '';
+  if (isAdminView) document.getElementById('dl-btn').style.display = '';
   render();
 };
 
@@ -345,6 +353,13 @@ function render() {
   );
 
   if (searchFilter) { renderMine(weekRes); return; }
+
+  if (!isAdminView) {
+    document.getElementById('summary').style.display = 'none';
+    document.getElementById('content').innerHTML =
+      `<div class="empty">🔍 이름을 검색하면 본인의 이번 주 예약을 확인할 수 있습니다.</div>`;
+    return;
+  }
 
   const sumEl = document.getElementById('summary');
   if (!weekRes.length) {
