@@ -1494,6 +1494,8 @@ textarea { resize: vertical; min-height: 60px; }
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;background:var(--green);border-color:var(--green)" onclick="bulkChangeSubOrg()">세부기관 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px" onclick="clearBulkSelect()">선택 해제</button>
         </div>
@@ -2210,6 +2212,7 @@ let changeReqTab = '';
 let curPage = 'spaces';
 let editId = null;
 let smsCtxId = null, smsCtxType = null;
+let smsBulkIds = null; // 다건 선택 문자/카카오 발송 모드일 때 선택된 예약 id 배열
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
@@ -5315,6 +5318,7 @@ function dateToSmsFormat(dateStr) {
 window.openSmsModal = (id, type, seriesDefault = true) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
+  smsBulkIds = null;
   smsCtxId = id; smsCtxType = type;
 
   const toggleWrap = document.getElementById('sms-series-toggle-wrap');
@@ -5342,7 +5346,38 @@ window.openSmsModal = (id, type, seriesDefault = true) => {
   openModal('modal-sms');
 };
 
+// 예약 목록에서 여러 건 선택 후 한 번에 문자/카카오 작성 (장소·시간·목적만 나열, 기본 형식 유지)
+window.openBulkSmsModal = (type) => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('선택된 예약이 없습니다', '#A32D2D'); return; }
+  const rows = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
+  if (!rows.length) return;
+  smsCtxId = null; smsCtxType = type;
+  smsBulkIds = rows.map(r => r.id);
+
+  document.getElementById('sms-series-toggle-wrap').style.display = 'none';
+  renderSmsBody();
+
+  // 연락처 바: 선택된 예약들의 연락처가 하나로 모이면 표시, 여러 명이면 요약 표시
+  const contactBar = document.getElementById('sms-contact-bar');
+  const contacts = [...new Map(rows.filter(r => r.stewardTel).map(r => [r.stewardTel, r.stewardName])).entries()];
+  if (contacts.length === 1) {
+    document.getElementById('sms-contact-name').textContent = contacts[0][1] || '';
+    document.getElementById('sms-contact-tel').textContent = contacts[0][0];
+    contactBar.style.display = 'flex';
+  } else if (contacts.length > 1) {
+    document.getElementById('sms-contact-name').textContent = `${contacts[0][1] || ''} 외 ${contacts.length - 1}명`;
+    document.getElementById('sms-contact-tel').textContent = contacts[0][0];
+    contactBar.style.display = 'flex';
+  } else {
+    contactBar.style.display = 'none';
+  }
+
+  openModal('modal-sms');
+};
+
 window.renderSmsBody = () => {
+  if (smsBulkIds && smsBulkIds.length) { renderBulkSmsBody(); return; }
   const r = reservations.find(x => x.id === smsCtxId);
   if (!r) return;
   const type = smsCtxType;
@@ -5406,6 +5441,42 @@ ${MSG_FOOTER}`;
   document.getElementById('sms-body').value = text;
   document.getElementById('sms-copy-msg').textContent = '';
 };
+
+// 다건 선택 문자/카카오 — 기본 형식(안내문+푸터)은 유지하고 본문만 장소·시간·목적 나열로 대체
+function renderBulkSmsBody() {
+  const type = smsCtxType;
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  const rows = smsBulkIds.map(id => reservations.find(x => x.id === id)).filter(Boolean)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  const list = rows.map((r, i) =>
+    `${i + 1}. 장소: ${roomToSmsName(r.room)} / 일시: ${dateToSmsFormat(r.date)} ${r.start}-${r.end} / 목적: ${r.purpose || ''}`
+  ).join('\n');
+
+  const baseBody =
+`[예약확정 알림]
+신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
+
+${list}`;
+
+  let text = '';
+  if (type === 'sms') {
+    text = `${baseBody}
+
+카카오채널 ID를 추가하시면
+바로 소통이 가능합니다.
+http://pf.kakao.com/_Yvxaeb
+
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = `📨 문자 작성 (${rows.length}건)`;
+  } else {
+    text = `${baseBody}
+
+${MSG_FOOTER}`;
+    document.getElementById('sms-modal-title').textContent = `💬 카카오 메시지 작성 (${rows.length}건)`;
+  }
+  document.getElementById('sms-body').value = text;
+  document.getElementById('sms-copy-msg').textContent = '';
+}
 
 window.copySms = () => {
   const text = document.getElementById('sms-body').value;
