@@ -5443,13 +5443,52 @@ ${MSG_FOOTER}`;
 };
 
 // 다건 선택 문자/카카오 — 기본 형식(안내문+푸터)은 유지하고 본문만 장소·시간·목적 나열로 대체
+// 같은 recurGroup끼리는 개별 회차를 다 나열하지 않고 "8.20-11.29 (매주 목 19:00-21:00)" 형태로 묶음
 function renderBulkSmsBody() {
   const type = smsCtxType;
   const DOWS_KR = ['일','월','화','수','목','금','토'];
-  const rows = smsBulkIds.map(id => reservations.find(x => x.id === id)).filter(Boolean)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
-  const list = rows.map((r, i) =>
-    `${i + 1}. 장소: ${roomToSmsName(r.room)} / 일시: ${dateToSmsFormat(r.date)} ${r.start}-${r.end} / 목적: ${r.purpose || ''}`
+  const rows = smsBulkIds.map(id => reservations.find(x => x.id === id)).filter(Boolean);
+
+  const groups = new Map(); // recurGroup → rows
+  const singles = [];
+  rows.forEach(r => {
+    if (r.recurGroup) {
+      if (!groups.has(r.recurGroup)) groups.set(r.recurGroup, []);
+      groups.get(r.recurGroup).push(r);
+    } else {
+      singles.push(r);
+    }
+  });
+
+  const entries = [];
+  groups.forEach(series => {
+    series.sort((a, b) => a.date.localeCompare(b.date));
+    const first = series[0], last = series[series.length - 1];
+    const timesUniform = series.every(x => x.start === first.start && x.end === first.end);
+    const isIrregular = first.recurType === '비정기' || !timesUniform;
+    let ilsi;
+    if (isIrregular) {
+      ilsi = series.map(x => {
+        const d = new Date(x.date + 'T00:00:00');
+        return `${d.getMonth() + 1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
+      }).join(', ');
+    } else {
+      const fd = new Date(first.date + 'T00:00:00'), ld = new Date(last.date + 'T00:00:00');
+      const sameYear = fd.getFullYear() === ld.getFullYear();
+      const shortDate = (d, withYear) => withYear ? `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}` : `${d.getMonth() + 1}.${d.getDate()}`;
+      const dow = DOWS_KR[fd.getDay()];
+      const recurLabel = (first.recurType || '매 주').replace(' ', '');
+      ilsi = `${shortDate(fd, true)}-${shortDate(ld, !sameYear)} (${recurLabel} ${dow} ${first.start}-${first.end})`;
+    }
+    entries.push({ sortDate: first.date, room: first.room, ilsi, purpose: first.purpose || '' });
+  });
+  singles.forEach(r => {
+    entries.push({ sortDate: r.date, room: r.room, ilsi: `${dateToSmsFormat(r.date)} ${r.start}-${r.end}`, purpose: r.purpose || '' });
+  });
+  entries.sort((a, b) => a.sortDate.localeCompare(b.sortDate));
+
+  const list = entries.map((e, i) =>
+    `${i + 1}. 장소: ${roomToSmsName(e.room)} / 일시: ${e.ilsi} / 목적: ${e.purpose}`
   ).join('\n');
 
   const baseBody =
@@ -5467,12 +5506,12 @@ ${list}`;
 http://pf.kakao.com/_Yvxaeb
 
 ${MSG_FOOTER}`;
-    document.getElementById('sms-modal-title').textContent = `📨 문자 작성 (${rows.length}건)`;
+    document.getElementById('sms-modal-title').textContent = `📨 문자 작성 (${entries.length}건)`;
   } else {
     text = `${baseBody}
 
 ${MSG_FOOTER}`;
-    document.getElementById('sms-modal-title').textContent = `💬 카카오 메시지 작성 (${rows.length}건)`;
+    document.getElementById('sms-modal-title').textContent = `💬 카카오 메시지 작성 (${entries.length}건)`;
   }
   document.getElementById('sms-body').value = text;
   document.getElementById('sms-copy-msg').textContent = '';
