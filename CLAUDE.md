@@ -72,14 +72,18 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
   history: [{time, msg}],   // 처리 이력
 
   // room === '아이엠홀'일 때만 사용하는 공연장 전용 세부사항 (선택)
-  showName: '공연명',
-  rehearsalStart: '13:00', rehearsalEnd: '14:00',
-  audienceCount: 200,       // 예상 관객 수 (people과 별개 — people은 신청 폼의 예상 인원)
+  showName: '공연명',              // 관리자 모달에서는 "사용 목적" 대신 이 필드가 purpose로 저장됨
+  rehearsalStart: '13:00', rehearsalEnd: '14:00',  // 필드명은 유지되지만 UI 라벨은 "행사 시작/종료 시간" (실제 리허설이 아니라 행사 자체의 시작·종료 기록용)
+  audienceCount: 200,       // 예상 관객 수 — 아이엠홀은 이 값이 people로도 저장됨 (관리자 모달에서 예상인원 입력칸 자체를 숨김)
   roomsUsed: '대기실, 분장실',
   parking: '차량 3대',
-  etcNote: '기타 특이사항',
+  etcNote: '기타 특이사항', // 아이엠홀은 "추가 요청사항" 대신 이 값이 memo로도 저장됨
+
+  // room === '지혜홀'일 때만 사용 (선택)
+  jihyeRooms: ['Room 1 (3인실)', 'Room 2 (2인실)'],  // 신청서의 룸 선택 체크박스와 동일한 옵션
 }
 ```
+지혜홀(숙박)은 관리자 모달에서 "박수"(nights)를 입력하면 체크인 날짜부터 연속 N박만큼 매일 예약이 자동 생성되고, `recurType: '연박'`으로 recurGroup에 묶임 (기존 정기예약과 별개 개념).
 
 ## 주요 함수 위치 (index.html)
 - `noConflict(room, date, start, end, skipId, confirmedOnly)` — 충돌 체크

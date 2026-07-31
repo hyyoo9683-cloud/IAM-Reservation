@@ -1896,7 +1896,7 @@ textarea { resize: vertical; min-height: 60px; }
           <thead><tr>
             <th>공간</th><th>날짜</th><th>시작</th><th>종료</th><th>기관분류</th><th>담당자</th>
             <th>연락처</th><th>이메일</th><th>인원</th><th>공연명/목적</th>
-            <th>🎭리허설시작</th><th>🎭리허설종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
+            <th>🎭행사시작</th><th>🎭행사종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
             <th>상태</th><th></th>
           </tr></thead>
           <tbody id="manual-rows"></tbody>
@@ -2044,18 +2044,20 @@ textarea { resize: vertical; min-height: 60px; }
       <div id="e-avail" style="margin-bottom:4px"></div>
       <div id="e-date-context"></div>
     </div>
-    <div class="fl">
-      <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="e-people" min="1"></div>
-      <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="e-purpose"></div>
+    <div id="e-basic-fields-wrap">
+      <div class="fl">
+        <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="e-people" min="1"></div>
+        <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="e-purpose"></div>
+      </div>
+      <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="e-memo"></textarea></div>
     </div>
-    <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="e-memo"></textarea></div>
     <div id="e-iam-details" style="display:none">
       <div class="divider"></div>
       <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🎭 아이엠홀 세부사항</div>
-      <div class="fg"><div class="lbl">공연명 / 행사명</div><input id="e-iam-showname"></div>
+      <div class="fg"><div class="lbl">공연명 / 행사명 <span class="req">*</span></div><input id="e-iam-showname"></div>
       <div class="fl">
-        <div class="fg"><div class="lbl">리허설 시작</div><input type="time" id="e-iam-rehearsal-start"></div>
-        <div class="fg"><div class="lbl">리허설 종료</div><input type="time" id="e-iam-rehearsal-end"></div>
+        <div class="fg"><div class="lbl">행사 시작 시간</div><select id="e-iam-rehearsal-start"></select></div>
+        <div class="fg"><div class="lbl">행사 종료 시간</div><select id="e-iam-rehearsal-end"></select></div>
       </div>
       <div class="fl">
         <div class="fg"><div class="lbl">예상 관객 수</div><input type="number" id="e-iam-audience" min="0"></div>
@@ -2063,6 +2065,29 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
       <div class="fg"><div class="lbl">주차</div><input id="e-iam-parking" placeholder="예: 차량 3대"></div>
       <div class="fg"><div class="lbl">기타</div><textarea id="e-iam-etc"></textarea></div>
+    </div>
+    <div id="e-jihye-details" style="display:none">
+      <div class="divider"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🛏 지혜홀 세부사항</div>
+      <div class="fg" id="e-jihye-nights-wrap">
+        <div class="lbl">박수 <span class="req">*</span></div>
+        <input type="number" id="e-jihye-nights" min="1" value="1">
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">체크인 날짜부터 연속 N박만큼 매일 예약이 자동 생성됩니다</div>
+      </div>
+      <div class="fg">
+        <div class="lbl">룸 선택</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="e-jihye-room" value="Room 1 (3인실)" style="width:15px;height:15px;cursor:pointer"> Room 1 (3인실)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="e-jihye-room" value="Room 2 (2인실)" style="width:15px;height:15px;cursor:pointer"> Room 2 (2인실)
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+            <input type="checkbox" class="e-jihye-room" value="Room 3 (2인실)" style="width:15px;height:15px;cursor:pointer"> Room 3 (2인실)
+          </label>
+        </div>
+      </div>
     </div>
     <div id="e-admin-opts" style="display:none">
       <div class="divider"></div>
@@ -5039,7 +5064,7 @@ window.runManualImport = () => {
 function iamDetailHtml(r) {
   const rows = [
     r.showName                        ? ['공연명 / 행사명', r.showName] : null,
-    (r.rehearsalStart || r.rehearsalEnd) ? ['리허설', `${r.rehearsalStart || '-'} – ${r.rehearsalEnd || '-'}`] : null,
+    (r.rehearsalStart || r.rehearsalEnd) ? ['행사 시작/종료', `${r.rehearsalStart || '-'} – ${r.rehearsalEnd || '-'}`] : null,
     r.audienceCount                   ? ['예상 관객 수', `${r.audienceCount}명`] : null,
     r.roomsUsed                       ? ['사용하는 실', r.roomsUsed] : null,
     r.parking                         ? ['주차', r.parking] : null,
@@ -5320,13 +5345,41 @@ window.deleteR = async (id, fromDetail = false) => {
 };
 
 // ── 수정 모달 ────────────────────────────────────────────────────
+// 공간 선택에 따라 예약 추가·수정 모달의 필드 구성을 바꿔줌
+// (아이엠홀: 예상인원/사용목적/요청사항은 세부사항 필드로 대체되므로 숨김,
+//  지혜홀: 정기예약 UI 대신 박수 기반 연박 입력으로 대체)
+function applyRoomFieldVisibility(room, isNew) {
+  const isIam   = room === '아이엠홀';
+  const isJihye = room === '지혜홀';
+  const iamDetails   = document.getElementById('e-iam-details');
+  const jihyeDetails = document.getElementById('e-jihye-details');
+  const basicWrap    = document.getElementById('e-basic-fields-wrap');
+  const nightsWrap   = document.getElementById('e-jihye-nights-wrap');
+  if (iamDetails)   iamDetails.style.display = isIam ? '' : 'none';
+  if (jihyeDetails) jihyeDetails.style.display = isJihye ? '' : 'none';
+  if (basicWrap)    basicWrap.style.display = isIam ? 'none' : '';
+  if (nightsWrap)   nightsWrap.style.display = (isJihye && isNew) ? '' : 'none';
+  if (isNew) {
+    const recurWrap = document.getElementById('e-recur-wrap');
+    if (recurWrap) recurWrap.style.display = isJihye ? 'none' : '';
+    if (isJihye) {
+      const recurCb = document.getElementById('e-is-recur'); if (recurCb) recurCb.checked = false;
+      const recurOpts = document.getElementById('e-recur-opts'); if (recurOpts) recurOpts.style.display = 'none';
+      const endWrap = document.getElementById('e-end-date-wrap'); if (endWrap) endWrap.style.display = 'none';
+    }
+  }
+  const dateLbl = document.getElementById('e-date-lbl');
+  if (dateLbl) {
+    const recurOn = !!document.getElementById('e-is-recur')?.checked;
+    dateLbl.innerHTML = (isJihye ? '체크인 날짜' : (recurOn ? '시작 날짜' : '날짜')) + ' <span class="req">*</span>';
+  }
+}
 window.selEditRoom = (name) => {
   editRoom = name;
   document.getElementById('e-room').value = name;
   document.querySelectorAll('[id^=erc-]').forEach(c => c.classList.remove('sel'));
   const el = document.getElementById('erc-' + name); if (el) el.classList.add('sel');
-  const iamDetails = document.getElementById('e-iam-details');
-  if (iamDetails) iamDetails.style.display = (name === '아이엠홀') ? '' : 'none';
+  applyRoomFieldVisibility(name, !editId);
   checkEditAvail();
 };
 // 특정 날짜의 다른 예약 목록 (관리자가 등록/승인 전 그날 현황을 파악하기 위함)
@@ -5835,6 +5888,9 @@ window.openEditModal = (id, prefill) => {
   document.getElementById('e-admin-opts').style.display = isAdmin ? 'block' : 'none';
   const stewardList = document.getElementById('steward-name-list');
   if (stewardList) stewardList.innerHTML = Object.keys(stewardDirectory()).map(n => `<option value="${n}">`).join('');
+  const iamTimeOpts = '<option value=""></option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+  document.getElementById('e-iam-rehearsal-start').innerHTML = iamTimeOpts;
+  document.getElementById('e-iam-rehearsal-end').innerHTML   = iamTimeOpts;
 
   if (id) {
     const r = reservations.find(x => x.id === id); if (!r) return;
@@ -5888,7 +5944,8 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-iam-rooms-used').value      = r.roomsUsed || '';
     document.getElementById('e-iam-parking').value         = r.parking || '';
     document.getElementById('e-iam-etc').value             = r.etcNote || '';
-    document.getElementById('e-iam-details').style.display = (r.room === '아이엠홀') ? '' : 'none';
+    document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = (r.jihyeRooms || []).includes(cb.value));
+    applyRoomFieldVisibility(r.room, false);
     editRoom = r.room;
     document.getElementById('e-room').value = r.room;
     setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); checkEditAvail(); }, 40);
@@ -5898,13 +5955,13 @@ window.openEditModal = (id, prefill) => {
     ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo',
      'e-iam-showname', 'e-iam-rehearsal-start', 'e-iam-rehearsal-end', 'e-iam-audience', 'e-iam-rooms-used', 'e-iam-parking', 'e-iam-etc']
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
-    document.getElementById('e-iam-details').style.display = 'none';
+    document.getElementById('e-jihye-nights').value = 1;
+    document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = false);
+    applyRoomFieldVisibility('', true);
     document.getElementById('e-room').value = '';
     document.getElementById('e-is-recur').checked = false;
-    document.getElementById('e-recur-wrap').style.display    = '';
     document.getElementById('e-recur-opts').style.display    = 'none';
     document.getElementById('e-end-date-wrap').style.display = 'none';
-    document.getElementById('e-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
     initTimeSelects('e-start', 'e-end');
     if (isAdmin) document.getElementById('e-status').value = '확정';
     if (prefill) {
@@ -5931,8 +5988,16 @@ window.submitEdit = async () => {
   const people  = document.getElementById('e-people').value;
   const purpose = document.getElementById('e-purpose').value.trim();
   const memo    = document.getElementById('e-memo').value.trim();
+  const isIamHall   = room === '아이엠홀';
+  const isJihye     = room === '지혜홀';
+  const iamShowName = document.getElementById('e-iam-showname').value.trim();
 
-  if (!type || !manager || !sName || !sTel || !room || !date || !people || !purpose) {
+  if (!type || !manager || !sName || !sTel || !room || !date) {
+    T('필수 항목을 입력해주세요', '#A32D2D'); return;
+  }
+  if (isIamHall) {
+    if (!iamShowName) { T('공연명 / 행사명을 입력해주세요', '#A32D2D'); return; }
+  } else if (!people || !purpose) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
@@ -5944,16 +6009,22 @@ window.submitEdit = async () => {
 
   const data = {
     type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-    room, date, start, end, people: parseInt(people), purpose, memo
+    room, date, start, end,
+    people:  isIamHall ? (parseInt(document.getElementById('e-iam-audience').value) || 0) : parseInt(people),
+    purpose: isIamHall ? iamShowName : purpose,
+    memo:    isIamHall ? document.getElementById('e-iam-etc').value.trim() : memo
   };
-  if (room === '아이엠홀') {
-    data.showName        = document.getElementById('e-iam-showname').value.trim();
+  if (isIamHall) {
+    data.showName        = iamShowName;
     data.rehearsalStart  = document.getElementById('e-iam-rehearsal-start').value;
     data.rehearsalEnd    = document.getElementById('e-iam-rehearsal-end').value;
     data.audienceCount   = parseInt(document.getElementById('e-iam-audience').value) || 0;
     data.roomsUsed       = document.getElementById('e-iam-rooms-used').value.trim();
     data.parking         = document.getElementById('e-iam-parking').value.trim();
     data.etcNote         = document.getElementById('e-iam-etc').value.trim();
+  }
+  if (isJihye) {
+    data.jihyeRooms = [...document.querySelectorAll('.e-jihye-room:checked')].map(c => c.value);
   }
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
@@ -6095,21 +6166,33 @@ window.submitEdit = async () => {
       const recurType = document.getElementById('e-recur')?.value || 'weekly';
       if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
       if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
-      const dates = isRecur ? generateAvailDates(date, endDate, recurType) : [date];
       const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
-      const recurGroup = isRecur ? `recur_${Date.now()}` : null;
+
+      const nights = isJihye ? Math.max(1, parseInt(document.getElementById('e-jihye-nights').value) || 1) : 1;
+      let dates, recurGroup = null, recurLabel = null;
+      if (isJihye && nights > 1) {
+        const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + nights - 1);
+        dates = generateAvailDates(date, toDateStr(endD), 'daily');
+        recurGroup = `jihye_${Date.now()}`; recurLabel = '연박';
+      } else if (isRecur) {
+        dates = generateAvailDates(date, endDate, recurType);
+        recurGroup = `recur_${Date.now()}`; recurLabel = recurLabelMap[recurType];
+      } else {
+        dates = [date];
+      }
+
       data.status    = document.getElementById('e-status').value || '확정';
       data.userEmail = cu.email || 'admin';
       data.createdAt = serverTimestamp();
-      if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabelMap[recurType]; data.recurTotal = dates.length; }
+      if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabel; data.recurTotal = dates.length; }
       for (let i = 0; i < dates.length; i++) {
         await addDoc(collection(db, 'reservations'), {
           ...data,
           date: dates[i],
-          history: [{ time: nowStr(), msg: isRecur ? `관리자 추가 (정기 ${i+1}/${dates.length}회, ${recurLabelMap[recurType]})` : '관리자 추가' }]
+          history: [{ time: nowStr(), msg: recurGroup ? `관리자 추가 (${recurLabel} ${i+1}/${dates.length}회)` : '관리자 추가' }]
         });
       }
-      T(isRecur ? `정기 예약 ${dates.length}건 추가됐습니다` : '예약이 추가됐습니다', '#3B6D11');
+      T(dates.length > 1 ? `예약 ${dates.length}건 추가됐습니다` : '예약이 추가됐습니다', '#3B6D11');
     }
     closeModal('modal-edit');
   } catch (e) {
