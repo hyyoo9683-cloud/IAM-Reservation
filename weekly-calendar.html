@@ -47,6 +47,9 @@
   .item-purpose { font-size: 14px; color: var(--text); flex: 1; min-width: 0;
                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item-room { font-size: 11px; color: var(--text3); flex-shrink: 0; white-space: nowrap; }
+  .item-lodging { background: #FAEEDA; }
+  .item-lodging:hover { background: #F5E3C4; }
+  .item-lodging .item-time { color: #854F0B; }
   .empty-row { padding: 18px 16px; text-align: center; color: var(--text3); font-size: 13px; }
   .loading { text-align: center; padding: 60px; color: var(--text3); }
 
@@ -228,7 +231,7 @@ function renderWeek() {
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item" onclick='showDetail(${JSON.stringify(r.id)})'>
+          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-time">${r.start}–${r.end}</span>
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-room">${esc(r.room)}</span>
