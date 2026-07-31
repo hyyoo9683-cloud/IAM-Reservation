@@ -773,6 +773,7 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('change-requests')"><span class="icon">🔁</span>변경·취소 신청<span class="nav-badge" id="badge-change-cnt">0</span></button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('report')"><span class="icon">📈</span>리포트</button>
+      <button class="nav-btn" onclick="go('ops-report')"><span class="icon">📧</span>주간 운영 리포트</button>
       <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
       <button class="nav-btn" onclick="go('orgs')"><span class="icon">🏷</span>기관 관리</button>
       <a href="weekly-calendar.html" class="nav-btn" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🗓</span>전체 예약 현황</a>
@@ -1697,6 +1698,52 @@ textarea { resize: vertical; min-height: 60px; }
         <div id="report-dayofweek"></div>
       </div>
       <div class="card" style="display:none"><div class="card-title">기관 분류별 현황</div><div id="report-orgs"></div></div>
+    </div>
+    <!-- 관리자: 주간 운영 리포트 (이메일용) -->
+    <div class="page" id="p-ops-report">
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 14px">
+        아론홀·샤론홀·지혜홀·아이엠홀의 <b>확정</b> 예약을 기간별로 모아 이메일용 표 이미지 + 본문 텍스트를 만듭니다.
+        표는 이미지로 복사/다운로드해 이메일에 삽입하고, 나머지 안내문은 텍스트로 복사해 붙여넣으세요.
+        그 외 공간(소그룹실 등)과 특이사항은 직접 입력해야 합니다.
+      </div>
+      <div class="fl" style="align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+        <div class="fg" style="flex:0 0 150px;margin-bottom:0"><div class="lbl">시작일</div><input type="date" id="ops-start" onchange="renderOpsReport()"></div>
+        <div class="fg" style="flex:0 0 150px;margin-bottom:0"><div class="lbl">종료일</div><input type="date" id="ops-end" onchange="renderOpsReport()"></div>
+        <button class="btn btn-ghost" onclick="setOpsReportNextWeek()">다음 주로 설정</button>
+        <button class="btn btn-primary" onclick="renderOpsReport()">생성</button>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+          <div class="card-title" style="margin:0">주요 일정 요약 (표 이미지)</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-ghost" onclick="copyOpsTableImage()">📋 표 이미지 복사</button>
+            <button class="btn btn-ghost" onclick="downloadOpsTableImage()">⬇ 이미지 다운로드</button>
+          </div>
+        </div>
+        <div id="ops-table-wrap" style="overflow-x:auto"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">행사별 운영 참고사항 (직접 입력)</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">행사 옆에 표·본문에 들어갈 한 줄 메모를 입력하세요. (예: 주차 혼잡 예상)</div>
+        <div id="ops-notes-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">이번 주 운영 체크 (직접 입력)</div>
+        <div class="fg"><div class="lbl">🚗 주차</div><textarea id="ops-note-parking" rows="2" placeholder="예: 수요일 오전 혼잡 예상" oninput="updateOpsBodyPreview()"></textarea></div>
+        <div class="fg"><div class="lbl">🏛 공간 운영</div><textarea id="ops-note-space" rows="2" placeholder="예: 금요일 오후 아이엠홀 행사 준비" oninput="updateOpsBodyPreview()"></textarea></div>
+        <div class="fg" style="margin-bottom:0"><div class="lbl">⚠️ 특이사항</div><textarea id="ops-note-etc" rows="2" placeholder="특이사항이 있으면 입력" oninput="updateOpsBodyPreview()"></textarea></div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin:0">이메일 본문 텍스트</div>
+          <button class="btn btn-primary" onclick="copyOpsBodyText()">📋 본문 텍스트 복사</button>
+        </div>
+        <textarea id="ops-body-preview" rows="18" readonly style="width:100%;font-family:inherit;font-size:12.5px;line-height:1.7"></textarea>
+      </div>
     </div>
     <!-- 관리자: 차단일 관리 -->
     <div class="page" id="p-blocked">
@@ -3231,7 +3278,7 @@ window.go = (page) => {
 
   const titles = {
     home: '홈', about: '아이엠센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
-    dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트',
+    dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트', 'ops-report': '주간 운영 리포트',
     'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
     'login-users': '예약 책임자 관리',
     'storage-cleanup': '저장공간 정리', 'change-requests': '예약 변경·취소 신청', login: '로그인'
@@ -3271,6 +3318,7 @@ window.go = (page) => {
   if (page === 'list')           renderList();
   if (page === 'manage-spaces')  renderManageSpaces();
   if (page === 'report')         renderReport();
+  if (page === 'ops-report')     renderOpsReport();
   if (page === 'ext-users')      renderExtUsers();
   if (page === 'admins')         renderAdmins();
   if (page === 'login-users')    renderLoginUsers();
@@ -5341,6 +5389,203 @@ function dateToSmsFormat(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]})`;
 }
+
+// ── 주간 운영 리포트 (관리자가 매주 관리자들에게 보내는 공간 현황 이메일 작성용) ──
+// 아론홀·샤론홀·지혜홀·아이엠홀의 확정 예약만 대상으로 함. 그 외 공간·특이사항은 관리자가 직접 입력.
+const OPS_REPORT_ROOMS = ['아론홀', '샤론홀', '지혜홀', '아이엠홀'];
+let opsReportRows = [];      // [{id, date, start, end, room, event, scale}]
+const opsReportNotes = {};   // reservationId → 운영 참고사항 (직접 입력, 새로고침 전까지 유지)
+
+function escHtml(s) { return (s || '').replace(/</g, '&lt;'); }
+function shortOpsDate(dateStr) {
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getMonth() + 1}/${d.getDate()}(${DOWS_KR[d.getDay()]})`;
+}
+function opsPeriodLabel() {
+  const s = document.getElementById('ops-start')?.value, e = document.getElementById('ops-end')?.value;
+  if (!s || !e) return '';
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  const fmt = (ds) => { const d = new Date(ds + 'T00:00:00'); return `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.(${DOWS_KR[d.getDay()]})`; };
+  return `${fmt(s)} ~ ${fmt(e)}`;
+}
+
+window.setOpsReportNextWeek = () => {
+  const today = new Date();
+  const day = today.getDay();
+  const thisMonday = new Date(today); thisMonday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
+  const nextMonday = new Date(thisMonday); nextMonday.setDate(thisMonday.getDate() + 7);
+  const nextSunday = new Date(nextMonday); nextSunday.setDate(nextMonday.getDate() + 6);
+  document.getElementById('ops-start').value = toDateStr(nextMonday);
+  document.getElementById('ops-end').value   = toDateStr(nextSunday);
+  renderOpsReport();
+};
+
+window.renderOpsReport = () => {
+  const startEl = document.getElementById('ops-start'), endEl = document.getElementById('ops-end');
+  if (!startEl || !endEl) return;
+  if (!startEl.value || !endEl.value) { setOpsReportNextWeek(); return; }
+  const start = startEl.value, end = endEl.value;
+
+  opsReportRows = reservations
+    .filter(r => OPS_REPORT_ROOMS.includes(r.room) && r.status === '확정' && r.date >= start && r.date <= end)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+    .map(r => ({
+      id: r.id, date: r.date, start: r.start, end: r.end, room: r.room,
+      event: (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || ''),
+      scale: (r.room === '아이엠홀' && r.audienceCount) ? r.audienceCount : (r.people || '')
+    }));
+
+  renderOpsTable();
+  renderOpsNotesList();
+  updateOpsBodyPreview();
+};
+
+function renderOpsTable() {
+  const wrap = document.getElementById('ops-table-wrap');
+  if (!wrap) return;
+  if (!opsReportRows.length) {
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:12px 0">해당 기간에 확정된 예약이 없습니다 (아론홀·샤론홀·지혜홀·아이엠홀 기준)</div>`;
+    return;
+  }
+  const th = (label) => `<th style="padding:10px 14px;text-align:left;background:#2f3b52;color:#fff;font-weight:700">${label}</th>`;
+  const rowsHtml = opsReportRows.map(row => `
+    <tr>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${shortOpsDate(row.date)} ${row.start}~${row.end}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;font-weight:700;color:#2f3b52">${escHtml(row.event)}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${roomToSmsName(row.room)}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${row.scale ? '약 ' + row.scale + '명' : ''}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;color:#a3392f;font-weight:600">${escHtml(opsReportNotes[row.id] || '')}</td>
+    </tr>`).join('');
+  wrap.innerHTML = `
+    <div id="ops-table-capture" style="display:inline-block;padding:20px 24px;background:#fff">
+      <table style="border-collapse:collapse;font-size:14px;color:#222">
+        <thead><tr>${th('일시')}${th('행사')}${th('장소')}${th('규모')}${th('운영 참고사항')}</tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderOpsNotesList() {
+  const wrap = document.getElementById('ops-notes-list');
+  if (!wrap) return;
+  if (!opsReportRows.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = opsReportRows.map(row => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:600;min-width:170px">${shortOpsDate(row.date)} ${row.start}~${row.end} · ${roomToSmsName(row.room)}</span>
+      <span style="font-size:12px;color:var(--text2);min-width:120px">${escHtml(row.event)}</span>
+      <input type="text" value="${(opsReportNotes[row.id] || '').replace(/"/g, '&quot;')}"
+        placeholder="예: 주차 혼잡 예상" style="flex:1;min-width:160px;font-size:12px;padding:5px 8px"
+        oninput="setOpsNote('${row.id}', this.value)">
+    </div>`).join('');
+}
+window.setOpsNote = (id, value) => {
+  opsReportNotes[id] = value;
+  renderOpsTable();
+  updateOpsBodyPreview();
+};
+
+window.updateOpsBodyPreview = () => {
+  const ta = document.getElementById('ops-body-preview');
+  if (!ta) return;
+  const period = opsPeriodLabel();
+  const nums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+
+  const detailBlocks = opsReportRows.map((row, i) => {
+    const note = opsReportNotes[row.id] ? `\n운영 참고사항\n- ${opsReportNotes[row.id]}` : '';
+    return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${shortOpsDate(row.date)} ${row.start}~${row.end}\n장소: ${roomToSmsName(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
+  }).join('\n\n');
+
+  const parking  = document.getElementById('ops-note-parking').value.trim();
+  const spaceOps = document.getElementById('ops-note-space').value.trim();
+  const etc      = document.getElementById('ops-note-etc').value.trim();
+  const bullet = (text) => text.split('\n').map(l => '- ' + l).join('\n');
+  const checklist = [
+    parking  ? `🚗 주차\n${bullet(parking)}`       : '',
+    spaceOps ? `🏛 공간 운영\n${bullet(spaceOps)}`  : '',
+    etc      ? `⚠️ 특이사항\n${bullet(etc)}`        : ''
+  ].filter(Boolean).join('\n\n');
+
+  ta.value =
+`아이엠센터 주요 운영 일정
+기간: ${period}
+
+안녕하세요. 다음 주 아이엠센터 운영에 참고하실 주요 일정과 특이사항을 안내드립니다.
+
+(※ 주요 일정 요약 표는 이미지로 복사해 여기에 삽입해주세요)
+
+행사별 운영 안내
+
+${detailBlocks || '(해당 기간에 확정된 예약이 없습니다)'}
+
+이번 주 운영 체크
+
+${checklist || '(입력된 내용 없음)'}
+
+감사합니다.
+아이엠센터`;
+};
+
+window.copyOpsBodyText = async () => {
+  const ta = document.getElementById('ops-body-preview');
+  if (!ta) return;
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    T('본문 텍스트가 복사되었습니다');
+  } catch (e) {
+    ta.select();
+    document.execCommand('copy');
+    T('본문 텍스트가 복사되었습니다');
+  }
+};
+
+// html2canvas는 이 리포트에서 표를 이미지로 캡처할 때만 필요해 지연 로드
+function ensureHtml2Canvas() {
+  if (window.html2canvas) return Promise.resolve();
+  if (window._html2canvasLoading) return window._html2canvasLoading;
+  window._html2canvasLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('html2canvas 로드 실패 (네트워크 확인)'));
+    document.head.appendChild(s);
+  });
+  return window._html2canvasLoading;
+}
+
+window.copyOpsTableImage = async () => {
+  const el = document.getElementById('ops-table-capture');
+  if (!el) { T('먼저 리포트를 생성하세요 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
+  try {
+    await ensureHtml2Canvas();
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    canvas.toBlob(async (blob) => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        T('표 이미지가 복사되었습니다. 이메일 본문에 붙여넣기(Ctrl+V) 하세요');
+      } catch (e) {
+        T('이 브라우저는 이미지 클립보드 복사를 지원하지 않습니다. "이미지 다운로드"를 이용해주세요', '#A32D2D');
+      }
+    });
+  } catch (e) {
+    T('이미지 생성 실패: ' + e.message, '#A32D2D');
+  }
+};
+
+window.downloadOpsTableImage = async () => {
+  const el = document.getElementById('ops-table-capture');
+  if (!el) { T('먼저 리포트를 생성하세요 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
+  try {
+    await ensureHtml2Canvas();
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `운영일정_${document.getElementById('ops-start').value}_${document.getElementById('ops-end').value}.png`;
+    a.click();
+  } catch (e) {
+    T('이미지 생성 실패: ' + e.message, '#A32D2D');
+  }
+};
 
 window.openSmsModal = (id, type, seriesDefault = true) => {
   const r = reservations.find(x => x.id === id);
