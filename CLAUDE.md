@@ -31,7 +31,7 @@
 | `weekly-manager.html` | 예약현황(예약책임자별) — `?admin=1` 파라미터로 접속해야 관리자 전체 표/저장 노출. 파라미터 없이(공유용 링크) 접속 시 이름 검색 전에는 아무 예약도 안 보임 (본인 이름 검색 시에만 해당 예약 표시) |
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `firestore.rules` | Firestore 보안 규칙 |
-| `functions/index.js` | Cloud Functions — 예약 상태 변경(확정/취소) 시 Resend로 이메일 발송 |
+| `functions/index.js`, `functions/lib/*.js` | Cloud Functions — 예약 승인 시 Resend로 이메일 발송 (아래 "예약 이메일 알림" 참고) |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
 
 ## Firebase SDK
@@ -114,16 +114,25 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - 두 공간 모두 `spaces` 컬렉션에 문서로 등록되어 있어야 예약 등록이 가능 — **공간 관리(관리자) 페이지에서 관리자가 직접 추가해야 함**
 - 예약 목록 페이지의 **"📥 CSV 가져오기"**로 구글 시트 붙여넣기 일괄 등록 가능 (`detectCols()`가 헤더 텍스트로 컬럼 자동 인식). 아이엠홀 세부사항(공연명/행사명, 리허설 시작·종료, 관객 수, 사용하는 실, 주차, 기타) 컬럼도 헤더에 해당 단어가 포함되면 자동 인식되어 함께 저장됨
 
-## 예약 상태 변경 이메일 알림 (Cloud Functions)
+## 예약 이메일 알림 (Cloud Functions)
+현재는 **1단계(기반 구조) + 2단계(예약 승인 이메일)**까지만 구현됨. 변경·취소 메일, 관리자용/내부기관용 주간 리포트는 아직 미구현 (구조만 고려, 아래 "다음 단계" 참고).
+
 - `functions/index.js` — Firestore `reservations` 컬렉션 트리거 (Cloud Functions 2세대)
-  - `onReservationUpdated`: 예약 문서 `status`가 `확정` 또는 `취소`로 바뀔 때 `userEmail`로 발송
-  - `onReservationCreated`: CSV 가져오기·표 직접 입력 등으로 처음부터 `확정` 상태로 생성되는 경우 발송
-  - 발송 대상은 예약 데이터의 `userEmail` 필드 (셀프 예약은 로그인 계정 이메일이 자동 저장됨)
-  - 관리자가 CSV 가져오기/표 직접 입력으로 등록하는 예약은 `userEmail`이 비어있으면 발송 건너뜀 — 표 직접 입력의 `이메일` 칸(선택 입력)에 채워야 발송됨
-- 이메일 발송: [Resend](https://resend.com) 사용, `functions/index.js`의 `RESEND_API_KEY` 환경변수로 인증
-  - GitHub Secret `RESEND_API_KEY`에 저장 → 배포 워크플로우가 매 배포 시 `functions/.env`로 기록 후 배포
-  - 발신 주소(`FROM_EMAIL`)는 기본값이 Resend 테스트 도메인(`onboarding@resend.dev`) — `suwoncca.org` 도메인 인증 완료 후 GitHub Secret `RESEND_FROM_EMAIL`로 교체 가능
-  - Firestore 보안 규칙과 무관 (Admin SDK로 서버 측에서만 동작, 클라이언트는 이메일 발송 로직을 전혀 모름)
+  - `onReservationUpdated`: `status`가 (확정이 아니었다가) **`확정`으로 바뀔 때만** 예약 책임자에게 승인 이메일 발송. 상태 외 필드만 바뀐 경우, 이미 확정 상태가 재저장된 경우는 무시
+  - CSV 가져오기·표 직접 입력처럼 문서가 **생성 시점부터** `확정` 상태인 경우는 대상에서 제외 (대량 과거 데이터 이관 시 메일이 무더기로 나가는 걸 막기 위한 의도적 범위 제한)
+  - `sendTestEmail`: 관리자 전용 콜러블 함수, 테스트 메일 발송용 (서버 측에서 `ADMIN_EMAILS` + Firestore `admins` 컬렉션으로 관리자 여부 재검증)
+  - 발송 대상은 예약 데이터의 `userEmail` 필드 (셀프 예약은 로그인 계정 이메일이 자동 저장됨). 관리자가 표 직접 입력으로 등록할 때는 `이메일` 칸(선택 입력)에 채워야 발송 대상에 포함됨
+- `functions/lib/templates.js` — 승인·변경·취소 이메일이 공유하는 공통 템플릿(`renderReservationEmail(type, reservation)`, HTML+텍스트 동시 생성). 현재는 `type === '확정'`만 실제 내용 반환, 그 외는 `null`
+- `functions/lib/resendClient.js` — Resend 발송 래퍼. 발신 주소는 `RESEND_FROM_EMAIL` 환경변수(기본값: Resend 테스트 주소 `onboarding@resend.dev`, 본인 계정으로만 발송 가능)
+- `functions/lib/emailLog.js` — **`emailLogs` 컬렉션**으로 중복 발송 방지 + 발송 이력 관리
+  - 문서 ID = `eventKey` (예: `reservation_<id>_approved_<Cloud Functions event.id>`) — `event.id`는 동일 이벤트가 재전달돼도 값이 유지되므로, `ref.create()`가 두 번째 시도에서 실패하며 자연스럽게 중복 발송이 막힘
+  - 필드: `eventKey, reservationId, emailType, recipient, recipientType, status(pending/sent/skipped/failed), createdAt, sentAt, failedAt, errorMessage, retryCount, providerMessageId`
+  - Firestore 보안 규칙에 `emailLogs`가 없어 클라이언트는 읽기/쓰기 모두 기본 차단(default-deny) — Admin SDK(Cloud Functions)만 접근
+  - 이메일 발송 실패는 `markFailed`로 로그만 남기고 예외를 던지지 않음 — 예약 승인(`updateDoc`) 자체는 이미 끝난 후에 실행되는 별도 트리거라 이메일 실패가 예약 처리에 영향을 주지 않음
+- 환경변수(`functions/.env`, 로컬 전용 — `.env.example` 참고): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`(선택), `APP_BASE_URL`(선택, 기본값 `https://iamreservation.web.app`)
+  - GitHub Secret `RESEND_API_KEY`(필수) / `RESEND_FROM_EMAIL`(선택)에 저장 → 배포 워크플로우가 매 배포 시 `functions/.env`로 기록 후 배포
+  - 발신 주소는 `suwoncca.org` 서브도메인(예: `mail.suwoncca.org`) 인증 완료 후 `RESEND_FROM_EMAIL`로 교체
+- 아직 구현하지 않은 것: 예약 변경/취소 메일(3단계), 관리자·내부기관 주간 리포트(4·5단계), 관리자 화면(발송 로그 조회·재발송·수신자 관리), 정기예약 전체승인(`approveGroup`) 시 회차별로 개별 메일이 나가는 부분(시리즈 단위 묶음 발송 미구현), "+ 예약 추가"로 관리자가 직접 확정 상태 예약을 생성하는 경우(현재는 대상 아님)
 
 ## 공개 페이지 개인정보 정책
 - 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김
