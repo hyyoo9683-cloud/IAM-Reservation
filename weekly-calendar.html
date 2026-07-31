@@ -104,13 +104,14 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀
+// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀 → 로비
 const CATS = [
   { key: '5f',     label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], showRoom: true  },
   { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'], showRoom: false },
   { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
   { key: 'iam',    label: '아이엠홀',      rooms: ['아이엠홀'], showRoom: false },
   { key: 'jihye',  label: '지혜홀',        rooms: ['지혜홀'], showRoom: false },
+  { key: 'lobby',  label: '로비',          rooms: ['1층 로비','2층 로비','B1 로비','B2 로비'], showRoom: true },
 ];
 // 주간(홀) 보기 대상 공간
 const WEEK_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
