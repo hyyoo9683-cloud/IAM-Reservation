@@ -5499,17 +5499,51 @@ function dateToSmsFormat(dateStr) {
 // ── 주간 운영 리포트 (관리자가 매주 관리자들에게 보내는 공간 현황 이메일 작성용) ──
 // 아론홀·샤론홀·지혜홀·아이엠홀의 확정 예약만 대상으로 함. 그 외 공간·특이사항은 관리자가 직접 입력.
 const OPS_REPORT_ROOMS = ['아론홀', '샤론홀', '지혜홀', '아이엠홀'];
-let opsReportRows = [];      // [{id, date, start, end, room, event, scale}]
-const opsReportNotes = {};   // reservationId → 운영 참고사항 (직접 입력, 새로고침 전까지 유지)
+let opsReportRows = [];      // [{groupKey, ids, date, ilsi, room, event, scale}]
+const opsReportNotes = {};   // groupKey(=recurGroup::room, 없으면 예약 id) → 운영 참고사항 (직접 입력, 새로고침 전까지 유지)
 const opsManualIds   = new Set(); // 검색해서 수동으로 추가한 예약 id
 const opsExcludedIds = new Set(); // 자동/수동 목록에서 제외한 예약 id
 
-function reservationToOpsRow(r) {
-  return {
-    id: r.id, date: r.date, start: r.start, end: r.end, room: r.room,
-    event: (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || ''),
-    scale: (r.room === '아이엠홀' && r.audienceCount) ? r.audienceCount : (r.people || '')
-  };
+// 같은 recurGroup(+실)끼리는 한 줄로 묶어서 보여줌 (지혜홀 연박은 "8/6-8/9 숙박(3박)" 형태)
+function groupOpsRows(rawRows) {
+  const groups = new Map();
+  const singles = [];
+  rawRows.forEach(r => {
+    if (r.recurGroup) {
+      const key = `${r.recurGroup}::${r.room}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
+    } else {
+      singles.push(r);
+    }
+  });
+  const rows = [];
+  const rowFrom = (first, ilsi, ids) => ({
+    groupKey: ids.length > 1 ? `${first.recurGroup}::${first.room}` : first.id,
+    ids, date: first.date, ilsi, room: first.room,
+    event: (first.room === '아이엠홀' && first.showName) ? first.showName : (first.purpose || ''),
+    scale: (first.room === '아이엠홀' && first.audienceCount) ? first.audienceCount : (first.people || '')
+  });
+  groups.forEach(group => {
+    group.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+    const first = group[0], last = group[group.length - 1];
+    const ids = group.map(x => x.id);
+    let ilsi;
+    if (group.length === 1) {
+      ilsi = `${shortOpsDate(first.date)} ${first.start}~${first.end}`;
+    } else if (first.recurType === '연박') {
+      ilsi = `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} 숙박(${group.length}박)`;
+    } else {
+      const timesUniform = group.every(x => x.start === first.start && x.end === first.end);
+      ilsi = timesUniform
+        ? `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} (${first.recurType || ''} ${first.start}~${first.end})`
+        : group.map(x => `${shortOpsDate(x.date)} ${x.start}~${x.end}`).join(', ');
+    }
+    rows.push(rowFrom(first, ilsi, ids));
+  });
+  singles.forEach(r => rows.push(rowFrom(r, `${shortOpsDate(r.date)} ${r.start}~${r.end}`, [r.id])));
+  rows.sort((a, b) => a.date.localeCompare(b.date));
+  return rows;
 }
 
 function escHtml(s) { return (s || '').replace(/</g, '&lt;'); }
@@ -5549,25 +5583,26 @@ window.renderOpsReport = () => {
   const idSet = new Set([...autoIds, ...opsManualIds]);
   opsExcludedIds.forEach(id => idSet.delete(id));
 
-  opsReportRows = [...idSet]
-    .map(id => reservations.find(r => r.id === id))
-    .filter(Boolean)
-    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
-    .map(reservationToOpsRow);
+  const rawRows = [...idSet].map(id => reservations.find(r => r.id === id)).filter(Boolean);
+  opsReportRows = groupOpsRows(rawRows);
 
   renderOpsTable();
   renderOpsNotesList();
   updateOpsDailyHeadcount(start, end);
   updateOpsBodyPreview();
 };
-window.removeOpsRow = (id) => {
-  opsExcludedIds.add(id);
-  opsManualIds.delete(id);
+window.removeOpsRow = (groupKey) => {
+  const row = opsReportRows.find(r => r.groupKey === groupKey);
+  const ids = row ? row.ids : [groupKey];
+  ids.forEach(id => { opsExcludedIds.add(id); opsManualIds.delete(id); });
   renderOpsReport();
 };
 window.addOpsRow = (id) => {
-  opsManualIds.add(id);
-  opsExcludedIds.delete(id);
+  const r = reservations.find(x => x.id === id);
+  const idsToAdd = (r && r.recurGroup)
+    ? reservations.filter(x => x.recurGroup === r.recurGroup && x.room === r.room).map(x => x.id)
+    : [id];
+  idsToAdd.forEach(i => { opsManualIds.add(i); opsExcludedIds.delete(i); });
   renderOpsReport();
   searchOpsReservations();
 };
@@ -5577,7 +5612,7 @@ window.searchOpsReservations = () => {
   const q = document.getElementById('ops-search-q').value.trim().toLowerCase();
   if (!q) { resultsEl.innerHTML = ''; return; }
   const start = document.getElementById('ops-start').value, end = document.getElementById('ops-end').value;
-  const currentIds = new Set(opsReportRows.map(r => r.id));
+  const currentIds = new Set(opsReportRows.flatMap(r => r.ids));
   const matches = reservations
     .filter(r => r.status === '확정')
     .filter(r => !start || !end || (r.date >= start && r.date <= end))
@@ -5626,11 +5661,11 @@ function renderOpsTable() {
   const th = (label) => `<th style="padding:10px 14px;text-align:left;background:#2f3b52;color:#fff;font-weight:700">${label}</th>`;
   const rowsHtml = opsReportRows.map(row => `
     <tr>
-      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${shortOpsDate(row.date)} ${row.start}~${row.end}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${row.ilsi}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;font-weight:700;color:#2f3b52">${escHtml(row.event)}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${roomToSmsName(row.room)}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${row.scale ? '약 ' + row.scale + '명' : ''}</td>
-      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;color:#a3392f;font-weight:600">${escHtml(opsReportNotes[row.id] || '')}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;color:#a3392f;font-weight:600">${escHtml(opsReportNotes[row.groupKey] || '')}</td>
     </tr>`).join('');
   wrap.innerHTML = `
     <div id="ops-table-capture" style="display:inline-block;padding:20px 24px;background:#fff">
@@ -5647,12 +5682,12 @@ function renderOpsNotesList() {
   if (!opsReportRows.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = opsReportRows.map(row => `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:600;min-width:170px">${shortOpsDate(row.date)} ${row.start}~${row.end} · ${roomToSmsName(row.room)}</span>
+      <span style="font-size:12px;font-weight:600;min-width:170px">${row.ilsi} · ${roomToSmsName(row.room)}</span>
       <span style="font-size:12px;color:var(--text2);min-width:120px">${escHtml(row.event)}</span>
-      <input type="text" value="${(opsReportNotes[row.id] || '').replace(/"/g, '&quot;')}"
+      <input type="text" value="${(opsReportNotes[row.groupKey] || '').replace(/"/g, '&quot;')}"
         placeholder="예: 주차 혼잡 예상" style="flex:1;min-width:160px;font-size:12px;padding:5px 8px"
-        oninput="setOpsNote('${row.id}', this.value)">
-      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="removeOpsRow('${row.id}')" title="표에서 제외">✕</button>
+        oninput="setOpsNote('${row.groupKey}', this.value)">
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="removeOpsRow('${row.groupKey}')" title="표에서 제외">✕</button>
     </div>`).join('');
 }
 window.setOpsNote = (id, value) => {
@@ -5668,8 +5703,8 @@ window.updateOpsBodyPreview = () => {
   const nums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
 
   const detailBlocks = opsReportRows.map((row, i) => {
-    const note = opsReportNotes[row.id] ? `\n운영 참고사항\n- ${opsReportNotes[row.id]}` : '';
-    return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${shortOpsDate(row.date)} ${row.start}~${row.end}\n장소: ${roomToSmsName(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
+    const note = opsReportNotes[row.groupKey] ? `\n운영 참고사항\n- ${opsReportNotes[row.groupKey]}` : '';
+    return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${row.ilsi}\n장소: ${roomToSmsName(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
   }).join('\n\n');
 
   const parking  = document.getElementById('ops-note-parking').value.trim();
