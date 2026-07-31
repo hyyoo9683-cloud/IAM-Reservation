@@ -9184,13 +9184,15 @@ function hmSearchMatches(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   // spaces 배열(Firestore) + 고정 (셀프 신청 불가 공간은 검색에서 제외)
-  const visible = (window.spaces || []).filter(s => !isSelfServiceExcluded(s.name));
+  // 이름이 없는 문서(수기 등록 중 누락 등) 하나만 있어도 아래 toLowerCase()에서 예외가 나서
+  // 검색 전체가 조용히 멈추는 걸 막기 위해 이름 없는 공간은 미리 걸러냄
+  const visible = (window.spaces || []).filter(s => s && typeof s.name === 'string' && s.name && !isSelfServiceExcluded(s.name));
   const all = [
     ...visible.map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
     ...FIXED_SPACES.filter(n => !isSelfServiceExcluded(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
-    s.name.toLowerCase().includes(q) || s.categories.some(c => c.toLowerCase().includes(q))
+    s.name.toLowerCase().includes(q) || s.categories.some(c => String(c || '').toLowerCase().includes(q))
   ).slice(0,6);
 
   // 층 단위 검색: "5" 입력 시 해당 층에 공간이 있으면 "5층 소그룹실"을 최상단에 추가
@@ -9204,7 +9206,7 @@ function hmSearchMatches(query) {
   }
 
   // 카테고리 검색: 검색어와 일치하는 카테고리가 있으면 "'카테고리'에 해당하는 공간 모두 보기"를 최상단에 추가
-  const allCategories = [...new Set(visible.flatMap(s => getSpaceCategories(s)))];
+  const allCategories = [...new Set(visible.flatMap(s => getSpaceCategories(s)))].filter(c => typeof c === 'string' && c);
   const matchedCategories = allCategories.filter(c => c.toLowerCase().includes(q));
   matchedCategories.reverse().forEach(cat => {
     const count = visible.filter(s => getSpaceCategories(s).includes(cat)).length;
