@@ -911,6 +911,9 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn" onclick="go('list')"><span class="icon">📋</span>예약 목록</button>
       <button class="nav-btn" onclick="go('change-requests')"><span class="icon">🔁</span>변경·취소 신청<span class="nav-badge" id="badge-change-cnt">0</span></button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
+      <button class="nav-btn" onclick="go('ops-report')"><span class="icon">📧</span>주간 운영 리포트</button>
+      <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
+      <div class="nav-section">더보기</div>
       <button class="nav-btn nav-group-toggle" data-target="nav-group-misc" onclick="toggleNavGroup(this)"><span class="icon">🗂</span>기타 관리<span class="nav-caret">▸</span></button>
       <div class="nav-group" id="nav-group-misc" style="display:none">
         <button class="nav-btn nav-sub" onclick="go('report')"><span class="icon">📈</span>리포트</button>
@@ -919,8 +922,6 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="nav-btn nav-sub" onclick="go('content-editor')"><span class="icon">✏️</span>콘텐츠 편집</button>
         <button class="nav-btn nav-sub" onclick="go('storage-cleanup')"><span class="icon">🗜</span>저장공간 정리</button>
       </div>
-      <button class="nav-btn" onclick="go('ops-report')"><span class="icon">📧</span>주간 운영 리포트</button>
-      <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
       <button class="nav-btn nav-group-toggle" data-target="nav-group-status" onclick="toggleNavGroup(this)"><span class="icon">🗓</span>예약 현황 모음<span class="nav-caret">▸</span></button>
       <div class="nav-group" id="nav-group-status" style="display:none">
         <a href="weekly-calendar.html" class="nav-btn nav-sub" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🗓</span>전체 예약 현황</a>
