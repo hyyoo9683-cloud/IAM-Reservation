@@ -7947,39 +7947,63 @@ window.reviewNameMatches = (email) => {
   renderNameMatchList(email);
   openModal('modal-name-match');
 };
+let nmGroupIds = {}; // 대표 예약 id → 같은 정기예약 그룹에 속한 전체 예약 id 목록
 function renderNameMatchList(email) {
   const u = loginUsersCache.find(x => x.id === email);
   const listEl = document.getElementById('nm-list');
   if (!u) { listEl.innerHTML = ''; return; }
-  const matches = nameOnlyMatches(u)
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const matches = nameOnlyMatches(u);
   if (!matches.length) {
     closeModal('modal-name-match');
     renderLoginUsers();
     return;
   }
-  listEl.innerHTML = matches.map(r => {
+
+  // 정기예약(recurGroup)은 회차별로 나열하지 않고 하나로 묶어서 보여줌 — 이름 수정도 시리즈 전체에 적용
+  const groups = new Map();
+  const singles = [];
+  matches.forEach(r => {
+    if (r.recurGroup) {
+      if (!groups.has(r.recurGroup)) groups.set(r.recurGroup, []);
+      groups.get(r.recurGroup).push(r);
+    } else {
+      singles.push(r);
+    }
+  });
+  const rows = [];
+  groups.forEach(group => {
+    group.sort((a, b) => a.date.localeCompare(b.date));
+    rows.push({ first: group[0], last: group[group.length - 1], ids: group.map(x => x.id) });
+  });
+  singles.forEach(r => rows.push({ first: r, last: r, ids: [r.id] }));
+  rows.sort((a, b) => b.first.date.localeCompare(a.first.date));
+
+  nmGroupIds = {};
+  listEl.innerHTML = rows.map(({ first: r, last, ids }) => {
     const field = (r.managerName || '').trim() === (u.name || '').trim() ? 'managerName' : 'stewardName';
     const fieldLabel = field === 'managerName' ? '예약 책임자' : '실사용자(청지기)';
+    const dateLabel = ids.length > 1 ? `${r.date} ~ ${last.date} (정기예약 ${ids.length}건)` : `${r.date} ${r.start}–${r.end}`;
+    nmGroupIds[r.id] = ids;
     return `<div style="border:1px solid var(--border2);border-radius:8px;padding:10px 12px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px">
-        ${r.date} ${r.start}–${r.end} · <b>${r.room}</b> · ${r.purpose || ''} ${sBadge(r.status)}
+        ${dateLabel} · <b>${r.room}</b> · ${r.purpose || ''} ${sBadge(r.status)}
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <span style="font-size:11px;color:var(--text3);white-space:nowrap">${fieldLabel} 이름</span>
         <input type="text" id="nm-input-${r.id}" value="${(r[field] || '').replace(/"/g, '&quot;')}" style="flex:1;font-size:13px;padding:5px 8px">
-        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;flex-shrink:0" onclick="reassignReservationName('${r.id}','${field}','${email}')">다른 사람 — 이름 수정</button>
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;flex-shrink:0" onclick="reassignReservationName('${r.id}','${field}','${email}')">다른 사람 — 이름 수정${ids.length > 1 ? ' (전체)' : ''}</button>
       </div>
     </div>`;
   }).join('');
 }
-window.reassignReservationName = async (resId, field, email) => {
-  const input = document.getElementById(`nm-input-${resId}`);
+window.reassignReservationName = async (primaryId, field, email) => {
+  const input = document.getElementById(`nm-input-${primaryId}`);
   const newName = input?.value.trim();
   if (!newName) { T('이름을 입력해주세요', '#A32D2D'); return; }
+  const ids = nmGroupIds[primaryId] || [primaryId];
   try {
-    await updateDoc(doc(db, 'reservations', resId), { [field]: newName });
-    T('예약 책임자 이름이 수정됐습니다', '#3B6D11');
+    await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { [field]: newName })));
+    T(ids.length > 1 ? `${ids.length}건의 이름이 수정됐습니다` : '예약 책임자 이름이 수정됐습니다', '#3B6D11');
     renderNameMatchList(email);
   } catch (e) {
     T('수정 실패: ' + e.message, '#A32D2D');
