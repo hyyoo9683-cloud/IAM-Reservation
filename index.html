@@ -632,6 +632,141 @@ textarea { resize: vertical; min-height: 60px; }
 #iam-ext-popup .ep-ok{background:#6E8578;color:#fff}
 #iam-ext-popup .ep-ok:hover{background:#556A5E}
 </style>
+<style id="pc-font-boost">
+/* PC 화면에서 전체적으로 글자가 작아 보인다는 피드백 반영 — 데스크톱 폭에서 폰트 확대 (모바일은 영향 없음) */
+@media (min-width: 768px) {
+  body{font-size:18px !important}
+  #kakao-browser-banner{font-size:14px !important}
+  #kakao-browser-banner button{font-size:13.5px !important}
+  .topbar-home-btn{font-size:15px !important}
+  .topbar-login-btn{font-size:14.5px !important}
+  .logo-name{font-size:17px !important}
+  .logo-sub{font-size:13.5px !important}
+  .nav-section{font-size:11px !important}
+  .nav-btn{font-size:15.5px !important}
+  .nav-btn .icon{font-size:18px !important}
+  .nav-badge{font-size:12.5px !important}
+  .card-title{font-size:17px !important}
+  .btn{font-size:15.5px !important}
+  .badge{font-size:13.5px !important}
+  .stat-num{font-size:31.5px !important}
+  .stat-lbl{font-size:13.5px !important}
+  .lbl{font-size:14.5px !important}
+  input, select, textarea{font-size:17px !important}
+  .tbl{font-size:15.5px !important}
+  .tbl th{font-size:14.5px !important}
+  #manual-table input, #manual-table select{font-size:12.5px !important}
+  .rc{font-size:14.5px !important}
+  .toast{font-size:15.5px !important}
+  .avail-ok{font-size:14.5px !important}
+  .avail-no{font-size:14.5px !important}
+  .modal-title{font-size:19px !important}
+  .login-logo{font-size:29px !important}
+  .login-sub{font-size:15.5px !important}
+  .btn-google{font-size:17px !important}
+  .public-link{font-size:14.5px !important}
+  .pub-nav button{font-size:13.5px !important}
+  .cal-table th{font-size:13.5px !important}
+  .cal-table td.room-label{font-size:14.5px !important}
+  .cal-bar{font-size:12.5px !important}
+  .legend-item{font-size:14.5px !important}
+  .space-img{font-size:13.5px !important}
+  .space-name{font-size:17px !important}
+  .space-cap{font-size:14.5px !important}
+  .amenity-tag{font-size:13.5px !important}
+  .filter-chip{font-size:15.5px !important}
+  .check-row label{font-size:13.5px !important}
+  #p-home .hm-search input{font-size:17px !important}
+  #p-home .hm-search .hm-go{font-size:16px !important}
+  #p-home .hm-qlabel{font-size:13.5px !important}
+  #p-home .hm-tab{font-size:17px !important}
+  #p-home .hm-card h3{font-size:19px !important}
+  #p-home .hm-card p{font-size:15px !important}
+  #p-home .hm-more{font-size:15px !important}
+  #p-home .hm-nbadge{font-size:13.5px !important}
+  #p-home .hm-nitem .hm-t{font-size:16px !important}
+  #p-home .hm-nitem .hm-d{font-size:14.5px !important}
+  #p-home .hm-c h4{font-size:14.5px !important}
+  #p-home .hm-c p{font-size:17.5px !important}
+  #p-home .hm-c p.hm-sm{font-size:15.5px !important}
+  #p-about .ab-eyebrow{font-size:24.5px !important}
+  #p-about .ab-tab{font-size:17.5px !important}
+  #p-about .ab-title{font-size:29px !important}
+  #p-about .ab-author{font-size:15.5px !important}
+  #p-about .ab-quote{font-size:18px !important}
+  #p-about .ab-quote .ref{font-size:14.5px !important}
+  #p-about .ab-h3{font-size:21.5px !important}
+  #p-about .ab-sub{font-size:17px !important}
+  #p-about .ab-p{font-size:17px !important}
+  #p-about .ab-scripture{font-size:18px !important}
+  #p-about .ab-info h4{font-size:14.5px !important}
+  #p-about .ab-info p{font-size:17px !important}
+  #p-about .ab-sec-h{font-size:20px !important}
+  #p-about .ab-note{font-size:15.5px !important}
+  #p-about .ab-route{font-size:15.5px !important}
+  #p-about .ab-car{font-size:16px !important}
+  #p-about .ab-carnote{font-size:15px !important}
+  #p-about .ab-floor-tab{font-size:15.5px !important}
+  #p-about .ab-floor-caption{font-size:14.5px !important}
+  #p-about .ab-floor-nav{font-size:22.5px !important}
+  #p-about .ab-floor-count{font-size:12.5px !important}
+  #p-about .ab-floor-size-sm .ab-p{font-size:14.5px !important}
+  #p-about .ab-floor-size-md .ab-p{font-size:17px !important}
+  #modal-space-detail .sd-nav{font-size:22.5px !important}
+  #modal-space-detail .sd-count{font-size:12.5px !important}
+  #p-about .ab-floor-size-lg .ab-p{font-size:20px !important}
+  #p-about .ab-floor-size-xl .ab-p{font-size:24.5px !important}
+  #p-about .ab-floor-title{font-size:22.5px !important}
+  #p-about .ab-floor-link{font-size:17px !important}
+  #p-about .ab-floor-empty{font-size:15.5px !important}
+  #p-faq .fq-eyebrow{font-size:24.5px !important}
+  #p-faq .fq-cat{font-size:15.5px !important}
+  #p-faq .fq-q-badge{font-size:15.5px !important}
+  #p-faq .fq-q-text{font-size:17.5px !important}
+  #p-faq .fq-a{font-size:16px !important}
+  #p-faq .fq-a-badge{font-size:13.5px !important}
+  #p-faq .fq-a .fq-note{font-size:15.5px !important}
+  #p-faq .fq-contact-ico{font-size:31.5px !important}
+  #p-faq .fq-contact h4{font-size:15.5px !important}
+  #p-faq .fq-contact p{font-size:15.5px !important}
+  #p-content-editor .ce-header-ico{font-size:24.5px !important}
+  #p-content-editor .ce-header h2{font-size:22.5px !important}
+  #p-content-editor .ce-header p{font-size:15px !important}
+  #p-content-editor .ce-tab{font-size:17px !important}
+  #p-content-editor .ce-faq-num{font-size:14.5px !important}
+  #p-content-editor .ce-faq-q-preview{font-size:15.5px !important}
+  #p-content-editor .ce-label{font-size:14px !important}
+  #p-content-editor .ce-input{font-size:16px !important}
+  #p-content-editor .ce-about-card h3{font-size:18px !important}
+  #p-content-editor .ce-btn{font-size:15.5px !important}
+  #p-content-editor .ce-btn-sm{font-size:14.5px !important}
+  #p-content-editor .ce-save-hint{font-size:14.5px !important}
+  #p-content-editor .ce-badge-new{font-size:12.5px !important}
+  #p-content-editor .ce-notice-pin{font-size:14.5px !important}
+  #p-content-editor .ce-notice-date{font-size:13.5px !important}
+  #p-home .hm-notice-empty{font-size:15.5px !important}
+  #p-home .hm-drop-ico{font-size:17px !important}
+  #p-home .hm-drop-name{font-size:17px !important}
+  #p-home .hm-drop-cat{font-size:12.5px !important}
+  #p-home .hm-drop-floor{font-size:14px !important}
+  #p-home .hm-drop-badge{font-size:13.5px !important}
+  #p-home .hm-drop-nores{font-size:15.5px !important}
+  .nav-btn-login{font-size:16px !important}
+  #iam-apply-popup .ap-ico{font-size:40.5px !important}
+  #iam-apply-popup .ap-title{font-size:19px !important}
+  #iam-apply-popup .ap-body{font-size:16px !important}
+  #iam-apply-popup .ap-contact{font-size:14.5px !important}
+  #iam-apply-popup .ap-btns button{font-size:16px !important}
+  #iam-ext-popup .ep-close{font-size:22.5px !important}
+  #iam-ext-popup .ep-ico{font-size:40.5px !important}
+  #iam-ext-popup .ep-title{font-size:19px !important}
+  #iam-ext-popup .ep-desc{font-size:15px !important}
+  #iam-ext-popup .ep-row-ico{font-size:18px !important}
+  #iam-ext-popup .ep-row-lbl{font-size:13px !important}
+  #iam-ext-popup .ep-row-val{font-size:17px !important}
+  #iam-ext-popup .ep-btns button{font-size:16px !important}
+}
+</style>
 </head>
 <body>
 
