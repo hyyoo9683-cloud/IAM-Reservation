@@ -5532,12 +5532,11 @@ function groupOpsRows(rawRows) {
     if (group.length === 1) {
       ilsi = `${shortOpsDate(first.date)} ${first.start}~${first.end}`;
     } else if (first.recurType === '연박') {
+      // 숙박은 체크인~체크아웃 전체 기간을 하나로 보여줌
       ilsi = `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} 숙박(${group.length}박)`;
     } else {
-      const timesUniform = group.every(x => x.start === first.start && x.end === first.end);
-      ilsi = timesUniform
-        ? `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} (${first.recurType || ''} ${first.start}~${first.end})`
-        : group.map(x => `${shortOpsDate(x.date)} ${x.start}~${x.end}`).join(', ');
+      // 정기예약은 범위로 뭉치지 않고, 이번 리포트 기간에 해당하는 날짜만 나열
+      ilsi = group.map(x => `${shortOpsDate(x.date)} ${x.start}~${x.end}`).join(', ');
     }
     rows.push(rowFrom(first, ilsi, ids));
   });
@@ -5604,10 +5603,11 @@ window.renderOpsReport = () => {
     return false;
   });
 
-  // 매칭된 건이 시리즈(recurGroup)의 일부라면, 잘려 보이지 않도록 같은 시리즈 전체를 포함시킴
+  // 지혜홀 연박만 시리즈 전체(체크인~체크아웃)를 포함시킴. 매주 등 일반 정기예약은
+  // 이번 기간에 해당하는 회차만 포함 — 리포트에 몇 달치 회차가 통째로 딸려오지 않도록 함
   const autoIds = new Set();
   matched.forEach(r => {
-    if (r.recurGroup) {
+    if (r.recurGroup && r.recurType === '연박') {
       reservations.filter(x => x.recurGroup === r.recurGroup && x.room === r.room).forEach(x => autoIds.add(x.id));
     } else {
       autoIds.add(r.id);
@@ -5633,7 +5633,8 @@ window.removeOpsRow = (groupKey) => {
 };
 window.addOpsRow = (id) => {
   const r = reservations.find(x => x.id === id);
-  const idsToAdd = (r && r.recurGroup)
+  // 숙박(연박)은 전체 시리즈를, 그 외 정기예약은 검색해서 찾은 그 날짜만 추가
+  const idsToAdd = (r && r.recurGroup && r.recurType === '연박')
     ? reservations.filter(x => x.recurGroup === r.recurGroup && x.room === r.room).map(x => x.id)
     : [id];
   idsToAdd.forEach(i => { opsManualIds.add(i); opsExcludedIds.delete(i); });
