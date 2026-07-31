@@ -7166,19 +7166,38 @@ function renderMyList() {
       sameEmail(r.userEmail, curUser.email) ||
       (myName && (r.managerName || '').trim() === myName) ||
       (myName && (r.stewardName || '').trim() === myName)
-    ))
-    .sort((a, b) => b.date.localeCompare(a.date));
+    ));
 
   if (statusQ) data = data.filter(r => statusQ === '취소' ? (r.status === '취소' || r.status === '반려') : r.status === statusQ);
 
-  if (!data.length) {
+  // 정기예약(recurGroup)은 회차별로 나열하지 않고 하나로 묶어서 보여줌 (대표 회차 = 가장 최근 날짜)
+  const groups = new Map();
+  const singles = [];
+  data.forEach(r => {
+    if (r.recurGroup) {
+      if (!groups.has(r.recurGroup)) groups.set(r.recurGroup, []);
+      groups.get(r.recurGroup).push(r);
+    } else {
+      singles.push(r);
+    }
+  });
+  const items = [];
+  groups.forEach(group => {
+    group.sort((a, b) => a.date.localeCompare(b.date));
+    items.push({ rep: group[group.length - 1], first: group[0], last: group[group.length - 1], count: group.length });
+  });
+  singles.forEach(r => items.push({ rep: r, first: r, last: r, count: 1 }));
+  items.sort((a, b) => b.rep.date.localeCompare(a.rep.date));
+
+  if (!items.length) {
     document.getElementById('mylist-body').innerHTML =
       `<div class="card" style="text-align:center;padding:28px;color:var(--text3)">신청한 예약이 없습니다<br>
         <button class="btn btn-primary" style="margin-top:14px" onclick="go('apply')">예약 신청하기</button></div>`;
     return;
   }
 
-  document.getElementById('mylist-body').innerHTML = data.map(r => {
+  document.getElementById('mylist-body').innerHTML = items.map(({ rep: r, first, last, count }) => {
+    const dateLabel = count > 1 ? `${first.date} ~ ${last.date} <span style="font-size:11px;color:var(--text3);font-weight:400">(정기예약 ${count}건)</span>` : `${r.date} ${r.start}–${r.end}`;
     const actions = r.status === '대기'
       ? `<button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openEditModal('${r.id}')">수정</button>
          <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;color:var(--red)" onclick="cancelR('${r.id}')">취소</button>`
@@ -7190,7 +7209,7 @@ function renderMyList() {
       : '';
     return `<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${r.date} ${r.start}–${r.end}</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${dateLabel}</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:3px">${r.room}</div>
         <div style="font-size:11px;color:var(--text3)">${r.purpose}</div>
       </div>
