@@ -3403,7 +3403,9 @@ const ROOM_CHIP_LABEL = {
 const SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀'];
 // 이름에 "로비"가 들어간 공간(1층 로비, B1 로비 등)은 정확한 이름 표기와 상관없이 항상 제외
 const isSelfServiceExcluded = (name) => SELF_SERVICE_EXCLUDED_ROOMS.includes(name) || /로비/.test(name || '');
-const publicSpaces = () => spaces.filter(s => !isSelfServiceExcluded(s.name));
+// 아래쪽 별도 <script>(모듈 아님)에서도 써야 해서 window에도 노출 (module 스크립트는 스코프가 분리됨)
+window.isSelfServiceExcluded = isSelfServiceExcluded;
+const publicSpaces = () => spaces.filter(s => !window.isSelfServiceExcluded(s.name));
 
 function buildRoomChips() {
   const labelTag = (text, color = 'var(--blue-mid)', bg = 'var(--blue-lt)') =>
@@ -3421,7 +3423,7 @@ function buildRoomChips() {
       html += '</div>';
     });
     // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로 (셀프 신청 제외 공간은 노출 안 함)
-    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name) && !isSelfServiceExcluded(s.name));
+    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name) && !window.isSelfServiceExcluded(s.name));
     const floors = {};
     rest.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
     Object.entries(floors).forEach(([fl, sps]) => {
@@ -9186,10 +9188,10 @@ function hmSearchMatches(query) {
   // spaces 배열(Firestore) + 고정 (셀프 신청 불가 공간은 검색에서 제외)
   // 이름이 없는 문서(수기 등록 중 누락 등) 하나만 있어도 아래 toLowerCase()에서 예외가 나서
   // 검색 전체가 조용히 멈추는 걸 막기 위해 이름 없는 공간은 미리 걸러냄
-  const visible = (window.spaces || []).filter(s => s && typeof s.name === 'string' && s.name && !isSelfServiceExcluded(s.name));
+  const visible = (window.spaces || []).filter(s => s && typeof s.name === 'string' && s.name && !window.isSelfServiceExcluded(s.name));
   const all = [
     ...visible.map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
-    ...FIXED_SPACES.filter(n => !isSelfServiceExcluded(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
+    ...FIXED_SPACES.filter(n => !window.isSelfServiceExcluded(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
     s.name.toLowerCase().includes(q) || s.categories.some(c => String(c || '').toLowerCase().includes(q))
