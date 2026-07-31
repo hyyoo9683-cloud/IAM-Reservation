@@ -1702,7 +1702,7 @@ textarea { resize: vertical; min-height: 60px; }
     <!-- 관리자: 주간 운영 리포트 (이메일용) -->
     <div class="page" id="p-ops-report">
       <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 14px">
-        아론홀·샤론홀·지혜홀·아이엠홀의 <b>확정</b> 예약을 기간별로 모아 이메일용 표 이미지 + 본문 텍스트를 만듭니다.
+        아론홀·샤론홀·지혜홀·아이엠홀·로비의 <b>확정</b> 예약을 기간별로 모아 이메일용 표 이미지 + 본문 텍스트를 만듭니다.
         표는 이미지로 복사/다운로드해 이메일에 삽입하고, 나머지 안내문은 텍스트로 복사해 붙여넣으세요.
         그 외 공간(소그룹실 등)과 특이사항은 직접 입력해야 합니다.
       </div>
@@ -5508,8 +5508,10 @@ function roomWithFloor(room) {
 }
 
 // ── 주간 운영 리포트 (관리자가 매주 관리자들에게 보내는 공간 현황 이메일 작성용) ──
-// 아론홀·샤론홀·지혜홀·아이엠홀의 확정 예약만 대상으로 함. 그 외 공간·특이사항은 관리자가 직접 입력.
+// 아론홀·샤론홀·지혜홀·아이엠홀·로비(1층/2층/B1/B2 등)의 확정 예약만 대상으로 함.
+// 그 외 공간(5층 소그룹실 등)과 특이사항은 관리자가 직접 입력.
 const OPS_REPORT_ROOMS = ['아론홀', '샤론홀', '지혜홀', '아이엠홀'];
+const isOpsReportRoom = (room) => OPS_REPORT_ROOMS.includes(room) || /로비/.test(room || '');
 let opsReportRows = [];      // [{groupKey, ids, date, ilsi, room, event, scale}]
 const opsReportNotes = {};   // groupKey(=recurGroup::room, 없으면 예약 id) → 운영 참고사항 (직접 입력, 새로고침 전까지 유지)
 const opsManualIds   = new Set(); // 검색해서 수동으로 추가한 예약 id
@@ -5591,7 +5593,7 @@ window.renderOpsReport = () => {
   if (!startEl.value || !endEl.value) { setOpsReportNextWeek(); return; }
   const start = startEl.value, end = endEl.value;
 
-  const roomRes = reservations.filter(r => OPS_REPORT_ROOMS.includes(r.room) && r.status === '확정');
+  const roomRes = reservations.filter(r => isOpsReportRoom(r.room) && r.status === '확정');
 
   // 지혜홀 연박은 체크인~체크아웃 중 일부 밤만 이번 기간에 걸쳐 있어도(예: 지난주에 체크인해
   // 이번 주에 체크아웃) 체크아웃 날짜가 기간에 들어오면 숙박 전체를 포함시킴
@@ -5705,7 +5707,7 @@ function renderOpsTable() {
   const wrap = document.getElementById('ops-table-wrap');
   if (!wrap) return;
   if (!opsReportRows.length) {
-    wrap.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:12px 0">해당 기간에 확정된 예약이 없습니다 (아론홀·샤론홀·지혜홀·아이엠홀 기준)</div>`;
+    wrap.innerHTML = `<div style="font-size:12px;color:var(--text3);padding:12px 0">해당 기간에 확정된 예약이 없습니다 (아론홀·샤론홀·지혜홀·아이엠홀·로비 기준)</div>`;
     return;
   }
   const th = (label) => `<th style="padding:10px 14px;text-align:left;background:#2f3b52;color:#fff;font-weight:700">${label}</th>`;
