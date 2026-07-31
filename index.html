@@ -2043,12 +2043,12 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
     <div class="fl">
-      <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail()"></div>
+      <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail();onJihyeNightsInput()"></div>
       <div class="fg" id="e-end-date-wrap" style="display:none"><div class="lbl">종료 날짜 <span class="req">*</span></div><input type="date" id="e-end-date"></div>
     </div>
     <div class="fl">
-      <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
-      <div class="fg"><div class="lbl">종료 <span class="req">*</span></div><select id="e-end"   onchange="checkEditAvail()"></select></div>
+      <div class="fg"><div class="lbl" id="e-start-lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
+      <div class="fg"><div class="lbl" id="e-end-lbl">종료 <span class="req">*</span></div><select id="e-end"   onchange="checkEditAvail()"></select></div>
     </div>
     <div class="fg">
       <div class="lbl">공간 <span class="req">*</span></div>
@@ -2083,9 +2083,11 @@ textarea { resize: vertical; min-height: 60px; }
       <div class="divider"></div>
       <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🛏 지혜홀 세부사항</div>
       <div class="fg" id="e-jihye-nights-wrap">
-        <div class="lbl">박수 <span class="req">*</span></div>
-        <input type="number" id="e-jihye-nights" min="1" value="1">
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">체크인 날짜부터 연속 N박만큼 매일 예약이 자동 생성됩니다</div>
+        <div class="fl">
+          <div class="fg"><div class="lbl">박수 <span class="req">*</span></div><input type="number" id="e-jihye-nights" min="1" value="1" oninput="onJihyeNightsInput()"></div>
+          <div class="fg"><div class="lbl">체크아웃 날짜</div><input type="date" id="e-jihye-checkout" oninput="onJihyeCheckoutInput()"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">체크인 날짜부터 체크아웃 날짜(또는 박수)만큼 매일 예약이 자동 생성됩니다 — 둘 중 하나만 입력해도 서로 맞춰집니다</div>
       </div>
       <div class="fg">
         <div class="lbl">룸 선택</div>
@@ -5089,6 +5091,18 @@ function iamDetailHtml(r) {
     ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:90px;flex-shrink:0">${k}</span><span>${v}</span></div>`).join('')}
   </div>`;
 }
+// 지혜홀(숙박) 전용 세부사항 표시 — 상세 팝업에서 공통 사용
+function jihyeDetailHtml(r) {
+  const rows = [
+    (r.checkinTime || r.checkoutTime) ? ['체크인/체크아웃 시간', `${r.checkinTime || '-'} / ${r.checkoutTime || '-'}`] : null,
+    (r.jihyeRooms && r.jihyeRooms.length) ? ['룸', r.jihyeRooms.join(', ')] : null,
+  ].filter(Boolean);
+  if (!rows.length) return '';
+  return `<div style="grid-column:1/3;padding:10px 12px;background:var(--blue-lt);border-radius:7px">
+    <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px">🛏 지혜홀 세부사항</div>
+    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:120px;flex-shrink:0">${k}</span><span>${v}</span></div>`).join('')}
+  </div>`;
+}
 window.openDetail = (id) => {
   const r = reservations.find(x => x.id === id); if (!r) return;
 
@@ -5124,12 +5138,13 @@ window.openDetail = (id) => {
       ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${r.date}</div></div>
       ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${r.stewardName}</div></div>` : ''}
-      <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.start} – ${r.end}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.room === '지혜홀' ? '숙박(전일)' : `${r.start} – ${r.end}`}</div></div>
       ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">실사용자 연락처</div><div style="font-size:13px;color:var(--blue);margin-top:3px">${r.stewardTel}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${r.people}명</div></div>
       <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${r.purpose}</div></div>
       ${reqTags.length ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 시설 요청</div><div class="space-amenity" style="margin-top:4px">${reqTags.map(t => `<span class="amenity-tag">${t}</span>`).join('')}</div></div>` : ''}
       ${r.room === '아이엠홀' ? iamDetailHtml(r) : ''}
+      ${r.room === '지혜홀' ? jihyeDetailHtml(r) : ''}
       ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${r.memo}</div></div>` : ''}
       ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">취소 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
       ${isAdmin ? `<div style="grid-column:1/3">${dateContextHtml(r.date, r.id)}</div>` : ''}
@@ -5386,7 +5401,41 @@ function applyRoomFieldVisibility(room, isNew) {
     const recurOn = !!document.getElementById('e-is-recur')?.checked;
     dateLbl.innerHTML = (isJihye ? '체크인 날짜' : (recurOn ? '시작 날짜' : '날짜')) + ' <span class="req">*</span>';
   }
+  // 지혜홀은 시작/종료가 실제 예약 시간(전일 블록)이 아니라 체크인·체크아웃 시간을 적어두는
+  // 선택 입력이 되므로 라벨을 바꾸고 필수 표시(*)를 떼며, 비워둘 수 있도록 빈 옵션을 넣어줌
+  const startLbl = document.getElementById('e-start-lbl');
+  const endLbl   = document.getElementById('e-end-lbl');
+  if (startLbl) startLbl.innerHTML = isJihye ? '체크인 시간 <span style="font-size:10px;color:var(--text3)">(선택)</span>' : '시작 <span class="req">*</span>';
+  if (endLbl)   endLbl.innerHTML   = isJihye ? '체크아웃 시간 <span style="font-size:10px;color:var(--text3)">(선택)</span>' : '종료 <span class="req">*</span>';
+  ['e-start', 'e-end'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const blank = sel.querySelector('option[value=""]');
+    if (isJihye && !blank) sel.insertAdjacentHTML('afterbegin', '<option value=""></option>');
+    else if (!isJihye && blank) blank.remove();
+  });
+  if (isJihye && isNew) {
+    document.getElementById('e-start').value = '';
+    document.getElementById('e-end').value = '';
+  }
 }
+window.onJihyeNightsInput = () => {
+  const checkin = document.getElementById('e-date')?.value;
+  const nightsEl = document.getElementById('e-jihye-nights');
+  const checkoutEl = document.getElementById('e-jihye-checkout');
+  if (!checkin || !nightsEl || !checkoutEl) return;
+  const nights = Math.max(1, parseInt(nightsEl.value) || 1);
+  const d = new Date(checkin + 'T00:00:00'); d.setDate(d.getDate() + nights);
+  checkoutEl.value = toDateStr(d);
+};
+window.onJihyeCheckoutInput = () => {
+  const checkin = document.getElementById('e-date')?.value;
+  const checkout = document.getElementById('e-jihye-checkout')?.value;
+  const nightsEl = document.getElementById('e-jihye-nights');
+  if (!checkin || !checkout || !nightsEl) return;
+  const nights = Math.max(1, Math.round((new Date(checkout + 'T00:00:00') - new Date(checkin + 'T00:00:00')) / 86400000));
+  nightsEl.value = nights;
+};
 window.selEditRoom = (name) => {
   editRoom = name;
   document.getElementById('e-room').value = name;
@@ -6029,6 +6078,10 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-iam-etc').value             = r.etcNote || '';
     document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = (r.jihyeRooms || []).includes(cb.value));
     applyRoomFieldVisibility(r.room, false);
+    if (r.room === '지혜홀') {
+      document.getElementById('e-start').value = r.checkinTime  || '';
+      document.getElementById('e-end').value   = r.checkoutTime || '';
+    }
     editRoom = r.room;
     document.getElementById('e-room').value = r.room;
     setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); checkEditAvail(); }, 40);
@@ -6039,6 +6092,7 @@ window.openEditModal = (id, prefill) => {
      'e-iam-showname', 'e-iam-rehearsal-start', 'e-iam-rehearsal-end', 'e-iam-audience', 'e-iam-rooms-used', 'e-iam-parking', 'e-iam-etc']
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
     document.getElementById('e-jihye-nights').value = 1;
+    document.getElementById('e-jihye-checkout').value = '';
     document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = false);
     applyRoomFieldVisibility('', true);
     document.getElementById('e-room').value = '';
@@ -6066,14 +6120,21 @@ window.submitEdit = async () => {
   const sTel    = document.getElementById('e-steward-tel').value.trim();
   const room    = document.getElementById('e-room').value;
   const date    = document.getElementById('e-date').value;
-  const start   = document.getElementById('e-start').value;
-  const end     = document.getElementById('e-end').value;
+  let   start   = document.getElementById('e-start').value;
+  let   end     = document.getElementById('e-end').value;
   const people  = document.getElementById('e-people').value;
   const purpose = document.getElementById('e-purpose').value.trim();
   const memo    = document.getElementById('e-memo').value.trim();
   const isIamHall   = room === '아이엠홀';
   const isJihye     = room === '지혜홀';
   const iamShowName = document.getElementById('e-iam-showname').value.trim();
+  // 지혜홀은 시작/종료가 실제 예약 시간이 아니라 체크인/체크아웃 시간(선택)이므로
+  // 충돌 체크·저장용 start/end는 전일 블록으로 고정하고, 입력한 시간은 별도 필드로만 저장
+  let jihyeCheckinTime = '', jihyeCheckoutTime = '';
+  if (isJihye) {
+    jihyeCheckinTime = start; jihyeCheckoutTime = end;
+    start = '00:00'; end = '23:59';
+  }
 
   if (!type || !manager || !sName || !sTel || !room || !date) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
@@ -6108,6 +6169,8 @@ window.submitEdit = async () => {
   }
   if (isJihye) {
     data.jihyeRooms = [...document.querySelectorAll('.e-jihye-room:checked')].map(c => c.value);
+    data.checkinTime  = jihyeCheckinTime;
+    data.checkoutTime = jihyeCheckoutTime;
   }
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
