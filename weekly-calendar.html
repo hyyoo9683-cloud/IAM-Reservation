@@ -26,11 +26,13 @@
                       padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
-  .date-jump-wrap { position: relative; display: flex; align-items: center; }
-  .date-jump-btn { background: rgba(255,255,255,.18); border: none; color: #fff;
-                    padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; }
-  .date-jump-btn:hover { background: rgba(255,255,255,.3); }
-  .date-jump-wrap input[type=date] { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; height: 100%; }
+  .date-jump-wrap { display: flex; align-items: center; gap: 2px; background: rgba(255,255,255,.18);
+                     border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+  .date-jump-wrap:hover { background: rgba(255,255,255,.3); }
+  .date-jump-label { color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+  .date-jump-wrap input[type=date] { background: transparent; border: none; color: transparent;
+                     width: 16px; padding: 0; font-size: 14px; font-family: inherit; cursor: pointer; }
+  .date-jump-wrap input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
   .view-toggle { display: flex; width: 100%; gap: 6px; padding: 10px 16px 0; }
   .vt-btn { flex: 1; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); color: #fff;
@@ -82,7 +84,8 @@
     .header h1 { font-size: 20px; }
     .date-label { font-size: 19px; }
     .nav-btns button { font-size: 15px; padding: 8px 16px; }
-    .date-jump-btn { font-size: 15px; padding: 8px 16px; }
+    .date-jump-wrap { font-size: 15px; padding: 8px 16px; }
+    .date-jump-label { font-size: 15px; }
     .vt-btn { font-size: 15px; padding: 11px 14px; }
     .blocked-banner, .cat { max-width: 760px; margin-left: auto; margin-right: auto; }
     .blocked-banner { font-size: 14px; }
@@ -102,10 +105,10 @@
   <h1>📅 전체 예약 현황</h1>
   <span class="date-label" id="date-label"></span>
   <div class="nav-btns" id="nav-btns"></div>
-  <div class="date-jump-wrap">
-    <button type="button" class="date-jump-btn" onclick="openDateJump()">📅 날짜 검색</button>
+  <label class="date-jump-wrap" for="date-jump">
+    <span class="date-jump-label">📅 날짜 검색</span>
     <input type="date" id="date-jump" onchange="jumpToDate(this.value)" title="날짜로 바로 보기">
-  </div>
+  </label>
   <div class="view-toggle">
     <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
     <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 제외 전체)</button>
@@ -215,13 +218,6 @@ function renderNav() {
 
 window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
 window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
-
-window.openDateJump = () => {
-  const el = document.getElementById('date-jump');
-  if (el.showPicker) { try { el.showPicker(); return; } catch (e) {} }
-  el.focus();
-  el.click();
-};
 
 window.jumpToDate = (dateStr) => {
   if (!dateStr) return;
