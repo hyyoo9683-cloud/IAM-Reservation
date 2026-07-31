@@ -26,6 +26,11 @@
                       padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
+  .date-jump-wrap { display: flex; align-items: center; }
+  .date-jump-wrap input[type=date] { background: rgba(255,255,255,.18); border: none; border-radius: 6px;
+                      color: #fff; padding: 6px 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
+  .date-jump-wrap input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
   .view-toggle { display: flex; width: 100%; gap: 6px; padding: 10px 16px 0; }
   .vt-btn { flex: 1; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); color: #fff;
             padding: 9px 10px; border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700; }
@@ -76,6 +81,7 @@
     .header h1 { font-size: 20px; }
     .date-label { font-size: 19px; }
     .nav-btns button { font-size: 15px; padding: 8px 16px; }
+    .date-jump-wrap input[type=date] { font-size: 15px; padding: 8px 10px; }
     .vt-btn { font-size: 15px; padding: 11px 14px; }
     .blocked-banner, .cat { max-width: 760px; margin-left: auto; margin-right: auto; }
     .blocked-banner { font-size: 14px; }
@@ -95,6 +101,9 @@
   <h1>📅 전체 예약 현황</h1>
   <span class="date-label" id="date-label"></span>
   <div class="nav-btns" id="nav-btns"></div>
+  <div class="date-jump-wrap">
+    <input type="date" id="date-jump" onchange="jumpToDate(this.value)" title="날짜로 바로 보기">
+  </div>
   <div class="view-toggle">
     <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
     <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 제외 전체)</button>
@@ -189,6 +198,17 @@ function renderNav() {
 window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
 window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
 
+window.jumpToDate = (dateStr) => {
+  if (!dateStr) return;
+  const target = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  dayOffset = Math.round((target - today) / 86400000);
+  mode = 'day';
+  document.getElementById('vt-day').classList.add('active');
+  document.getElementById('vt-week').classList.remove('active');
+  render();
+};
+
 function render() {
   if (!loaded.res || !loaded.bd) return;
   renderNav();
@@ -203,6 +223,8 @@ function renderDay() {
   const dow   = DOWS[d.getDay()];
   document.getElementById('date-label').textContent =
     `${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}`;
+  const dateJumpEl = document.getElementById('date-jump');
+  if (dateJumpEl) dateJumpEl.value = ds;
 
   const bd = blockedDates.find(b => b.date === ds);
   document.getElementById('blocked-banner-wrap').innerHTML = bd
