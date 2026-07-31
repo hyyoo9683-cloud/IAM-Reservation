@@ -1725,6 +1725,15 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
 
       <div class="card">
+        <div class="card-title">예약 검색해서 추가</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">자동으로 포함되지 않은 예약(다른 공간·기간 밖 등)을 검색해서 표에 임의로 추가할 수 있습니다.</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <input type="text" id="ops-search-q" placeholder="담당자·실사용자·목적·공간으로 검색" oninput="searchOpsReservations()" style="flex:1">
+        </div>
+        <div id="ops-search-results"></div>
+      </div>
+
+      <div class="card">
         <div class="card-title">행사별 운영 참고사항 (직접 입력)</div>
         <div style="font-size:11px;color:var(--text3);margin-bottom:10px">행사 옆에 표·본문에 들어갈 한 줄 메모를 입력하세요. (예: 주차 혼잡 예상)</div>
         <div id="ops-notes-list"></div>
@@ -1732,6 +1741,10 @@ textarea { resize: vertical; min-height: 60px; }
 
       <div class="card">
         <div class="card-title">이번 주 운영 체크 (직접 입력)</div>
+        <div style="font-size:11px;color:var(--text2);background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;margin-bottom:10px">
+          📊 참고: 일별 전체 예약 인원 합계 (전 공간·모든 확정 예약 기준 — 주차 예측에 참고하세요)
+          <div id="ops-daily-headcount" style="margin-top:6px"></div>
+        </div>
         <div class="fg"><div class="lbl">🚗 주차</div><textarea id="ops-note-parking" rows="2" placeholder="예: 수요일 오전 혼잡 예상" oninput="updateOpsBodyPreview()"></textarea></div>
         <div class="fg"><div class="lbl">🏛 공간 운영</div><textarea id="ops-note-space" rows="2" placeholder="예: 금요일 오후 아이엠홀 행사 준비" oninput="updateOpsBodyPreview()"></textarea></div>
         <div class="fg" style="margin-bottom:0"><div class="lbl">⚠️ 특이사항</div><textarea id="ops-note-etc" rows="2" placeholder="특이사항이 있으면 입력" oninput="updateOpsBodyPreview()"></textarea></div>
@@ -5448,6 +5461,16 @@ function dateToSmsFormat(dateStr) {
 const OPS_REPORT_ROOMS = ['아론홀', '샤론홀', '지혜홀', '아이엠홀'];
 let opsReportRows = [];      // [{id, date, start, end, room, event, scale}]
 const opsReportNotes = {};   // reservationId → 운영 참고사항 (직접 입력, 새로고침 전까지 유지)
+const opsManualIds   = new Set(); // 검색해서 수동으로 추가한 예약 id
+const opsExcludedIds = new Set(); // 자동/수동 목록에서 제외한 예약 id
+
+function reservationToOpsRow(r) {
+  return {
+    id: r.id, date: r.date, start: r.start, end: r.end, room: r.room,
+    event: (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || ''),
+    scale: (r.room === '아이엠홀' && r.audienceCount) ? r.audienceCount : (r.people || '')
+  };
+}
 
 function escHtml(s) { return (s || '').replace(/</g, '&lt;'); }
 function shortOpsDate(dateStr) {
@@ -5480,19 +5503,78 @@ window.renderOpsReport = () => {
   if (!startEl.value || !endEl.value) { setOpsReportNextWeek(); return; }
   const start = startEl.value, end = endEl.value;
 
-  opsReportRows = reservations
+  const autoIds = reservations
     .filter(r => OPS_REPORT_ROOMS.includes(r.room) && r.status === '확정' && r.date >= start && r.date <= end)
+    .map(r => r.id);
+  const idSet = new Set([...autoIds, ...opsManualIds]);
+  opsExcludedIds.forEach(id => idSet.delete(id));
+
+  opsReportRows = [...idSet]
+    .map(id => reservations.find(r => r.id === id))
+    .filter(Boolean)
     .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
-    .map(r => ({
-      id: r.id, date: r.date, start: r.start, end: r.end, room: r.room,
-      event: (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || ''),
-      scale: (r.room === '아이엠홀' && r.audienceCount) ? r.audienceCount : (r.people || '')
-    }));
+    .map(reservationToOpsRow);
 
   renderOpsTable();
   renderOpsNotesList();
+  updateOpsDailyHeadcount(start, end);
   updateOpsBodyPreview();
 };
+window.removeOpsRow = (id) => {
+  opsExcludedIds.add(id);
+  opsManualIds.delete(id);
+  renderOpsReport();
+};
+window.addOpsRow = (id) => {
+  opsManualIds.add(id);
+  opsExcludedIds.delete(id);
+  renderOpsReport();
+  searchOpsReservations();
+};
+window.searchOpsReservations = () => {
+  const resultsEl = document.getElementById('ops-search-results');
+  if (!resultsEl) return;
+  const q = document.getElementById('ops-search-q').value.trim().toLowerCase();
+  if (!q) { resultsEl.innerHTML = ''; return; }
+  const start = document.getElementById('ops-start').value, end = document.getElementById('ops-end').value;
+  const currentIds = new Set(opsReportRows.map(r => r.id));
+  const matches = reservations
+    .filter(r => r.status === '확정')
+    .filter(r => !start || !end || (r.date >= start && r.date <= end))
+    .filter(r => [r.purpose, r.showName, r.managerName, r.stewardName, r.room, r.type]
+      .some(v => (v || '').toLowerCase().includes(q)))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start))
+    .slice(0, 20);
+  if (!matches.length) {
+    resultsEl.innerHTML = `<div style="font-size:11px;color:var(--text3);padding:6px 0">일치하는 예약이 없습니다</div>`;
+    return;
+  }
+  resultsEl.innerHTML = matches.map(r => {
+    const already = currentIds.has(r.id);
+    const label = (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || '');
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border2);font-size:12px">
+      <span style="min-width:110px;flex-shrink:0">${shortOpsDate(r.date)} ${r.start}~${r.end}</span>
+      <span style="min-width:60px;flex-shrink:0;color:var(--blue);font-weight:600">${roomToSmsName(r.room)}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</span>
+      <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;flex-shrink:0" ${already ? 'disabled' : ''} onclick="addOpsRow('${r.id}')">${already ? '추가됨' : '+ 추가'}</button>
+    </div>`;
+  }).join('');
+};
+function updateOpsDailyHeadcount(start, end) {
+  const el = document.getElementById('ops-daily-headcount');
+  if (!el) return;
+  if (!start || !end) { el.innerHTML = ''; return; }
+  const days = [];
+  let d = new Date(start + 'T00:00:00');
+  const endD = new Date(end + 'T00:00:00');
+  while (d <= endD) { days.push(toDateStr(d)); d.setDate(d.getDate() + 1); }
+  el.innerHTML = days.map(ds => {
+    const total = reservations
+      .filter(r => r.date === ds && r.status === '확정')
+      .reduce((sum, r) => sum + (parseInt(r.people) || 0), 0);
+    return `<span style="display:inline-block;margin:0 10px 4px 0;font-size:12px"><b>${shortOpsDate(ds)}</b> ${total}명</span>`;
+  }).join('');
+}
 
 function renderOpsTable() {
   const wrap = document.getElementById('ops-table-wrap');
@@ -5530,6 +5612,7 @@ function renderOpsNotesList() {
       <input type="text" value="${(opsReportNotes[row.id] || '').replace(/"/g, '&quot;')}"
         placeholder="예: 주차 혼잡 예상" style="flex:1;min-width:160px;font-size:12px;padding:5px 8px"
         oninput="setOpsNote('${row.id}', this.value)">
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:11px;color:var(--red)" onclick="removeOpsRow('${row.id}')" title="표에서 제외">✕</button>
     </div>`).join('');
 }
 window.setOpsNote = (id, value) => {
