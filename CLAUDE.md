@@ -149,6 +149,8 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - `curUser` 가 null이면 상세 팝업에서도 개인정보 미표시
 
 ## 주의사항
-- **데이터 절대 삭제 금지** — Firestore 실제 운영 데이터
+- **데이터 절대 삭제 금지** — Firestore 실제 운영 데이터 (예약(`reservations`) 등 핵심 운영 데이터 대상)
+  - 예외: `checkouts`(퇴실 체크 기록)는 청소 체크리스트 성격이라 장기 보관 필요 없음 — checkouts.html에
+    관리자가 직접 확인/삭제할 수 있는 버튼이 있음 (사용자 명시적 요청으로 추가된 예외)
 - index.html 수정 시 문법 오류 주의 (4500줄+ 단일 파일)
 - Firebase CI 토큰은 GitHub Secret `FIREBASE_TOKEN`에 저장됨 (채팅/코드에 노출 금지)

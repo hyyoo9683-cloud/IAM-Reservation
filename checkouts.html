@@ -87,6 +87,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
 .submitted-at{font-size:12px;color:var(--text3);margin-top:8px;}
 
+.co-btn{flex:1;padding:9px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);
+  font-size:13px;font-weight:700;transition:filter .15s;}
+.co-btn:hover{filter:brightness(.95);}
+.co-btn-confirm{background:var(--green-lt);color:var(--green);}
+.co-btn-delete{background:var(--red-lt);color:var(--red);}
+
 .empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px;}
 .loading{text-align:center;padding:48px 20px;color:var(--text3);}
 
@@ -170,7 +176,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy }
+import { getFirestore, collection, getDocs, query, orderBy, doc, deleteDoc }
   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const ALLOWED_DOMAIN = 'suwoncca.org';
@@ -285,6 +291,10 @@ window.renderList = () => {
         <div class="chk-list">${chkRows}</div>
         ${noteHtml}
         <div class="submitted-at">제출 시각: ${tsStr}</div>
+        <div style="display:flex;gap:8px;margin-top:12px" onclick="event.stopPropagation()">
+          <button class="co-btn co-btn-confirm" onclick="confirmCheckout('${c.id}')">✓ 확인</button>
+          <button class="co-btn co-btn-delete" onclick="deleteCheckout('${c.id}')">🗑 삭제</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -293,6 +303,23 @@ window.renderList = () => {
 window.toggleCard = id => {
   const el = document.getElementById('card-'+id);
   if (el) el.classList.toggle('expanded');
+};
+
+// 확인 완료된 퇴실 체크는 계속 보관할 필요가 없어 바로 삭제함 (청소 체크리스트 성격의
+// 기록이라 reservations와 달리 보관 의무 없음)
+async function removeCheckoutDoc(id) {
+  await deleteDoc(doc(db, 'checkouts', id));
+  checkouts = checkouts.filter(c => c.id !== id);
+  renderList();
+}
+window.confirmCheckout = async (id) => {
+  try { await removeCheckoutDoc(id); }
+  catch (e) { alert('삭제 실패: ' + e.message); }
+};
+window.deleteCheckout = async (id) => {
+  if (!confirm('이 퇴실 체크 기록을 삭제하시겠습니까?')) return;
+  try { await removeCheckoutDoc(id); }
+  catch (e) { alert('삭제 실패: ' + e.message); }
 };
 
 const p2 = n => String(n).padStart(2,'0');
