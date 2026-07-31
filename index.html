@@ -5498,7 +5498,7 @@ function renderBulkSmsBody() {
       ilsi = series.map(x => {
         const d = new Date(x.date + 'T00:00:00');
         return `${d.getMonth() + 1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
-      }).join(', ');
+      }).join('\n');
     } else {
       const fd = new Date(first.date + 'T00:00:00'), ld = new Date(last.date + 'T00:00:00');
       const sameYear = fd.getFullYear() === ld.getFullYear();
@@ -5514,9 +5514,9 @@ function renderBulkSmsBody() {
   });
   entries.sort((a, b) => a.sortDate.localeCompare(b.sortDate));
 
-  const list = entries.map((e, i) =>
-    `${i + 1}. 장소: ${roomToSmsName(e.room)} / 일시: ${e.ilsi} / 목적: ${e.purpose}`
-  ).join('\n');
+  const list = entries.map(e =>
+    `장소: ${roomToSmsName(e.room)}\n일시: ${e.ilsi}\n목적: ${e.purpose}`
+  ).join('\n\n');
 
   const baseBody =
 `[예약확정 알림]
