@@ -5550,7 +5550,7 @@ function groupOpsRows(rawRows) {
     rows.push(rowFrom(first, ilsi, ids));
   });
   singles.forEach(r => rows.push(rowFrom(r, `${shortOpsDate(r.date)} ${r.start}~${r.end}`, [r.id])));
-  rows.sort((a, b) => a.date.localeCompare(b.date));
+  rows.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   return rows;
 }
 
