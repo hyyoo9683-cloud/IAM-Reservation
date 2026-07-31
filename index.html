@@ -5495,6 +5495,15 @@ function dateToSmsFormat(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]})`;
 }
+// 공간명 뒤에 층 표시 추가 — "아론홀(2F)" 형태 (주간 운영 리포트용)
+function roomWithFloor(room) {
+  const name = roomToSmsName(room);
+  const sp = spaces.find(s => s.name === room);
+  if (!sp || !sp.floor) return name;
+  const m = String(sp.floor).match(/^(\d+)\s*층$/);
+  const floor = m ? `${m[1]}F` : sp.floor;
+  return `${name}(${floor})`;
+}
 
 // ── 주간 운영 리포트 (관리자가 매주 관리자들에게 보내는 공간 현황 이메일 작성용) ──
 // 아론홀·샤론홀·지혜홀·아이엠홀의 확정 예약만 대상으로 함. 그 외 공간·특이사항은 관리자가 직접 입력.
@@ -5664,7 +5673,7 @@ window.searchOpsReservations = () => {
     const label = (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || '');
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border2);font-size:12px">
       <span style="min-width:110px;flex-shrink:0">${shortOpsDate(r.date)} ${r.start}~${r.end}</span>
-      <span style="min-width:60px;flex-shrink:0;color:var(--blue);font-weight:600">${roomToSmsName(r.room)}</span>
+      <span style="min-width:80px;flex-shrink:0;color:var(--blue);font-weight:600">${roomWithFloor(r.room)}</span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</span>
       <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px;flex-shrink:0" ${already ? 'disabled' : ''} onclick="addOpsRow('${r.id}')">${already ? '추가됨' : '+ 추가'}</button>
     </div>`;
@@ -5698,7 +5707,7 @@ function renderOpsTable() {
     <tr>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${row.ilsi}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;font-weight:700;color:#2f3b52">${escHtml(row.event)}</td>
-      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${roomToSmsName(row.room)}</td>
+      <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${roomWithFloor(row.room)}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3">${row.scale ? '약 ' + row.scale + '명' : ''}</td>
       <td style="padding:10px 14px;white-space:nowrap;border-bottom:1px solid #e3e3e3;color:#a3392f;font-weight:600">${escHtml(opsReportNotes[row.groupKey] || '')}</td>
     </tr>`).join('');
@@ -5717,7 +5726,7 @@ function renderOpsNotesList() {
   if (!opsReportRows.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = opsReportRows.map(row => `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-      <span style="font-size:12px;font-weight:600;min-width:170px">${row.ilsi} · ${roomToSmsName(row.room)}</span>
+      <span style="font-size:12px;font-weight:600;min-width:170px">${row.ilsi} · ${roomWithFloor(row.room)}</span>
       <span style="font-size:12px;color:var(--text2);min-width:120px">${escHtml(row.event)}</span>
       <input type="text" value="${(opsReportNotes[row.groupKey] || '').replace(/"/g, '&quot;')}"
         placeholder="예: 주차 혼잡 예상" style="flex:1;min-width:160px;font-size:12px;padding:5px 8px"
@@ -5739,7 +5748,7 @@ window.updateOpsBodyPreview = () => {
 
   const detailBlocks = opsReportRows.map((row, i) => {
     const note = opsReportNotes[row.groupKey] ? `\n운영 참고사항\n- ${opsReportNotes[row.groupKey]}` : '';
-    return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${row.ilsi}\n장소: ${roomToSmsName(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
+    return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${row.ilsi}\n장소: ${roomWithFloor(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
   }).join('\n\n');
 
   const parking  = document.getElementById('ops-note-parking').value.trim();
