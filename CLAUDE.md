@@ -102,6 +102,16 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - `go(page)` — SPA 페이지 이동
 - `renderMemo()` — 관리자 메모 페이지 렌더링
 
+## 내 예약(mylist) 매칭 기준
+`renderMyList()`는 `reservations.userEmail`이 로그인 계정과 같은 경우 외에, **로그인 계정의
+실명(`curUser.displayName`)이 해당 예약의 `managerName` 또는 `stewardName`과 정확히 일치하는
+경우도 내 예약으로 포함**함 (이메일이 비어있는 CSV 가져오기·수기 등록 예약, 또는 본인이
+상급자 이름을 예약 책임자로 쓰고 자신은 청지기로 등록한 경우 대응). 이름 일치는 정확한
+문자열 비교라 동명이인 오탐 가능성이 있어, "예약 책임자 관리"(`login-users`) 페이지에
+계정별로 "이메일로는 확인 안 되고 이름만으로 매칭된 예약" 건수와 검증 모달
+(`reviewNameMatches`/`reassignReservationName`)을 두어 관리자가 확인 후 필요하면
+해당 예약의 이름을 바로잡을 수 있게 함.
+
 ## 정기 예약 (allSeries) 처리
 - `recurGroup` 필드로 같은 시리즈 예약들이 연결됨
 - 수정 모달에서 "전체 N회 모두 수정" 체크박스(`e-all-series`) 선택 시 allSeries 모드
