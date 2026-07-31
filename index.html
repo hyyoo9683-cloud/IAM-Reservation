@@ -5529,7 +5529,7 @@ function groupOpsRows(rawRows) {
   const rows = [];
   const rowFrom = (first, ilsi, ids) => ({
     groupKey: ids.length > 1 ? `${first.recurGroup}::${first.room}` : first.id,
-    ids, date: first.date, ilsi, room: first.room,
+    ids, date: first.date, start: first.start, end: first.end, ilsi, room: first.room,
     event: (first.room === '아이엠홀' && first.showName) ? first.showName : (first.purpose || ''),
     scale: (first.room === '아이엠홀' && first.audienceCount) ? first.audienceCount : (first.people || '')
   });
@@ -5755,7 +5755,15 @@ window.updateOpsBodyPreview = () => {
   const period = opsPeriodLabel();
   const nums = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
 
-  const detailBlocks = opsReportRows.map((row, i) => {
+  // 예배는 매주 반복되는 정기 일정이라 상세 안내 대신 시간만 간단히 묶어서 보여줌
+  const worshipRows = opsReportRows.filter(row => /예배/.test(row.event));
+  const otherRows    = opsReportRows.filter(row => !/예배/.test(row.event));
+
+  const worshipBlock = worshipRows
+    .map(row => `- ${row.event}: ${row.start}~${row.end}`)
+    .join('\n');
+
+  const detailBlocks = otherRows.map((row, i) => {
     const note = opsReportNotes[row.groupKey] ? `\n운영 참고사항\n- ${opsReportNotes[row.groupKey]}` : '';
     return `${nums[i] || (i + 1) + '.'} ${row.event}\n일시: ${row.ilsi}\n장소: ${roomWithFloor(row.room)}\n예상 인원: ${row.scale ? '약 ' + row.scale + '명' : '-'}${note}`;
   }).join('\n\n');
@@ -5777,10 +5785,14 @@ window.updateOpsBodyPreview = () => {
 안녕하세요. 다음 주 아이엠센터 운영에 참고하실 주요 일정과 특이사항을 안내드립니다.
 
 (※ 주요 일정 요약 표는 이미지로 복사해 여기에 삽입해주세요)
+${worshipRows.length ? `
+🙏 예배 안내
 
+${worshipBlock}
+` : ''}
 행사별 운영 안내
 
-${detailBlocks || '(해당 기간에 확정된 예약이 없습니다)'}
+${detailBlocks || (opsReportRows.length ? '(그 외 확정된 예약이 없습니다)' : '(해당 기간에 확정된 예약이 없습니다)')}
 
 이번 주 운영 체크
 
