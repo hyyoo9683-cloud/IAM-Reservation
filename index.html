@@ -6579,7 +6579,7 @@ window.submitEdit = async () => {
       }
 
       data.status    = document.getElementById('e-status').value || '확정';
-      data.userEmail = cu.email || 'admin';
+      data.userEmail = ''; // 관리자가 대신 등록하는 예약이라 신청자 이메일이 없음 — 담당자 이름으로만 매칭
       data.createdAt = serverTimestamp();
       if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabel; data.recurTotal = dates.length; }
       for (let i = 0; i < dates.length; i++) {
