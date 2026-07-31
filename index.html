@@ -5476,12 +5476,15 @@ function renderBulkSmsBody() {
   const DOWS_KR = ['일','월','화','수','목','금','토'];
   const rows = smsBulkIds.map(id => reservations.find(x => x.id === id)).filter(Boolean);
 
-  const groups = new Map(); // recurGroup → rows
+  // recurGroup + room → rows. 같은 시리즈라도 공실 배정 등으로 회차별 실이 다를 수 있어
+  // room까지 키에 포함시켜야 실이 섞인 시리즈를 실별로 따로 안내할 수 있다.
+  const groups = new Map();
   const singles = [];
   rows.forEach(r => {
     if (r.recurGroup) {
-      if (!groups.has(r.recurGroup)) groups.set(r.recurGroup, []);
-      groups.get(r.recurGroup).push(r);
+      const key = `${r.recurGroup}::${r.room}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(r);
     } else {
       singles.push(r);
     }
