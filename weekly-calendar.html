@@ -157,6 +157,10 @@ let loaded = { res: false, bd: false };
 const toDateStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tsToday = () => toDateStr(new Date());
+// 지혜홀은 start/end가 항상 00:00~23:59(충돌 체크용 전일 블록)로 고정 저장되므로,
+// 실제 입력된 체크인/체크아웃 시간(checkinTime/checkoutTime, 선택 입력)이 있으면 그걸 표시에 사용
+const dispStart = r => (r.room === '지혜홀' && r.checkinTime)  ? r.checkinTime  : r.start;
+const dispEnd   = r => (r.room === '지혜홀' && r.checkoutTime) ? r.checkoutTime : r.end;
 const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 function curDate() {
@@ -237,13 +241,13 @@ function renderDay() {
       .filter(r => inCat(r.room) && r.date === ds && r.status === '확정')
       .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
     const rangeLabel = items.length
-      ? ` · ${items[0].start}-${items.reduce((max, r) => r.end > max ? r.end : max, items[0].end)}`
+      ? ` · ${dispStart(items[0])}-${items.reduce((max, r) => dispEnd(r) > max ? dispEnd(r) : max, dispEnd(items[0]))}`
       : '';
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
           <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
-            <span class="item-time">${r.start}–${r.end}</span>
+            <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
           </div>`).join('');
@@ -272,7 +276,7 @@ function renderWeek() {
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
           <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
-            <span class="item-time">${r.start}–${r.end}</span>
+            <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-room">${esc(r.room)}</span>
           </div>`).join('');
