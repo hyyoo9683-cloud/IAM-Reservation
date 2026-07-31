@@ -151,9 +151,11 @@ function renderNav() {
   const navEl = document.getElementById('nav-btns');
   if (mode === 'day') {
     navEl.innerHTML = `
+      <button onclick="changeDay(-7)" title="1주 전">◀◀</button>
       <button onclick="changeDay(-1)">◀</button>
       <button onclick="changeDay(0)">오늘</button>
-      <button onclick="changeDay(1)">▶</button>`;
+      <button onclick="changeDay(1)">▶</button>
+      <button onclick="changeDay(7)" title="1주 후">▶▶</button>`;
   } else {
     navEl.innerHTML = `
       <button onclick="changeWeek(-1)">◀ 이전주</button>
