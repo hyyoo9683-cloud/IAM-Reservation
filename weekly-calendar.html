@@ -26,10 +26,11 @@
                       padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
   .nav-btns button:hover { background: rgba(255,255,255,.3); }
 
-  .date-jump-wrap { display: flex; align-items: center; }
-  .date-jump-wrap input[type=date] { background: rgba(255,255,255,.18); border: none; border-radius: 6px;
-                      color: #fff; padding: 6px 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
-  .date-jump-wrap input[type=date]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+  .date-jump-wrap { position: relative; display: flex; align-items: center; }
+  .date-jump-btn { background: rgba(255,255,255,.18); border: none; color: #fff;
+                    padding: 6px 13px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .date-jump-btn:hover { background: rgba(255,255,255,.3); }
+  .date-jump-wrap input[type=date] { position: absolute; inset: 0; opacity: 0; pointer-events: none; width: 100%; height: 100%; }
 
   .view-toggle { display: flex; width: 100%; gap: 6px; padding: 10px 16px 0; }
   .vt-btn { flex: 1; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3); color: #fff;
@@ -81,7 +82,7 @@
     .header h1 { font-size: 20px; }
     .date-label { font-size: 19px; }
     .nav-btns button { font-size: 15px; padding: 8px 16px; }
-    .date-jump-wrap input[type=date] { font-size: 15px; padding: 8px 10px; }
+    .date-jump-btn { font-size: 15px; padding: 8px 16px; }
     .vt-btn { font-size: 15px; padding: 11px 14px; }
     .blocked-banner, .cat { max-width: 760px; margin-left: auto; margin-right: auto; }
     .blocked-banner { font-size: 14px; }
@@ -102,6 +103,7 @@
   <span class="date-label" id="date-label"></span>
   <div class="nav-btns" id="nav-btns"></div>
   <div class="date-jump-wrap">
+    <button type="button" class="date-jump-btn" onclick="openDateJump()">📅 날짜 검색</button>
     <input type="date" id="date-jump" onchange="jumpToDate(this.value)" title="날짜로 바로 보기">
   </div>
   <div class="view-toggle">
@@ -158,9 +160,21 @@ const toDateStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const tsToday = () => toDateStr(new Date());
 // 지혜홀은 start/end가 항상 00:00~23:59(충돌 체크용 전일 블록)로 고정 저장되므로,
-// 실제 입력된 체크인/체크아웃 시간(checkinTime/checkoutTime, 선택 입력)이 있으면 그걸 표시에 사용
-const dispStart = r => (r.room === '지혜홀' && r.checkinTime)  ? r.checkinTime  : r.start;
-const dispEnd   = r => (r.room === '지혜홀' && r.checkoutTime) ? r.checkoutTime : r.end;
+// 실제 입력된 체크인/체크아웃 시간(checkinTime/checkoutTime, 선택 입력)이 있으면 그걸 표시에 사용.
+// 단, 연박(여러 밤)인 경우 체크인은 첫날에만, 체크아웃은 마지막날에만 적용 (중간 밤은 그대로 00:00~23:59)
+function jihyeGroupBounds(r) {
+  if (!r.recurGroup) return { first: r.date, last: r.date };
+  const dates = reservations.filter(x => x.recurGroup === r.recurGroup && x.room === '지혜홀').map(x => x.date).sort();
+  return dates.length ? { first: dates[0], last: dates[dates.length - 1] } : { first: r.date, last: r.date };
+}
+const dispStart = r => {
+  if (r.room !== '지혜홀' || !r.checkinTime) return r.start;
+  return r.date === jihyeGroupBounds(r).first ? r.checkinTime : r.start;
+};
+const dispEnd = r => {
+  if (r.room !== '지혜홀' || !r.checkoutTime) return r.end;
+  return r.date === jihyeGroupBounds(r).last ? r.checkoutTime : r.end;
+};
 const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 function curDate() {
@@ -201,6 +215,13 @@ function renderNav() {
 
 window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
 window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
+
+window.openDateJump = () => {
+  const el = document.getElementById('date-jump');
+  if (el.showPicker) { try { el.showPicker(); return; } catch (e) {} }
+  el.focus();
+  el.click();
+};
 
 window.jumpToDate = (dateStr) => {
   if (!dateStr) return;
