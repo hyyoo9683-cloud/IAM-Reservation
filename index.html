@@ -1771,10 +1771,25 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="card" style="padding:0;overflow:hidden">
           <div style="overflow-x:auto">
           <table class="tbl" style="white-space:nowrap">
-            <thead><tr><th>이메일</th><th>이름</th><th>최초 로그인</th><th>마지막 로그인</th><th>로그인 횟수</th><th>액션</th></tr></thead>
+            <thead><tr><th>이메일</th><th>이름</th><th>최초 로그인</th><th>마지막 로그인</th><th>로그인 횟수</th><th>이름 일치 예약</th><th>액션</th></tr></thead>
             <tbody id="login-users-body"></tbody>
           </table>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이름 일치 예약 검증 모달 -->
+    <div class="modal-bg" id="modal-name-match">
+      <div class="modal" style="max-width:600px">
+        <div class="modal-title" id="nm-title">이름 일치 예약 확인</div>
+        <div style="font-size:12px;color:var(--text2);background:var(--blue-lt);border-radius:7px;padding:8px 12px;margin-bottom:12px">
+          이메일이 아니라 이름만으로 매칭된 예약입니다. 실제로 같은 사람이면 그대로 두면 되고,
+          다른 사람의 예약이면 이름을 고쳐서 예약 책임자를 바로잡을 수 있습니다.
+        </div>
+        <div id="nm-list" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:14px">
+          <button class="btn btn-ghost" onclick="closeModal('modal-name-match')">닫기</button>
         </div>
       </div>
     </div>
@@ -7141,9 +7156,17 @@ window.bulkGroupRecur = async () => {
 
 function renderMyList() {
   const statusQ = document.getElementById('mylist-status')?.value || '';
+  const myName = (curUser?.displayName || '').trim();
 
+  // 이메일 일치(신청 계정) 외에, 예약 책임자·실사용자 이름이 로그인 계정의 실명과
+  // 같은 경우도 내 예약으로 간주 (관리자가 이메일 없이 등록한 예약이나, 본인이
+  // 상급자 이름을 예약 책임자로 쓰고 자신은 청지기로 등록한 경우 모두 포함)
   let data = [...reservations]
-    .filter(r => curUser ? sameEmail(r.userEmail, curUser.email) : false)
+    .filter(r => curUser && (
+      sameEmail(r.userEmail, curUser.email) ||
+      (myName && (r.managerName || '').trim() === myName) ||
+      (myName && (r.stewardName || '').trim() === myName)
+    ))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   if (statusQ) data = data.filter(r => statusQ === '취소' ? (r.status === '취소' || r.status === '반려') : r.status === statusQ);
@@ -7872,6 +7895,17 @@ function fmtLoginTs(ts) {
   return d.toLocaleString('ko', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 }
 
+let loginUsersCache = [];
+// 이름만으로(이메일 없이) 매칭되는 예약 — 담당자·청지기 이름이 이 계정의 이름과 같지만
+// userEmail은 다르거나 비어있는 건들 (이미 이메일로 확인되는 건 제외하고 검증 대상만 추림)
+function nameOnlyMatches(u) {
+  const name = (u.name || '').trim();
+  if (!name) return [];
+  return reservations.filter(r =>
+    !sameEmail(r.userEmail, u.id) &&
+    ((r.managerName || '').trim() === name || (r.stewardName || '').trim() === name)
+  );
+}
 async function renderLoginUsers() {
   const snap = await getDocs(collection(db, 'loginUsers'));
   const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -7880,22 +7914,77 @@ async function renderLoginUsers() {
     const tb = b.lastLoginAt ? (b.lastLoginAt.toDate ? b.lastLoginAt.toDate().getTime() : new Date(b.lastLoginAt).getTime()) : 0;
     return tb - ta;
   });
+  loginUsersCache = users;
   const tbody = document.getElementById('login-users-body');
   tbody.innerHTML = !users.length
-    ? `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">등록된 예약 책임자가 없습니다</td></tr>`
-    : users.map(u =>
-        `<tr>
+    ? `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text3)">등록된 예약 책임자가 없습니다</td></tr>`
+    : users.map(u => {
+        const matches = nameOnlyMatches(u);
+        return `<tr>
           <td style="color:var(--blue);font-weight:500">${u.id}${u.manual ? ' <span style="color:var(--text3);font-size:10px">(미로그인)</span>' : ''}</td>
           <td>${u.name || '–'}</td>
           <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.firstLoginAt)}</td>
           <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.lastLoginAt)}</td>
           <td style="text-align:center">${u.loginCount || 0}</td>
+          <td style="text-align:center">
+            ${matches.length
+              ? `<button class="btn btn-ghost" style="padding:2px 10px;font-size:11px" onclick="reviewNameMatches('${u.id}')">${matches.length}건 확인</button>`
+              : '<span style="color:var(--text3);font-size:11px">–</span>'}
+          </td>
           <td>
             <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeLoginUser('${u.id}')">삭제</button>
           </td>
-        </tr>`
-      ).join('');
+        </tr>`;
+      }).join('');
 }
+
+// 이름만으로 매칭된 예약 검증 모달 — 실제 같은 사람이면 그대로 두고,
+// 다른 사람이면 이름을 고쳐서 예약 책임자를 바로잡을 수 있음
+window.reviewNameMatches = (email) => {
+  const u = loginUsersCache.find(x => x.id === email);
+  if (!u) return;
+  document.getElementById('nm-title').textContent = `"${u.name}" 이름 일치 예약 확인 (${email})`;
+  renderNameMatchList(email);
+  openModal('modal-name-match');
+};
+function renderNameMatchList(email) {
+  const u = loginUsersCache.find(x => x.id === email);
+  const listEl = document.getElementById('nm-list');
+  if (!u) { listEl.innerHTML = ''; return; }
+  const matches = nameOnlyMatches(u)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (!matches.length) {
+    closeModal('modal-name-match');
+    renderLoginUsers();
+    return;
+  }
+  listEl.innerHTML = matches.map(r => {
+    const field = (r.managerName || '').trim() === (u.name || '').trim() ? 'managerName' : 'stewardName';
+    const fieldLabel = field === 'managerName' ? '예약 책임자' : '실사용자(청지기)';
+    return `<div style="border:1px solid var(--border2);border-radius:8px;padding:10px 12px">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">
+        ${r.date} ${r.start}–${r.end} · <b>${r.room}</b> · ${r.purpose || ''} ${sBadge(r.status)}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:var(--text3);white-space:nowrap">${fieldLabel} 이름</span>
+        <input type="text" id="nm-input-${r.id}" value="${(r[field] || '').replace(/"/g, '&quot;')}" style="flex:1;font-size:13px;padding:5px 8px">
+        <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px;flex-shrink:0" onclick="reassignReservationName('${r.id}','${field}','${email}')">다른 사람 — 이름 수정</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+window.reassignReservationName = async (resId, field, email) => {
+  const input = document.getElementById(`nm-input-${resId}`);
+  const newName = input?.value.trim();
+  if (!newName) { T('이름을 입력해주세요', '#A32D2D'); return; }
+  try {
+    await updateDoc(doc(db, 'reservations', resId), { [field]: newName });
+    T('예약 책임자 이름이 수정됐습니다', '#3B6D11');
+    renderNameMatchList(email);
+  } catch (e) {
+    T('수정 실패: ' + e.message, '#A32D2D');
+  }
+};
 
 window.addLoginUserManual = async () => {
   const email = document.getElementById('lu-email').value.trim().toLowerCase();
