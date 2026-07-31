@@ -111,7 +111,7 @@ const CATS = [
   { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
   { key: 'iam',    label: '아이엠홀',      rooms: ['아이엠홀'], showRoom: false },
   { key: 'jihye',  label: '지혜홀',        rooms: ['지혜홀'], showRoom: false },
-  { key: 'lobby',  label: '로비',          rooms: ['1층 로비','2층 로비','B1 로비','B2 로비'], showRoom: true },
+  { key: 'lobby',  label: '로비',          match: (room) => /로비/.test(room || ''), showRoom: true },
 ];
 // 주간(홀) 보기 대상 공간
 const WEEK_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
@@ -188,8 +188,9 @@ function renderDay() {
     : '';
 
   const html = CATS.map(cat => {
+    const inCat = cat.match ? cat.match : (room) => cat.rooms.includes(room);
     const items = reservations
-      .filter(r => cat.rooms.includes(r.room) && r.date === ds && r.status === '확정')
+      .filter(r => inCat(r.room) && r.date === ds && r.status === '확정')
       .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
     const rangeLabel = items.length
       ? ` · ${items[0].start}-${items.reduce((max, r) => r.end > max ? r.end : max, items[0].end)}`
