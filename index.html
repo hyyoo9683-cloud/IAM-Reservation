@@ -5577,9 +5577,43 @@ window.renderOpsReport = () => {
   if (!startEl.value || !endEl.value) { setOpsReportNextWeek(); return; }
   const start = startEl.value, end = endEl.value;
 
-  const autoIds = reservations
-    .filter(r => OPS_REPORT_ROOMS.includes(r.room) && r.status === '확정' && r.date >= start && r.date <= end)
-    .map(r => r.id);
+  const roomRes = reservations.filter(r => OPS_REPORT_ROOMS.includes(r.room) && r.status === '확정');
+
+  // 지혜홀 연박은 체크인~체크아웃 중 일부 밤만 이번 기간에 걸쳐 있어도(예: 지난주에 체크인해
+  // 이번 주에 체크아웃) 체크아웃 날짜가 기간에 들어오면 숙박 전체를 포함시킴
+  const jihyeLastNight = new Map(); // recurGroup::room → 마지막 밤 날짜
+  roomRes.forEach(r => {
+    if (!r.recurGroup || r.recurType !== '연박') return;
+    const key = `${r.recurGroup}::${r.room}`;
+    const cur = jihyeLastNight.get(key);
+    if (!cur || r.date > cur) jihyeLastNight.set(key, r.date);
+  });
+  const jihyeCheckoutOf = (key) => {
+    const last = jihyeLastNight.get(key);
+    if (!last) return null;
+    const d = new Date(last + 'T00:00:00'); d.setDate(d.getDate() + 1);
+    return toDateStr(d);
+  };
+
+  const matched = roomRes.filter(r => {
+    if (r.date >= start && r.date <= end) return true;
+    if (r.recurGroup && r.recurType === '연박') {
+      const co = jihyeCheckoutOf(`${r.recurGroup}::${r.room}`);
+      return co && co >= start && co <= end;
+    }
+    return false;
+  });
+
+  // 매칭된 건이 시리즈(recurGroup)의 일부라면, 잘려 보이지 않도록 같은 시리즈 전체를 포함시킴
+  const autoIds = new Set();
+  matched.forEach(r => {
+    if (r.recurGroup) {
+      reservations.filter(x => x.recurGroup === r.recurGroup && x.room === r.room).forEach(x => autoIds.add(x.id));
+    } else {
+      autoIds.add(r.id);
+    }
+  });
+
   const idSet = new Set([...autoIds, ...opsManualIds]);
   opsExcludedIds.forEach(id => idSet.delete(id));
 
