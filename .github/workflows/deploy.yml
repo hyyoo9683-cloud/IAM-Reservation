@@ -36,4 +36,4 @@ jobs:
       - name: Firebase Hosting + Firestore 규칙 + Functions 배포
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only hosting,firestore:rules,functions --project iamreservation
+        run: firebase deploy --only hosting,firestore:rules,functions --project iamreservation --force
