@@ -1305,13 +1305,6 @@ textarea { resize: vertical; min-height: 60px; }
           </div>
 
           <div class="card">
-            <div class="card-title">공간 선택 <span class="req">*</span></div>
-            <div id="apply-room-chips"></div>
-            <input type="hidden" id="m-room">
-            <div id="m-room-notice" style="display:none;margin-top:10px"></div>
-          </div>
-
-          <div class="card">
             <div class="card-title">일정</div>
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
               <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none">
@@ -1365,6 +1358,13 @@ textarea { resize: vertical; min-height: 60px; }
               <div class="fg"><div class="lbl">종료 시간 <span class="req">*</span></div><select id="m-end"   onchange="checkAvail();updateApplySummary()"></select></div>
             </div>
             <div id="m-avail"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">공간 선택 <span class="req">*</span></div>
+            <div id="apply-room-chips"></div>
+            <input type="hidden" id="m-room">
+            <div id="m-room-notice" style="display:none;margin-top:10px"></div>
           </div>
 
           <div class="card">
@@ -1959,16 +1959,13 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
-      <div class="fg"><div class="lbl">실사용자 이름 <span class="req">*</span></div><input id="e-steward-name"></div>
+      <div class="fg">
+        <div class="lbl">실사용자 이름 <span class="req">*</span></div>
+        <input id="e-steward-name" list="steward-name-list" oninput="onEditStewardNameInput()">
+        <datalist id="steward-name-list"></datalist>
+      </div>
     </div>
     <div class="fg"><div class="lbl">실사용자 연락처 <span class="req">*</span></div><input id="e-steward-tel" oninput="formatTelInput(this)"></div>
-    <div class="fg">
-      <div class="lbl">공간 <span class="req">*</span></div>
-      <div id="e-room-chips" style="margin-bottom:6px"></div>
-      <input type="hidden" id="e-room">
-      <div id="e-avail" style="margin-bottom:4px"></div>
-      <div id="e-date-context"></div>
-    </div>
     <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
       <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
         <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
@@ -1992,6 +1989,13 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="fl">
       <div class="fg"><div class="lbl">시작 <span class="req">*</span></div><select id="e-start" onchange="onEditStartChange()"></select></div>
       <div class="fg"><div class="lbl">종료 <span class="req">*</span></div><select id="e-end"   onchange="checkEditAvail()"></select></div>
+    </div>
+    <div class="fg">
+      <div class="lbl">공간 <span class="req">*</span></div>
+      <div id="e-room-chips" style="margin-bottom:6px"></div>
+      <input type="hidden" id="e-room">
+      <div id="e-avail" style="margin-bottom:4px"></div>
+      <div id="e-date-context"></div>
     </div>
     <div class="fl">
       <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="e-people" min="1"></div>
@@ -5085,7 +5089,7 @@ window.openDetail = (id) => {
       btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
     }
     if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms',false)">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao',false)">💬 카카오</button>`;
-    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
+    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-ghost" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
     if (r.status === '대기' || r.status === '확정') btns += `<button class="btn btn-ghost" style="color:var(--red)" onclick="cancelR('${r.id}',true)">예약 취소</button>`;
@@ -5553,12 +5557,36 @@ window.copySms = () => {
   });
 };
 
-window.openEditModal = (id) => {
+// 청지기 이름 → 최근 연락처 조회 (관리자가 반복 신청자를 매번 다시 입력하지 않도록)
+function stewardDirectory() {
+  const map = {};
+  reservations.forEach(r => {
+    if (!r.stewardName || !r.stewardTel) return;
+    if (!map[r.stewardName] || (r.date || '') > map[r.stewardName].date) {
+      map[r.stewardName] = { tel: r.stewardTel, date: r.date || '' };
+    }
+  });
+  return map;
+}
+window.onEditStewardNameInput = () => {
+  const name = document.getElementById('e-steward-name').value.trim();
+  const telInput = document.getElementById('e-steward-tel');
+  if (!name || telInput.value.trim()) return; // 이미 입력된 연락처는 덮어쓰지 않음
+  const dir = stewardDirectory();
+  if (dir[name]) telInput.value = dir[name].tel;
+};
+window.reuseReservationInfo = (id) => {
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  openEditModal(null, { type: r.type, subOrg: r.subOrg, managerName: r.managerName, stewardName: r.stewardName, stewardTel: r.stewardTel });
+};
+window.openEditModal = (id, prefill) => {
   editId = id; editRoom = '';
   document.getElementById('e-avail').innerHTML = '';
   buildRoomChips();
   document.querySelectorAll('[id^=erc-]').forEach(c => c.classList.remove('sel'));
   document.getElementById('e-admin-opts').style.display = isAdmin ? 'block' : 'none';
+  const stewardList = document.getElementById('steward-name-list');
+  if (stewardList) stewardList.innerHTML = Object.keys(stewardDirectory()).map(n => `<option value="${n}">`).join('');
 
   if (id) {
     const r = reservations.find(x => x.id === id); if (!r) return;
@@ -5631,6 +5659,13 @@ window.openEditModal = (id) => {
     document.getElementById('e-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
     initTimeSelects('e-start', 'e-end');
     if (isAdmin) document.getElementById('e-status').value = '확정';
+    if (prefill) {
+      document.getElementById('e-type').value = prefill.type || '';
+      syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype', prefill.subOrg || '');
+      document.getElementById('e-manager').value      = prefill.managerName || '';
+      document.getElementById('e-steward-name').value = prefill.stewardName || '';
+      document.getElementById('e-steward-tel').value  = prefill.stewardTel || '';
+    }
   }
   closeModal('modal-detail');
   openModal('modal-edit');
