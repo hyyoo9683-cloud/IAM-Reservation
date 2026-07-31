@@ -1325,9 +1325,12 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <!-- 비정기 날짜 추가 UI -->
             <div id="m-multi-wrap" style="display:none;margin-bottom:10px">
-              <div class="lbl">날짜 추가 <span class="req">*</span></div>
-              <div style="display:flex;gap:6px;margin-bottom:6px">
-                <input type="date" id="m-multi-date-input" style="flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+              <div class="lbl">날짜·시간 추가 <span class="req">*</span></div>
+              <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+                <input type="date" id="m-multi-date-input" style="flex:1 1 130px;min-width:130px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+                <select id="m-multi-start-input" onchange="onMultiStartChange()" style="padding:6px 4px;border:1px solid var(--border);border-radius:8px;font-size:13px"></select>
+                <span style="align-self:center;color:var(--text3)">~</span>
+                <select id="m-multi-end-input" style="padding:6px 4px;border:1px solid var(--border);border-radius:8px;font-size:13px"></select>
                 <button type="button" onclick="document.getElementById('m-multi-date-input').value=tsToday()" style="font-size:10px;padding:0 8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600;white-space:nowrap">오늘</button>
                 <button type="button" class="btn btn-ghost" onclick="addMultiDate()" style="white-space:nowrap;padding:6px 12px">+ 추가</button>
               </div>
@@ -4143,7 +4146,7 @@ window.toggleRecur = () => {
   document.getElementById('m-date-lbl').innerHTML =
     (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
 };
-let multiDates = [];
+let multiDates = []; // [{date, start, end}] — 비정기 모드는 날짜마다 시간을 따로 지정할 수 있음
 window.toggleMulti = (forceOff) => {
   const on = forceOff === false ? false : document.getElementById('m-is-multi').checked;
   if (on) {
@@ -4151,11 +4154,19 @@ window.toggleMulti = (forceOff) => {
     document.getElementById('m-end-date-wrap').style.display = 'none';
     document.getElementById('m-recur-wrap').style.display    = 'none';
     document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
+    const gs = document.getElementById('m-start').value, ge = document.getElementById('m-end').value;
+    initTimeSelects('m-multi-start-input', 'm-multi-end-input', gs, ge);
   }
   document.getElementById('m-date-row').style.display   = on ? 'none' : '';
+  document.getElementById('m-time-row').style.display   = on ? 'none' : '';
   document.getElementById('m-multi-wrap').style.display = on ? '' : 'none';
   document.getElementById('m-avail').innerHTML = '';
   updateApplySummary();
+};
+window.onMultiStartChange = () => {
+  const v = document.getElementById('m-multi-start-input').value;
+  const e = document.getElementById('m-multi-end-input');
+  e.innerHTML = buildEndOpts(v, e.value > v ? e.value : nextSlot(v));
 };
 const DOWS_KR_MULTI = ['일','월','화','수','목','금','토'];
 function renderMultiDates() {
@@ -4164,29 +4175,34 @@ function renderMultiDates() {
     el.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:4px 0">추가된 날짜 없음</div>';
     return;
   }
-  el.innerHTML = multiDates.map(d => {
-    const dt = new Date(d + 'T00:00:00');
-    const lbl = `${dt.getMonth()+1}/${dt.getDate()}(${DOWS_KR_MULTI[dt.getDay()]})`;
-    const bd = getBlockedInfo(d);
+  el.innerHTML = multiDates.map((d, idx) => {
+    const dt = new Date(d.date + 'T00:00:00');
+    const lbl = `${dt.getMonth()+1}/${dt.getDate()}(${DOWS_KR_MULTI[dt.getDay()]}) ${d.start}~${d.end}`;
+    const bd = getBlockedInfo(d.date);
+    const conflict = !bd && applyRoom && applyRoom !== '공실 희망' && !noConflict(applyRoom, d.date, d.start, d.end);
+    const warn = bd ? ` 🚫 ${bd.reason}` : conflict ? ' ⚠️ 예약 충돌' : '';
     return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:6px;padding:5px 8px;margin-bottom:3px;font-size:12px">
-      <span style="flex:1;font-weight:600${bd ? ';color:#A32D2D' : ''}">${lbl}${bd ? ' 🚫' : ''}</span>
-      <button type="button" onclick="removeMultiDate('${d}')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0 4px">×</button>
+      <span style="flex:1;font-weight:600${(bd || conflict) ? ';color:#A32D2D' : ''}">${lbl}${warn}</span>
+      <button type="button" onclick="removeMultiDate(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0 4px">×</button>
     </div>`;
   }).join('');
 }
 window.addMultiDate = () => {
   const input = document.getElementById('m-multi-date-input');
-  const val = input.value;
+  const val   = input.value;
+  const start = document.getElementById('m-multi-start-input').value;
+  const end   = document.getElementById('m-multi-end-input').value;
   if (!val) { T('날짜를 선택해주세요', '#A32D2D'); return; }
-  if (multiDates.includes(val)) { T('이미 추가된 날짜입니다', '#A32D2D'); return; }
-  multiDates.push(val);
-  multiDates.sort();
+  if (!start || !end || start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
+  if (multiDates.some(d => d.date === val && d.start === start && d.end === end)) { T('이미 추가된 날짜·시간입니다', '#A32D2D'); return; }
+  multiDates.push({ date: val, start, end });
+  multiDates.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
   renderMultiDates();
   input.value = '';
   updateApplySummary();
 };
-window.removeMultiDate = (d) => {
-  multiDates = multiDates.filter(x => x !== d);
+window.removeMultiDate = (idx) => {
+  multiDates.splice(idx, 1);
   renderMultiDates();
   updateApplySummary();
 };
@@ -4321,7 +4337,7 @@ window.updateApplySummary = () => {
   const rows = [
     ['기관', g('m-type')], ['담당자', g('m-manager')], ['실사용자', g('m-steward-name')],
     ['연락처', g('m-steward-tel')], ['공간', applyRoom || '–'],
-    ['일정', dateVal], ['시간', `${g('m-start')}–${g('m-end')}`],
+    ['일정', dateVal], ['시간', isMulti ? '날짜별 상이 (아래 목록 참고)' : `${g('m-start')}–${g('m-end')}`],
     ['인원', g('m-people') ? g('m-people') + '명' : '–'], ['목적', g('m-purpose')]
   ];
   el.innerHTML = rows.map(([k, v]) =>
@@ -4378,7 +4394,7 @@ window.submitApply = async () => {
   if (!type || !manager || !sName || !sTel || !room || (!isMulti && !date) || !people || !purpose) {
     T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
   }
-  if (start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
+  if (!isMulti && start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
   if (isMulti && multiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
   if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
@@ -4387,32 +4403,36 @@ window.submitApply = async () => {
   const sp = spaces.find(s => s.name === room);
   if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
 
-  let dates = isMulti ? [...multiDates] : isRecur ? generateAvailDates(date, endDate, recur) : [date];
+  // items: {date, start, end} 배열 — 비정기 모드는 날짜마다 다른 시간을 가질 수 있어 dates 배열 대신 사용
+  let items = isMulti
+    ? multiDates.map(d => ({ date: d.date, start: d.start, end: d.end }))
+    : (isRecur ? generateAvailDates(date, endDate, recur) : [date]).map(d => ({ date: d, start, end }));
 
-  const lastMinuteDates = dates.filter(d => isLastMinuteDate(d));
-  if (lastMinuteDates.length > 0) {
+  const lastMinuteItems = items.filter(it => isLastMinuteDate(it.date));
+  if (lastMinuteItems.length > 0) {
     showLastMinuteNotice();
     return;
   }
 
   // 차단일: 단일 날짜면 차단, 정기/비정기면 해당 날짜만 제외하고 계속
   if (!isRecur && !isMulti) {
-    const bd = getBlockedInfo(dates[0]);
-    if (bd) { T(`${dates[0]}은(는) 예약 불가 날짜입니다 (${bd.reason})`, '#A32D2D'); return; }
+    const bd = getBlockedInfo(items[0].date);
+    if (bd) { T(`${items[0].date}은(는) 예약 불가 날짜입니다 (${bd.reason})`, '#A32D2D'); return; }
   } else {
-    const blocked = dates.filter(d => isBlockedDate(d));
+    const blocked = items.filter(it => isBlockedDate(it.date));
     if (blocked.length > 0) {
-      const skippedReasons = [...new Set(blocked.map(d => getBlockedInfo(d)?.reason || '차단'))].join(', ');
-      dates = dates.filter(d => !isBlockedDate(d));
-      if (dates.length === 0) { T('모든 날짜가 차단일입니다. 날짜를 다시 확인해주세요.', '#A32D2D'); return; }
-      if (!confirm(`공휴일·차단일 ${blocked.length}건(${skippedReasons})은 자동으로 제외됩니다.\n나머지 ${dates.length}건으로 신청하시겠습니까?`)) return;
+      const skippedReasons = [...new Set(blocked.map(it => getBlockedInfo(it.date)?.reason || '차단'))].join(', ');
+      items = items.filter(it => !isBlockedDate(it.date));
+      if (items.length === 0) { T('모든 날짜가 차단일입니다. 날짜를 다시 확인해주세요.', '#A32D2D'); return; }
+      if (!confirm(`공휴일·차단일 ${blocked.length}건(${skippedReasons})은 자동으로 제외됩니다.\n나머지 ${items.length}건으로 신청하시겠습니까?`)) return;
     }
   }
 
   if (!isFlexRoom) {
-    const conflictDates = dates.filter(d => !noConflict(room, d, start, end));
-    if (conflictDates.length > 0) {
-      T(`다음 날짜에 이미 예약이 있습니다: ${conflictDates.join(', ')}`, '#A32D2D'); return;
+    const conflictItems = items.filter(it => !noConflict(room, it.date, it.start, it.end));
+    if (conflictItems.length > 0) {
+      const label = isMulti ? conflictItems.map(it => `${it.date} ${it.start}~${it.end}`).join(', ') : conflictItems.map(it => it.date).join(', ');
+      T(`다음 일정에 이미 예약이 있습니다: ${label}`, '#A32D2D'); return;
     }
   }
 
@@ -4420,7 +4440,7 @@ window.submitApply = async () => {
   if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = '신청 중...'; }
 
   try {
-    const recurGroup = isRecur ? `recur_${Date.now()}` : isMulti && dates.length > 1 ? `multi_${Date.now()}` : null;
+    const recurGroup = isRecur ? `recur_${Date.now()}` : isMulti && items.length > 1 ? `multi_${Date.now()}` : null;
     const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
     const subOrg = document.getElementById('m-subtype')?.value || '';
     const needTV      = document.getElementById('m-need-tv')?.checked || false;
@@ -4429,7 +4449,7 @@ window.submitApply = async () => {
     const needTerrace = document.getElementById('m-need-terrace')?.checked || false;
     const baseData = {
       type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-      room, start, end, people: parseInt(people), purpose, memo,
+      room, people: parseInt(people), purpose, memo,
       needTV, needMic, needPantry, needTerrace,
       status: '대기', userEmail: curUser?.email || '',
       createdAt: serverTimestamp()
@@ -4437,14 +4457,14 @@ window.submitApply = async () => {
     if (recurGroup) {
       baseData.recurGroup = recurGroup;
       baseData.recurType  = isMulti ? '비정기' : recurLabel;
-      baseData.recurTotal = dates.length;
+      baseData.recurTotal = items.length;
     }
 
-    for (let i = 0; i < dates.length; i++) {
+    for (let i = 0; i < items.length; i++) {
       await addDoc(collection(db, 'reservations'), {
         ...baseData,
-        date: dates[i],
-        history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${dates.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${dates.length}회, ${recurLabel})` : '예약 신청 접수' }]
+        date: items[i].date, start: items[i].start, end: items[i].end,
+        history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${items.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${items.length}회, ${recurLabel})` : '예약 신청 접수' }]
       });
     }
 
@@ -4457,8 +4477,10 @@ window.submitApply = async () => {
       openModal('modal-info');
     } else {
       T(isRecur
-        ? `정기 예약 ${dates.length}건 신청 완료! 관리자 승인을 기다려주세요`
-        : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+        ? `정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
+        : isMulti
+          ? `비정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
+          : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
     }
   } catch(e) {
     console.error('submitApply error:', e);
