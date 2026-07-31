@@ -1845,7 +1845,7 @@ textarea { resize: vertical; min-height: 60px; }
         <table class="tbl" id="manual-table" style="font-size:11px;white-space:nowrap">
           <thead><tr>
             <th>공간</th><th>날짜</th><th>시작</th><th>종료</th><th>기관분류</th><th>담당자</th>
-            <th>연락처</th><th>인원</th><th>공연명/목적</th>
+            <th>연락처</th><th>이메일</th><th>인원</th><th>공연명/목적</th>
             <th>🎭리허설시작</th><th>🎭리허설종료</th><th>🎭관객수</th><th>🎭사용하는실</th><th>🎭주차</th><th>🎭기타</th>
             <th>상태</th><th></th>
           </tr></thead>
@@ -4904,6 +4904,7 @@ function manualRowHtml() {
     <td><select class="mi-type" style="width:90px">${orgOpts}</select></td>
     <td><input type="text" class="mi-manager" style="width:80px"></td>
     <td><input type="text" class="mi-tel" style="width:110px" oninput="formatTelInput(this)"></td>
+    <td><input type="email" class="mi-email" style="width:130px" placeholder="선택"></td>
     <td><input type="number" class="mi-people" min="0" style="width:56px"></td>
     <td><input type="text" class="mi-showname" style="width:140px" placeholder="공연명 또는 목적"></td>
     <td><select class="mi-rehearsal-start" style="width:78px">${timeOpts}</select></td>
@@ -4950,7 +4951,7 @@ window.runManualImport = () => {
       room, date, start, end, type: g('mi-type'),
       managerName: g('mi-manager'), stewardName: g('mi-manager'), stewardTel: g('mi-tel'),
       people: parseInt(g('mi-people')) || 0, purpose: title, status: g('mi-status') || '확정',
-      email: '', recurType: null, ...iamFields, _source: '표 직접 입력'
+      email: g('mi-email').trim().toLowerCase(), recurType: null, ...iamFields, _source: '표 직접 입력'
     });
   }
   if (!built.length) { T('입력된 행이 없습니다', '#A32D2D'); return; }

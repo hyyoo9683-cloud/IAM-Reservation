@@ -9,7 +9,7 @@
 - **개발 브랜치**: `claude/space-reservation-system-N6xIM`
 
 ## 배포
-코드를 브랜치에 push하면 **GitHub Actions가 자동으로 Firebase Hosting에 배포**함 (30~40초 소요).
+코드를 브랜치에 push하면 **GitHub Actions가 자동으로 Firebase Hosting + Firestore 규칙 + Cloud Functions에 배포**함 (30~40초 소요).
 수동 배포 명령어는 더 이상 필요 없음.
 
 ## 파일 구조
@@ -31,7 +31,8 @@
 | `weekly-manager.html` | 예약현황(예약책임자별) — `?admin=1` 파라미터로 접속해야 관리자 전체 표/저장 노출. 파라미터 없이(공유용 링크) 접속 시 이름 검색 전에는 아무 예약도 안 보임 (본인 이름 검색 시에만 해당 예약 표시) |
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `firestore.rules` | Firestore 보안 규칙 |
-| `.github/workflows/deploy.yml` | 자동 배포 워크플로우 |
+| `functions/index.js` | Cloud Functions — 예약 상태 변경(확정/취소) 시 Resend로 이메일 발송 |
+| `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
 
 ## Firebase SDK
 CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에서 초기화 후 `window._fb`에 저장.
@@ -112,6 +113,17 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - 지혜홀(숙박): `jihye-apply.html`에서 신청서 접수 → `venue_requests` 컬렉션에 저장 (venue.html 숙박 항목과 동일한 필드 구조: `dateIn`, `nights`, `rooms`, `eventDate`, `eventName`)
 - 두 공간 모두 `spaces` 컬렉션에 문서로 등록되어 있어야 예약 등록이 가능 — **공간 관리(관리자) 페이지에서 관리자가 직접 추가해야 함**
 - 예약 목록 페이지의 **"📥 CSV 가져오기"**로 구글 시트 붙여넣기 일괄 등록 가능 (`detectCols()`가 헤더 텍스트로 컬럼 자동 인식). 아이엠홀 세부사항(공연명/행사명, 리허설 시작·종료, 관객 수, 사용하는 실, 주차, 기타) 컬럼도 헤더에 해당 단어가 포함되면 자동 인식되어 함께 저장됨
+
+## 예약 상태 변경 이메일 알림 (Cloud Functions)
+- `functions/index.js` — Firestore `reservations` 컬렉션 트리거 (Cloud Functions 2세대)
+  - `onReservationUpdated`: 예약 문서 `status`가 `확정` 또는 `취소`로 바뀔 때 `userEmail`로 발송
+  - `onReservationCreated`: CSV 가져오기·표 직접 입력 등으로 처음부터 `확정` 상태로 생성되는 경우 발송
+  - 발송 대상은 예약 데이터의 `userEmail` 필드 (셀프 예약은 로그인 계정 이메일이 자동 저장됨)
+  - 관리자가 CSV 가져오기/표 직접 입력으로 등록하는 예약은 `userEmail`이 비어있으면 발송 건너뜀 — 표 직접 입력의 `이메일` 칸(선택 입력)에 채워야 발송됨
+- 이메일 발송: [Resend](https://resend.com) 사용, `functions/index.js`의 `RESEND_API_KEY` 환경변수로 인증
+  - GitHub Secret `RESEND_API_KEY`에 저장 → 배포 워크플로우가 매 배포 시 `functions/.env`로 기록 후 배포
+  - 발신 주소(`FROM_EMAIL`)는 기본값이 Resend 테스트 도메인(`onboarding@resend.dev`) — `suwoncca.org` 도메인 인증 완료 후 GitHub Secret `RESEND_FROM_EMAIL`로 교체 가능
+  - Firestore 보안 규칙과 무관 (Admin SDK로 서버 측에서만 동작, 클라이언트는 이메일 발송 로직을 전혀 모름)
 
 ## 공개 페이지 개인정보 정책
 - 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김

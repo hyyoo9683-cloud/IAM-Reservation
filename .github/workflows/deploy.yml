@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - claude/space-reservation-system-N6xIM
+      - claude/merge-bundle-commits-5fgy0e
   workflow_dispatch: {}
 
 jobs:
@@ -12,10 +13,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       - name: Firebase Tools 설치
         run: npm install -g firebase-tools
 
-      - name: Firebase Hosting + Firestore 규칙 배포
+      - name: Functions 의존성 설치
+        working-directory: functions
+        run: npm install
+
+      - name: Functions 환경변수(.env) 생성
+        working-directory: functions
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+        run: |
+          echo "RESEND_API_KEY=${RESEND_API_KEY}" > .env
+          if [ -n "$RESEND_FROM_EMAIL" ]; then echo "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}" >> .env; fi
+
+      - name: Firebase Hosting + Firestore 규칙 + Functions 배포
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only hosting,firestore:rules --project iamreservation
+        run: firebase deploy --only hosting,firestore:rules,functions --project iamreservation
