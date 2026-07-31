@@ -76,7 +76,7 @@
   <div class="nav-btns" id="nav-btns"></div>
   <div class="view-toggle">
     <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
-    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (아론홀·샤론홀·아이엠홀)</button>
+    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 제외 전체)</button>
   </div>
 </div>
 
@@ -104,17 +104,18 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
+const FLOOR5_ROOMS = ['505호','506호','507호','508호','509호','510호','511호'];
 // 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀 → 로비
 const CATS = [
-  { key: '5f',     label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], showRoom: true  },
+  { key: '5f',     label: '5층 소그룹실', rooms: FLOOR5_ROOMS, showRoom: true  },
   { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'], showRoom: false },
   { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
   { key: 'iam',    label: '아이엠홀',      rooms: ['아이엠홀'], showRoom: false },
   { key: 'jihye',  label: '지혜홀',        rooms: ['지혜홀'], showRoom: false },
   { key: 'lobby',  label: '로비',          match: (room) => /로비/.test(room || ''), showRoom: true },
 ];
-// 주간(홀) 보기 대상 공간
-const WEEK_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
+// 주간(홀) 보기 대상 공간 — 5층 소그룹실만 제외하고 전부 표시
+const isWeekRoom = (room) => !FLOOR5_ROOMS.includes(room);
 const DOWS = ['일','월','화','수','목','금','토'];
 
 let reservations = [], blockedDates = [];
@@ -222,7 +223,7 @@ function renderWeek() {
     const ds = toDateStr(d);
     const dow = DOWS[d.getDay()];
     const items = reservations
-      .filter(r => WEEK_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
+      .filter(r => isWeekRoom(r.room) && r.date === ds && r.status === '확정')
       .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
