@@ -5560,6 +5560,10 @@ function shortOpsDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return `${d.getMonth() + 1}/${d.getDate()}(${DOWS_KR[d.getDay()]})`;
 }
+// 날짜가 주일(일요일)인지 — "예배"이면서 날짜가 주일인 항목 강조용
+function isSundayDate(dateStr) {
+  return new Date(dateStr + 'T00:00:00').getDay() === 0;
+}
 function opsPeriodLabel() {
   const s = document.getElementById('ops-start')?.value, e = document.getElementById('ops-end')?.value;
   if (!s || !e) return '';
@@ -5704,7 +5708,7 @@ function renderOpsTable() {
   }
   const th = (label) => `<th style="padding:10px 14px;text-align:left;background:#2f3b52;color:#fff;font-weight:700">${label}</th>`;
   const rowsHtml = opsReportRows.map(row => {
-    const isSundayWorship = /예배/.test(row.event) && /주일/.test(row.event);
+    const isSundayWorship = /예배/.test(row.event) && isSundayDate(row.date);
     const rowStyle = isSundayWorship ? ' style="background:#F3E8FF"' : '';
     const eventColor = isSundayWorship ? '#6B21A8' : '#2f3b52';
     return `
@@ -5730,7 +5734,7 @@ function renderOpsNotesList() {
   if (!wrap) return;
   if (!opsReportRows.length) { wrap.innerHTML = ''; return; }
   wrap.innerHTML = opsReportRows.map(row => {
-    const isSundayWorship = /예배/.test(row.event) && /주일/.test(row.event);
+    const isSundayWorship = /예배/.test(row.event) && isSundayDate(row.date);
     const rowStyle = isSundayWorship ? 'background:#F3E8FF;border-radius:6px;padding:4px 6px' : '';
     return `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;${rowStyle}">
