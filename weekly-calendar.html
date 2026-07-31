@@ -242,7 +242,7 @@ function renderDay() {
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item" onclick='showDetail(${JSON.stringify(r.id)})'>
+          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-time">${r.start}–${r.end}</span>
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
