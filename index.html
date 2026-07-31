@@ -3241,7 +3241,9 @@ const ROOM_CHIP_LABEL = {
 // 예약 신청 칩뿐 아니라 공간 안내/홈 검색/공간 가용성 검색/대체 공간 추천 등
 // 일반 사용자에게 노출되는 모든 곳에서 제외해야 함 (관리자 전용 화면은 예외)
 const SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀'];
-const publicSpaces = () => spaces.filter(s => !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
+// 이름에 "로비"가 들어간 공간(1층 로비, B1 로비 등)은 정확한 이름 표기와 상관없이 항상 제외
+const isSelfServiceExcluded = (name) => SELF_SERVICE_EXCLUDED_ROOMS.includes(name) || /로비/.test(name || '');
+const publicSpaces = () => spaces.filter(s => !isSelfServiceExcluded(s.name));
 
 function buildRoomChips() {
   const labelTag = (text, color = 'var(--blue-mid)', bg = 'var(--blue-lt)') =>
@@ -3259,7 +3261,7 @@ function buildRoomChips() {
       html += '</div>';
     });
     // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로 (셀프 신청 제외 공간은 노출 안 함)
-    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name) && !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
+    const rest = spaceSort(spaces).filter(s => !grouped.has(s.name) && !isSelfServiceExcluded(s.name));
     const floors = {};
     rest.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
     Object.entries(floors).forEach(([fl, sps]) => {
@@ -8886,10 +8888,10 @@ function hmSearchMatches(query) {
   const q = query.trim().toLowerCase();
   if (!q) return [];
   // spaces 배열(Firestore) + 고정 (셀프 신청 불가 공간은 검색에서 제외)
-  const visible = (window.spaces || []).filter(s => !SELF_SERVICE_EXCLUDED_ROOMS.includes(s.name));
+  const visible = (window.spaces || []).filter(s => !isSelfServiceExcluded(s.name));
   const all = [
     ...visible.map(s => ({name:s.name, categories:getSpaceCategories(s), fixed:false})),
-    ...FIXED_SPACES.filter(n => !SELF_SERVICE_EXCLUDED_ROOMS.includes(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
+    ...FIXED_SPACES.filter(n => !isSelfServiceExcluded(n) && !visible.some(s=>s.name===n)).map(n=>({name:n,categories:[],fixed:true}))
   ];
   const results = all.filter(s =>
     s.name.toLowerCase().includes(q) || s.categories.some(c => c.toLowerCase().includes(q))
