@@ -611,7 +611,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 </div>
 
 <div class="total-banner">
-  <span class="total-label">${L.totalLabel}</span>
+  <span class="total-label">${L.totalLabel}${lang==='en' ? '<br><span style="font-size:9px;color:#888;font-weight:400">(All amounts are in Korean Won, KRW)</span>' : ''}</span>
   <span class="total-amt">${lang==='ko' ? `${numToKor(total)}원정&nbsp;&nbsp;` : ''}(₩&nbsp;${comma(total)})&nbsp;&nbsp;<span style="font-size:11px;font-weight:400;color:#666">${L.vatIncluded}</span></span>
 </div>
 
