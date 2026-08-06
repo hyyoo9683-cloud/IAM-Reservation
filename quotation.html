@@ -11,7 +11,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, orderBy, query, serverTimestamp }
+import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, getDocs, orderBy, query, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -65,6 +65,7 @@ const db   = getFirestore(app);
 let curUser   = null;
 let history   = [];
 let quoteDates = [];
+let editingQuoteId = null; // 발행 이력에서 "수정"으로 불러온 견적의 문서 id (null이면 새 견적 작성 모드)
 
 function renderQuoteDates() {
   const el = document.getElementById('q-date-rows');
@@ -231,7 +232,7 @@ window.updateCalc = () => {
 
   const discountType = (vInfo.type === 'hourly') ? 'none'
     : (document.querySelector('input[name="q-discount"]:checked')?.value || 'none');
-  const discountRate = discountType === 'mission' ? 0.5 : discountType === 'related' ? 0.2 : 0;
+  const discountRate = resolveDiscountRate(discountType, el);
 
   let lineItems = []; // { label, total }
   let subtotal  = 0;
@@ -326,8 +327,11 @@ window.printQuote = async () => {
   const issueDate  = g('q-issue-date').value || new Date().toISOString().slice(0,10);
   const quoteCategory = document.querySelector('.cat-btn.active')?.dataset.val || '신청';
   const discountType = document.querySelector('input[name="q-discount"]:checked')?.value || 'none';
-  const discountLabel = discountType === 'mission' ? '선교사 할인 50%' : discountType === 'related' ? '유관기관 할인 20%' : '';
-  const discountRate  = discountType === 'mission' ? 0.5 : discountType === 'related' ? 0.2 : 0;
+  const discountRate  = resolveDiscountRate(discountType, g);
+  const discountLabel = discountType === 'mission' ? '선교사 할인 50%'
+    : discountType === 'related' ? '유관기관 할인 20%'
+    : discountType === 'custom' ? `할인 ${Math.round(discountRate*100)}%`
+    : '';
 
   let rows = [], subtotal = 0;
   const dateDisplay = dateVal.replace(/-/g,'.');
@@ -450,7 +454,7 @@ window.printQuote = async () => {
 <style>
 @page { size:A4; margin:18mm 16mm 16mm; }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Malgun Gothic','AppleGothic','Noto Sans KR',sans-serif;font-size:11px;color:#111;}
+body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:11px;color:#111;}
 /* ── 헤더 ── */
 .doc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:2.5px solid #185FA5;}
 .logo-block{display:flex;align-items:center;gap:10px;}
@@ -460,7 +464,7 @@ body{font-family:'Malgun Gothic','AppleGothic','Noto Sans KR',sans-serif;font-si
 .info-cell{padding:9px 12px;border-right:1px solid #bbb;border-bottom:1px solid #bbb;}
 .info-cell:nth-child(2n){border-right:none;}
 .info-cell:nth-last-child(-n+2){border-bottom:none;}
-.info-label{font-size:9px;color:#777;margin-bottom:3px;letter-spacing:.5px;text-transform:uppercase;}
+.info-label{font-size:9px;font-weight:700;color:#777;margin-bottom:3px;letter-spacing:.5px;text-transform:uppercase;}
 .info-val{font-weight:700;font-size:12px;color:#111;}
 .info-sub{font-size:9px;color:#555;margin-top:2px;line-height:1.5;}
 /* ── 합계 ── */
@@ -470,7 +474,7 @@ body{font-family:'Malgun Gothic','AppleGothic','Noto Sans KR',sans-serif;font-si
 .total-amt{font-size:15px;font-weight:900;color:#185FA5;}
 /* ── 표 ── */
 table{width:100%;border-collapse:collapse;margin-top:4px;}
-th{background:#1a2533;color:#fff;padding:7px 6px;font-size:10px;text-align:center;border:1px solid #1a2533;}
+th{background:#1a2533;color:#fff;padding:7px 6px;font-size:10px;font-weight:700;text-align:center;border:1px solid #1a2533;}
 td{padding:7px 6px;border:1px solid #ddd;font-size:10px;vertical-align:top;text-align:center;}
 td.left{text-align:left;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
@@ -564,7 +568,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
   win.onload = () => win.print();
 
   try {
-    await addDoc(collection(db,'quotations'), {
+    const payload = {
       client: clientNm, clientBiz, venue, purpose, total, supply, vat,
       date: dateVal, dates: quoteDates,
       quoteCategory,
@@ -573,9 +577,29 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       qSurcharge:   g('q-surcharge')?.checked || false,
       qCatering:    document.querySelector('input[name="q-catering"]:checked')?.value || 'none',
       qCateringMemo: g('q-catering-memo')?.value.trim() || '',
+      qNights:  parseInt(g('q-nights')?.value) || 0,
+      qDateIn:  g('q-date-in')?.value  || '',
+      qDateOut: g('q-date-out')?.value || '',
+      qRooms: vInfo.type === 'lodging'
+        ? vInfo.rooms.map(room => ({ id: room.id, checked: !!g(`jH-${room.id}`)?.checked, ppl: parseInt(g(`jH-${room.id}-ppl`)?.value) || 2 }))
+        : [],
+      qSnackOn:  g('jH-snack-on')?.checked || false,
+      qSnackAmt: parseInt(g('jH-snack-amt')?.value) || 0,
+      discountType,
+      discountCustomPct: discountType === 'custom' ? Math.round(discountRate * 100) : 0,
       memo,
-      issuedBy: curUser?.email||'', issuedAt: serverTimestamp(),
-    });
+    };
+    if (editingQuoteId) {
+      await updateDoc(doc(db,'quotations', editingQuoteId), {
+        ...payload, updatedBy: curUser?.email||'', updatedAt: serverTimestamp(),
+      });
+      editingQuoteId = null;
+      updateEditBanner();
+    } else {
+      await addDoc(collection(db,'quotations'), {
+        ...payload, issuedBy: curUser?.email||'', issuedAt: serverTimestamp(),
+      });
+    }
     await loadHistory();
   } catch(e) { console.error('Quote save error:', e); }
 };
@@ -622,16 +646,18 @@ function renderHistory(q = '') {
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0">
         <div style="font-size:15px;font-weight:700;color:var(--blue)">₩${(h.total||0).toLocaleString()}</div>
         <div style="font-size:12px;color:var(--text3)">${ds}</div>
-        <button class="hist-reissue-btn" onclick="reissue('${h.id}')">재발행</button>
+        <div style="display:flex;gap:5px">
+          <button class="hist-reissue-btn" onclick="reissue('${h.id}')">재발행</button>
+          <button class="hist-edit-btn" onclick="editQuote('${h.id}')">수정</button>
+          <button class="hist-delete-btn" onclick="deleteQuote('${h.id}')">삭제</button>
+        </div>
       </div>
     </div>`;
   }).join('');
 }
 
-window.reissue = id => {
-  const h = history.find(x => x.id === id);
-  if (!h) return;
-
+// 발행 이력 데이터를 입력 폼에 그대로 복원 (재발행·수정 공통)
+function loadQuoteIntoForm(h) {
   const venueEl = document.getElementById('q-venue');
   if (venueEl && h.venue && VENUES[h.venue]) venueEl.value = h.venue;
   document.getElementById('q-client').value     = h.client    || '';
@@ -661,13 +687,93 @@ window.reissue = id => {
       const el = document.getElementById('q-catering-memo');
       if (el) { el.value = h.qCateringMemo; document.getElementById('q-catering-memo-wrap').style.display = ''; }
     }
+
+    // 지혜홀 전용 필드 복원
+    if (h.qDateIn)  { const el = document.getElementById('q-date-in');  if (el) el.value = h.qDateIn; }
+    if (h.qNights)  { const el = document.getElementById('q-nights');   if (el) el.value = h.qNights; }
+    if (h.qDateOut) { const el = document.getElementById('q-date-out'); if (el) el.value = h.qDateOut; }
+    (h.qRooms || []).forEach(r => {
+      const chk = document.getElementById(`jH-${r.id}`);
+      const ppl = document.getElementById(`jH-${r.id}-ppl`);
+      if (chk) chk.checked = !!r.checked;
+      if (ppl && r.ppl) ppl.value = r.ppl;
+    });
+    if (h.qSnackOn) {
+      const el = document.getElementById('jH-snack-on'); if (el) el.checked = true;
+      document.getElementById('jH-snack-amt-wrap').style.display = '';
+    }
+    if (h.qSnackAmt) { const el = document.getElementById('jH-snack-amt'); if (el) el.value = h.qSnackAmt; }
+
+    // 할인 복원
+    const dRadio = document.querySelector(`input[name="q-discount"][value="${h.discountType||'none'}"]`);
+    if (dRadio) dRadio.checked = true;
+    if (h.discountType === 'custom' && h.discountCustomPct) {
+      const el = document.getElementById('q-discount-custom'); if (el) el.value = h.discountCustomPct;
+    }
+
     updateCalc();
   }, 30);
 
   document.querySelector('.form-panel')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 재발행 — 기존 내용을 불러와 새로운 견적서로 발행 (원본 이력은 그대로 남음)
+window.reissue = id => {
+  const h = history.find(x => x.id === id);
+  if (!h) return;
+  editingQuoteId = null;
+  updateEditBanner();
+  loadQuoteIntoForm(h);
+};
+
+// 수정 — 기존 내용을 불러와 편집한 뒤 저장하면 같은 이력 문서를 덮어씀
+window.editQuote = id => {
+  const h = history.find(x => x.id === id);
+  if (!h) return;
+  editingQuoteId = id;
+  updateEditBanner();
+  loadQuoteIntoForm(h);
+};
+
+window.cancelEdit = () => {
+  editingQuoteId = null;
+  updateEditBanner();
+};
+
+function updateEditBanner() {
+  const banner = document.getElementById('edit-mode-banner');
+  const btn    = document.getElementById('print-btn');
+  if (!banner || !btn) return;
+  if (editingQuoteId) {
+    banner.style.display = 'flex';
+    btn.textContent = '🖨️ 수정 저장 / 인쇄';
+  } else {
+    banner.style.display = 'none';
+    btn.textContent = '🖨️ 견적서 인쇄 / PDF';
+  }
+}
+
+window.deleteQuote = async id => {
+  if (!confirm('이 견적서를 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+  try {
+    await deleteDoc(doc(db, 'quotations', id));
+    if (editingQuoteId === id) { editingQuoteId = null; updateEditBanner(); }
+    await loadHistory();
+  } catch(e) { console.error('Quote delete error:', e); alert('삭제 실패: ' + e.message); }
 };
 
 function comma(n) { return Math.round(n).toLocaleString('ko-KR'); }
+
+// 단체 할인율 계산 — 고정 할인(선교사·유관기관) 외에 직접 입력한 임의 할인율도 지원
+function resolveDiscountRate(type, getter) {
+  if (type === 'mission') return 0.5;
+  if (type === 'related') return 0.2;
+  if (type === 'custom') {
+    const pct = Math.max(0, Math.min(100, parseFloat(getter('q-discount-custom')?.value) || 0));
+    return pct / 100;
+  }
+  return 0;
+}
 
 function numToKor(n) {
   const u=['','십','백','천'], hi=['','만','억'], d=['영','일','이','삼','사','오','육','칠','팔','구'];
@@ -803,6 +909,18 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .hist-reissue-btn{font-size:13px;font-weight:700;color:var(--blue);background:var(--blue-lt);
   border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--font);transition:all .15s;}
 .hist-reissue-btn:hover{background:var(--blue);color:#fff;border-color:var(--blue);}
+.hist-edit-btn{font-size:13px;font-weight:700;color:var(--amber);background:var(--amber-lt);
+  border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.hist-edit-btn:hover{background:var(--amber);color:#fff;border-color:var(--amber);}
+.hist-delete-btn{font-size:13px;font-weight:700;color:var(--red);background:var(--red-lt);
+  border:1px solid var(--border);border-radius:7px;padding:4px 10px;cursor:pointer;font-family:var(--font);transition:all .15s;}
+.hist-delete-btn:hover{background:var(--red);color:#fff;border-color:var(--red);}
+
+.edit-mode-banner{display:none;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--amber-lt);border:1px solid var(--amber);border-radius:8px;
+  padding:9px 13px;margin-bottom:12px;font-size:13px;color:var(--amber);font-weight:600;}
+.edit-mode-banner button{width:auto;background:none;border:none;color:var(--amber);
+  text-decoration:underline;cursor:pointer;font-size:13px;font-family:var(--font);font-weight:600;padding:0;}
 
 .divider{height:1px;background:var(--border2);margin:18px 0;}
 
@@ -843,6 +961,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   .print-btn{font-size:18px !important}
   .hist-title{font-size:18px !important}
   .hist-reissue-btn{font-size:14.5px !important}
+  .hist-edit-btn{font-size:14.5px !important}
+  .hist-delete-btn{font-size:14.5px !important}
+  .edit-mode-banner, .edit-mode-banner button{font-size:14.5px !important}
 }
 </style>
 </head>
@@ -1042,6 +1163,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span class="radio-opt-label">선교사 할인</span>
             <span class="radio-opt-badge">50% 할인</span>
           </label>
+          <label class="radio-opt">
+            <input type="radio" name="q-discount" value="custom" onchange="updateCalc()">
+            <span class="radio-opt-label">직접 입력</span>
+            <input type="number" id="q-discount-custom" min="0" max="100" placeholder="0"
+              style="width:56px;margin-left:auto;text-align:right;padding:5px 6px"
+              onclick="event.stopPropagation()"
+              onfocus="document.querySelector('input[name=q-discount][value=custom]').checked=true"
+              oninput="document.querySelector('input[name=q-discount][value=custom]').checked=true;updateCalc()">
+            <span style="font-size:15px;color:var(--text2)">%</span>
+          </label>
         </div>
       </div>
 
@@ -1080,7 +1211,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <span class="calc-total-label">합계 (VAT 포함)</span>
           <span class="calc-total-val" id="c-total">–</span>
         </div>
-        <button class="print-btn" onclick="printQuote()">🖨️ 견적서 인쇄 / PDF</button>
+        <div class="edit-mode-banner" id="edit-mode-banner">
+          <span>✏️ 기존 견적서를 수정하는 중입니다</span>
+          <button onclick="cancelEdit()">취소</button>
+        </div>
+        <button class="print-btn" id="print-btn" onclick="printQuote()">🖨️ 견적서 인쇄 / PDF</button>
       </div>
 
       <div class="hist-card">
