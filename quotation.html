@@ -513,11 +513,13 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     <div class="info-label">공급자</div>
     <div class="info-val">${ISSUER.name}</div>
     <div class="info-sub">
-      대표 ${ISSUER.ceo}&nbsp;&nbsp;(인)<br>
-      ${ISSUER.address}<br>
-      ${ISSUER.phone}
+      대표 ${ISSUER.ceo}&nbsp;&nbsp;(인)
+      <div style="margin-top:12px">
+        ${ISSUER.address}<br>
+        ${ISSUER.phone}
+      </div>
     </div>
-    <img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:66px;top:39px;height:27px;width:auto;opacity:.85">
+    <img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:68px;top:44px;height:24px;width:auto;opacity:.85">
   </div>
   <div class="info-cell" style="display:flex;align-items:center;">
     <span style="font-size:11px;color:#555;font-style:italic">아래와 같이 견적합니다.</span>
