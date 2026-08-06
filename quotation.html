@@ -49,6 +49,7 @@ const VENUES = {
 };
 // 영문 견적서용 공간 이름 (해당 항목 없으면 한글 이름 그대로 표시)
 const VENUE_NAME_EN = { '아론홀': 'Aaron Hall', '샤론홀': 'Sharon Hall', '지혜홀': 'Wisdom Hall' };
+const ROOM_DESC_EN = { '3인실': '3-person room', '2인실': '2-person room' };
 
 const ISSUER = {
   name:    '여유 (마더와이즈몰)',
@@ -469,8 +470,9 @@ window.printQuote = async () => {
       const perNight = room.base + extra * vInfo.extraPerPerson;
       const roomTotal = perNight * nights;
       subtotal += roomTotal;
+      const roomDesc = lang === 'en' ? (ROOM_DESC_EN[room.desc] || room.desc) : room.desc;
       rows.push({ date: dateRange, time:'', space: venueDisplay,
-        item: `${room.name} (${room.desc}) ${L.nights(nights)}`,
+        item: `${room.name} (${roomDesc}) ${L.nights(nights)}`,
         total: roomTotal,
         // 세금 포함 금액이라 클라이언트가 헷갈리지 않도록 1박당 단가와 총액을 함께 표기
         remarks: L.roomRemark(perNight, roomTotal, extra) });
