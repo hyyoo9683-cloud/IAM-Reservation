@@ -42,7 +42,7 @@ const VENUES = {
     extraPerPerson: 10000,
     rooms: [
       { id: 'r1', name: 'Room 1', desc: '3인실', base: 30000, max: 3 },
-      { id: 'r2', name: 'Room 2', desc: '2인실', base: 20000, max: 2 },
+      { id: 'r2', name: 'Room 2', desc: '2인실', base: 30000, max: 2 },
       { id: 'r3', name: 'Room 3', desc: '2인실', base: 20000, max: 2 },
     ],
   },
@@ -101,6 +101,9 @@ window.addQD = () => {
 window.removeQD = i => { quoteDates.splice(i, 1); renderQuoteDates(); };
 window.setCategory = val => {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+};
+window.setLang = val => {
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
 };
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
@@ -900,6 +903,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .cat-btn[data-val="변경"].active{background:var(--amber-lt);border-color:var(--amber);color:var(--amber);}
 .cat-btn[data-val="취소"].active{background:var(--red-lt);border-color:var(--red);color:var(--red);}
 
+.lang-btn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:#fff;
+  font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
+.lang-btn.active{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
+
 .print-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
   background:var(--green);color:#fff;font-size:16px;font-weight:700;font-family:var(--font);
   display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;margin-top:6px;}
@@ -961,6 +968,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   .calc-total-val{font-size:24.5px !important}
   .btn-add-date{font-size:14.5px !important}
   .cat-btn{font-size:17px !important}
+  .lang-btn{font-size:17px !important}
   .print-btn{font-size:18px !important}
   .hist-title{font-size:18px !important}
   .hist-reissue-btn{font-size:14.5px !important}
@@ -1010,7 +1018,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <!-- ── 입력 폼 ── -->
     <div class="form-panel">
 
-      <div class="sec-title" style="margin-top:0">견적 분류</div>
+      <div class="sec-title" style="margin-top:0">견적서 언어</div>
+      <div class="fg" style="margin-bottom:16px">
+        <div class="cat-group">
+          <button class="lang-btn active" data-val="ko" onclick="setLang('ko')">한국어</button>
+          <button class="lang-btn" data-val="en" onclick="setLang('en')">English</button>
+        </div>
+      </div>
+
+      <div class="sec-title">견적 분류</div>
       <div class="fg" style="margin-bottom:16px">
         <div class="cat-group">
           <button class="cat-btn active" data-val="신청" onclick="setCategory('신청')">신청</button>
@@ -1086,7 +1102,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <div class="room-header">
             <input type="checkbox" id="jH-r2" onchange="updateCalc()">
             <span class="room-name">Room 2</span>
-            <span class="room-desc">2인실 · 20,000원/박</span>
+            <span class="room-desc">2인실 · 30,000원/박</span>
           </div>
           <div class="room-body">
             <span class="lbl">인원</span>
