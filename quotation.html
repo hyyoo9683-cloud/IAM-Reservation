@@ -47,11 +47,15 @@ const VENUES = {
     ],
   },
 };
+// 영문 견적서용 공간 이름 (해당 항목 없으면 한글 이름 그대로 표시)
+const VENUE_NAME_EN = { '아론홀': 'Aaron Hall', '샤론홀': 'Sharon Hall', '지혜홀': 'Wisdom Hall' };
 
 const ISSUER = {
   name:    '여유 (마더와이즈몰)',
+  nameEn:  'Yeoyou (MotherWise Korea Mall)',
   ceo:     '민 혜 영',
   address: '경기 수원시 영통구 월드컵로 76 (원천동) IMCENTER 1동 2층 203디호',
+  addressEn: 'IMCENTER Bldg. 1, 2F, Unit 203-D, 76 World Cup-ro, Yeongtong-gu, Suwon-si, Gyeonggi-do, Republic of Korea',
   phone:   '070-7018-1380',
   email:   'iamspace@suwoncca.org',
   bank:    '신한 110-557-411395 민혜영',
@@ -79,7 +83,6 @@ const STR = {
     thSupply: '공급가액', thVat: '세액', thRemarks: '비고',
     subtotal: '계', grandTotal: '총&nbsp;&nbsp;계',
     bankInfo: '계좌정보', contact: '문의',
-    validNote: '※ 위 견적은 발행일로부터 일주일간 유효하며, 이후 금액이 변동될 수 있습니다.',
     discountMission: '선교사 할인 50%',
     discountRelated: '유관기관 할인 20%',
     discountCustom: pct => `할인 ${pct}%`,
@@ -91,7 +94,7 @@ const STR = {
     cateringMemo: memo => `케이터링: ${memo}`,
     nights: n => `${n}박`,
     roomRemark: (perNight, total, extra) =>
-      `2인 기준 1박당 ${comma(perNight)}원 총 ${comma(total)}원${extra ? ` (추가 ${extra}인 포함)` : ''}`,
+      `2인 기준 1박당 ${comma(perNight)}원<br>총 ${comma(total)}원${extra ? ` (추가 ${extra}인 포함)` : ''}`,
     adminFee: '기본 관리비', adminFeeNote: '고정 (박수 무관)',
     cleanFee: '미화비', cleanFeeNote: '고정',
     snackFee: '다과비', snackFeeNote: 'IAM 제공',
@@ -113,7 +116,6 @@ const STR = {
     thSupply: 'Supply Amount', thVat: 'VAT', thRemarks: 'Remarks',
     subtotal: 'Subtotal', grandTotal: 'Total',
     bankInfo: 'Bank Account', contact: 'Contact',
-    validNote: 'This quotation is valid for one week from the issue date; the amount may change after that.',
     discountMission: 'Missionary Discount 50%',
     discountRelated: 'Partner Organization Discount 20%',
     discountCustom: pct => `Discount ${pct}%`,
@@ -125,7 +127,7 @@ const STR = {
     cateringMemo: memo => `Catering: ${memo}`,
     nights: n => `${n} night${n>1?'s':''}`,
     roomRemark: (perNight, total, extra) =>
-      `Based on 2 guests: KRW ${comma(perNight)}/night, Total KRW ${comma(total)}${extra ? ` (incl. ${extra} extra guest${extra>1?'s':''})` : ''}`,
+      `Based on 2 guests: KRW ${comma(perNight)}/night<br>Total KRW ${comma(total)}${extra ? ` (incl. ${extra} extra guest${extra>1?'s':''})` : ''}`,
     adminFee: 'Management Fee', adminFeeNote: 'Fixed (regardless of nights)',
     cleanFee: 'Cleaning Fee', cleanFeeNote: 'Fixed',
     snackFee: 'Refreshments', snackFeeNote: 'Provided by IAM',
@@ -400,6 +402,7 @@ window.printQuote = async () => {
   const g          = id => document.getElementById(id);
   const lang       = document.querySelector('.lang-btn.active')?.dataset.val || 'ko';
   const L          = STR[lang];
+  const venueDisplay = lang === 'en' ? (VENUE_NAME_EN[venue] || venue) : venue;
   const clientNm   = g('q-client').value.trim()    || '(수신처)';
   const clientBiz  = g('q-client-biz').value.trim();
   const purpose    = g('q-purpose').value.trim()   || '–';
@@ -447,7 +450,7 @@ window.printQuote = async () => {
     datesToPrint.forEach(d => {
       const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
       const tStr = (d.timeStart && d.timeEnd) ? `${d.timeStart}–${d.timeEnd}` : timeStr;
-      rows.push({ date: dStr, time: tStr, space: venue, item: purpose, remarks, perDateCost });
+      rows.push({ date: dStr, time: tStr, space: venueDisplay, item: purpose, remarks, perDateCost });
     });
     subtotal = perDateCost * datesToPrint.length;
   } else {
@@ -466,7 +469,7 @@ window.printQuote = async () => {
       const perNight = room.base + extra * vInfo.extraPerPerson;
       const roomTotal = perNight * nights;
       subtotal += roomTotal;
-      rows.push({ date: dateRange, time:'', space: venue,
+      rows.push({ date: dateRange, time:'', space: venueDisplay,
         item: `${room.name} (${room.desc}) ${L.nights(nights)}`,
         total: roomTotal,
         // 세금 포함 금액이라 클라이언트가 헷갈리지 않도록 1박당 단가와 총액을 함께 표기
@@ -567,7 +570,6 @@ tfoot tr.sub-total td{background:#f5f5f5;font-weight:700;border-top:2px solid #a
 tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:12px;border-color:#1a2533;}
 /* ── 푸터 ── */
 .doc-footer{margin-top:16px;font-size:9px;color:#555;line-height:1.9;border-top:1px solid #ddd;padding-top:10px;}
-.note-line{font-style:italic;color:#888;margin-top:6px;}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>
 
@@ -593,10 +595,10 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
   </div>
   <div class="info-cell" style="position:relative">
     <div class="info-label">${L.supplier}</div>
-    <div class="info-val">${ISSUER.name}</div>
+    <div class="info-val">${lang === 'en' ? ISSUER.nameEn : ISSUER.name}</div>
     <div class="info-sub">
       <div style="margin:14px 0">${L.ceo} ${ISSUER.ceo}&nbsp;&nbsp;${L.seal}</div>
-      ${ISSUER.address}<br>
+      ${lang === 'en' ? ISSUER.addressEn : ISSUER.address}<br>
       ${ISSUER.phone}
     </div>
     <img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:64px;top:45px;height:34px;width:auto;opacity:.85">
@@ -643,7 +645,6 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 <div class="doc-footer">
   ${L.bankInfo}: ${ISSUER.bank}<br>
   ${L.contact} / ${ISSUER.email}&nbsp;&nbsp;/&nbsp;&nbsp;${ISSUER.phone}
-  <div class="note-line">${L.validNote}</div>
 </div>
 </body></html>`;
 
