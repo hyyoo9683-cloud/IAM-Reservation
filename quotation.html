@@ -489,7 +489,8 @@ window.printQuote = async () => {
     const snackOn  = g('jH-snack-on')?.checked;
     const snackAmt = snackOn ? (parseInt(g('jH-snack-amt')?.value) || 0) : 0;
     if (snackAmt > 0) {
-      rows.push({ date:'', time:'', space:'', item:L.snackFee, total: snackAmt, remarks:L.snackFeeNote });
+      // 룸을 선택하지 않은 다과비만 견적에서도 일자·공간이 표시되도록 항상 채워줌
+      rows.push({ date: dateRange, time:'', space: venueDisplay, item:L.snackFee, total: snackAmt, remarks:L.snackFeeNote });
       subtotal += snackAmt;
     }
   }
