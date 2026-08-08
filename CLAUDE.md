@@ -91,6 +91,15 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 라벨이 바뀌며 비워둘 수 있음 — 실제 저장되는 `start`/`end`는 하루 전체를 막는 `00:00`~`23:59`
 고정값이고, 입력한 시간은 `checkinTime`/`checkoutTime`에 정보용으로만 저장됨.
 
+기존 지혜홀 예약을 **수정**할 때도 체크인 날짜·박수·체크아웃 날짜 입력칸이 그대로 노출되며
+(신규 등록 때와 동일한 UI), 값을 바꾸면 `submitEdit()`이 기존 회차와 새로 계산한 날짜 목록을
+비교해 필요한 만큼 회차를 추가(`addDoc`)·삭제(`deleteDoc`)·유지(해당 회차만 `updateDoc`)함 —
+단건이 연박으로 늘어나거나 연박이 단건으로 줄어들 때는 `recurGroup`을 새로 만들거나 제거함.
+`openEditModal()`은 열린 회차가 중간/마지막 밤이어도 체크인 날짜를 항상 그 숙박의 **첫날**로
+맞춰서 채움. 일반 정기예약(매주/격주/매달)의 "전체 N회 모두 수정"(`e-all-series`, 간격 기반
+`generateAvailDates`)은 매일 간격인 연박에는 맞지 않아 `recurType==='연박'`인 경우 해당 UI
+자체를 숨기고 위 체크인/박수/체크아웃 입력만 노출함.
+
 ## 주요 함수 위치 (index.html)
 - `noConflict(room, date, start, end, skipId, confirmedOnly)` — 충돌 체크
 - `classifyPurpose(purpose, room, org)` — 사용 목적 자동 분류

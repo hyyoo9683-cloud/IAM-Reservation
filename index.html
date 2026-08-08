@@ -5574,7 +5574,9 @@ function applyRoomFieldVisibility(room, isNew) {
   if (iamDetails)   iamDetails.style.display = isIam ? '' : 'none';
   if (jihyeDetails) jihyeDetails.style.display = isJihye ? '' : 'none';
   if (basicWrap)    basicWrap.style.display = isIam ? 'none' : '';
-  if (nightsWrap)   nightsWrap.style.display = (isJihye && isNew) ? '' : 'none';
+  // 박수/체크아웃 날짜는 신규 등록뿐 아니라 기존 예약 수정 시에도 노출해
+  // 관리자가 체크아웃 날짜를 바꿔 숙박 기간을 연장/단축할 수 있게 함
+  if (nightsWrap)   nightsWrap.style.display = isJihye ? '' : 'none';
   if (isNew) {
     const recurWrap = document.getElementById('e-recur-wrap');
     if (recurWrap) recurWrap.style.display = isJihye ? 'none' : '';
@@ -6310,7 +6312,15 @@ window.openEditModal = (id, prefill) => {
     const r = reservations.find(x => x.id === id); if (!r) return;
     // 정기 예약 회차 안내
     const recurBanner = document.getElementById('edit-recur-banner');
-    if (r.recurGroup) {
+    if (r.recurGroup && r.recurType === '연박') {
+      // 연박(지혜홀)은 요일 간격이 없는 매일 연속 예약이라 아래의 "전체 N회 수정"(주/격주/매달 간격 전용)은
+      // 맞지 않음 — 대신 위쪽 체크인 날짜·박수·체크아웃 날짜 입력으로 기간을 조정하도록 안내만 표시
+      const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+      const idx = series.findIndex(x => x.id === r.id) + 1;
+      const total = r.recurTotal || series.length;
+      recurBanner.style.display = '';
+      recurBanner.innerHTML = `🛏 <strong>연박 ${idx}/${total}일차</strong> — 위 체크인 날짜·박수(체크아웃 날짜)를 바꾸면 전체 숙박 기간이 함께 조정됩니다.`;
+    } else if (r.recurGroup) {
       const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
       const idx = series.findIndex(x => x.id === r.id) + 1;
       const total = r.recurTotal || series.length;
@@ -6362,6 +6372,15 @@ window.openEditModal = (id, prefill) => {
     applyRoomFieldVisibility(r.room, false);
     document.getElementById('e-jihye-checkin-time').value  = r.checkinTime  || '';
     document.getElementById('e-jihye-checkout-time').value = r.checkoutTime || '';
+    if (r.room === '지혜홀') {
+      // 체크인 날짜는 이 예약이 속한 숙박 전체의 첫날 (지금 열린 회차가 중간/마지막 밤이어도 첫날 기준)
+      const jSeries = r.recurGroup
+        ? reservations.filter(x => x.recurGroup === r.recurGroup && x.room === '지혜홀').sort((a, b) => a.date.localeCompare(b.date))
+        : [r];
+      document.getElementById('e-date').value = jSeries[0].date;
+      document.getElementById('e-jihye-nights').value = jSeries.length;
+      onJihyeNightsInput();
+    }
     editRoom = r.room;
     document.getElementById('e-room').value = r.room;
     setTimeout(() => { const rc = document.getElementById('erc-' + r.room); if (rc) rc.classList.add('sel'); checkEditAvail(); }, 40);
@@ -6428,9 +6447,9 @@ window.submitEdit = async () => {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
-  // 전체 시리즈 수정 모드에서는 시리즈별 충돌 체크가 아래에서 별도로 수행되므로 여기서는 스킵
+  // 전체 시리즈 수정 모드 및 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
   const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
-  if (!_editAllSeries && !noConflict(room, date, start, end, editId, true)) {
+  if (!_editAllSeries && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
     T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
   }
 
@@ -6583,6 +6602,53 @@ window.submitEdit = async () => {
         } else {
           T(`정기 예약 ${toUpdate.length}건 전체 수정됐습니다`, '#3B6D11');
           closeModal('modal-edit');
+        }
+      } else if (isJihye) {
+        // 지혜홀은 체크인 날짜·박수(체크아웃 날짜)를 바꾸면 여러 회차(밤)를 추가/삭제해야 하므로
+        // 일반 단건 수정과 별도로 처리 — 기존 숙박 기간과 비교해 필요한 회차만 추가·삭제·수정
+        const currentSeries = r.recurGroup
+          ? reservations.filter(x => x.recurGroup === r.recurGroup && x.room === '지혜홀').sort((a, b) => a.date.localeCompare(b.date))
+          : [r];
+        const newNights = Math.max(1, parseInt(document.getElementById('e-jihye-nights').value) || 1);
+        const checkinChanged = date !== currentSeries[0].date;
+        if (newNights === currentSeries.length && !checkinChanged) {
+          data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
+          await updateDoc(doc(db, 'reservations', editId), data);
+          T('예약이 수정됐습니다', '#3B6D11');
+        } else {
+          const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + newNights - 1);
+          const newDates = generateAvailDates(date, toDateStr(endD), 'daily');
+          const existingByDate = new Map(currentSeries.map(x => [x.date, x]));
+          const toAdd    = newDates.filter(d => !existingByDate.has(d));
+          const toKeep   = newDates.filter(d => existingByDate.has(d));
+          const toRemove = currentSeries.filter(x => !newDates.includes(x.date));
+
+          const conflictDates = toAdd.filter(d => !noConflict(room, d, start, end, null, true));
+          if (conflictDates.length) {
+            T(`다음 날짜는 이미 다른 예약이 있어 반영할 수 없습니다: ${conflictDates.map(d => d.slice(5).replace('-','/')).join(', ')}`, '#A32D2D');
+            return;
+          }
+
+          let recurGroup = r.recurGroup || null;
+          if (!recurGroup && newNights > 1) recurGroup = `jihye_${Date.now()}`;
+          if (recurGroup && newNights === 1) recurGroup = null;
+          const recurType = recurGroup ? '연박' : null;
+          const recurTotal = recurGroup ? newNights : null;
+
+          await Promise.all(toRemove.map(x => deleteDoc(doc(db, 'reservations', x.id))));
+          await Promise.all(toKeep.map(d => {
+            const existing = existingByDate.get(d);
+            return updateDoc(doc(db, 'reservations', existing.id), {
+              ...data, date: d, recurGroup, recurType, recurTotal,
+              history: [...(existing.history || []), { time: nowStr(), msg: `숙박 기간 수정 (${isAdmin ? '관리자' : '사용자'})` }]
+            });
+          }));
+          await Promise.all(toAdd.map(d => addDoc(collection(db, 'reservations'), {
+            ...data, date: d, recurGroup, recurType, recurTotal,
+            status: data.status || r.status || '확정',
+            history: [{ time: nowStr(), msg: '숙박 기간 연장으로 추가' }]
+          })));
+          T('숙박 기간이 수정됐습니다', '#3B6D11');
         }
       } else {
         data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
