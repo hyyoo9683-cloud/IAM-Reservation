@@ -2216,7 +2216,7 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="fg"><div class="lbl">박수 <span class="req">*</span></div><input type="number" id="e-jihye-nights" min="1" value="1" oninput="onJihyeNightsInput()"></div>
           <div class="fg"><div class="lbl">체크아웃 날짜</div><input type="date" id="e-jihye-checkout" oninput="onJihyeCheckoutInput()"></div>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin:2px 0 10px">체크인 날짜부터 체크아웃 날짜(또는 박수)만큼 매일 예약이 자동 생성됩니다 — 둘 중 하나만 입력해도 서로 맞춰집니다</div>
+        <div style="font-size:11px;color:var(--text3);margin:2px 0 10px">체크인 날짜부터 체크아웃 날짜(또는 박수)까지 매일 예약이 자동 생성됩니다 — 둘 중 하나만 입력해도 서로 맞춰집니다. 체크아웃 당일도 사용일로 보고 함께 차단됩니다</div>
       </div>
       <div class="fl">
         <div class="fg"><div class="lbl">체크인 시간 <span style="font-size:10px;color:var(--text3)">(선택)</span></div><select id="e-jihye-checkin-time"></select></div>
@@ -5730,7 +5730,8 @@ function groupOpsRows(rawRows) {
       ilsi = `${shortOpsDate(first.date)} ${first.start}~${first.end}`;
     } else if (first.recurType === '연박') {
       // 숙박은 체크인~체크아웃 전체 기간을 하나로 보여줌
-      ilsi = `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} 숙박(${group.length}박)`;
+      // 문서는 체크인~체크아웃 당일까지(N박이면 N+1일치) 생성되므로 박수는 문서 수-1
+      ilsi = `${shortOpsDate(first.date)}-${shortOpsDate(last.date)} 숙박(${group.length - 1}박)`;
     } else {
       // 정기예약은 범위로 뭉치지 않고, 이번 리포트 기간에 해당하는 날짜만 나열
       ilsi = group.map(x => `${shortOpsDate(x.date)} ${x.start}~${x.end}`).join(', ');
@@ -5779,20 +5780,18 @@ window.renderOpsReport = () => {
 
   const roomRes = reservations.filter(r => isOpsReportRoom(r.room) && r.status === '확정');
 
-  // 지혜홀 연박은 체크인~체크아웃 중 일부 밤만 이번 기간에 걸쳐 있어도(예: 지난주에 체크인해
+  // 지혜홀 연박은 체크인~체크아웃 중 일부 날짜만 이번 기간에 걸쳐 있어도(예: 지난주에 체크인해
   // 이번 주에 체크아웃) 체크아웃 날짜가 기간에 들어오면 숙박 전체를 포함시킴
-  const jihyeLastNight = new Map(); // recurGroup::room → 마지막 밤 날짜
+  // (체크아웃 당일도 예약 문서로 생성되므로 마지막 문서의 날짜가 곧 체크아웃 날짜)
+  const jihyeLastDate = new Map(); // recurGroup::room → 마지막 문서 날짜(=체크아웃 당일)
   roomRes.forEach(r => {
     if (!r.recurGroup || r.recurType !== '연박') return;
     const key = `${r.recurGroup}::${r.room}`;
-    const cur = jihyeLastNight.get(key);
-    if (!cur || r.date > cur) jihyeLastNight.set(key, r.date);
+    const cur = jihyeLastDate.get(key);
+    if (!cur || r.date > cur) jihyeLastDate.set(key, r.date);
   });
   const jihyeCheckoutOf = (key) => {
-    const last = jihyeLastNight.get(key);
-    if (!last) return null;
-    const d = new Date(last + 'T00:00:00'); d.setDate(d.getDate() + 1);
-    return toDateStr(d);
+    return jihyeLastDate.get(key) || null;
   };
 
   const matched = roomRes.filter(r => {
@@ -6604,47 +6603,44 @@ window.submitEdit = async () => {
           closeModal('modal-edit');
         }
       } else if (isJihye) {
-        // 지혜홀은 체크인 날짜·박수(체크아웃 날짜)를 바꾸면 여러 회차(밤)를 추가/삭제해야 하므로
-        // 일반 단건 수정과 별도로 처리 — 기존 숙박 기간과 비교해 필요한 회차만 추가·삭제·수정
+        // 지혜홀은 체크인 날짜·박수(체크아웃 날짜)를 바꾸면 여러 회차(밤+체크아웃 당일)를 추가/삭제해야
+        // 하므로 일반 단건 수정과 별도로 처리 — 기존 숙박 기간과 비교해 필요한 문서만 추가·삭제·수정.
+        // 체크아웃 당일도 실제 사용일이라 항상 블록 대상에 포함 (N박이면 N+1일치 문서)
         const currentSeries = r.recurGroup
           ? reservations.filter(x => x.recurGroup === r.recurGroup && x.room === '지혜홀').sort((a, b) => a.date.localeCompare(b.date))
           : [r];
         const newNights = Math.max(1, parseInt(document.getElementById('e-jihye-nights').value) || 1);
-        const checkinChanged = date !== currentSeries[0].date;
-        if (newNights === currentSeries.length && !checkinChanged) {
+        const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + newNights);
+        const newDates = generateAvailDates(date, toDateStr(endD), 'daily');
+        const existingByDate = new Map(currentSeries.map(x => [x.date, x]));
+        const toAdd    = newDates.filter(d => !existingByDate.has(d));
+        const toKeep   = newDates.filter(d => existingByDate.has(d));
+        const toRemove = currentSeries.filter(x => !newDates.includes(x.date));
+
+        if (!toAdd.length && !toRemove.length) {
           data.history = [...(r.history || []), { time: nowStr(), msg: `수정됨 (${isAdmin ? '관리자' : '사용자'})` }];
           await updateDoc(doc(db, 'reservations', editId), data);
           T('예약이 수정됐습니다', '#3B6D11');
         } else {
-          const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + newNights - 1);
-          const newDates = generateAvailDates(date, toDateStr(endD), 'daily');
-          const existingByDate = new Map(currentSeries.map(x => [x.date, x]));
-          const toAdd    = newDates.filter(d => !existingByDate.has(d));
-          const toKeep   = newDates.filter(d => existingByDate.has(d));
-          const toRemove = currentSeries.filter(x => !newDates.includes(x.date));
-
           const conflictDates = toAdd.filter(d => !noConflict(room, d, start, end, null, true));
           if (conflictDates.length) {
             T(`다음 날짜는 이미 다른 예약이 있어 반영할 수 없습니다: ${conflictDates.map(d => d.slice(5).replace('-','/')).join(', ')}`, '#A32D2D');
             return;
           }
 
-          let recurGroup = r.recurGroup || null;
-          if (!recurGroup && newNights > 1) recurGroup = `jihye_${Date.now()}`;
-          if (recurGroup && newNights === 1) recurGroup = null;
-          const recurType = recurGroup ? '연박' : null;
-          const recurTotal = recurGroup ? newNights : null;
+          const recurGroup = r.recurGroup || `jihye_${Date.now()}`; // 최소 체크인+체크아웃 2일이라 항상 그룹 사용
+          const recurTotal = newDates.length;
 
           await Promise.all(toRemove.map(x => deleteDoc(doc(db, 'reservations', x.id))));
           await Promise.all(toKeep.map(d => {
             const existing = existingByDate.get(d);
             return updateDoc(doc(db, 'reservations', existing.id), {
-              ...data, date: d, recurGroup, recurType, recurTotal,
+              ...data, date: d, recurGroup, recurType: '연박', recurTotal,
               history: [...(existing.history || []), { time: nowStr(), msg: `숙박 기간 수정 (${isAdmin ? '관리자' : '사용자'})` }]
             });
           }));
           await Promise.all(toAdd.map(d => addDoc(collection(db, 'reservations'), {
-            ...data, date: d, recurGroup, recurType, recurTotal,
+            ...data, date: d, recurGroup, recurType: '연박', recurTotal,
             status: data.status || r.status || '확정',
             history: [{ time: nowStr(), msg: '숙박 기간 연장으로 추가' }]
           })));
@@ -6665,8 +6661,10 @@ window.submitEdit = async () => {
 
       const nights = isJihye ? Math.max(1, parseInt(document.getElementById('e-jihye-nights').value) || 1) : 1;
       let dates, recurGroup = null, recurLabel = null;
-      if (isJihye && nights > 1) {
-        const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + nights - 1);
+      if (isJihye) {
+        // 체크아웃 당일도 실제로 사용하는 날이라 그날도 예약 문서를 만들어 차단함
+        // (그래서 N박이어도 항상 N+1일치 문서가 생성됨 — 1박이어도 체크인+체크아웃 2일)
+        const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + nights);
         dates = generateAvailDates(date, toDateStr(endD), 'daily');
         recurGroup = `jihye_${Date.now()}`; recurLabel = '연박';
       } else if (isRecur) {
