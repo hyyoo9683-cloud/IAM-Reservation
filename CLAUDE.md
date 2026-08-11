@@ -25,8 +25,9 @@
 | `portal.html` | 인트라넷 포털 |
 | `quotation.html` | 견적서 발급 |
 | `venue.html` | 대관 신청 관리 |
-| `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
-| `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
+| `event-checklist.html` | 행사 준비 체크리스트(공통 항목, `eventChecklists` 컬렉션) 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
+| `checklist-view.html` | `event-checklist.html`의 체크리스트 단건 보기/체크 (대시보드 "이번 주 체크리스트"에서 연결, 로그인 필요) |
+| `manager-checklist.html` | 담당자별 개인 체크리스트(`managerChecklists` 컬렉션, 예약건마다 담당자 개인이 자유롭게 항목 작성) — `event-checklist.html`과는 별개 기능. 예약을 아론홀·샤론홀·아이엠홀·전체 탭으로 필터링해 선택 |
 | `weekly-calendar.html` | 전체 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀/로비 분류 후 시간순 / 주간: 5층 소그룹실 제외 전체 요일별 목록, 클릭 시 상세) |
 | `weekly-manager.html` | 예약현황(예약책임자별) — `?admin=1` 파라미터로 접속해야 관리자 전체 표/저장 노출. 파라미터 없이(공유용 링크) 접속 시 이름 검색 전에는 아무 예약도 안 보임 (본인 이름 검색 시에만 해당 예약 표시) |
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
