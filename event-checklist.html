@@ -232,6 +232,12 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     </div>
   </div>
 
+  <div class="card" style="margin-bottom:12px;display:none" id="pending-card">
+    <div class="sec-label">⏳ 대기 중이라 체크리스트가 아직 생성되지 않은 예약</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">확정 승인 전에는 체크리스트가 자동으로 만들어지지 않습니다. 예약 목록에서 먼저 승인해주세요.</div>
+    <div class="saved-list" id="pending-list"></div>
+  </div>
+
   <div class="card" style="margin-bottom:12px">
     <div class="sec-label">저장된 체크리스트</div>
     <div class="saved-list" id="saved-list"><div class="empty-row">불러오는 중…</div></div>
@@ -298,10 +304,10 @@ async function syncReservationChecklists() {
       getDocs(collection(db, 'eventChecklists')),
     ]);
     const existingIds = new Set(clSnap.docs.map(d => d.id));
-    const targets = resSnap.docs
+    const inScope = resSnap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(r => AUTO_CHECKLIST_ROOMS.includes(r.room) && r.status === '확정'
-        && r.date >= todayStr && !existingIds.has('auto_' + r.id));
+      .filter(r => AUTO_CHECKLIST_ROOMS.includes(r.room) && r.date >= todayStr);
+    const targets = inScope.filter(r => r.status === '확정' && !existingIds.has('auto_' + r.id));
     await Promise.all(targets.map(r => setDoc(doc(db, 'eventChecklists', 'auto_' + r.id), {
       room: r.room, date: r.date, start: r.start || '', end: r.end || '',
       eventName: (r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '',
@@ -311,7 +317,26 @@ async function syncReservationChecklists() {
       createdAt: serverTimestamp(), createdBy: curUser.email,
       updatedAt: serverTimestamp(), updatedBy: curUser.email,
     })));
+    // 아직 '확정' 승인 전이라 자동 생성 대상이 아닌 예약을 눈에 보이게 안내
+    // (승인 전이라 체크리스트가 안 뜨는 것을 "버그"로 오해하지 않도록)
+    renderPendingReservations(inScope.filter(r => r.status === '대기'));
   } catch (e) { console.error('체크리스트 자동 생성 실패:', e); }
+}
+
+function renderPendingReservations(rows) {
+  const card = document.getElementById('pending-card');
+  const list = document.getElementById('pending-list');
+  if (!rows.length) { card.style.display = 'none'; return; }
+  rows.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
+  list.innerHTML = rows.map(r => `
+    <div class="saved-item">
+      <div class="saved-item-top">
+        <div class="saved-item-title">${(r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '(제목 없음)'}</div>
+        <div class="saved-item-room">${r.room}</div>
+      </div>
+      <div class="saved-item-meta"><span>📅 ${r.date} ${r.start || ''}${r.start || r.end ? '-' : ''}${r.end || ''}</span><span>대기 승인</span></div>
+    </div>`).join('');
+  card.style.display = '';
 }
 
 // 예약 신청과 동일하게 30분 단위, 07:00~22:00 범위로 시간 선택
