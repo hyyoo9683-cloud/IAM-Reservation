@@ -233,8 +233,8 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
   </div>
 
   <div class="card" style="margin-bottom:12px;display:none" id="pending-card">
-    <div class="sec-label">⏳ 대기 중이라 체크리스트가 아직 생성되지 않은 예약</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">확정 승인 전에는 체크리스트가 자동으로 만들어지지 않습니다. 예약 목록에서 먼저 승인해주세요.</div>
+    <div class="sec-label">🔍 최근~이번 달 예약 연동 현황 (진단)</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">아론홀·샤론홀·아이엠홀(또는 비슷한 이름) 예약이 자동으로 체크리스트가 되는지 확인하는 표입니다. 정상 생성된 건은 "저장된 체크리스트" 목록에서 확인하세요.</div>
     <div class="saved-list" id="pending-list"></div>
   </div>
 
@@ -304,9 +304,8 @@ async function syncReservationChecklists() {
       getDocs(collection(db, 'eventChecklists')),
     ]);
     const existingIds = new Set(clSnap.docs.map(d => d.id));
-    const inScope = resSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(r => AUTO_CHECKLIST_ROOMS.includes(r.room) && r.date >= todayStr);
+    const all = resSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const inScope = all.filter(r => AUTO_CHECKLIST_ROOMS.includes(r.room) && r.date >= todayStr);
     const targets = inScope.filter(r => r.status === '확정' && !existingIds.has('auto_' + r.id));
     await Promise.all(targets.map(r => setDoc(doc(db, 'eventChecklists', 'auto_' + r.id), {
       room: r.room, date: r.date, start: r.start || '', end: r.end || '',
@@ -317,25 +316,46 @@ async function syncReservationChecklists() {
       createdAt: serverTimestamp(), createdBy: curUser.email,
       updatedAt: serverTimestamp(), updatedBy: curUser.email,
     })));
-    // 아직 '확정' 승인 전이라 자동 생성 대상이 아닌 예약을 눈에 보이게 안내
-    // (승인 전이라 체크리스트가 안 뜨는 것을 "버그"로 오해하지 않도록)
-    renderPendingReservations(inScope.filter(r => r.status === '대기'));
+    // 원인 파악용 진단표: 상태/방 이름이 정확히 일치하지 않으면 조용히 빠지기 때문에
+    // 최근~향후 3주 범위의 관련 예약을 있는 그대로(원본 room/status 값) 보여줌
+    renderDiagnostics(all, todayStr, existingIds);
   } catch (e) { console.error('체크리스트 자동 생성 실패:', e); }
 }
 
-function renderPendingReservations(rows) {
+// 방 이름이 '아론홀/샤론홀/아이엠홀'과 완전히 일치하지 않는 경우(오타·공백·다른 표기 등)도
+// 놓치지 않도록 느슨하게(포함 여부로) 후보를 찾고, 실제 room 값을 그대로 노출해 불일치를 눈으로 확인 가능하게 함
+const ROOM_KEYWORDS = ['아론', '샤론', '아이엠', '아이엠홀', 'IM', 'iam'];
+function renderDiagnostics(all, todayStr, existingIds) {
   const card = document.getElementById('pending-card');
   const list = document.getElementById('pending-list');
-  if (!rows.length) { card.style.display = 'none'; return; }
-  rows.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start));
-  list.innerHTML = rows.map(r => `
+  const from = new Date(todayStr + 'T00:00:00'); from.setDate(from.getDate() - 7);
+  const to   = new Date(todayStr + 'T00:00:00'); to.setDate(to.getDate() + 21);
+  const fromStr = from.toISOString().slice(0, 10), toStr = to.toISOString().slice(0, 10);
+  const rows = all.filter(r => r.date >= fromStr && r.date <= toStr
+    && ROOM_KEYWORDS.some(k => (r.room || '').includes(k)));
+  rows.sort((a, b) => (a.date + (a.start || '')).localeCompare(b.date + (b.start || '')));
+  if (!rows.length) {
+    list.innerHTML = `<div class="empty-row">${fromStr} ~ ${toStr} 사이에 아론홀·샤론홀·아이엠홀(또는 비슷한 이름의) 예약이 없습니다</div>`;
+    card.style.display = '';
+    return;
+  }
+  list.innerHTML = rows.map(r => {
+    const exactRoom = AUTO_CHECKLIST_ROOMS.includes(r.room);
+    const hasChecklist = existingIds.has('auto_' + r.id);
+    let reason;
+    if (!exactRoom) reason = `⚠️ 공간명 불일치: "${r.room}"`;
+    else if (r.status !== '확정') reason = `대기 승인 필요 (현재 상태: "${r.status}")`;
+    else if (hasChecklist) reason = '✅ 체크리스트 생성됨 (저장된 체크리스트 목록에서 확인)';
+    else reason = '생성 대상 (다음 새로고침 시 자동 생성)';
+    return `
     <div class="saved-item">
       <div class="saved-item-top">
         <div class="saved-item-title">${(r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '(제목 없음)'}</div>
-        <div class="saved-item-room">${r.room}</div>
+        <div class="saved-item-room">${r.room || '(공간 없음)'}</div>
       </div>
-      <div class="saved-item-meta"><span>📅 ${r.date} ${r.start || ''}${r.start || r.end ? '-' : ''}${r.end || ''}</span><span>대기 승인</span></div>
-    </div>`).join('');
+      <div class="saved-item-meta"><span>📅 ${r.date} ${r.start || ''}${r.start || r.end ? '-' : ''}${r.end || ''}</span><span>${reason}</span></div>
+    </div>`;
+  }).join('');
   card.style.display = '';
 }
 
