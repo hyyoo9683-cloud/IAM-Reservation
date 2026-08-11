@@ -162,7 +162,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     <a class="home-btn" href="portal.html">← 인트라넷</a>
     <div class="header-logo">IAM CENTER</div>
     <div class="header-title">행사 체크리스트</div>
-    <div class="header-sub">아론홀·샤론홀 행사 준비 체크리스트를 작성하고 관리합니다</div>
+    <div class="header-sub">아론홀·샤론홀·아이엠홀 행사 준비 체크리스트를 작성하고 관리합니다</div>
   </div>
 
   <div class="card">
@@ -179,6 +179,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
         <select id="f-room">
           <option>아론홀</option>
           <option>샤론홀</option>
+          <option>아이엠홀</option>
         </select>
       </div>
       <div class="field"><div class="lbl">날짜</div>
@@ -284,6 +285,35 @@ const DEFAULT_ITEMS = [
 let checklist = DEFAULT_ITEMS.map(it => ({ ...it, checked: false }));
 let editingId = null;
 
+// 이 공간들의 확정 예약은 관리자가 따로 등록 안 해도 기본적으로 체크리스트가 생성됨
+const AUTO_CHECKLIST_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
+
+// 오늘 이후(과거 제외) 확정 예약 중 아직 체크리스트가 없는 건을 찾아 기본 체크리스트로 자동 생성.
+// 문서 id를 예약 id 기반(auto_<예약id>)으로 고정해서 중복 생성 없이 안전하게 반복 실행 가능
+async function syncReservationChecklists() {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  try {
+    const [resSnap, clSnap] = await Promise.all([
+      getDocs(collection(db, 'reservations')),
+      getDocs(collection(db, 'eventChecklists')),
+    ]);
+    const existingIds = new Set(clSnap.docs.map(d => d.id));
+    const targets = resSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(r => AUTO_CHECKLIST_ROOMS.includes(r.room) && r.status === '확정'
+        && r.date >= todayStr && !existingIds.has('auto_' + r.id));
+    await Promise.all(targets.map(r => setDoc(doc(db, 'eventChecklists', 'auto_' + r.id), {
+      room: r.room, date: r.date, start: r.start || '', end: r.end || '',
+      eventName: (r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '',
+      items: DEFAULT_ITEMS.map(it => ({ ...it, checked: false })),
+      notes: '', isRecur: false, recurType: null, endDate: null,
+      reservationId: r.id, autoCreated: true,
+      createdAt: serverTimestamp(), createdBy: curUser.email,
+      updatedAt: serverTimestamp(), updatedBy: curUser.email,
+    })));
+  } catch (e) { console.error('체크리스트 자동 생성 실패:', e); }
+}
+
 // 예약 신청과 동일하게 30분 단위, 07:00~22:00 범위로 시간 선택
 const SLOTS = [];
 for (let h = 7; h <= 22; h++) {
@@ -335,6 +365,7 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('app-wrap').style.display   = 'block';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   renderChecklist();
+  await syncReservationChecklists();
   await loadSavedList();
   const linkedId = new URLSearchParams(location.search).get('id');
   if (linkedId) await window.openChecklist(linkedId);
@@ -502,7 +533,7 @@ async function loadSavedList() {
       const time = (c.start || c.end) ? ` ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
       return `<div class="saved-item" onclick="openChecklist('${d.id}')">
         <div class="saved-item-top">
-          <div class="saved-item-title">${c.eventName || '(제목 없음)'}${c.isRecur ? ` <span style="font-size:11px;color:var(--blue);font-weight:700">🔁 ${RECUR_LABEL[c.recurType]||'정기'}</span>` : ''}</div>
+          <div class="saved-item-title">${c.eventName || '(제목 없음)'}${c.isRecur ? ` <span style="font-size:11px;color:var(--blue);font-weight:700">🔁 ${RECUR_LABEL[c.recurType]||'정기'}</span>` : ''}${c.autoCreated ? ` <span style="font-size:11px;color:var(--green);font-weight:700">🔗 예약 연동</span>` : ''}</div>
           <div class="saved-item-room">${c.room || ''}</div>
         </div>
         <div class="saved-item-meta">

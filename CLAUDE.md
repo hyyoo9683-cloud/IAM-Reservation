@@ -25,7 +25,7 @@
 | `portal.html` | 인트라넷 포털 |
 | `quotation.html` | 견적서 발급 |
 | `venue.html` | 대관 신청 관리 |
-| `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요) |
+| `event-checklist.html` | 행사 체크리스트 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
 | `checklist-view.html` | 체크리스트 단건 보기/체크 (대시보드에서 연결, 로그인 필요) |
 | `weekly-calendar.html` | 전체 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀/로비 분류 후 시간순 / 주간: 5층 소그룹실 제외 전체 요일별 목록, 클릭 시 상세) |
 | `weekly-manager.html` | 예약현황(예약책임자별) — `?admin=1` 파라미터로 접속해야 관리자 전체 표/저장 노출. 파라미터 없이(공유용 링크) 접속 시 이름 검색 전에는 아무 예약도 안 보임 (본인 이름 검색 시에만 해당 예약 표시) |
@@ -51,6 +51,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 | `venue_requests` | 대관 신청 |
 | `checkouts` | 퇴실 체크 기록 |
 | `allowedUsers` | 외부 허용 사용자 |
+| `eventChecklists` | 행사 체크리스트 (아론홀·샤론홀·아이엠홀 확정 예약은 `event-checklist.html` 접속 시 자동 생성, 문서 id `auto_<예약id>`, `reservationId`·`autoCreated` 필드로 구분) |
 
 ## 예약 데이터 구조 (`reservations`)
 ```
