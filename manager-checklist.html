@@ -232,7 +232,7 @@ let otherChecklists = [];    // 다른 담당자 체크리스트
 let unsubOthers = null;
 let curCat = '아론홀';
 const DAYS = ['일','월','화','수','목','금','토'];
-const CATS = ['아론홀', '샤론홀', '전체'];
+const CATS = ['아론홀', '샤론홀', '아이엠홀', '전체'];
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 
@@ -278,22 +278,28 @@ async function loadReservations() {
   renderEventList();
 }
 
+// 같은 기관(예: "외부")의 예약이 여러 건 겹칠 때 구분할 수 있도록 기관명뿐 아니라
+// 실제 예약 목적(행사명)도 함께 보여줌 — 아이엠홀은 공연명(showName)을 우선 사용
+function eventLabel(r) {
+  const org = [r.type, r.subOrg].filter(Boolean).join(' · ');
+  const name = (r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '';
+  return [org, name].filter(Boolean).join(' · ');
+}
+
 function fmtDatePlace(r, showRoom = true) {
   const d = new Date(r.date + 'T00:00:00');
   const dow = DAYS[d.getDay()];
-  const purpose = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '';
   const dateStr = `${r.date.slice(5).replace('-','/')}(${dow})`;
   return {
     main: showRoom ? `${dateStr} · ${r.room}` : dateStr,
     time: `${r.start}–${r.end}`,
-    purpose,
+    purpose: eventLabel(r),
   };
 }
 
 function fmtEventFull(r) {
   const { main, time } = fmtDatePlace(r);
-  const label = [r.type, r.subOrg].filter(Boolean).join(' · ') || r.purpose || '(제목 없음)';
-  return `${main} ${time} · ${label}`;
+  return `${main} ${time} · ${eventLabel(r) || '(제목 없음)'}`;
 }
 
 function renderCatTabs() {
@@ -311,7 +317,7 @@ function renderEventList() {
     if (r.status === '취소') return false;
     if (curCat !== '전체' && r.room !== curCat) return false;
     if (!kw) return true;
-    const hay = [r.room, r.type, r.subOrg, r.purpose, r.managerName, r.stewardName, r.date].join(' ').toLowerCase();
+    const hay = [r.room, r.type, r.subOrg, r.purpose, r.showName, r.managerName, r.stewardName, r.date].join(' ').toLowerCase();
     return hay.includes(kw);
   }).slice(0, 200);
 
