@@ -193,6 +193,7 @@ function renderSgRooms() {
         <select id="sg-start-${id}" onchange="updateCalc()">${timeSlotOpts('')}</select>
         <span>~</span>
         <select id="sg-end-${id}" onchange="updateCalc()">${timeSlotOpts('')}</select>
+        <input type="text" id="sg-memo-${id}" placeholder="세부 내용 (선택)" style="flex:1;min-width:100px">
       </div>
     </div>`).join('');
 }
@@ -526,17 +527,21 @@ window.printQuote = async () => {
 
     const aronOn    = g('cb-aron').checked;
     const aronStart = g('aron-start').value, aronEnd = g('aron-end').value;
+    const aronMemo  = g('aron-memo').value.trim();
     const sharonOn    = g('cb-sharon').checked;
     const sharonStart = g('sharon-start').value, sharonEnd = g('sharon-end').value;
+    const sharonMemo   = g('sharon-memo').value.trim();
     const sgSelected = SG_ROOM_IDS
       .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
-        hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value) }));
+        hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value),
+        memo: g(`sg-memo-${id}`).value.trim() }));
 
-    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt) => [
+    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt, memo) => [
       type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
       extra ? L.extraHours(extra, extraAmt) : '',
       (sp.surcharge && surcharge) ? L.surcharge : '',
+      memo || '',
     ].filter(Boolean).join(' / ');
 
     const datesToPrint = quoteDates.filter(d => d.date);
@@ -546,9 +551,9 @@ window.printQuote = async () => {
       const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
 
       [
-        { on: aronOn,   sp: SPACE_BY_ID.aron,   start: aronStart,   end: aronEnd,   surcharge: false },
-        { on: sharonOn, sp: SPACE_BY_ID.sharon, start: sharonStart, end: sharonEnd, surcharge: g('sharon-surcharge').checked },
-      ].forEach(({ on, sp, start, end, surcharge }) => {
+        { on: aronOn,   sp: SPACE_BY_ID.aron,   start: aronStart,   end: aronEnd,   surcharge: false, memo: aronMemo },
+        { on: sharonOn, sp: SPACE_BY_ID.sharon, start: sharonStart, end: sharonEnd, surcharge: g('sharon-surcharge').checked, memo: sharonMemo },
+      ].forEach(({ on, sp, start, end, surcharge, memo }) => {
         if (!on) return;
         const { type, extra } = derivePackage(start, end);
         const spaceNm  = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
@@ -558,19 +563,20 @@ window.printQuote = async () => {
         if (sp.surcharge && surcharge) roomTotal = Math.round(roomTotal * 1.2);
         subtotal += roomTotal;
         rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
-          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt), perDateCost: roomTotal });
+          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt, memo), perDateCost: roomTotal });
       });
 
       // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 방 하나당 한 행씩 그대로 보여줌
       // (수용인원 칸에서 방 규모를 바로 볼 수 있어 예전처럼 묶지 않아도 알아보기 쉬움)
-      sgSelected.forEach(({ id, start, end, hours }) => {
+      sgSelected.forEach(({ id, start, end, hours, memo }) => {
         const sp = SPACE_BY_ID[id];
         const spaceNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
         const cost = sp.ratePh * hours;
         subtotal += cost;
-        const remarks = lang === 'en'
-          ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}`
-          : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`;
+        const remarks = [
+          lang === 'en' ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}` : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`,
+          memo || '',
+        ].filter(Boolean).join(' / ');
         rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
           remarks, perDateCost: cost });
       });
@@ -806,10 +812,10 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       date: dateVal, dates: quoteDates,
       quoteCategory,
       qCombo: vInfo.type === 'combo' ? {
-        aron:   { on: g('cb-aron').checked, start: g('aron-start').value, end: g('aron-end').value },
-        sharon: { on: g('cb-sharon').checked, start: g('sharon-start').value, end: g('sharon-end').value, surcharge: g('sharon-surcharge').checked },
+        aron:   { on: g('cb-aron').checked, start: g('aron-start').value, end: g('aron-end').value, memo: g('aron-memo').value.trim() },
+        sharon: { on: g('cb-sharon').checked, start: g('sharon-start').value, end: g('sharon-end').value, surcharge: g('sharon-surcharge').checked, memo: g('sharon-memo').value.trim() },
         sgRooms: SG_ROOM_IDS.filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
-          .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value })),
+          .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value, memo: g(`sg-memo-${id}`).value.trim() })),
       } : null,
       qCatering:    document.querySelector('input[name="q-catering"]:checked')?.value || 'none',
       qCateringMemo: g('q-catering-memo')?.value.trim() || '',
@@ -943,10 +949,12 @@ function loadQuoteIntoForm(h) {
     document.getElementById('cb-aron').checked = !!combo.aron?.on;
     document.getElementById('aron-start').value = combo.aron?.start || '';
     document.getElementById('aron-end').value = combo.aron?.end || '';
+    document.getElementById('aron-memo').value = combo.aron?.memo || '';
     document.getElementById('cb-sharon').checked = !!combo.sharon?.on;
     document.getElementById('sharon-start').value = combo.sharon?.start || '';
     document.getElementById('sharon-end').value = combo.sharon?.end || '';
     document.getElementById('sharon-surcharge').checked = !!combo.sharon?.surcharge;
+    document.getElementById('sharon-memo').value = combo.sharon?.memo || '';
     const sgById = Object.fromEntries((combo.sgRooms || []).map(r => [r.id, r]));
     SG_ROOM_IDS.forEach(id => {
       const r = sgById[id];
@@ -955,6 +963,7 @@ function loadQuoteIntoForm(h) {
       document.getElementById(`sg-time-wrap-${id}`).style.display = r ? '' : 'none';
       document.getElementById(`sg-start-${id}`).value = r?.start || '';
       document.getElementById(`sg-end-${id}`).value = r?.end || '';
+      document.getElementById(`sg-memo-${id}`).value = r?.memo || '';
     });
   }
 
@@ -1368,10 +1377,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span class="room-name">아론홀</span>
             <span class="room-desc" id="cost-aron">–</span>
           </div>
-          <div class="room-body">
+          <div class="room-body" style="flex-wrap:wrap">
             <select id="aron-start" onchange="updateCalc()"></select>
             <span>~</span>
             <select id="aron-end" onchange="updateCalc()"></select>
+            <input type="text" id="aron-memo" placeholder="세부 내용 (선택)" oninput="updateCalc()" style="flex:1;min-width:120px">
           </div>
         </div>
 
@@ -1389,6 +1399,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--amber);font-weight:600">
               <input type="checkbox" id="sharon-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)"> 시간대 할증 +20%
             </label>
+            <input type="text" id="sharon-memo" placeholder="세부 내용 (선택)" oninput="updateCalc()" style="flex:1;min-width:120px">
           </div>
         </div>
 
