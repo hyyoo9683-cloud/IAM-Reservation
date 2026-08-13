@@ -165,6 +165,12 @@ let editingQuoteId = null; // 발행 이력에서 "수정"으로 불러온 견�
 // (예전에는 "+ 공간 추가"로 카드를 계속 늘리는 방식이었는데, 칸이 커서 불편하다는 피드백을 받아
 //  지혜홀 룸 선택처럼 체크박스 3개(아론홀/샤론홀/5층 소그룹실)로 단순화함)
 const SG_ROOM_IDS = SPACE_ITEMS.filter(s => s.pricing === 'flat').map(s => s.id);
+// 견적서 인쇄 시 5층 소그룹실이 나오는 순서(요청받은 순서). 여기 없는 방(502~504)은 그 뒤에 방 번호순으로 붙음
+const SG_PRINT_ORDER = ['506', '508', '509', '510', '511', '505', '507'];
+function sgPrintRank(id) {
+  const idx = SG_PRINT_ORDER.indexOf(id);
+  return idx === -1 ? 1000 + Number(id) : idx;
+}
 
 // 예약 신청 화면과 동일하게 30분 단위(07:00~22:00)로만 시간 선택
 const TIME_SLOTS = [];
@@ -534,6 +540,7 @@ window.printQuote = async () => {
     const sharonMemo   = g('sharon-memo').value.trim();
     const sgSelected = SG_ROOM_IDS
       .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
+      .sort((a, b) => sgPrintRank(a) - sgPrintRank(b))
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
         hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value),
         memo: g(`sg-memo-${id}`).value.trim() }));
