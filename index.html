@@ -6553,7 +6553,7 @@ window.submitEdit = async () => {
             : `전체 ${totalConflicts}건 충돌`;
           const conflictBtns = conflicted.map(x => {
             const ds = getEffDate(x);
-            const dow = DOWS[new Date(ds + 'T00:00:00').getDay()];
+            const dow = DOWS_KR_MULTI[new Date(ds + 'T00:00:00').getDay()];
             const label = `${ds.slice(5).replace('-','/')} (${dow})`;
             return `<button onclick="closeModal('modal-info');openEditModal('${x.id}')"
               style="display:flex;align-items:center;justify-content:space-between;width:100%;
