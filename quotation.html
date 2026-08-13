@@ -522,31 +522,48 @@ window.printQuote = async () => {
     datesToPrint.forEach(d => {
       const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
       const tStr = (d.timeStart && d.timeEnd) ? `${d.timeStart}–${d.timeEnd}` : timeStr;
+      const flatBreakdown = []; // 5층 소그룹실처럼 시간당 정액인 항목은 한 행으로 묶고, 방별 상세는 비고에 표기
+      let flatCost = 0;
+
       spaceItems.forEach(item => {
         const sp = SPACE_BY_ID[item.spaceId];
-        const spaceNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
-        let perDateCost, remarks;
         if (sp.pricing === 'package') {
+          const spaceNm  = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
           const base     = item.type === 'base90m' ? sp.base90m : sp.base3h;
           const extraAmt = (item.extra || 0) * sp.extraPh;
           let roomTotal  = base + extraAmt;
           if (sp.surcharge && item.surcharge) roomTotal = Math.round(roomTotal * 1.2);
           const cDisc  = Math.round(roomTotal * cRate);
-          perDateCost  = roomTotal - cDisc;
-          remarks = [
+          const perDateCost = roomTotal - cDisc;
+          const remarks = [
             item.type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
             item.extra ? L.extraHours(item.extra, extraAmt) : '',
             (sp.surcharge && item.surcharge) ? L.surcharge : '',
             cDisc ? L.cateringDiscount(cRate*100) : '',
             cMemo ? L.cateringMemo(cMemo) : '',
           ].filter(Boolean).join(' / ');
+          subtotal += perDateCost;
+          rows.push({ date: dStr, time: tStr, space: spaceNm, item: purpose, remarks, perDateCost });
         } else {
-          perDateCost = sp.ratePh * (item.hours || 0);
-          remarks = `${item.hours || 0}${lang==='en' ? 'hr' : '시간'} × ${comma(sp.ratePh)}${lang==='en' ? '/hr' : '원/시간'}`;
+          const hours = item.hours || 0;
+          const cost  = sp.ratePh * hours;
+          flatCost += cost;
+          const roomNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
+          flatBreakdown.push(lang === 'en'
+            ? `${roomNm} ${hours}hr×${comma(sp.ratePh)}=${comma(cost)}`
+            : `${roomNm} ${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`);
         }
-        subtotal += perDateCost;
-        rows.push({ date: dStr, time: tStr, space: spaceNm, item: purpose, remarks, perDateCost });
       });
+
+      if (flatBreakdown.length) {
+        subtotal += flatCost;
+        const flatSpaces = spaceItems.filter(item => SPACE_BY_ID[item.spaceId].pricing === 'flat');
+        const spaceNm = flatSpaces.length > 1
+          ? (lang === 'en' ? '5F Small Group Rooms' : '5층 소그룹실')
+          : (lang === 'en' ? (SPACE_BY_ID[flatSpaces[0].spaceId].nameEn || SPACE_BY_ID[flatSpaces[0].spaceId].name) : SPACE_BY_ID[flatSpaces[0].spaceId].name);
+        rows.push({ date: dStr, time: tStr, space: spaceNm, item: purpose,
+          remarks: flatBreakdown.join(', '), perDateCost: flatCost });
+      }
     });
   } else {
     // 지혜홀 — 항목별 행
