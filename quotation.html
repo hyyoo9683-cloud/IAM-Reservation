@@ -537,11 +537,10 @@ window.printQuote = async () => {
         hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value),
         memo: g(`sg-memo-${id}`).value.trim() }));
 
-    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt, memo) => [
+    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt) => [
       type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
       extra ? L.extraHours(extra, extraAmt) : '',
       (sp.surcharge && surcharge) ? L.surcharge : '',
-      memo || '',
     ].filter(Boolean).join(' / ');
 
     const datesToPrint = quoteDates.filter(d => d.date);
@@ -562,8 +561,8 @@ window.printQuote = async () => {
         let roomTotal  = base + extraAmt;
         if (sp.surcharge && surcharge) roomTotal = Math.round(roomTotal * 1.2);
         subtotal += roomTotal;
-        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
-          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt, memo), perDateCost: roomTotal });
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: memo || purpose,
+          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt), perDateCost: roomTotal });
       });
 
       // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 방 하나당 한 행씩 그대로 보여줌
@@ -573,11 +572,10 @@ window.printQuote = async () => {
         const spaceNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
         const cost = sp.ratePh * hours;
         subtotal += cost;
-        const remarks = [
-          lang === 'en' ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}` : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`,
-          memo || '',
-        ].filter(Boolean).join(' / ');
-        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
+        const remarks = lang === 'en'
+          ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}`
+          : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`;
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: memo || purpose,
           remarks, perDateCost: cost });
       });
     });
@@ -634,12 +632,22 @@ window.printQuote = async () => {
   // ── 인쇄 HTML ──
   const issueDateFmt = L.validity(issueDate);
 
+  // 같은 날짜가 연달아 나오면 위에서 한 번만 쓰고(세로 병합), 그 아래 행들은 날짜 칸을 비움
+  const dateCellHtml = (i) => {
+    const r = rows[i];
+    if (r.date && i > 0 && rows[i-1].date === r.date) return '';
+    if (!r.date) return `<td>${r.date}</td>`;
+    let span = 1;
+    for (let j = i+1; j < rows.length && rows[j].date === r.date; j++) span++;
+    return span > 1 ? `<td rowspan="${span}">${r.date}</td>` : `<td>${r.date}</td>`;
+  };
+
   const buildRows = () => {
     if (vInfo.type === 'combo') {
-      let html = rows.map(r => {
+      let html = rows.map((r, i) => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
-          <td>${r.date}</td><td>${r.time}</td><td>${r.space}</td>
+          ${dateCellHtml(i)}<td>${r.time}</td><td>${r.space}</td>
           <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
@@ -666,7 +674,7 @@ window.printQuote = async () => {
         const s = r.total ? Math.round(r.total/1.1) : 0;
         const v = r.total ? r.total - s : 0;
         html += `<tr>
-          <td>${r.date||''}</td><td>${r.time||''}</td><td>${r.space||''}</td>
+          ${dateCellHtml(i)}<td>${r.time||''}</td><td>${r.space||''}</td>
           <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${r.total ? comma(s) : ''}</td>
