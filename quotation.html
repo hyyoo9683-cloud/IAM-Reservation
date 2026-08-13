@@ -404,22 +404,18 @@ window.updateCalc = () => {
       const base = type === 'base90m' ? sp.base90m : sp.base3h;
       let total  = base + extra * sp.extraPh;
       if (sp.surcharge && surcharge) total = Math.round(total * 1.2);
-      const cDisc = Math.round(total * cRate);
-      cDiscTotal += cDisc;
-      return total - cDisc;
+      return total;
     };
 
     const aronOn = el('cb-aron').checked;
     const aronPkg = derivePackage(el('aron-start').value, el('aron-end').value);
     const aronCost = aronOn ? packageCost(aron, aronPkg.type, aronPkg.extra, false) : 0;
     el('cost-aron').textContent = aronOn ? `${comma(aronCost)}원` : '–';
-    perDateCost += aronCost;
 
     const sharonOn = el('cb-sharon').checked;
     const sharonPkg = derivePackage(el('sharon-start').value, el('sharon-end').value);
     const sharonCost = sharonOn ? packageCost(sharon, sharonPkg.type, sharonPkg.extra, el('sharon-surcharge').checked) : 0;
     el('cost-sharon').textContent = sharonOn ? `${comma(sharonCost)}원` : '–';
-    perDateCost += sharonCost;
 
     let sgCost = 0;
     SG_ROOM_IDS.forEach(id => {
@@ -428,7 +424,11 @@ window.updateCalc = () => {
       sgCost += SPACE_BY_ID[id].ratePh * hrs;
     });
     el('cost-sg').textContent = sgCost ? `${comma(sgCost)}원` : '–';
-    perDateCost += sgCost;
+
+    // 케이터링 할인은 개별 공간이 아니라 (아론홀+샤론홀+5층 소그룹실) 전체 합산 금액에 한 번만 적용
+    const rawTotal = aronCost + sharonCost + sgCost;
+    cDiscTotal = Math.round(rawTotal * cRate);
+    perDateCost = rawTotal - cDiscTotal;
 
     subtotal = perDateCost * dateCount;
 
@@ -516,9 +516,9 @@ window.printQuote = async () => {
 
   if (vInfo.type === 'combo') {
     // 아론홀·샤론홀·5층 소그룹실 — 체크한 공간마다, 날짜마다 각각 한 행씩 (합쳐서 하나의 견적서로 발행)
-    const cTier = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
-    const cRate = cTier === 'over' ? 0.5 : cTier === 'under' ? 0.3 : 0;
-    const cMemo = g('q-catering-memo').value.trim();
+    var cTier = document.querySelector('input[name="q-catering"]:checked')?.value || 'none';
+    var cRate = cTier === 'over' ? 0.5 : cTier === 'under' ? 0.3 : 0;
+    var cMemo = g('q-catering-memo').value.trim();
 
     const aronOn    = g('cb-aron').checked;
     const aronStart = g('aron-start').value, aronEnd = g('aron-end').value;
@@ -529,12 +529,10 @@ window.printQuote = async () => {
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
         hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value) }));
 
-    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt, cDisc) => [
+    const packageRemarks = (sp, type, extra, surcharge, base, extraAmt) => [
       type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
       extra ? L.extraHours(extra, extraAmt) : '',
       (sp.surcharge && surcharge) ? L.surcharge : '',
-      cDisc ? L.cateringDiscount(cRate*100) : '',
-      cMemo ? L.cateringMemo(cMemo) : '',
     ].filter(Boolean).join(' / ');
 
     const datesToPrint = quoteDates.filter(d => d.date);
@@ -554,24 +552,29 @@ window.printQuote = async () => {
         const extraAmt = extra * sp.extraPh;
         let roomTotal  = base + extraAmt;
         if (sp.surcharge && surcharge) roomTotal = Math.round(roomTotal * 1.2);
-        const cDisc  = Math.round(roomTotal * cRate);
-        const perDateCost = roomTotal - cDisc;
-        subtotal += perDateCost;
+        subtotal += roomTotal;
         rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: purpose,
-          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt, cDisc), perDateCost });
+          remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt), perDateCost: roomTotal });
       });
 
-      // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 한 행으로 묶되,
-      // 시간 칸은 비우고 방별 실제 시간·시간수·금액을 비고에 적어 정확히 남김
+      // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 한 행으로 묶되, 시간·요금이 똑같은
+      // 방끼리는(예: 3만원짜리 여러 개) 한 덩어리로 다시 묶어서 비고에 "N개실(호수들) 시작~종료 = 금액"
+      // 식으로 간결하게 적음 — 시간이나 요금이 다르면 그 조합끼리 따로 묶임
       if (sgSelected.length) {
-        const flatBreakdown = sgSelected.map(({ id, start, end, hours }) => {
+        const groups = new Map(); // key: start|end|ratePh → { start, end, ratePh, hours, rooms:[names] }
+        sgSelected.forEach(({ id, start, end, hours }) => {
           const sp = SPACE_BY_ID[id];
-          const roomNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
-          const cost = sp.ratePh * hours;
+          const key = `${start}|${end}|${sp.ratePh}`;
+          if (!groups.has(key)) groups.set(key, { start, end, ratePh: sp.ratePh, hours, rooms: [] });
+          groups.get(key).rooms.push(lang === 'en' ? (sp.nameEn || sp.name) : sp.name);
+        });
+        const flatBreakdown = [...groups.values()].map(({ start, end, ratePh, hours, rooms }) => {
+          const cost = ratePh * hours * rooms.length;
           const timeLbl = (start && end) ? `${start}-${end} ` : '';
+          const roomList = rooms.join(', ');
           return lang === 'en'
-            ? `${roomNm} ${timeLbl}(${hours}hr)×${comma(sp.ratePh)}=${comma(cost)}`
-            : `${roomNm} ${timeLbl}(${hours}시간)×${comma(sp.ratePh)}원=${comma(cost)}원`;
+            ? `${rooms.length} room${rooms.length>1?'s':''}(${roomList}) ${timeLbl}(${hours}hr×${comma(ratePh)})=${comma(cost)}`
+            : `${rooms.length}개실(${roomList}) ${timeLbl}(${hours}시간×${comma(ratePh)}원)=${comma(cost)}원`;
         });
         const flatCost = sgSelected.reduce((sum, r) => sum + SPACE_BY_ID[r.id].ratePh * r.hours, 0);
         subtotal += flatCost;
@@ -582,6 +585,10 @@ window.printQuote = async () => {
           remarks: flatBreakdown.join(', '), perDateCost: flatCost });
       }
     });
+
+    // 케이터링 할인은 개별 공간이 아니라 (아론홀+샤론홀+5층 소그룹실) 전체 합산 금액에 한 번만 적용
+    var cateringDiscAmt = Math.round(subtotal * cRate);
+    subtotal -= cateringDiscAmt;
   } else {
     // 지혜홀 — 항목별 행
     const nights = parseInt(g('q-nights').value) || 1;
@@ -642,6 +649,13 @@ window.printQuote = async () => {
           <td class="left sm">${r.remarks}</td>
         </tr>`;
       }).join('');
+      if (cateringDiscAmt) {
+        const cLabel = [L.cateringDiscount(cRate*100), cMemo ? L.cateringMemo(cMemo) : ''].filter(Boolean).join(' / ');
+        html += `<tr><td colspan="4" class="left" style="color:#a00;font-style:italic">${cLabel}</td>
+          <td class="num" style="color:#a00">-${comma(Math.round(cateringDiscAmt/1.1))}</td>
+          <td class="num" style="color:#a00">-${comma(cateringDiscAmt - Math.round(cateringDiscAmt/1.1))}</td>
+          <td></td></tr>`;
+      }
       if (discountAmt) {
         html += `<tr><td colspan="4" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
           <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
@@ -679,35 +693,35 @@ window.printQuote = async () => {
 <style>
 @page { size:A4; margin:18mm 16mm 16mm; }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:11px;color:#111;}
+body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;font-size:14px;color:#111;}
 /* ── 헤더 ── */
 .doc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;padding-bottom:14px;border-bottom:2.5px solid #185FA5;}
 .logo-block{display:flex;align-items:center;gap:10px;}
-.doc-title{font-size:28px;font-weight:900;letter-spacing:6px;color:#1a2533;}
+.doc-title{font-size:31px;font-weight:900;letter-spacing:6px;color:#1a2533;}
 /* ── 정보 박스 ── */
 .info-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #bbb;margin-bottom:10px;}
 .info-cell{padding:9px 12px;border-right:1px solid #bbb;border-bottom:1px solid #bbb;}
 .info-cell:nth-child(2n){border-right:none;}
 .info-cell:nth-last-child(-n+2){border-bottom:none;}
-.info-label{font-size:9px;font-weight:700;color:#777;margin-bottom:3px;letter-spacing:.5px;text-transform:uppercase;}
-.info-val{font-weight:700;font-size:12px;color:#111;}
-.info-sub{font-size:9px;color:#555;margin-top:2px;line-height:1.5;}
+.info-label{font-size:12px;font-weight:700;color:#777;margin-bottom:3px;letter-spacing:.5px;text-transform:uppercase;}
+.info-val{font-weight:700;font-size:15px;color:#111;}
+.info-sub{font-size:12px;color:#555;margin-top:2px;line-height:1.5;}
 /* ── 합계 ── */
 .total-banner{background:#f5f8fc;border:1px solid #ccddf0;border-radius:5px;
   padding:10px 16px;margin:10px 0;display:flex;align-items:center;justify-content:space-between;}
-.total-label{font-size:11px;color:#444;}
-.total-amt{font-size:15px;font-weight:900;color:#185FA5;}
+.total-label{font-size:14px;color:#444;}
+.total-amt{font-size:18px;font-weight:900;color:#185FA5;}
 /* ── 표 ── */
 table{width:100%;border-collapse:collapse;margin-top:4px;}
-th{background:#1a2533;color:#fff;padding:7px 6px;font-size:10px;font-weight:700;text-align:center;border:1px solid #1a2533;}
-td{padding:7px 6px;border:1px solid #ddd;font-size:10px;vertical-align:top;text-align:center;}
+th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;text-align:center;border:1px solid #1a2533;}
+td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;}
 td.left{text-align:left;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
-td.sm{font-size:9px;color:#555;}
+td.sm{font-size:12px;color:#555;}
 tfoot tr.sub-total td{background:#f5f5f5;font-weight:700;border-top:2px solid #aaa;}
-tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:12px;border-color:#1a2533;}
+tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:15px;border-color:#1a2533;}
 /* ── 푸터 ── */
-.doc-footer{margin-top:16px;font-size:9px;color:#555;line-height:1.9;border-top:1px solid #ddd;padding-top:10px;}
+.doc-footer{margin-top:16px;font-size:12px;color:#555;line-height:1.9;border-top:1px solid #ddd;padding-top:10px;}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>
 
@@ -716,7 +730,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     ${logoImg}
   </div>
   <div style="text-align:right">
-    <div style="font-size:9px;letter-spacing:2px;font-weight:700;margin-bottom:4px;color:${quoteCategory==='취소'?'#a32d2d':quoteCategory==='변경'?'#854f0b':'#185fa5'}">${L.category[quoteCategory]}</div>
+    <div style="font-size:12px;letter-spacing:2px;font-weight:700;margin-bottom:4px;color:${quoteCategory==='취소'?'#a32d2d':quoteCategory==='변경'?'#854f0b':'#185fa5'}">${L.category[quoteCategory]}</div>
     <div class="doc-title">${L.docTitle}</div>
   </div>
 </div>
@@ -742,13 +756,13 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     <img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:64px;top:45px;height:34px;width:auto;opacity:.85">
   </div>
   <div class="info-cell" style="display:flex;align-items:center;">
-    <span style="font-size:11px;color:#555;font-style:italic">${L.asBelow}</span>
+    <span style="font-size:14px;color:#555;font-style:italic">${L.asBelow}</span>
   </div>
 </div>
 
 <div class="total-banner">
-  <span class="total-label">${L.totalLabel}${lang==='en' ? '<br><span style="font-size:9px;color:#888;font-weight:400">(All amounts are in Korean Won, KRW)</span>' : ''}</span>
-  <span class="total-amt">${lang==='ko' ? `${numToKor(total)}원정&nbsp;&nbsp;` : ''}(₩&nbsp;${comma(total)})&nbsp;&nbsp;<span style="font-size:11px;font-weight:400;color:#666">${L.vatIncluded}</span></span>
+  <span class="total-label">${L.totalLabel}${lang==='en' ? '<br><span style="font-size:12px;color:#888;font-weight:400">(All amounts are in Korean Won, KRW)</span>' : ''}</span>
+  <span class="total-amt">${lang==='ko' ? `${numToKor(total)}원정&nbsp;&nbsp;` : ''}(₩&nbsp;${comma(total)})&nbsp;&nbsp;<span style="font-size:14px;font-weight:400;color:#666">${L.vatIncluded}</span></span>
 </div>
 
 <table>
