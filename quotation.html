@@ -577,8 +577,8 @@ window.printQuote = async () => {
           const timeLbl = (start && end) ? `${start}-${end} ` : '';
           const roomList = rooms.join(', ');
           return lang === 'en'
-            ? `${rooms.length} room${rooms.length>1?'s':''}(${roomList}) ${timeLbl}(${hours}hr×${comma(ratePh)})=${comma(cost)}`
-            : `${rooms.length}개실(${roomList}) ${timeLbl}(${hours}시간×${comma(ratePh)}원)=${comma(cost)}원`;
+            ? `<b>${rooms.length} room${rooms.length>1?'s':''}(${roomList})</b> ${timeLbl}(${hours}hr×${comma(ratePh)})=${comma(cost)}`
+            : `<b>${rooms.length}개실(${roomList})</b> ${timeLbl}(${hours}시간×${comma(ratePh)}원)=${comma(cost)}원`;
         });
         const flatCost = sgSelected.reduce((sum, r) => sum + SPACE_BY_ID[r.id].ratePh * r.hours, 0);
         subtotal += flatCost;
@@ -718,10 +718,12 @@ body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;fo
 /* ── 표 ── */
 table{width:100%;border-collapse:collapse;margin-top:4px;}
 th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;text-align:center;border:1px solid #1a2533;}
-td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;}
+td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;}
 td.left{text-align:left;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
-td.sm{font-size:13px;color:#333;line-height:1.6;}
+td.sm{font-size:13px;color:#333;line-height:1.6;word-break:keep-all;}
+/* 방 목록이 많아 비고 칸이 여러 줄로 길어져도, 인쇄 시 그 행이 페이지 경계에서 잘리지 않도록 함 */
+tr{page-break-inside:avoid;break-inside:avoid;}
 tfoot tr.sub-total td{background:#f5f5f5;font-weight:700;border-top:2px solid #aaa;}
 tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:15px;border-color:#1a2533;}
 /* ── 푸터 ── */
@@ -773,12 +775,12 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
   <thead>
     <tr>
       <th style="width:12%">${L.thDate}</th>
-      <th style="width:11%">${L.thTime}</th>
-      <th style="width:9%">${L.thSpace}</th>
-      <th>${L.thItem}</th>
-      <th style="width:11%">${L.thSupply}</th>
-      <th style="width:9%">${L.thVat}</th>
-      <th style="width:20%">${L.thRemarks}</th>
+      <th style="width:10%">${L.thTime}</th>
+      <th style="width:8%">${L.thSpace}</th>
+      <th style="width:17%">${L.thItem}</th>
+      <th style="width:10%">${L.thSupply}</th>
+      <th style="width:8%">${L.thVat}</th>
+      <th style="width:35%">${L.thRemarks}</th>
     </tr>
   </thead>
   <tbody>
