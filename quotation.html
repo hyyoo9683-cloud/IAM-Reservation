@@ -30,19 +30,19 @@ const COMBO_VENUE = '아론홀·샤론홀·5층 소그룹실';
 // 복합 견적(위 콤보) 안에서 자유롭게 추가/조합할 수 있는 개별 공간들.
 // pricing: 'package'(아론홀/샤론홀, 3시간 기본+추가시간+할증) | 'flat'(5층 소그룹실, 순수 시간당 정액)
 const SPACE_ITEMS = [
-  { id: 'aron',   name: '아론홀', nameEn: 'Aaron Hall',  pricing: 'package', base3h: 200000, base90m: 100000, extraPh: 50000, surcharge: false },
-  { id: 'sharon', name: '샤론홀', nameEn: 'Sharon Hall', pricing: 'package', base3h: 300000, base90m: 150000, extraPh: 80000, surcharge: true },
+  { id: 'aron',   name: '아론홀', nameEn: 'Aaron Hall',  pricing: 'package', base3h: 200000, base90m: 100000, extraPh: 50000, surcharge: false, cap: 50 },
+  { id: 'sharon', name: '샤론홀', nameEn: 'Sharon Hall', pricing: 'package', base3h: 300000, base90m: 150000, extraPh: 80000, surcharge: true, cap: 140 },
   // 502~504호는 평소 예약 시스템(index.html)에서 다루지 않는 방이지만, 대관 견적서에는 필요해서 추가
-  { id: '502', name: '502호', nameEn: 'Room 502', pricing: 'flat', ratePh: 30000 },
-  { id: '503', name: '503호', nameEn: 'Room 503', pricing: 'flat', ratePh: 30000 },
-  { id: '504', name: '504호', nameEn: 'Room 504', pricing: 'flat', ratePh: 30000 },
-  { id: '505', name: '505호', nameEn: 'Room 505', pricing: 'flat', ratePh: 40000 },
-  { id: '506', name: '506호', nameEn: 'Room 506', pricing: 'flat', ratePh: 30000 },
-  { id: '507', name: '507호', nameEn: 'Room 507', pricing: 'flat', ratePh: 40000 },
-  { id: '508', name: '508호', nameEn: 'Room 508', pricing: 'flat', ratePh: 30000 },
-  { id: '509', name: '509호', nameEn: 'Room 509', pricing: 'flat', ratePh: 30000 },
-  { id: '510', name: '510호', nameEn: 'Room 510', pricing: 'flat', ratePh: 30000 },
-  { id: '511', name: '511호', nameEn: 'Room 511', pricing: 'flat', ratePh: 30000 },
+  { id: '502', name: '502호', nameEn: 'Room 502', pricing: 'flat', ratePh: 30000, cap: 4 },
+  { id: '503', name: '503호', nameEn: 'Room 503', pricing: 'flat', ratePh: 30000, cap: 4 },
+  { id: '504', name: '504호', nameEn: 'Room 504', pricing: 'flat', ratePh: 30000, cap: 8 },
+  { id: '505', name: '505호', nameEn: 'Room 505', pricing: 'flat', ratePh: 40000, cap: 24 },
+  { id: '506', name: '506호', nameEn: 'Room 506', pricing: 'flat', ratePh: 30000, cap: 10 },
+  { id: '507', name: '507호', nameEn: 'Room 507', pricing: 'flat', ratePh: 40000, cap: 24 },
+  { id: '508', name: '508호', nameEn: 'Room 508', pricing: 'flat', ratePh: 30000, cap: 12 },
+  { id: '509', name: '509호', nameEn: 'Room 509', pricing: 'flat', ratePh: 30000, cap: 12 },
+  { id: '510', name: '510호', nameEn: 'Room 510', pricing: 'flat', ratePh: 30000, cap: 16 },
+  { id: '511', name: '511호', nameEn: 'Room 511', pricing: 'flat', ratePh: 30000, cap: 16 },
 ];
 const SPACE_BY_ID = Object.fromEntries(SPACE_ITEMS.map(s => [s.id, s]));
 
@@ -93,7 +93,7 @@ const STR = {
     asBelow: '아래와 같이 견적합니다.',
     totalLabel: '합계금액 (공급가액+세액)',
     vatIncluded: 'VAT 포함',
-    thDate: '날짜', thTime: '시간', thSpace: '공간', thItem: '항목',
+    thDate: '날짜', thTime: '시간', thSpace: '공간', thCap: '수용인원', thItem: '항목',
     thSupply: '공급가액', thVat: '세액', thRemarks: '비고',
     subtotal: '계', grandTotal: '총&nbsp;&nbsp;계',
     bankInfo: '계좌정보', contact: '문의',
@@ -126,7 +126,7 @@ const STR = {
     asBelow: 'As per the details below.',
     totalLabel: 'Total Amount (Supply + VAT)',
     vatIncluded: 'VAT Included',
-    thDate: 'Date', thTime: 'Time', thSpace: 'Space', thItem: 'Item',
+    thDate: 'Date', thTime: 'Time', thSpace: 'Space', thCap: 'Capacity', thItem: 'Item',
     thSupply: 'Supply Amount', thVat: 'VAT', thRemarks: 'Remarks',
     subtotal: 'Subtotal', grandTotal: 'Total',
     bankInfo: 'Bank Account', contact: 'Contact',
@@ -557,37 +557,23 @@ window.printQuote = async () => {
         let roomTotal  = base + extraAmt;
         if (sp.surcharge && surcharge) roomTotal = Math.round(roomTotal * 1.2);
         subtotal += roomTotal;
-        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: purpose,
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
           remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt), perDateCost: roomTotal });
       });
 
-      // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 한 행으로 묶되, 시간·요금이 똑같은
-      // 방끼리는(예: 3만원짜리 여러 개) 한 덩어리로 다시 묶어서 비고에 "N개실(호수들) 시작~종료 = 금액"
-      // 식으로 간결하게 적음 — 시간이나 요금이 다르면 그 조합끼리 따로 묶임
-      if (sgSelected.length) {
-        const groups = new Map(); // key: start|end|ratePh → { start, end, ratePh, hours, rooms:[names] }
-        sgSelected.forEach(({ id, start, end, hours }) => {
-          const sp = SPACE_BY_ID[id];
-          const key = `${start}|${end}|${sp.ratePh}`;
-          if (!groups.has(key)) groups.set(key, { start, end, ratePh: sp.ratePh, hours, rooms: [] });
-          groups.get(key).rooms.push(lang === 'en' ? (sp.nameEn || sp.name) : sp.name);
-        });
-        const flatBreakdown = [...groups.values()].map(({ start, end, ratePh, hours, rooms }) => {
-          const cost = ratePh * hours * rooms.length;
-          const timeLbl = (start && end) ? `${start}-${end} ` : '';
-          const roomList = rooms.join(', ');
-          return lang === 'en'
-            ? `<b>${rooms.length} room${rooms.length>1?'s':''}(${roomList})</b> ${timeLbl}(${hours}hr×${comma(ratePh)})=${comma(cost)}`
-            : `<b>${rooms.length}개실(${roomList})</b> ${timeLbl}(${hours}시간×${comma(ratePh)}원)=${comma(cost)}원`;
-        });
-        const flatCost = sgSelected.reduce((sum, r) => sum + SPACE_BY_ID[r.id].ratePh * r.hours, 0);
-        subtotal += flatCost;
-        const spaceNm = sgSelected.length > 1
-          ? (lang === 'en' ? '5F Small Group Rooms' : '5층 소그룹실')
-          : (lang === 'en' ? (SPACE_BY_ID[sgSelected[0].id].nameEn || SPACE_BY_ID[sgSelected[0].id].name) : SPACE_BY_ID[sgSelected[0].id].name);
-        rows.push({ date: dStr, time: '', space: spaceNm, item: purpose,
-          remarks: flatBreakdown.join('<br>'), perDateCost: flatCost });
-      }
+      // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 방 하나당 한 행씩 그대로 보여줌
+      // (수용인원 칸에서 방 규모를 바로 볼 수 있어 예전처럼 묶지 않아도 알아보기 쉬움)
+      sgSelected.forEach(({ id, start, end, hours }) => {
+        const sp = SPACE_BY_ID[id];
+        const spaceNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
+        const cost = sp.ratePh * hours;
+        subtotal += cost;
+        const remarks = lang === 'en'
+          ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}`
+          : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`;
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: purpose,
+          remarks, perDateCost: cost });
+      });
     });
 
     // 케이터링 할인은 개별 공간이 아니라 (아론홀+샤론홀+5층 소그룹실) 전체 합산 금액에 한 번만 적용
@@ -610,7 +596,7 @@ window.printQuote = async () => {
       const roomTotal = perNight * nights;
       subtotal += roomTotal;
       const roomDesc = lang === 'en' ? (ROOM_DESC_EN[room.desc] || room.desc) : room.desc;
-      rows.push({ date: dateRange, time:'', space: venueDisplay,
+      rows.push({ date: dateRange, time:'', space: venueDisplay, cap: room.max,
         item: `${room.name} (${roomDesc}) ${L.nights(nights)}`,
         total: roomTotal,
         // 세금 포함 금액이라 클라이언트가 헷갈리지 않도록 1박당 단가와 총액을 함께 표기
@@ -648,6 +634,7 @@ window.printQuote = async () => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
           <td>${r.date}</td><td>${r.time}</td><td>${r.space}</td>
+          <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
           <td class="left sm">${r.remarks}</td>
@@ -655,13 +642,13 @@ window.printQuote = async () => {
       }).join('');
       if (cateringDiscAmt) {
         const cLabel = [L.cateringDiscount(cRate*100), cMemo ? L.cateringMemo(cMemo) : ''].filter(Boolean).join(' / ');
-        html += `<tr><td colspan="4" class="left" style="color:#a00;font-style:italic">${cLabel}</td>
+        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${cLabel}</td>
           <td class="num" style="color:#a00">-${comma(Math.round(cateringDiscAmt/1.1))}</td>
           <td class="num" style="color:#a00">-${comma(cateringDiscAmt - Math.round(cateringDiscAmt/1.1))}</td>
           <td></td></tr>`;
       }
       if (discountAmt) {
-        html += `<tr><td colspan="4" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
+        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
           <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
           <td class="num" style="color:#a00">-${comma(discountAmt - Math.round(discountAmt/1.1))}</td>
           <td></td></tr>`;
@@ -674,6 +661,7 @@ window.printQuote = async () => {
         const v = r.total ? r.total - s : 0;
         html += `<tr>
           <td>${r.date||''}</td><td>${r.time||''}</td><td>${r.space||''}</td>
+          <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${r.total ? comma(s) : ''}</td>
           <td class="num">${r.total ? comma(v) : ''}</td>
@@ -681,7 +669,7 @@ window.printQuote = async () => {
         </tr>`;
       });
       if (discountAmt) {
-        html += `<tr><td colspan="4" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
+        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
           <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
           <td class="num" style="color:#a00">-${comma(discountAmt - Math.round(discountAmt/1.1))}</td>
           <td></td></tr>`;
@@ -774,12 +762,13 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 <table>
   <thead>
     <tr>
-      <th style="width:12%">${L.thDate}</th>
-      <th style="width:10%">${L.thTime}</th>
+      <th style="width:10%">${L.thDate}</th>
+      <th style="width:9%">${L.thTime}</th>
       <th style="width:8%">${L.thSpace}</th>
-      <th style="width:17%">${L.thItem}</th>
-      <th style="width:10%">${L.thSupply}</th>
-      <th style="width:8%">${L.thVat}</th>
+      <th style="width:8%">${L.thCap}</th>
+      <th style="width:14%">${L.thItem}</th>
+      <th style="width:9%">${L.thSupply}</th>
+      <th style="width:7%">${L.thVat}</th>
       <th style="width:35%">${L.thRemarks}</th>
     </tr>
   </thead>
