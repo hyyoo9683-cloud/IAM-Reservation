@@ -200,15 +200,27 @@ window.toggleSgRoom = (id) => {
   wrap.style.display = on ? '' : 'none';
   updateCalc();
 };
+// 아론홀/샤론홀도 각자 실제 시작~종료 시간을 입력 (날짜는 위 공용 날짜 목록을 그대로 씀) — 페이지 로드 시 한 번만 채움
+function renderComboTimeSelects() {
+  ['aron-start','aron-end','sharon-start','sharon-end'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = timeSlotOpts('');
+  });
+}
+// 시작~종료 시간으로부터 아론홀/샤론홀 요금 패키지(3시간 기본/90분 단시간)와 추가 시간을 자동 계산
+// (90분 이하면 단시간 요금, 그보다 길면 3시간 기본 + 3시간 초과분을 추가 시간으로 계산)
+function derivePackage(start, end) {
+  const hours = timeDiffHours(start, end);
+  if (!hours) return { type: 'base3h', extra: 0, hours: 0 };
+  if (hours <= 1.5) return { type: 'base90m', extra: 0, hours };
+  return { type: 'base3h', extra: Math.max(0, hours - 3), hours };
+}
 function renderQuoteDates() {
   const el = document.getElementById('q-date-rows');
   if (!el) return;
   el.innerHTML = quoteDates.map((d, i) => `
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
-      <input type="date" value="${d.date||''}" oninput="syncQD(${i},'date',this.value)" style="flex:1.2;min-width:0">
-      <select onchange="syncQD(${i},'timeStart',this.value)" style="flex:1;min-width:0">${timeSlotOpts(d.timeStart)}</select>
-      <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
-      <select onchange="syncQD(${i},'timeEnd',this.value)" style="flex:1;min-width:0">${timeSlotOpts(d.timeEnd)}</select>
+      <input type="date" value="${d.date||''}" oninput="syncQD(${i},'date',this.value)" style="flex:1">
       ${quoteDates.length > 1
         ? `<button onclick="removeQD(${i})" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text2)">×</button>`
         : '<span style="width:26px;flex-shrink:0"></span>'}
@@ -226,7 +238,7 @@ window.addQD = () => {
     const d = new Date(last.date); d.setDate(d.getDate() + 1);
     nextDate = d.toISOString().slice(0, 10);
   }
-  quoteDates.push({ date: nextDate, timeStart: last?.timeStart||'', timeEnd: last?.timeEnd||'' });
+  quoteDates.push({ date: nextDate });
   renderQuoteDates();
 };
 window.removeQD = i => { quoteDates.splice(i, 1); renderQuoteDates(); };
@@ -275,6 +287,7 @@ function initForm() {
   const params = new URLSearchParams(location.search);
 
   renderSgRooms();
+  renderComboTimeSelects();
   document.getElementById('q-issue-date').value = today;
   document.getElementById('q-client').value     = params.get('client')  || '';
   document.getElementById('q-purpose').value    = params.get('purpose') || '';
@@ -292,7 +305,11 @@ function initForm() {
   const venueParam = params.get('venue');
   if (venueParam === '아론홀' || venueParam === '샤론홀') {
     document.getElementById('q-venue').value = COMBO_VENUE;
-    document.getElementById(venueParam === '아론홀' ? 'cb-aron' : 'cb-sharon').checked = true;
+    const prefix = venueParam === '아론홀' ? 'aron' : 'sharon';
+    document.getElementById(`cb-${prefix}`).checked = true;
+    // 대관 신청에 적힌 시간이 있으면 그대로 채워줌 (없으면 직접 입력)
+    document.getElementById(`${prefix}-start`).value = quoteDates[0]?.timeStart || '';
+    document.getElementById(`${prefix}-end`).value   = quoteDates[0]?.timeEnd || '';
   } else if (venueParam && VENUES[venueParam]) {
     document.getElementById('q-venue').value = venueParam;
   }
@@ -393,12 +410,14 @@ window.updateCalc = () => {
     };
 
     const aronOn = el('cb-aron').checked;
-    const aronCost = aronOn ? packageCost(aron, el('aron-type').value, parseInt(el('aron-extra').value)||0, false) : 0;
+    const aronPkg = derivePackage(el('aron-start').value, el('aron-end').value);
+    const aronCost = aronOn ? packageCost(aron, aronPkg.type, aronPkg.extra, false) : 0;
     el('cost-aron').textContent = aronOn ? `${comma(aronCost)}원` : '–';
     perDateCost += aronCost;
 
     const sharonOn = el('cb-sharon').checked;
-    const sharonCost = sharonOn ? packageCost(sharon, el('sharon-type').value, parseInt(el('sharon-extra').value)||0, el('sharon-surcharge').checked) : 0;
+    const sharonPkg = derivePackage(el('sharon-start').value, el('sharon-end').value);
+    const sharonCost = sharonOn ? packageCost(sharon, sharonPkg.type, sharonPkg.extra, el('sharon-surcharge').checked) : 0;
     el('cost-sharon').textContent = sharonOn ? `${comma(sharonCost)}원` : '–';
     perDateCost += sharonCost;
 
@@ -494,7 +513,6 @@ window.printQuote = async () => {
 
   let rows = [], subtotal = 0;
   const dateDisplay = dateVal.replace(/-/g,'.');
-  const timeStr     = timeS && timeE ? `${timeS}–${timeE}` : '';
 
   if (vInfo.type === 'combo') {
     // 아론홀·샤론홀·5층 소그룹실 — 체크한 공간마다, 날짜마다 각각 한 행씩 (합쳐서 하나의 견적서로 발행)
@@ -502,8 +520,10 @@ window.printQuote = async () => {
     const cRate = cTier === 'over' ? 0.5 : cTier === 'under' ? 0.3 : 0;
     const cMemo = g('q-catering-memo').value.trim();
 
-    const aronOn   = g('cb-aron').checked;
-    const sharonOn = g('cb-sharon').checked;
+    const aronOn    = g('cb-aron').checked;
+    const aronStart = g('aron-start').value, aronEnd = g('aron-end').value;
+    const sharonOn    = g('cb-sharon').checked;
+    const sharonStart = g('sharon-start').value, sharonEnd = g('sharon-end').value;
     const sgSelected = SG_ROOM_IDS
       .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
@@ -518,17 +538,17 @@ window.printQuote = async () => {
     ].filter(Boolean).join(' / ');
 
     const datesToPrint = quoteDates.filter(d => d.date);
-    if (!datesToPrint.length) datesToPrint.push({ date: dateVal, timeStart: timeS, timeEnd: timeE });
+    if (!datesToPrint.length) datesToPrint.push({ date: dateVal });
 
     datesToPrint.forEach(d => {
       const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
-      const tStr = (d.timeStart && d.timeEnd) ? `${d.timeStart}–${d.timeEnd}` : timeStr;
 
       [
-        { on: aronOn,   sp: SPACE_BY_ID.aron,   type: g('aron-type').value,   extra: parseInt(g('aron-extra').value)||0,   surcharge: false },
-        { on: sharonOn, sp: SPACE_BY_ID.sharon, type: g('sharon-type').value, extra: parseInt(g('sharon-extra').value)||0, surcharge: g('sharon-surcharge').checked },
-      ].forEach(({ on, sp, type, extra, surcharge }) => {
+        { on: aronOn,   sp: SPACE_BY_ID.aron,   start: aronStart,   end: aronEnd,   surcharge: false },
+        { on: sharonOn, sp: SPACE_BY_ID.sharon, start: sharonStart, end: sharonEnd, surcharge: g('sharon-surcharge').checked },
+      ].forEach(({ on, sp, start, end, surcharge }) => {
         if (!on) return;
+        const { type, extra } = derivePackage(start, end);
         const spaceNm  = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
         const base     = type === 'base90m' ? sp.base90m : sp.base3h;
         const extraAmt = extra * sp.extraPh;
@@ -537,7 +557,7 @@ window.printQuote = async () => {
         const cDisc  = Math.round(roomTotal * cRate);
         const perDateCost = roomTotal - cDisc;
         subtotal += perDateCost;
-        rows.push({ date: dStr, time: tStr, space: spaceNm, item: purpose,
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: purpose,
           remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt, cDisc), perDateCost });
       });
 
@@ -777,8 +797,8 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       date: dateVal, dates: quoteDates,
       quoteCategory,
       qCombo: vInfo.type === 'combo' ? {
-        aron:   { on: g('cb-aron').checked, type: g('aron-type').value, extra: parseInt(g('aron-extra').value)||0 },
-        sharon: { on: g('cb-sharon').checked, type: g('sharon-type').value, extra: parseInt(g('sharon-extra').value)||0, surcharge: g('sharon-surcharge').checked },
+        aron:   { on: g('cb-aron').checked, start: g('aron-start').value, end: g('aron-end').value },
+        sharon: { on: g('cb-sharon').checked, start: g('sharon-start').value, end: g('sharon-end').value, surcharge: g('sharon-surcharge').checked },
         sgRooms: SG_ROOM_IDS.filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
           .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value })),
       } : null,
@@ -881,26 +901,26 @@ function renderHistory(q = '') {
 // 예전 형식(공간 하나만 고르던 시절, 또는 그 다음의 "+ 공간 추가" 방식)으로 저장된 견적을
 // 지금의 고정 체크박스(아론홀/샤론홀/5층 소그룹실) 구조로 변환
 function resolveCombo(h) {
-  if (h.qCombo?.sgRooms) return h.qCombo; // 이미 현재 형식(방마다 시작~종료 시간)
-  const combo = { aron: { on:false, type:'base3h', extra:0 }, sharon: { on:false, type:'base3h', extra:0, surcharge:false }, sgRooms: [] };
-  if (h.qCombo) { // 5층 소그룹실이 공용 시간 하나였던 중간 버전 — 방은 복원하되 시간은 직접 다시 입력 필요
-    combo.aron = h.qCombo.aron || combo.aron;
-    combo.sharon = h.qCombo.sharon || combo.sharon;
-    combo.sgRooms = (h.qCombo.sg?.rooms || []).map(id => ({ id, start:'', end:'' }));
+  if (h.qCombo?.aron?.start !== undefined) return h.qCombo; // 이미 현재 형식(공간마다 시작~종료 시간)
+  // 그 이전 형식들(패키지+추가시간, 공용 시간 하나, 공간 하나만 고르던 시절 등)은 시작~종료 시간이라는
+  // 개념 자체가 없었어서 정확히 되살릴 수 없음 — 어떤 공간이 켜져 있었는지만 복원하고 시간은 다시 입력받음
+  const combo = { aron: { on:false, start:'', end:'' }, sharon: { on:false, start:'', end:'', surcharge:false }, sgRooms: [] };
+  if (h.qCombo) {
+    combo.aron.on = !!h.qCombo.aron?.on;
+    combo.sharon.on = !!h.qCombo.sharon?.on;
+    combo.sharon.surcharge = !!h.qCombo.sharon?.surcharge;
+    combo.sgRooms = (h.qCombo.sgRooms || h.qCombo.sg?.rooms || []).map(r => ({ id: r.id || r, start:'', end:'' }));
     return combo;
   }
-  if (h.qSpaceItems?.length) { // "+ 공간 추가" 방식(그 이전 중간 버전)
+  if (h.qSpaceItems?.length) { // "+ 공간 추가" 방식(중간 버전)
     h.qSpaceItems.forEach(item => {
-      if (item.spaceId === 'aron')   combo.aron   = { on:true, type:item.type||'base3h', extra:item.extra||0 };
-      else if (item.spaceId === 'sharon') combo.sharon = { on:true, type:item.type||'base3h', extra:item.extra||0, surcharge:!!item.surcharge };
-      else if (item.spaceId) combo.sgRooms.push({ id: item.spaceId, start:'', end:'' }); // 시간은 직접 다시 입력 필요
+      if (item.spaceId === 'aron')   combo.aron.on = true;
+      else if (item.spaceId === 'sharon') { combo.sharon.on = true; combo.sharon.surcharge = !!item.surcharge; }
+      else if (item.spaceId) combo.sgRooms.push({ id: item.spaceId, start:'', end:'' });
     });
-  } else if (h.venue === '아론홀' || h.venue === '샤론홀') { // 공간 하나만 고르던 가장 예전 방식
-    if (h.venue === '아론홀') combo.aron = { on:true, type:h.qType||'base3h', extra:h.qExtra||0 };
-    else combo.sharon = { on:true, type:h.qType||'base3h', extra:h.qExtra||0, surcharge:!!h.qSurcharge };
-  } else if (h.venue === '5층 소그룹실') {
-    combo.sgRooms = (h.qSgRooms || []).map(id => ({ id, start:'', end:'' }));
-  }
+  } else if (h.venue === '아론홀') combo.aron.on = true;
+  else if (h.venue === '샤론홀') { combo.sharon.on = true; combo.sharon.surcharge = !!h.qSurcharge; }
+  else if (h.venue === '5층 소그룹실') combo.sgRooms = (h.qSgRooms || []).map(id => ({ id, start:'', end:'' }));
   return combo;
 }
 
@@ -912,11 +932,11 @@ function loadQuoteIntoForm(h) {
   if (resolvedVenue === COMBO_VENUE) {
     const combo = resolveCombo(h);
     document.getElementById('cb-aron').checked = !!combo.aron?.on;
-    document.getElementById('aron-type').value = combo.aron?.type || 'base3h';
-    document.getElementById('aron-extra').value = combo.aron?.extra || 0;
+    document.getElementById('aron-start').value = combo.aron?.start || '';
+    document.getElementById('aron-end').value = combo.aron?.end || '';
     document.getElementById('cb-sharon').checked = !!combo.sharon?.on;
-    document.getElementById('sharon-type').value = combo.sharon?.type || 'base3h';
-    document.getElementById('sharon-extra').value = combo.sharon?.extra || 0;
+    document.getElementById('sharon-start').value = combo.sharon?.start || '';
+    document.getElementById('sharon-end').value = combo.sharon?.end || '';
     document.getElementById('sharon-surcharge').checked = !!combo.sharon?.surcharge;
     const sgById = Object.fromEntries((combo.sgRooms || []).map(r => [r.id, r]));
     SG_ROOM_IDS.forEach(id => {
@@ -1321,16 +1341,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         </select>
       </div>
 
-      <!-- 아론홀/샤론홀/5층 소그룹실 복합 견적: 체크박스로 필요한 공간만 켜서 하나로 합산 -->
+      <!-- 아론홀/샤론홀/5층 소그룹실 복합 견적: 날짜는 공통으로 고르고, 공간마다(방마다) 실제 이용 시간은 따로 입력 -->
       <div id="sec-hourly">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <div class="lbl">날짜 / 시간</div>
+          <div class="lbl">날짜 <span style="font-weight:400;color:var(--text3)">(공용 — 아래 공간에 모두 적용됨)</span></div>
           <button class="btn-add-date" onclick="addQD()">+ 날짜 추가</button>
         </div>
         <div id="q-date-rows"></div>
         <input type="hidden" id="q-time-start">
         <input type="hidden" id="q-time-end">
-        <div class="lbl" style="margin:14px 0 8px">공간 선택</div>
+        <div class="lbl" style="margin:14px 0 8px">공간 선택 <span style="font-weight:400;color:var(--text3)">(공간마다 시작~종료 시간이 다를 수 있음)</span></div>
 
         <!-- 아론홀 -->
         <div class="room-card">
@@ -1339,14 +1359,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span class="room-name">아론홀</span>
             <span class="room-desc" id="cost-aron">–</span>
           </div>
-          <div class="room-body" style="flex-wrap:wrap">
-            <span class="lbl" style="margin:0">이용 유형</span>
-            <select id="aron-type" onchange="updateCalc()">
-              <option value="base3h">기본(3시간) 200,000원</option>
-              <option value="base90m">단시간(90분) 100,000원</option>
-            </select>
-            <span class="lbl" style="margin:0">추가시간</span>
-            <input type="number" id="aron-extra" min="0" value="0" oninput="updateCalc()" style="max-width:64px">
+          <div class="room-body">
+            <select id="aron-start" onchange="updateCalc()"></select>
+            <span>~</span>
+            <select id="aron-end" onchange="updateCalc()"></select>
           </div>
         </div>
 
@@ -1358,13 +1374,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span class="room-desc" id="cost-sharon">–</span>
           </div>
           <div class="room-body" style="flex-wrap:wrap">
-            <span class="lbl" style="margin:0">이용 유형</span>
-            <select id="sharon-type" onchange="updateCalc()">
-              <option value="base3h">기본(3시간) 300,000원</option>
-              <option value="base90m">단시간(90분) 150,000원</option>
-            </select>
-            <span class="lbl" style="margin:0">추가시간</span>
-            <input type="number" id="sharon-extra" min="0" value="0" oninput="updateCalc()" style="max-width:64px">
+            <select id="sharon-start" onchange="updateCalc()"></select>
+            <span>~</span>
+            <select id="sharon-end" onchange="updateCalc()"></select>
             <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--amber);font-weight:600">
               <input type="checkbox" id="sharon-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)"> 시간대 할증 +20%
             </label>
