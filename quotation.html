@@ -93,9 +93,9 @@ const STR = {
     asBelow: '아래와 같이 견적합니다.',
     totalLabel: '합계금액 (공급가액+세액)',
     vatIncluded: 'VAT 포함',
-    thDate: '날짜', thTime: '시간', thSpace: '공간', thCap: '수용인원', thItem: '항목',
+    thDate: '날짜', thTime: '시간', thSpace: '공간', thItem: '항목',
     thSupply: '공급가액', thVat: '세액', thRemarks: '비고',
-    subtotal: '계', grandTotal: '총&nbsp;&nbsp;계',
+    subtotal: '할인 전 합계', grandTotal: '최종&nbsp;예상&nbsp;금액',
     bankInfo: '계좌정보', contact: '문의',
     discountMission: '선교사 할인 50%',
     discountRelated: '유관기관 할인 20%',
@@ -126,9 +126,9 @@ const STR = {
     asBelow: 'As per the details below.',
     totalLabel: 'Total Amount (Supply + VAT)',
     vatIncluded: 'VAT Included',
-    thDate: 'Date', thTime: 'Time', thSpace: 'Space', thCap: 'Capacity', thItem: 'Item',
+    thDate: 'Date', thTime: 'Time', thSpace: 'Space', thItem: 'Item',
     thSupply: 'Supply Amount', thVat: 'VAT', thRemarks: 'Remarks',
-    subtotal: 'Subtotal', grandTotal: 'Total',
+    subtotal: 'Subtotal (Before Discount)', grandTotal: 'Final Estimated Amount',
     bankInfo: 'Bank Account', contact: 'Contact',
     discountMission: 'Missionary Discount 50%',
     discountRelated: 'Partner Organization Discount 20%',
@@ -517,6 +517,7 @@ window.printQuote = async () => {
     : '';
 
   let rows = [], subtotal = 0;
+  var cateringDiscAmt = 0;
   const dateDisplay = dateVal.replace(/-/g,'.');
 
   if (vInfo.type === 'combo') {
@@ -561,7 +562,7 @@ window.printQuote = async () => {
         let roomTotal  = base + extraAmt;
         if (sp.surcharge && surcharge) roomTotal = Math.round(roomTotal * 1.2);
         subtotal += roomTotal;
-        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: memo || purpose,
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: memo || purpose,
           remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt), perDateCost: roomTotal });
       });
 
@@ -575,13 +576,13 @@ window.printQuote = async () => {
         const remarks = lang === 'en'
           ? `${hours}hr×${comma(sp.ratePh)}=${comma(cost)}`
           : `${hours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`;
-        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, cap: sp.cap, item: memo || purpose,
+        rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: memo || purpose,
           remarks, perDateCost: cost });
       });
     });
 
     // 케이터링 할인은 개별 공간이 아니라 (아론홀+샤론홀+5층 소그룹실) 전체 합산 금액에 한 번만 적용
-    var cateringDiscAmt = Math.round(subtotal * cRate);
+    cateringDiscAmt = Math.round(subtotal * cRate);
     subtotal -= cateringDiscAmt;
   } else {
     // 지혜홀 — 항목별 행
@@ -600,7 +601,7 @@ window.printQuote = async () => {
       const roomTotal = perNight * nights;
       subtotal += roomTotal;
       const roomDesc = lang === 'en' ? (ROOM_DESC_EN[room.desc] || room.desc) : room.desc;
-      rows.push({ date: dateRange, time:'', space: venueDisplay, cap: room.max,
+      rows.push({ date: dateRange, time:'', space: venueDisplay,
         item: `${room.name} (${roomDesc}) ${L.nights(nights)}`,
         total: roomTotal,
         // 세금 포함 금액이라 클라이언트가 헷갈리지 않도록 1박당 단가와 총액을 함께 표기
@@ -624,10 +625,14 @@ window.printQuote = async () => {
     }
   }
 
-  const discountAmt = Math.round(subtotal * discountRate);
-  const total  = subtotal - discountAmt;
-  const supply = Math.round(total / 1.1);
-  const vat    = total - supply;
+  const discountAmt  = Math.round(subtotal * discountRate);
+  const total        = subtotal - discountAmt;
+  const supply       = Math.round(total / 1.1);
+  const vat          = total - supply;
+  // 할인 전 합계(케이터링 할인이 빠지기 전 원래 금액) — 표 아래에 "할인 전 합계 → 할인 내역 → 최종 금액" 순으로 보여주기 위함
+  const rawSubtotal  = subtotal + cateringDiscAmt;
+  const rawSupply    = Math.round(rawSubtotal / 1.1);
+  const rawVat       = rawSubtotal - rawSupply;
 
   // ── 인쇄 HTML ──
   const issueDateFmt = L.validity(issueDate);
@@ -644,30 +649,15 @@ window.printQuote = async () => {
 
   const buildRows = () => {
     if (vInfo.type === 'combo') {
-      let html = rows.map((r, i) => {
+      return rows.map((r, i) => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
           ${dateCellHtml(i)}<td>${r.time}</td><td>${r.space}</td>
-          <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
           <td class="left sm">${r.remarks}</td>
         </tr>`;
       }).join('');
-      if (cateringDiscAmt) {
-        const cLabel = [L.cateringDiscount(cRate*100), cMemo ? L.cateringMemo(cMemo) : ''].filter(Boolean).join(' / ');
-        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${cLabel}</td>
-          <td class="num" style="color:#a00">-${comma(Math.round(cateringDiscAmt/1.1))}</td>
-          <td class="num" style="color:#a00">-${comma(cateringDiscAmt - Math.round(cateringDiscAmt/1.1))}</td>
-          <td></td></tr>`;
-      }
-      if (discountAmt) {
-        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
-          <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
-          <td class="num" style="color:#a00">-${comma(discountAmt - Math.round(discountAmt/1.1))}</td>
-          <td></td></tr>`;
-      }
-      return html;
     } else {
       let html = '';
       rows.forEach((r, i) => {
@@ -675,21 +665,33 @@ window.printQuote = async () => {
         const v = r.total ? r.total - s : 0;
         html += `<tr>
           ${dateCellHtml(i)}<td>${r.time||''}</td><td>${r.space||''}</td>
-          <td>${r.cap ? (lang==='en'?`${r.cap}`:`${r.cap}명`) : ''}</td>
           <td class="left">${r.item}</td>
           <td class="num">${r.total ? comma(s) : ''}</td>
           <td class="num">${r.total ? comma(v) : ''}</td>
           <td class="left sm">${r.remarks||''}</td>
         </tr>`;
       });
-      if (discountAmt) {
-        html += `<tr><td colspan="5" class="left" style="color:#a00;font-style:italic">${discountLabel}</td>
-          <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
-          <td class="num" style="color:#a00">-${comma(discountAmt - Math.round(discountAmt/1.1))}</td>
-          <td></td></tr>`;
-      }
       return html;
     }
+  };
+
+  // 할인 내역 — "할인 전 합계" 행과 "최종 예상 금액" 행 사이에 표시
+  const discountRowsHtml = () => {
+    let html = '';
+    if (cateringDiscAmt) {
+      const cLabel = [L.cateringDiscount(cRate*100), cMemo ? L.cateringMemo(cMemo) : ''].filter(Boolean).join(' / ');
+      html += `<tr><td colspan="4" style="text-align:right;color:#a00;font-style:italic">${cLabel}</td>
+        <td class="num" style="color:#a00">-${comma(Math.round(cateringDiscAmt/1.1))}</td>
+        <td class="num" style="color:#a00">-${comma(cateringDiscAmt - Math.round(cateringDiscAmt/1.1))}</td>
+        <td></td></tr>`;
+    }
+    if (discountAmt) {
+      html += `<tr><td colspan="4" style="text-align:right;color:#a00;font-style:italic">${discountLabel}</td>
+        <td class="num" style="color:#a00">-${comma(Math.round(discountAmt/1.1))}</td>
+        <td class="num" style="color:#a00">-${comma(discountAmt - Math.round(discountAmt/1.1))}</td>
+        <td></td></tr>`;
+    }
+    return html;
   };
 
   const logoImg = `<img src="data:image/png;base64,${IAM_LOGO_B64}" alt="IAM CENTER" style="height:34px;width:auto;display:block">`;
@@ -718,7 +720,7 @@ body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;fo
 .total-label{font-size:14px;color:#444;}
 .total-amt{font-size:18px;font-weight:900;color:#185FA5;}
 /* ── 표 ── */
-table{width:100%;border-collapse:collapse;margin-top:4px;}
+table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:4px;}
 th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;text-align:center;border:1px solid #1a2533;}
 td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;}
 td.left{text-align:left;}
@@ -776,14 +778,13 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 <table>
   <thead>
     <tr>
-      <th style="width:10%">${L.thDate}</th>
-      <th style="width:9%">${L.thTime}</th>
-      <th style="width:8%">${L.thSpace}</th>
-      <th style="width:8%">${L.thCap}</th>
-      <th style="width:14%">${L.thItem}</th>
-      <th style="width:9%">${L.thSupply}</th>
-      <th style="width:7%">${L.thVat}</th>
-      <th style="width:35%">${L.thRemarks}</th>
+      <th style="width:11%">${L.thDate}</th>
+      <th style="width:8%">${L.thTime}</th>
+      <th style="width:9%">${L.thSpace}</th>
+      <th style="width:16%">${L.thItem}</th>
+      <th style="width:10%">${L.thSupply}</th>
+      <th style="width:8%">${L.thVat}</th>
+      <th style="width:38%">${L.thRemarks}</th>
     </tr>
   </thead>
   <tbody>
@@ -792,10 +793,11 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
   <tfoot>
     <tr class="sub-total">
       <td colspan="4" style="text-align:right">${L.subtotal}</td>
-      <td class="num">${comma(supply)}</td>
-      <td class="num">${comma(vat)}</td>
+      <td class="num">${comma(rawSupply)}</td>
+      <td class="num">${comma(rawVat)}</td>
       <td class="left sm">${memo||''}</td>
     </tr>
+    ${discountRowsHtml()}
     <tr class="grand-total">
       <td colspan="4" style="text-align:right">${L.grandTotal}</td>
       <td colspan="3" class="num">₩&nbsp;${comma(total)}</td>
