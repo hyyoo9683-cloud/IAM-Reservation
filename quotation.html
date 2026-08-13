@@ -172,6 +172,34 @@ function timeSlotOpts(val) {
   return '<option value="">--:--</option>' + TIME_SLOTS.map(t =>
     `<option value="${t}" ${t===val?'selected':''}>${t}</option>`).join('');
 }
+function timeDiffHours(start, end) {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number);
+  return Math.max(0, ((eh*60+em) - (sh*60+sm)) / 60);
+}
+
+// 5층 소그룹실: 방마다 한 줄(버튼 + 그 방만의 시작~종료 시간) — 페이지 로드 시 한 번만 그림
+function renderSgRooms() {
+  const el = document.getElementById('sg-room-list');
+  if (!el) return;
+  el.innerHTML = SG_ROOM_IDS.map(id => `
+    <div class="sg-room-row">
+      <button type="button" class="sg-room-btn" id="sg-btn-${id}" onclick="toggleSgRoom('${id}')">${SPACE_BY_ID[id].name}</button>
+      <div class="sg-room-time" id="sg-time-wrap-${id}" style="display:none">
+        <select id="sg-start-${id}" onchange="updateCalc()">${timeSlotOpts('')}</select>
+        <span>~</span>
+        <select id="sg-end-${id}" onchange="updateCalc()">${timeSlotOpts('')}</select>
+      </div>
+    </div>`).join('');
+}
+window.toggleSgRoom = (id) => {
+  const btn  = document.getElementById(`sg-btn-${id}`);
+  const wrap = document.getElementById(`sg-time-wrap-${id}`);
+  const on   = !btn.classList.contains('active');
+  btn.classList.toggle('active', on);
+  wrap.style.display = on ? '' : 'none';
+  updateCalc();
+};
 function renderQuoteDates() {
   const el = document.getElementById('q-date-rows');
   if (!el) return;
@@ -246,6 +274,7 @@ function initForm() {
   const today  = new Date().toISOString().slice(0,10);
   const params = new URLSearchParams(location.search);
 
+  renderSgRooms();
   document.getElementById('q-issue-date').value = today;
   document.getElementById('q-client').value     = params.get('client')  || '';
   document.getElementById('q-purpose').value    = params.get('purpose') || '';
@@ -373,13 +402,13 @@ window.updateCalc = () => {
     el('cost-sharon').textContent = sharonOn ? `${comma(sharonCost)}원` : '–';
     perDateCost += sharonCost;
 
-    const sgOn = el('cb-sg').checked;
-    const sgHours = parseFloat(el('sg-hours').value) || 0;
     let sgCost = 0;
-    if (sgOn) {
-      SG_ROOM_IDS.forEach(id => { if (el(`sg-${id}`).checked) sgCost += SPACE_BY_ID[id].ratePh * sgHours; });
-    }
-    el('cost-sg').textContent = (sgOn && sgCost) ? `${comma(sgCost)}원` : '–';
+    SG_ROOM_IDS.forEach(id => {
+      if (!document.getElementById(`sg-btn-${id}`).classList.contains('active')) return;
+      const hrs = timeDiffHours(el(`sg-start-${id}`).value, el(`sg-end-${id}`).value);
+      sgCost += SPACE_BY_ID[id].ratePh * hrs;
+    });
+    el('cost-sg').textContent = sgCost ? `${comma(sgCost)}원` : '–';
     perDateCost += sgCost;
 
     subtotal = perDateCost * dateCount;
@@ -475,9 +504,10 @@ window.printQuote = async () => {
 
     const aronOn   = g('cb-aron').checked;
     const sharonOn = g('cb-sharon').checked;
-    const sgOn     = g('cb-sg').checked;
-    const sgHours  = parseFloat(g('sg-hours').value) || 0;
-    const sgSelected = sgOn ? SG_ROOM_IDS.filter(id => g(`sg-${id}`).checked) : [];
+    const sgSelected = SG_ROOM_IDS
+      .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
+      .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
+        hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value) }));
 
     const packageRemarks = (sp, type, extra, surcharge, base, extraAmt, cDisc) => [
       type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
@@ -511,21 +541,24 @@ window.printQuote = async () => {
           remarks: packageRemarks(sp, type, extra, surcharge, base, extraAmt, cDisc), perDateCost });
       });
 
+      // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 한 행으로 묶되,
+      // 시간 칸은 비우고 방별 실제 시간·시간수·금액을 비고에 적어 정확히 남김
       if (sgSelected.length) {
-        const flatBreakdown = sgSelected.map(id => {
+        const flatBreakdown = sgSelected.map(({ id, start, end, hours }) => {
           const sp = SPACE_BY_ID[id];
           const roomNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
-          const cost = sp.ratePh * sgHours;
+          const cost = sp.ratePh * hours;
+          const timeLbl = (start && end) ? `${start}-${end} ` : '';
           return lang === 'en'
-            ? `${roomNm} ${sgHours}hr×${comma(sp.ratePh)}=${comma(cost)}`
-            : `${roomNm} ${sgHours}시간×${comma(sp.ratePh)}원=${comma(cost)}원`;
+            ? `${roomNm} ${timeLbl}(${hours}hr)×${comma(sp.ratePh)}=${comma(cost)}`
+            : `${roomNm} ${timeLbl}(${hours}시간)×${comma(sp.ratePh)}원=${comma(cost)}원`;
         });
-        const flatCost = sgSelected.reduce((sum, id) => sum + SPACE_BY_ID[id].ratePh * sgHours, 0);
+        const flatCost = sgSelected.reduce((sum, r) => sum + SPACE_BY_ID[r.id].ratePh * r.hours, 0);
         subtotal += flatCost;
         const spaceNm = sgSelected.length > 1
           ? (lang === 'en' ? '5F Small Group Rooms' : '5층 소그룹실')
-          : (lang === 'en' ? (SPACE_BY_ID[sgSelected[0]].nameEn || SPACE_BY_ID[sgSelected[0]].name) : SPACE_BY_ID[sgSelected[0]].name);
-        rows.push({ date: dStr, time: tStr, space: spaceNm, item: purpose,
+          : (lang === 'en' ? (SPACE_BY_ID[sgSelected[0].id].nameEn || SPACE_BY_ID[sgSelected[0].id].name) : SPACE_BY_ID[sgSelected[0].id].name);
+        rows.push({ date: dStr, time: '', space: spaceNm, item: purpose,
           remarks: flatBreakdown.join(', '), perDateCost: flatCost });
       }
     });
@@ -746,7 +779,8 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       qCombo: vInfo.type === 'combo' ? {
         aron:   { on: g('cb-aron').checked, type: g('aron-type').value, extra: parseInt(g('aron-extra').value)||0 },
         sharon: { on: g('cb-sharon').checked, type: g('sharon-type').value, extra: parseInt(g('sharon-extra').value)||0, surcharge: g('sharon-surcharge').checked },
-        sg:     { on: g('cb-sg').checked, hours: parseFloat(g('sg-hours').value)||0, rooms: SG_ROOM_IDS.filter(id => g(`sg-${id}`).checked) },
+        sgRooms: SG_ROOM_IDS.filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
+          .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value })),
       } : null,
       qCatering:    document.querySelector('input[name="q-catering"]:checked')?.value || 'none',
       qCateringMemo: g('q-catering-memo')?.value.trim() || '',
@@ -798,7 +832,7 @@ function historyVenueLabel(h) {
     const names = [
       c.aron?.on ? '아론홀' : '',
       c.sharon?.on ? '샤론홀' : '',
-      ...(c.sg?.on ? (c.sg.rooms || []).map(id => SPACE_BY_ID[id]?.name).filter(Boolean) : []),
+      ...(c.sgRooms || []).map(r => SPACE_BY_ID[r.id]?.name).filter(Boolean),
     ].filter(Boolean);
     return names.length ? names.join(', ') : COMBO_VENUE;
   }
@@ -847,19 +881,25 @@ function renderHistory(q = '') {
 // 예전 형식(공간 하나만 고르던 시절, 또는 그 다음의 "+ 공간 추가" 방식)으로 저장된 견적을
 // 지금의 고정 체크박스(아론홀/샤론홀/5층 소그룹실) 구조로 변환
 function resolveCombo(h) {
-  if (h.qCombo) return h.qCombo; // 이미 현재 형식
-  const combo = { aron: { on:false, type:'base3h', extra:0 }, sharon: { on:false, type:'base3h', extra:0, surcharge:false }, sg: { on:false, hours:1, rooms:[] } };
-  if (h.qSpaceItems?.length) { // "+ 공간 추가" 방식(중간 버전)
+  if (h.qCombo?.sgRooms) return h.qCombo; // 이미 현재 형식(방마다 시작~종료 시간)
+  const combo = { aron: { on:false, type:'base3h', extra:0 }, sharon: { on:false, type:'base3h', extra:0, surcharge:false }, sgRooms: [] };
+  if (h.qCombo) { // 5층 소그룹실이 공용 시간 하나였던 중간 버전 — 방은 복원하되 시간은 직접 다시 입력 필요
+    combo.aron = h.qCombo.aron || combo.aron;
+    combo.sharon = h.qCombo.sharon || combo.sharon;
+    combo.sgRooms = (h.qCombo.sg?.rooms || []).map(id => ({ id, start:'', end:'' }));
+    return combo;
+  }
+  if (h.qSpaceItems?.length) { // "+ 공간 추가" 방식(그 이전 중간 버전)
     h.qSpaceItems.forEach(item => {
       if (item.spaceId === 'aron')   combo.aron   = { on:true, type:item.type||'base3h', extra:item.extra||0 };
       else if (item.spaceId === 'sharon') combo.sharon = { on:true, type:item.type||'base3h', extra:item.extra||0, surcharge:!!item.surcharge };
-      else if (item.spaceId) { combo.sg.on = true; combo.sg.hours = item.hours || combo.sg.hours; combo.sg.rooms.push(item.spaceId); }
+      else if (item.spaceId) combo.sgRooms.push({ id: item.spaceId, start:'', end:'' }); // 시간은 직접 다시 입력 필요
     });
   } else if (h.venue === '아론홀' || h.venue === '샤론홀') { // 공간 하나만 고르던 가장 예전 방식
     if (h.venue === '아론홀') combo.aron = { on:true, type:h.qType||'base3h', extra:h.qExtra||0 };
     else combo.sharon = { on:true, type:h.qType||'base3h', extra:h.qExtra||0, surcharge:!!h.qSurcharge };
   } else if (h.venue === '5층 소그룹실') {
-    combo.sg = { on:true, hours:h.qSgHours||1, rooms:h.qSgRooms||[] };
+    combo.sgRooms = (h.qSgRooms || []).map(id => ({ id, start:'', end:'' }));
   }
   return combo;
 }
@@ -878,9 +918,15 @@ function loadQuoteIntoForm(h) {
     document.getElementById('sharon-type').value = combo.sharon?.type || 'base3h';
     document.getElementById('sharon-extra').value = combo.sharon?.extra || 0;
     document.getElementById('sharon-surcharge').checked = !!combo.sharon?.surcharge;
-    document.getElementById('cb-sg').checked = !!combo.sg?.on;
-    document.getElementById('sg-hours').value = combo.sg?.hours || 1;
-    SG_ROOM_IDS.forEach(id => { document.getElementById(`sg-${id}`).checked = (combo.sg?.rooms || []).includes(id); });
+    const sgById = Object.fromEntries((combo.sgRooms || []).map(r => [r.id, r]));
+    SG_ROOM_IDS.forEach(id => {
+      const r = sgById[id];
+      const btn = document.getElementById(`sg-btn-${id}`);
+      btn.classList.toggle('active', !!r);
+      document.getElementById(`sg-time-wrap-${id}`).style.display = r ? '' : 'none';
+      document.getElementById(`sg-start-${id}`).value = r?.start || '';
+      document.getElementById(`sg-end-${id}`).value = r?.end || '';
+    });
   }
 
   document.getElementById('q-client').value     = h.client    || '';
@@ -1093,6 +1139,16 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .room-body{display:flex;align-items:center;gap:9px;padding-left:26px;}
 .room-body .lbl{margin:0;white-space:nowrap;font-size:14px;}
 .room-body input[type=number]{max-width:74px;}
+
+/* 5층 소그룹실: 방마다 한 줄 — 버튼으로 선택하면 옆에 시간 입력이 나타남 */
+.sg-room-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.sg-room-btn{flex-shrink:0;white-space:nowrap;padding:8px 16px;border-radius:8px;
+  border:1px solid var(--border);background:#fff;font-size:14px;font-weight:600;
+  color:var(--text2);cursor:pointer;font-family:inherit;transition:all .12s;width:84px;text-align:center;}
+.sg-room-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+.sg-room-time{display:flex;align-items:center;gap:6px;}
+.sg-room-time select{padding:8px 8px;font-size:13px;}
+.sg-room-time span{color:var(--text3);font-size:12px;flex-shrink:0;}
 
 /* 계산 카드 */
 .calc-card{background:#fff;border:1px solid var(--border2);border-radius:12px;padding:20px;}
@@ -1315,29 +1371,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           </div>
         </div>
 
-        <!-- 5층 소그룹실 -->
+        <!-- 5층 소그룹실: 방마다 버튼으로 선택 + 버튼 옆에 그 방만의 시작~종료 시간 (방마다 시간이 다를 수 있음) -->
         <div class="room-card">
-          <div class="room-header">
-            <input type="checkbox" id="cb-sg" onchange="updateCalc()">
+          <div class="room-header" style="margin-bottom:10px">
             <span class="room-name">5층 소그룹실</span>
             <span class="room-desc" id="cost-sg">–</span>
           </div>
-          <div class="room-body" style="flex-direction:column;align-items:stretch;gap:10px">
-            <div style="display:flex;align-items:center;gap:8px">
-              <span class="lbl" style="margin:0;white-space:nowrap">이용 시간</span>
-              <input type="number" id="sg-hours" min="0.5" step="0.5" value="1" oninput="updateCalc()" style="max-width:70px">
-              <span style="font-size:13px;color:var(--text3)">시간</span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px 18px;padding-left:2px">
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-505" onchange="updateCalc()">505호 <span style="color:var(--text3);font-size:12px">4만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-506" onchange="updateCalc()">506호 <span style="color:var(--text3);font-size:12px">3만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-507" onchange="updateCalc()">507호 <span style="color:var(--text3);font-size:12px">4만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-508" onchange="updateCalc()">508호 <span style="color:var(--text3);font-size:12px">3만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-509" onchange="updateCalc()">509호 <span style="color:var(--text3);font-size:12px">3만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-510" onchange="updateCalc()">510호 <span style="color:var(--text3);font-size:12px">3만원/시간</span></label>
-              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer"><input type="checkbox" id="sg-511" onchange="updateCalc()">511호 <span style="color:var(--text3);font-size:12px">3만원/시간</span></label>
-            </div>
-          </div>
+          <div id="sg-room-list"></div>
         </div>
       </div>
 
