@@ -46,9 +46,22 @@ const VENUES = {
       { id: 'r3', name: 'Room 3', desc: '2인실', base: 20000, max: 2 },
     ],
   },
+  // 5층 소그룹실: 여러 개를 함께 골라 하나의 견적서로 합산 발행 (시간당 정액제, 3시간 패키지 없음)
+  '5층 소그룹실': {
+    type: 'multiroom',
+    rooms: [
+      { id: '505', name: '505호', ratePh: 40000 },
+      { id: '506', name: '506호', ratePh: 30000 },
+      { id: '507', name: '507호', ratePh: 40000 },
+      { id: '508', name: '508호', ratePh: 30000 },
+      { id: '509', name: '509호', ratePh: 30000 },
+      { id: '510', name: '510호', ratePh: 30000 },
+      { id: '511', name: '511호', ratePh: 30000 },
+    ],
+  },
 };
 // 영문 견적서용 공간 이름 (해당 항목 없으면 한글 이름 그대로 표시)
-const VENUE_NAME_EN = { '아론홀': 'Aaron Hall', '샤론홀': 'Sharon Hall', '지혜홀': 'Wisdom Hall' };
+const VENUE_NAME_EN = { '아론홀': 'Aaron Hall', '샤론홀': 'Sharon Hall', '지혜홀': 'Wisdom Hall', '5층 소그룹실': '5F Small Group Rooms' };
 const ROOM_DESC_EN = { '3인실': '3-person room', '2인실': '2-person room' };
 
 const ISSUER = {
@@ -248,18 +261,23 @@ window.switchVenue = () => {
   const venue     = document.getElementById('q-venue').value;
   const vInfo     = VENUES[venue];
   const hourly    = vInfo.type === 'hourly';
-  const isLodging = !hourly;
+  const multiroom = vInfo.type === 'multiroom';
+  const isLodging = vInfo.type === 'lodging';
+  const showDates = hourly || multiroom;
 
-  document.getElementById('sec-hourly').style.display   = hourly ? '' : 'none';
-  document.getElementById('sec-lodging').style.display  = hourly ? 'none' : '';
-  document.getElementById('sec-catering').style.display = hourly ? '' : 'none';
+  document.getElementById('sec-hourly').style.display    = showDates ? '' : 'none';
+  document.getElementById('sec-hourly-pkg').style.display = hourly ? '' : 'none';
+  document.getElementById('sec-multiroom').style.display = multiroom ? '' : 'none';
+  document.getElementById('sec-lodging').style.display   = isLodging ? '' : 'none';
+  document.getElementById('sec-catering').style.display  = hourly ? '' : 'none';
   document.getElementById('row-surcharge').style.display    = (hourly && vInfo.surcharge) ? '' : 'none';
   document.getElementById('q-surcharge-wrap').style.display = (hourly && vInfo.surcharge) ? '' : 'none';
 
   // 계산 행 표시 조정
   ['row-hourly-base', 'row-hourly-extra', 'row-catering'].forEach(id => {
-    document.getElementById(id).style.display = isLodging ? 'none' : '';
+    document.getElementById(id).style.display = hourly ? '' : 'none';
   });
+  document.getElementById('row-mr-rooms').style.display = multiroom ? '' : 'none';
   ['row-admin-fee', 'row-clean-fee', 'row-discount'].forEach(id => {
     document.getElementById(id).style.display = isLodging ? '' : 'none';
   });
@@ -274,7 +292,7 @@ window.switchVenue = () => {
     syncCheckoutFromNights();
   }
 
-  if (hourly) renderQuoteDates();
+  if (showDates) renderQuoteDates();
   updateCalc();
 };
 
@@ -314,7 +332,7 @@ window.updateCalc = () => {
   const vInfo = VENUES[venue];
   const el    = id => document.getElementById(id);
 
-  const discountType = (vInfo.type === 'hourly') ? 'none'
+  const discountType = (vInfo.type === 'hourly' || vInfo.type === 'multiroom') ? 'none'
     : (document.querySelector('input[name="q-discount"]:checked')?.value || 'none');
   const discountRate = resolveDiscountRate(discountType, el);
 
@@ -349,6 +367,23 @@ window.updateCalc = () => {
     el('c-extra').textContent   = extra ? `+${comma(extraAmt)}` : '–';
     el('c-surcharge').textContent = (vInfo.surcharge && surOn) ? '+20%' : '–';
     el('c-catering').textContent  = cDisc ? `-${comma(cDisc)} (${cRate*100}%)` : '–';
+
+  } else if (vInfo.type === 'multiroom') {
+    // 5층 소그룹실 — 여러 방을 동시에 골라 시간당 정액 요금을 합산
+    const hours = parseFloat(el('q-sg-hours').value) || 0;
+    const dateCount = quoteDates.filter(d => d.date).length || 1;
+    const selected = vInfo.rooms.filter(room => el(`sg-${room.id}`)?.checked);
+    const perDateCost = selected.reduce((sum, room) => sum + room.ratePh * hours, 0);
+    subtotal = perDateCost * dateCount;
+
+    const dcRow = el('row-date-count');
+    if (dcRow) {
+      dcRow.style.display = dateCount > 1 ? '' : 'none';
+      el('c-date-count').textContent = `× ${dateCount}일`;
+    }
+    el('c-mr-rooms').textContent = selected.length
+      ? selected.map(room => `${room.name} ${comma(room.ratePh * hours)}`).join(', ')
+      : '–';
 
   } else {
     // 지혜홀 숙박
@@ -454,6 +489,23 @@ window.printQuote = async () => {
       rows.push({ date: dStr, time: tStr, space: venueDisplay, item: purpose, remarks, perDateCost });
     });
     subtotal = perDateCost * datesToPrint.length;
+  } else if (vInfo.type === 'multiroom') {
+    // 5층 소그룹실 — 선택한 방마다, 날짜마다 각각 한 행씩 (합쳐서 하나의 견적서로 발행)
+    const hours = parseFloat(g('q-sg-hours').value) || 0;
+    const selected = vInfo.rooms.filter(room => g(`sg-${room.id}`)?.checked);
+    const datesToPrint = quoteDates.filter(d => d.date);
+    if (!datesToPrint.length) datesToPrint.push({ date: dateVal, timeStart: timeS, timeEnd: timeE });
+    datesToPrint.forEach(d => {
+      const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
+      const tStr = (d.timeStart && d.timeEnd) ? `${d.timeStart}–${d.timeEnd}` : timeStr;
+      selected.forEach(room => {
+        const perDateCost = room.ratePh * hours;
+        subtotal += perDateCost;
+        rows.push({ date: dStr, time: tStr, space: room.name, item: purpose,
+          remarks: `${hours}${lang==='en' ? 'hr' : '시간'} × ${comma(room.ratePh)}${lang==='en' ? '/hr' : '원/시간'}`,
+          perDateCost });
+      });
+    });
   } else {
     // 지혜홀 — 항목별 행
     const nights = parseInt(g('q-nights').value) || 1;
@@ -504,7 +556,7 @@ window.printQuote = async () => {
   const issueDateFmt = L.validity(issueDate);
 
   const buildRows = () => {
-    if (vInfo.type === 'hourly') {
+    if (vInfo.type === 'hourly' || vInfo.type === 'multiroom') {
       return rows.map(r => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
@@ -672,6 +724,10 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       qRooms: vInfo.type === 'lodging'
         ? vInfo.rooms.map(room => ({ id: room.id, checked: !!g(`jH-${room.id}`)?.checked, ppl: parseInt(g(`jH-${room.id}-ppl`)?.value) || 2 }))
         : [],
+      qSgHours: vInfo.type === 'multiroom' ? (parseFloat(g('q-sg-hours')?.value) || 0) : 0,
+      qSgRooms: vInfo.type === 'multiroom'
+        ? vInfo.rooms.filter(room => g(`sg-${room.id}`)?.checked).map(room => room.id)
+        : [],
       qSnackOn:  g('jH-snack-on')?.checked || false,
       qSnackAmt: parseInt(g('jH-snack-amt')?.value) || 0,
       discountType,
@@ -788,6 +844,13 @@ function loadQuoteIntoForm(h) {
       const ppl = document.getElementById(`jH-${r.id}-ppl`);
       if (chk) chk.checked = !!r.checked;
       if (ppl && r.ppl) ppl.value = r.ppl;
+    });
+
+    // 5층 소그룹실 전용 필드 복원
+    if (h.qSgHours) { const el = document.getElementById('q-sg-hours'); if (el) el.value = h.qSgHours; }
+    (h.qSgRooms || []).forEach(id => {
+      const chk = document.getElementById(`sg-${id}`);
+      if (chk) chk.checked = true;
     });
     if (h.qSnackOn) {
       const el = document.getElementById('jH-snack-on'); if (el) el.checked = true;
@@ -1132,6 +1195,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <option value="아론홀">아론홀</option>
           <option value="샤론홀">샤론홀</option>
           <option value="지혜홀">지혜홀</option>
+          <option value="5층 소그룹실">5층 소그룹실</option>
         </select>
       </div>
 
@@ -1144,21 +1208,59 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div id="q-date-rows"></div>
         <input type="hidden" id="q-time-start">
         <input type="hidden" id="q-time-end">
-        <div class="fg"><div class="lbl">이용 유형</div>
-          <select id="q-type" onchange="updateCalc()">
-            <option value="base3h">기본 (3시간)</option>
-            <option value="base90m">단시간 (90분 이내)</option>
-          </select>
+        <div id="sec-hourly-pkg">
+          <div class="fg"><div class="lbl">이용 유형</div>
+            <select id="q-type" onchange="updateCalc()">
+              <option value="base3h">기본 (3시간)</option>
+              <option value="base90m">단시간 (90분 이내)</option>
+            </select>
+          </div>
+          <div class="fg"><div class="lbl">추가 시간 (시간)</div>
+            <input type="number" id="q-extra" min="0" value="0" oninput="updateCalc()">
+          </div>
+          <div id="q-surcharge-wrap" style="display:none;margin-bottom:12px">
+            <label class="radio-opt" style="background:var(--amber-lt);border-color:var(--amber)">
+              <input type="checkbox" id="q-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)">
+              <span class="radio-opt-label" style="color:var(--amber);font-weight:600">시간대 할증 +20%<br><span style="font-size:13px;font-weight:400">평일 17시 이후 / 주말·공휴일</span></span>
+            </label>
+          </div>
         </div>
-        <div class="fg"><div class="lbl">추가 시간 (시간)</div>
-          <input type="number" id="q-extra" min="0" value="0" oninput="updateCalc()">
+      </div>
+
+      <!-- 5층 소그룹실 전용 (복수 선택해서 하나의 견적서로 합산) -->
+      <div id="sec-multiroom" style="display:none">
+        <div class="fg"><div class="lbl">이용 시간 (시간당)</div>
+          <input type="number" id="q-sg-hours" min="0.5" step="0.5" value="1" oninput="updateCalc()">
         </div>
-        <div id="q-surcharge-wrap" style="display:none;margin-bottom:12px">
-          <label class="radio-opt" style="background:var(--amber-lt);border-color:var(--amber)">
-            <input type="checkbox" id="q-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)">
-            <span class="radio-opt-label" style="color:var(--amber);font-weight:600">시간대 할증 +20%<br><span style="font-size:13px;font-weight:400">평일 17시 이후 / 주말·공휴일</span></span>
-          </label>
-        </div>
+        <div class="lbl" style="margin-bottom:8px">공간 선택 (복수 선택 가능)</div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-505" onchange="updateCalc()">
+          <span class="room-name">505호</span><span class="room-desc">40,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-506" onchange="updateCalc()">
+          <span class="room-name">506호</span><span class="room-desc">30,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-507" onchange="updateCalc()">
+          <span class="room-name">507호</span><span class="room-desc">40,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-508" onchange="updateCalc()">
+          <span class="room-name">508호</span><span class="room-desc">30,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-509" onchange="updateCalc()">
+          <span class="room-name">509호</span><span class="room-desc">30,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-510" onchange="updateCalc()">
+          <span class="room-name">510호</span><span class="room-desc">30,000원/시간</span>
+        </div></div>
+        <div class="room-card"><div class="room-header">
+          <input type="checkbox" id="sg-511" onchange="updateCalc()">
+          <span class="room-name">511호</span><span class="room-desc">30,000원/시간</span>
+        </div></div>
       </div>
 
       <!-- 지혜홀 전용 -->
@@ -1297,6 +1399,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
         <div class="calc-row" id="row-surcharge" style="display:none"><span class="calc-label">시간대 할증</span><span class="calc-val" id="c-surcharge">–</span></div>
         <div class="calc-row" id="row-catering"><span class="calc-label">케이터링 할인</span><span class="calc-val" id="c-catering" style="color:var(--red)">–</span></div>
         <div class="calc-row" id="row-date-count" style="display:none"><span class="calc-label">날짜 수</span><span class="calc-val" id="c-date-count" style="color:var(--blue)">–</span></div>
+
+        <!-- 5층 소그룹실 전용 행 -->
+        <div class="calc-row" id="row-mr-rooms" style="display:none"><span class="calc-label">선택 공간</span><span class="calc-val" id="c-mr-rooms">–</span></div>
 
         <!-- 숙박 전용 행 -->
         <div class="calc-row" id="row-r1" style="display:none"><span class="calc-label">Room 1</span><span class="calc-val" id="c-r1">–</span></div>
