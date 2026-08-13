@@ -211,15 +211,25 @@ window.setSpaceItemField = (i, field, val) => {
   else updateCalc();
 };
 
+// 예약 신청 화면과 동일하게 30분 단위(07:00~22:00)로만 시간 선택
+const TIME_SLOTS = [];
+for (let h = 7; h <= 22; h++) {
+  TIME_SLOTS.push(String(h).padStart(2,'0') + ':00');
+  if (h < 22) TIME_SLOTS.push(String(h).padStart(2,'0') + ':30');
+}
+function timeSlotOpts(val) {
+  return '<option value="">--:--</option>' + TIME_SLOTS.map(t =>
+    `<option value="${t}" ${t===val?'selected':''}>${t}</option>`).join('');
+}
 function renderQuoteDates() {
   const el = document.getElementById('q-date-rows');
   if (!el) return;
   el.innerHTML = quoteDates.map((d, i) => `
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
       <input type="date" value="${d.date||''}" oninput="syncQD(${i},'date',this.value)" style="flex:1.2;min-width:0">
-      <input type="time" value="${d.timeStart||''}" oninput="syncQD(${i},'timeStart',this.value)" style="flex:1;min-width:0">
+      <select onchange="syncQD(${i},'timeStart',this.value)" style="flex:1;min-width:0">${timeSlotOpts(d.timeStart)}</select>
       <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
-      <input type="time" value="${d.timeEnd||''}" oninput="syncQD(${i},'timeEnd',this.value)" style="flex:1;min-width:0">
+      <select onchange="syncQD(${i},'timeEnd',this.value)" style="flex:1;min-width:0">${timeSlotOpts(d.timeEnd)}</select>
       ${quoteDates.length > 1
         ? `<button onclick="removeQD(${i})" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text2)">×</button>`
         : '<span style="width:26px;flex-shrink:0"></span>'}
