@@ -32,6 +32,10 @@ const COMBO_VENUE = '아론홀·샤론홀·5층 소그룹실';
 const SPACE_ITEMS = [
   { id: 'aron',   name: '아론홀', nameEn: 'Aaron Hall',  pricing: 'package', base3h: 200000, base90m: 100000, extraPh: 50000, surcharge: false },
   { id: 'sharon', name: '샤론홀', nameEn: 'Sharon Hall', pricing: 'package', base3h: 300000, base90m: 150000, extraPh: 80000, surcharge: true },
+  // 502~504호는 평소 예약 시스템(index.html)에서 다루지 않는 방이지만, 대관 견적서에는 필요해서 추가
+  { id: '502', name: '502호', nameEn: 'Room 502', pricing: 'flat', ratePh: 30000 },
+  { id: '503', name: '503호', nameEn: 'Room 503', pricing: 'flat', ratePh: 30000 },
+  { id: '504', name: '504호', nameEn: 'Room 504', pricing: 'flat', ratePh: 30000 },
   { id: '505', name: '505호', nameEn: 'Room 505', pricing: 'flat', ratePh: 40000 },
   { id: '506', name: '506호', nameEn: 'Room 506', pricing: 'flat', ratePh: 30000 },
   { id: '507', name: '507호', nameEn: 'Room 507', pricing: 'flat', ratePh: 40000 },
