@@ -722,8 +722,8 @@ body{font-family:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;fo
 /* ── 표 ── */
 table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:4px;}
 th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;text-align:center;border:1px solid #1a2533;}
-td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;}
-td.left{text-align:left;}
+td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;white-space:nowrap;}
+td.left{text-align:left;white-space:normal;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 td.sm{font-size:13px;color:#333;line-height:1.6;word-break:keep-all;}
 /* 방 목록이 많아 비고 칸이 여러 줄로 길어져도, 인쇄 시 그 행이 페이지 경계에서 잘리지 않도록 함 */
@@ -778,13 +778,13 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 <table>
   <thead>
     <tr>
-      <th style="width:11%">${L.thDate}</th>
-      <th style="width:8%">${L.thTime}</th>
-      <th style="width:9%">${L.thSpace}</th>
-      <th style="width:16%">${L.thItem}</th>
-      <th style="width:10%">${L.thSupply}</th>
-      <th style="width:8%">${L.thVat}</th>
-      <th style="width:38%">${L.thRemarks}</th>
+      <th style="width:10%">${L.thDate}</th>
+      <th style="width:13%">${L.thTime}</th>
+      <th style="width:8%">${L.thSpace}</th>
+      <th style="width:12%">${L.thItem}</th>
+      <th style="width:12%">${L.thSupply}</th>
+      <th style="width:10%">${L.thVat}</th>
+      <th style="width:35%">${L.thRemarks}</th>
     </tr>
   </thead>
   <tbody>
