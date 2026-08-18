@@ -4356,7 +4356,7 @@ function updateRoomNotice() {
   const typeName = document.getElementById('m-type').value;
   const org = orgsList.find(o => o.name === typeName);
   if ((name === '아론홀' || name === '샤론홀') && org?.shortName === '학교') {
-    notices.push({ color: 'red', icon: '⚠️', msg: '기관을 학교로 설정했을 때는 담당자가 예약에 상주해야만 예약 진행이 가능합니다.' });
+    notices.push({ color: 'red', icon: '⚠️', msg: '담당자가 예약에 상주해야만 예약 진행이 가능합니다.' });
   }
 
   if (notices.length) {
