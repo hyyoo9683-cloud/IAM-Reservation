@@ -2479,7 +2479,7 @@ let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spac
 let applyRoom = '', editRoom = '';
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
-let listSortCol = 'date', listSortDir = 1; // 1=오름차순, -1=내림차순
+let listSortCol = 'createdAt', listSortDir = -1; // 기본: 신청일(createdAt) 내림차순 — 최근 신청 건이 최상단
 function listSortValue(r, col) {
   if (col === 'date') return (r.date || '') + ' ' + (r.start || '');
   if (col === 'createdAt') {
