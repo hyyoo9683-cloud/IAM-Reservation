@@ -6841,9 +6841,36 @@ function renderDashboard() {
     .map(c => ({ c, occDate: findWeekOccurrence(c) }))
     .filter(x => x.occDate)
     .sort((a, b) => a.occDate.localeCompare(b.occDate));
-  document.getElementById('today-checklist-list').innerHTML = !weekChecklists.length
+
+  // 체크리스트가 자동 생성되는 공간(아론홀·샤론홀·아이엠홀) 외에도, TV·마이크 요청이 체크된
+  // 확정 예약은 준비가 필요하니 이번 주 목록에 같이 보여줌 (중복 방지로 위 공간들은 제외)
+  const AV_NOTICE_EXCLUDE_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
+  const weekAvReservations = reservations.filter(r =>
+    r.status === '확정' && (r.needTV || r.needMic) &&
+    !AV_NOTICE_EXCLUDE_ROOMS.includes(r.room) &&
+    r.date >= today && r.date <= weekEnd);
+
+  const weekItems = [
+    ...weekChecklists.map(x => ({ occDate: x.occDate, kind: 'checklist', c: x.c })),
+    ...weekAvReservations.map(r => ({ occDate: r.date, kind: 'av', r })),
+  ].sort((a, b) => a.occDate.localeCompare(b.occDate));
+
+  document.getElementById('today-checklist-list').innerHTML = !weekItems.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">이번 주에 등록된 행사 체크리스트가 없습니다</div>'
-    : weekChecklists.map(({ c, occDate }) => {
+    : weekItems.map(item => {
+        if (item.kind === 'av') {
+          const r = item.r;
+          const dateLabel = r.date === today ? '오늘' : r.date.slice(5).replace('-','/');
+          const timeLabel = (r.start || r.end) ? ` ${r.start||''}${r.start||r.end?'-':''}${r.end||''}` : '';
+          const avLabel = [r.needTV ? '📺 TV' : '', r.needMic ? '🎤 마이크' : ''].filter(Boolean).join(' · ');
+          return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
+            <span style="background:var(--amber-lt);color:var(--amber);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(r.room||'').replace(/</g,'&lt;')}</span>
+            <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+            <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.purpose||'(제목 없음)').replace(/</g,'&lt;')}</span>
+            <span style="font-size:11px;font-weight:700;color:var(--amber);flex-shrink:0;white-space:nowrap">${avLabel}</span>
+          </div>`;
+        }
+        const { c, occDate } = item;
         const items = c.isRecur && c.activeDate !== occDate
           ? (c.items || []).map(i => ({ ...i, checked: false }))
           : (c.items || []);
