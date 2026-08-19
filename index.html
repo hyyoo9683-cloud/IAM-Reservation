@@ -4376,16 +4376,20 @@ window.selApplyRoom = (name) => {
 
   updateRoomNotice();
 
-  // TV 체크박스: 505·507·508·509호만 활성화, 마이크: 아론홀만
-  const TV_ROOMS      = ['505호', '507호', '508호', '509호'];
+  // TV 체크박스: 505·507·508·509호 + 아론홀·샤론홀 활성화, 마이크: 아론홀·샤론홀
+  // 아론홀·샤론홀은 TV를(샤론홀은 탕비실도 같이) 기본으로 자동 선택해줌 — 필요 없으면 직접 해제 가능
+  const TV_ROOMS      = ['505호', '507호', '508호', '509호', '아론홀', '샤론홀'];
   const MIC_ROOMS     = ['아론홀', '샤론홀'];
-  const PANTRY_ROOMS  = ['505호','506호','507호','508호','509호','510호','511호'];
+  const PANTRY_ROOMS  = ['505호','506호','507호','508호','509호','510호','511호','샤론홀'];
   const TERRACE_ROOMS = ['샤론홀'];
+  const TV_AUTO_ROOMS = ['아론홀', '샤론홀'];
+  const PANTRY_AUTO_ROOMS = ['샤론홀'];
   const tvCb  = document.getElementById('m-need-tv');
   const micCb = document.getElementById('m-need-mic');
   if (tvCb) {
     const tvOn = TV_ROOMS.includes(name);
     tvCb.disabled = !tvOn; if (!tvOn) tvCb.checked = false;
+    if (TV_AUTO_ROOMS.includes(name)) tvCb.checked = true;
     const tvWrap = document.getElementById('cb-wrap-tv');
     if (tvWrap) tvWrap.style.opacity = tvOn ? '' : '0.35';
   }
@@ -4399,6 +4403,7 @@ window.selApplyRoom = (name) => {
   if (pantryCb) {
     const pantryOn = PANTRY_ROOMS.includes(name);
     pantryCb.disabled = !pantryOn; if (!pantryOn) pantryCb.checked = false;
+    if (PANTRY_AUTO_ROOMS.includes(name)) pantryCb.checked = true;
     const pantryWrap = document.getElementById('cb-wrap-pantry');
     if (pantryWrap) pantryWrap.style.opacity = pantryOn ? '' : '0.35';
   }
