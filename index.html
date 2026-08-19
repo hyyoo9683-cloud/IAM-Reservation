@@ -1455,6 +1455,9 @@ textarea { resize: vertical; min-height: 60px; }
 
           <div class="card">
             <div class="card-title">일정</div>
+            <div style="font-size:11px;color:var(--text3);margin:-4px 0 12px;background:var(--bg2);border-radius:7px;padding:8px 10px">
+              📅 정기 예약은 최대 4개월(20주)까지만 가능합니다.
+            </div>
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
               <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none">
                 <input type="checkbox" id="m-is-recur" onchange="toggleRecur();checkAvail();updateApplySummary()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
@@ -2647,6 +2650,13 @@ function showLastMinuteNotice() {
     `<b>모든 예약은 최소 2일 전 신청을 부탁드립니다.</b><br>` +
     `예약을 희망하실 경우, 유선 또는 카카오톡 채널 '아이엠센터'로 문의해주시기 바랍니다. (070-7018-1439)`;
   openModal('modal-info');
+}
+// 정기 예약(복수 예약-정기)은 시작일~종료일 간격이 4개월(20주=140일)을 넘을 수 없음
+const RECUR_MAX_SPAN_DAYS = 140;
+function recurSpanTooLong(startDate, endDate) {
+  if (!startDate || !endDate) return false;
+  const span = (new Date(endDate + 'T00:00:00') - new Date(startDate + 'T00:00:00')) / 86400000;
+  return span > RECUR_MAX_SPAN_DAYS;
 }
 // event-checklist.html의 정기 체크리스트 판정과 동일한 규칙:
 // 매주/격주 = anchorDate로부터 N일 간격, 매달 = 같은 달의 n번째 같은 요일
@@ -4696,6 +4706,7 @@ window.submitApply = async () => {
   if (isMulti && multiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
   if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
+  if (isRecur && recurSpanTooLong(date, endDate)) { T('정기 예약은 시작일로부터 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return; }
 
   const isFlexRoom = (room === '공실 희망');
   const sp = spaces.find(s => s.name === room);
