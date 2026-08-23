@@ -112,7 +112,20 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     <div class="sec-label">기존 예약 정보</div>
     <div class="fl">
       <div class="field"><div class="lbl">공간 <span class="req-mark">*</span></div>
-        <input id="f-room" placeholder="예: 505호, 아론홀"></div>
+        <select id="f-room">
+          <option value="">선택해주세요</option>
+          <optgroup label="5층 소그룹실">
+            <option value="505호">505호</option>
+            <option value="506호">506호</option>
+            <option value="507호">507호</option>
+            <option value="508호">508호</option>
+            <option value="509호">509호</option>
+            <option value="510호">510호</option>
+            <option value="511호">511호</option>
+          </optgroup>
+          <option value="아론홀">아론홀</option>
+          <option value="샤론홀">샤론홀</option>
+        </select></div>
       <div class="field"><div class="lbl">예약 날짜 <span class="req-mark">*</span></div>
         <input type="date" id="f-date"></div>
     </div>
@@ -232,7 +245,7 @@ window.submitRequest = async () => {
   const name = g('f-name').value.trim();
   const tel  = g('f-tel').value.trim();
 
-  if (!room) { showErr('공간을 입력해 주세요.'); return; }
+  if (!room) { showErr('공간을 선택해 주세요.'); return; }
   if (!date) { showErr('예약 날짜를 입력해 주세요.'); return; }
   if (!name) { showErr('신청자 이름을 입력해 주세요.'); return; }
   if (!tel)  { showErr('신청자 연락처를 입력해 주세요.'); return; }
