@@ -49,12 +49,6 @@
   .cat-hd { padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--blue);
             background: var(--blue-lt); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .cat-hd-title { min-width: 0; }
-  .cat-hd-5f { flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--blue); background: #fff;
-               border: 1px solid var(--blue); border-radius: 999px; padding: 3px 10px; cursor: pointer;
-               white-space: nowrap; transition: background .12s, color .12s; }
-  .cat-hd-5f:hover { background: var(--blue); color: #fff; }
-  .cat-hd-5f.empty { color: var(--text3); border-color: var(--border2); cursor: default; }
-  .cat-hd-5f.empty:hover { background: #fff; color: var(--text3); }
   .cat-body { padding: 4px 0; }
   .item { display: flex; align-items: center; gap: 10px; padding: 11px 16px;
           border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
@@ -69,6 +63,21 @@
   .item-lodging .item-time { color: #854F0B; }
   .empty-row { padding: 18px 16px; text-align: center; color: var(--text3); font-size: 13px; }
   .loading { text-align: center; padding: 60px; color: var(--text3); }
+
+  /* 주간 보기: 5층 소그룹실 요약 컬럼 (오른쪽, 자체 스크롤) */
+  .cat-body-split { display: flex; align-items: stretch; }
+  .cat-body-main { flex: 3; min-width: 0; max-height: 280px; overflow-y: auto; }
+  .cat-body-5f { flex: 2; min-width: 0; max-height: 280px; overflow-y: auto;
+                 border-left: 1px solid var(--border2); background: #F6FAFD; }
+  .cat-5f-hd { padding: 8px 10px 4px; font-size: 10.5px; font-weight: 700; color: var(--text3);
+               position: sticky; top: 0; background: #F6FAFD; }
+  .item-5f { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
+             border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
+  .item-5f:first-child { border-top: none; }
+  .item-5f:hover { background: #EAF3FA; }
+  .item-5f-time { font-weight: 700; font-size: 12px; color: var(--blue); }
+  .item-5f-meta { font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-body-5f .empty-row { padding: 14px 10px; font-size: 12px; }
 
   /* 상세 모달 */
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 999;
@@ -105,6 +114,11 @@
     .item-room { font-size: 13px; }
     .modal-title { font-size: 20px; }
     .modal-row { font-size: 15px; }
+    .cat-body-main, .cat-body-5f { max-height: 360px; }
+    .cat-5f-hd { font-size: 12px; padding: 10px 14px 5px; }
+    .item-5f { padding: 10px 14px; }
+    .item-5f-time { font-size: 14px; }
+    .item-5f-meta { font-size: 13px; }
   }
 </style>
 </head>
@@ -131,13 +145,6 @@
   <div class="modal">
     <button class="modal-close" onclick="closeDetail()">×</button>
     <div id="detail-content"></div>
-  </div>
-</div>
-
-<div class="modal-bg" id="modal-5f">
-  <div class="modal">
-    <button class="modal-close" onclick="closeFloor5()">×</button>
-    <div id="f5-content"></div>
   </div>
 </div>
 
@@ -313,40 +320,27 @@ function renderWeek() {
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-room">${esc(r.room)}</span>
           </div>`).join('');
-    const sgCount = reservations.filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정').length;
-    const sgBadge = sgCount > 0
-      ? `<span class="cat-hd-5f" onclick='showFloor5(${JSON.stringify(ds)})'>5층 소그룹실 ${sgCount}건 ▸</span>`
-      : `<span class="cat-hd-5f empty">5층 소그룹실 없음</span>`;
-    return `<div class="cat"><div class="cat-hd"><span class="cat-hd-title">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</span>${sgBadge}</div><div class="cat-body">${body}</div></div>`;
+    const sgItems = reservations
+      .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
+      .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+    const sgBody = !sgItems.length
+      ? '<div class="empty-row">예약 없음</div>'
+      : sgItems.map(r => `
+          <div class="item-5f" onclick='showDetail(${JSON.stringify(r.id)})'>
+            <span class="item-5f-time">${dispStart(r)}–${dispEnd(r)}</span>
+            <span class="item-5f-meta">${esc(r.room)} · ${esc(r.purpose) || '(목적 미기재)'}</span>
+          </div>`).join('');
+    return `<div class="cat">
+        <div class="cat-hd"><span class="cat-hd-title">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</span></div>
+        <div class="cat-body-split">
+          <div class="cat-body-main">${body}</div>
+          <div class="cat-body-5f"><div class="cat-5f-hd">5층 소그룹실</div>${sgBody}</div>
+        </div>
+      </div>`;
   }).join('');
 
   document.getElementById('body').innerHTML = html;
 }
-
-window.showFloor5 = (ds) => {
-  const items = reservations
-    .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
-    .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
-  const d = new Date(ds + 'T00:00:00');
-  const dow = DOWS[d.getDay()];
-  const body = !items.length
-    ? '<div class="empty-row">예약 없음</div>'
-    : items.map(r => `
-        <div class="item" onclick='closeFloor5();showDetail(${JSON.stringify(r.id)})'>
-          <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
-          <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
-          <span class="item-room">${esc(r.room)}</span>
-        </div>`).join('');
-  document.getElementById('f5-content').innerHTML = `
-    <div class="modal-title">5층 소그룹실 · ${d.getMonth()+1}월 ${d.getDate()}일 (${dow})</div>
-    ${body}
-  `;
-  document.getElementById('modal-5f').classList.add('open');
-};
-window.closeFloor5 = () => document.getElementById('modal-5f').classList.remove('open');
-document.getElementById('modal-5f').addEventListener('click', e => {
-  if (e.target.id === 'modal-5f') closeFloor5();
-});
 
 window.showDetail = (id) => {
   const r = reservations.find(x => x.id === id);
