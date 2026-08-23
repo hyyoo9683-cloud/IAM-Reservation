@@ -92,7 +92,7 @@ body.has-kakao-banner .shell { padding-top: var(--kakao-banner-h, 0px); }
 
 /* ── 레이아웃 ── */
 .shell   { display: flex; height: 100vh; height: 100dvh; box-sizing: border-box; }
-.sidebar { width: var(--sidebar); flex-shrink: 0; background: var(--bg3); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 10px; position: relative; z-index: 10; }
+.sidebar { width: var(--sidebar); flex-shrink: 0; background: var(--bg3); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 14px 10px; position: relative; z-index: 10; overflow-y: auto; }
 .main    { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .topbar  { min-height: 50px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: env(safe-area-inset-top) 20px 0 20px; gap: 12px; flex-shrink: 0; background: var(--bg); flex-wrap: wrap; }
 @media (max-width: 640px) { .topbar { padding-top: 44px; padding-top: max(44px, env(safe-area-inset-top)); } }
@@ -109,7 +109,7 @@ body.has-kakao-banner .shell { padding-top: var(--kakao-banner-h, 0px); }
 .logo-name  { font-size: 15px; font-weight: 700; color: var(--blue); letter-spacing: -.3px; }
 .logo-sub   { font-size: 12px; color: var(--blue-mid); margin-top: 2px; }
 .nav-section { font-size: 10px; color: var(--text3); padding: 8px 10px 3px; letter-spacing: .08em; text-transform: uppercase; }
-.nav-btn    { width: 100%; padding: 9px 10px; border-radius: 8px; font-size: 14px; color: var(--blue-mid); cursor: pointer; display: flex; align-items: center; gap: 7px; border: none; background: none; font-family: var(--font); text-align: left; transition: all .15s; }
+.nav-btn    { width: 100%; padding: 9px 10px; border-radius: 8px; font-size: 14px; color: var(--blue-mid); cursor: pointer; display: flex; align-items: center; gap: 7px; border: none; background: none; font-family: var(--font); text-align: left; transition: all .15s; white-space: normal; line-height: 1.35; }
 .nav-btn .icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
 .nav-btn.active { background: var(--blue); color: #fff; font-weight: 600; }
 .nav-btn:hover:not(.active) { background: var(--blue-lt); color: var(--blue); }
@@ -641,6 +641,7 @@ textarea { resize: vertical; min-height: 60px; }
 <style id="pc-font-boost">
 /* PC 화면에서 전체적으로 글자가 작아 보인다는 피드백 반영 — 데스크톱 폭에서 폰트 확대 (모바일은 영향 없음) */
 @media (min-width: 768px) {
+  :root{--sidebar:208px}
   body{font-size:18px !important}
   #kakao-browser-banner{font-size:14px !important}
   #kakao-browser-banner button{font-size:13.5px !important}
