@@ -61,6 +61,9 @@
   .item-lodging { background: #FAEEDA; }
   .item-lodging:hover { background: #F5E3C4; }
   .item-lodging .item-time { color: #854F0B; }
+  /* 시간/장소·목적을 줄바꿈해 좁은 컬럼에서도 텍스트가 잘리지 않게 하는 2줄 레이아웃 */
+  .item-stack { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .item-meta { font-size: 13px; color: var(--text3); width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .empty-row { padding: 18px 16px; text-align: center; color: var(--text3); font-size: 13px; }
   .loading { text-align: center; padding: 60px; color: var(--text3); }
 
@@ -112,6 +115,7 @@
     .item-time { font-size: 16px; min-width: 112px; }
     .item-purpose { font-size: 17px; }
     .item-room { font-size: 13px; }
+    .item-meta { font-size: 15px; }
     .modal-title { font-size: 20px; }
     .modal-row { font-size: 15px; }
     .cat-body-main, .cat-body-5f { max-height: 360px; }
@@ -315,10 +319,9 @@ function renderWeek() {
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
+          <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
-            <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
-            <span class="item-room">${esc(r.room)}</span>
+            <span class="item-meta">${esc(r.room)} · ${esc(r.purpose) || '(목적 미기재)'}</span>
           </div>`).join('');
     const sgItems = reservations
       .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
