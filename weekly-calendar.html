@@ -73,8 +73,16 @@
 
   /* 주간 보기: 5층 소그룹실 요약 컬럼 (오른쪽, 자체 스크롤) */
   .cat-body-split { display: flex; align-items: stretch; }
-  .cat-body-main { flex: 3; min-width: 0; max-height: 280px; overflow-y: auto; }
-  .cat-body-5f { flex: 2; min-width: 0; max-height: 280px; overflow-y: auto;
+  .cat-body-main, .cat-body-5f {
+    overflow-y: scroll; scrollbar-width: thin; scrollbar-color: var(--text3) transparent;
+  }
+  .cat-body-main::-webkit-scrollbar, .cat-body-5f::-webkit-scrollbar { width: 6px; }
+  .cat-body-main::-webkit-scrollbar-track, .cat-body-5f::-webkit-scrollbar-track { background: transparent; }
+  .cat-body-main::-webkit-scrollbar-thumb, .cat-body-5f::-webkit-scrollbar-thumb {
+    background: var(--text3); border-radius: 3px;
+  }
+  .cat-body-main { flex: 3; min-width: 0; max-height: 280px; }
+  .cat-body-5f { flex: 2; min-width: 0; max-height: 280px;
                  border-left: 1px solid var(--border2); background: #F6FAFD; }
   .cat-5f-hd { padding: 8px 10px 4px; font-size: 10.5px; font-weight: 700; color: var(--text3);
                position: sticky; top: 0; background: #F6FAFD; }
