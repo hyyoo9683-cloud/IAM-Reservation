@@ -1514,6 +1514,10 @@ textarea { resize: vertical; min-height: 60px; }
 
           <div class="card">
             <div class="card-title">공간 선택 <span class="req">*</span></div>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-bottom:10px">
+              <input type="checkbox" id="m-multi-room" onchange="toggleApplyMultiRoom()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+              <span style="font-size:13px;font-weight:600;color:var(--green)">복수 실 예약 (5층 소그룹실만 해당)</span>
+            </label>
             <div id="apply-room-chips"></div>
             <input type="hidden" id="m-room">
             <div id="m-room-notice" style="display:none;margin-top:10px"></div>
@@ -2480,6 +2484,7 @@ let smsBulkIds = null; // 다건 선택 문자/카카오 발송 모드일 때 �
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
+let applyMultiRooms = []; // 복수 실 예약(5층 소그룹실만) 시 선택된 실 목록
 let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
 let listSortCol = 'createdAt', listSortDir = -1; // 기본: 신청일(createdAt) 내림차순 — 최근 신청 건이 최상단
@@ -4358,14 +4363,15 @@ const ROOM_NOTICES = {
 };
 function updateRoomNotice() {
   const notice = document.getElementById('m-room-notice');
-  const name = applyRoom;
+  const multiRoomMode = document.getElementById('m-multi-room')?.checked;
+  const activeRooms = multiRoomMode ? applyMultiRooms : (applyRoom ? [applyRoom] : []);
   const notices = [];
-  if (ROOM_NOTICES[name]) notices.push(ROOM_NOTICES[name]);
+  activeRooms.forEach(name => { if (ROOM_NOTICES[name]) notices.push(ROOM_NOTICES[name]); });
 
   // 아론홀·샤론홀 + 기관이 학교인 경우: 담당자 상주 필수 안내
   const typeName = document.getElementById('m-type').value;
   const org = orgsList.find(o => o.name === typeName);
-  if ((name === '아론홀' || name === '샤론홀') && org?.shortName === '학교') {
+  if (activeRooms.some(name => name === '아론홀' || name === '샤론홀') && org?.shortName === '학교') {
     notices.push({ color: 'red', icon: '⚠️', msg: '학교 담당자(선생님)가 예약에 상주해야만 예약 진행이 가능합니다.' });
   }
 
@@ -4379,6 +4385,18 @@ function updateRoomNotice() {
   }
 }
 window.selApplyRoom = (name) => {
+  const multiRoomMode = document.getElementById('m-multi-room')?.checked;
+  if (multiRoomMode) {
+    if (!SG_MULTI_ROOMS.includes(name)) { T('복수 실 예약은 5층 소그룹실만 가능합니다', '#A32D2D'); return; }
+    const idx = applyMultiRooms.indexOf(name);
+    if (idx === -1) applyMultiRooms.push(name); else applyMultiRooms.splice(idx, 1);
+    document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
+    applyMultiRooms.forEach(n => { const chip = document.getElementById('arc-' + n); if (chip) chip.classList.add('sel'); });
+    document.getElementById('m-room').value = applyMultiRooms.join(',');
+    updateRoomNotice();
+    checkAvail(); updateApplySummary();
+    return;
+  }
   applyRoom = name;
   document.getElementById('m-room').value = name;
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
@@ -4447,7 +4465,10 @@ window.toggleEditRecur = () => {
 };
 window.toggleRecur = () => {
   const on = document.getElementById('m-is-recur').checked;
-  if (on) { document.getElementById('m-is-multi').checked = false; toggleMulti(false); }
+  if (on) {
+    document.getElementById('m-is-multi').checked = false; toggleMulti(false);
+    document.getElementById('m-multi-room').checked = false; toggleApplyMultiRoom(false);
+  }
   document.getElementById('m-date-row').style.display      = '';
   document.getElementById('m-end-date-wrap').style.display = on ? '' : 'none';
   document.getElementById('m-recur-wrap').style.display    = on ? '' : 'none';
@@ -4459,6 +4480,7 @@ window.toggleMulti = (forceOff) => {
   const on = forceOff === false ? false : document.getElementById('m-is-multi').checked;
   if (on) {
     document.getElementById('m-is-recur').checked = false;
+    document.getElementById('m-multi-room').checked = false; toggleApplyMultiRoom(false);
     document.getElementById('m-end-date-wrap').style.display = 'none';
     document.getElementById('m-recur-wrap').style.display    = 'none';
     document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
@@ -4470,6 +4492,28 @@ window.toggleMulti = (forceOff) => {
   document.getElementById('m-multi-wrap').style.display = on ? '' : 'none';
   document.getElementById('m-avail').innerHTML = '';
   updateApplySummary();
+};
+const SG_MULTI_ROOMS = ['505호','506호','507호','508호','509호','510호','511호'];
+window.toggleApplyMultiRoom = (forceOff) => {
+  const cb = document.getElementById('m-multi-room');
+  const on = forceOff === false ? false : cb.checked;
+  cb.checked = on;
+  applyMultiRooms = [];
+  applyRoom = '';
+  document.getElementById('m-room').value = '';
+  document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
+  if (on) {
+    document.getElementById('m-is-recur').checked = false; toggleRecur();
+    document.getElementById('m-is-multi').checked = false; toggleMulti(false);
+    ['m-need-tv', 'm-need-mic', 'm-need-pantry', 'm-need-terrace'].forEach(id => {
+      const cb = document.getElementById(id); if (cb) cb.disabled = false;
+    });
+    ['cb-wrap-tv', 'cb-wrap-mic', 'cb-wrap-pantry', 'cb-wrap-terrace'].forEach(id => {
+      const wrap = document.getElementById(id); if (wrap) wrap.style.opacity = '';
+    });
+  }
+  updateRoomNotice();
+  checkAvail(); updateApplySummary();
 };
 window.onMultiStartChange = () => {
   const v = document.getElementById('m-multi-start-input').value;
@@ -4515,11 +4559,29 @@ window.removeMultiDate = (idx) => {
   updateApplySummary();
 };
 window.checkAvail = () => {
-  const room  = applyRoom;
+  const multiRoomMode = document.getElementById('m-multi-room')?.checked;
   const date  = document.getElementById('m-date').value;
   const start = document.getElementById('m-start').value;
   const end   = document.getElementById('m-end').value;
   const el    = document.getElementById('m-avail');
+  if (multiRoomMode) {
+    if (!date) { el.innerHTML = ''; return; }
+    if (isLastMinuteDate(date)) {
+      el.innerHTML = `<div class="avail-no">당일 예약은 신청이 어렵습니다. (문의 070-7018-1439 / 카카오톡 채널 '아이엠센터')</div>`;
+      return;
+    }
+    if (!applyMultiRooms.length || !start || !end) { el.innerHTML = ''; return; }
+    const bd = getBlockedInfo(date);
+    if (bd) { el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${bd.reason})</div>`; return; }
+    const conflictRooms = applyMultiRooms.filter(r => !noConflict(r, date, start, end));
+    if (!conflictRooms.length) {
+      el.innerHTML = `<div class="avail-ok">✓ 선택한 ${applyMultiRooms.length}개 실 모두 사용 가능합니다</div>`;
+    } else {
+      el.innerHTML = `<div class="avail-no">🚫 다음 실은 해당 시간에 이미 예약이 있습니다: ${conflictRooms.join(', ')}</div>`;
+    }
+    return;
+  }
+  const room  = applyRoom;
   if (!date) { el.innerHTML = ''; return; }
   if (isLastMinuteDate(date)) {
     el.innerHTML = `<div class="avail-no">당일 예약은 신청이 어렵습니다. (문의 070-7018-1439 / 카카오톡 채널 '아이엠센터')</div>`;
@@ -4644,7 +4706,8 @@ window.updateApplySummary = () => {
       : (g('m-date') || '–');
   const rows = [
     ['기관', g('m-type')], ['담당자', g('m-manager')], ['실사용자', g('m-steward-name')],
-    ['연락처', g('m-steward-tel')], ['공간', applyRoom || '–'],
+    ['연락처', g('m-steward-tel')],
+    ['공간', (document.getElementById('m-multi-room')?.checked ? applyMultiRooms.join(', ') : applyRoom) || '–'],
     ['일정', dateVal], ['시간', isMulti ? '날짜별 상이 (아래 목록 참고)' : `${g('m-start')}–${g('m-end')}`],
     ['인원', g('m-people') ? g('m-people') + '명' : '–'], ['목적', g('m-purpose')]
   ];
@@ -4656,9 +4719,10 @@ window.resetApply = () => {
   const submitBtn = document.getElementById('submit-apply-btn');
   if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '신청 제출'; }
   applyRoom = '';
+  applyMultiRooms = [];
   ['m-type', 'm-subtype', 'm-manager', 'm-steward-name', 'm-steward-tel', 'm-date', 'm-end-date', 'm-people', 'm-purpose', 'm-memo']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  ['m-need-tv', 'm-need-mic', 'm-need-pantry', 'm-need-terrace', 'm-is-recur', 'm-is-multi'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
+  ['m-need-tv', 'm-need-mic', 'm-need-pantry', 'm-need-terrace', 'm-is-recur', 'm-is-multi', 'm-multi-room'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
   multiDates = []; renderMultiDates();
   document.getElementById('m-multi-wrap').style.display = 'none';
   document.getElementById('m-date-row').style.display   = '';
@@ -4688,6 +4752,8 @@ window.submitApply = async () => {
   const sName   = document.getElementById('m-steward-name').value.trim();
   const sTel    = document.getElementById('m-steward-tel').value.trim();
   const room    = document.getElementById('m-room').value;
+  const isMultiRoom = document.getElementById('m-multi-room')?.checked;
+  const rooms   = isMultiRoom ? applyMultiRooms.slice() : [room];
   const date    = document.getElementById('m-date').value;
   const start   = document.getElementById('m-start').value;
   const end     = document.getElementById('m-end').value;
@@ -4699,7 +4765,7 @@ window.submitApply = async () => {
   const endDate = document.getElementById('m-end-date')?.value;
   const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
-  if (!type || !manager || !sName || !sTel || !room || (!isMulti && !date) || !people || !purpose) {
+  if (!type || !manager || !sName || !sTel || !rooms.length || (!isMulti && !date) || !people || !purpose) {
     T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
   }
   if (!isMulti && start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
@@ -4708,9 +4774,11 @@ window.submitApply = async () => {
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
   if (isRecur && recurSpanTooLong(date, endDate)) { T('정기 예약은 시작일로부터 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return; }
 
-  const isFlexRoom = (room === '공실 희망');
-  const sp = spaces.find(s => s.name === room);
-  if (sp && parseInt(people) > sp.cap) { T(`최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
+  const isFlexRoom = !isMultiRoom && (room === '공실 희망');
+  for (const rm of rooms) {
+    const sp = spaces.find(s => s.name === rm);
+    if (sp && parseInt(people) > sp.cap) { T(`${rm}: 최대 수용 인원(${sp.cap}명)을 초과합니다`, '#A32D2D'); return; }
+  }
 
   // items: {date, start, end} 배열 — 비정기 모드는 날짜마다 다른 시간을 가질 수 있어 dates 배열 대신 사용
   let items = isMulti
@@ -4738,10 +4806,12 @@ window.submitApply = async () => {
   }
 
   if (!isFlexRoom) {
-    const conflictItems = items.filter(it => !noConflict(room, it.date, it.start, it.end));
-    if (conflictItems.length > 0) {
-      const label = isMulti ? conflictItems.map(it => `${it.date} ${it.start}~${it.end}`).join(', ') : conflictItems.map(it => it.date).join(', ');
-      T(`다음 일정에 이미 예약이 있습니다: ${label}`, '#A32D2D'); return;
+    for (const rm of rooms) {
+      const conflictItems = items.filter(it => !noConflict(rm, it.date, it.start, it.end));
+      if (conflictItems.length > 0) {
+        const label = isMulti ? conflictItems.map(it => `${it.date} ${it.start}~${it.end}`).join(', ') : conflictItems.map(it => it.date).join(', ');
+        T(`${rm}: 다음 일정에 이미 예약이 있습니다: ${label}`, '#A32D2D'); return;
+      }
     }
   }
 
@@ -4758,7 +4828,7 @@ window.submitApply = async () => {
     const needTerrace = document.getElementById('m-need-terrace')?.checked || false;
     const baseData = {
       type, subOrg, managerName: manager, stewardName: sName, stewardTel: sTel,
-      room, people: parseInt(people), purpose, memo,
+      people: parseInt(people), purpose, memo,
       needTV, needMic, needPantry, needTerrace,
       status: '대기', userEmail: curUser?.email || '',
       createdAt: serverTimestamp()
@@ -4769,12 +4839,15 @@ window.submitApply = async () => {
       baseData.recurTotal = items.length;
     }
 
-    for (let i = 0; i < items.length; i++) {
-      await addDoc(collection(db, 'reservations'), {
-        ...baseData,
-        date: items[i].date, start: items[i].start, end: items[i].end,
-        history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${items.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${items.length}회, ${recurLabel})` : '예약 신청 접수' }]
-      });
+    for (const rm of rooms) {
+      for (let i = 0; i < items.length; i++) {
+        await addDoc(collection(db, 'reservations'), {
+          ...baseData,
+          room: rm,
+          date: items[i].date, start: items[i].start, end: items[i].end,
+          history: [{ time: nowStr(), msg: isFlexRoom ? '공실 희망 신청 접수' : isMulti ? `비정기 예약 신청 (${i+1}/${items.length}건)` : isRecur ? `정기 예약 신청 (${i+1}/${items.length}회, ${recurLabel})` : isMultiRoom ? `복수 실 예약 신청 (${rm})` : '예약 신청 접수' }]
+        });
+      }
     }
 
     resetApply(); go('mylist');
@@ -4789,7 +4862,9 @@ window.submitApply = async () => {
         ? `정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
         : isMulti
           ? `비정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
-          : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+          : isMultiRoom
+            ? `${rooms.length}개 실 예약 신청 완료! 관리자 승인을 기다려주세요`
+            : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
     }
   } catch(e) {
     console.error('submitApply error:', e);
