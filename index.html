@@ -1456,7 +1456,7 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="card">
             <div class="card-title">일정</div>
             <div style="font-size:11px;color:var(--text3);margin:-4px 0 12px;background:var(--bg2);border-radius:7px;padding:8px 10px">
-              📅 정기 예약은 최대 4개월(20주)까지만 가능합니다.
+              📅 복수 예약(정기·비정기)은 첫 날짜부터 마지막 날짜까지 최대 4개월(20주)까지만 가능합니다.
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
               <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none">
@@ -4770,6 +4770,12 @@ window.submitApply = async () => {
   }
   if (!isMulti && start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
   if (isMulti && multiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
+  if (isMulti && multiDates.length > 0) {
+    const multiDateOnly = multiDates.map(d => d.date).sort();
+    if (recurSpanTooLong(multiDateOnly[0], multiDateOnly[multiDateOnly.length - 1])) {
+      T('비정기 예약은 첫 날짜부터 마지막 날짜까지 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return;
+    }
+  }
   if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
   if (isRecur && recurSpanTooLong(date, endDate)) { T('정기 예약은 시작일로부터 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return; }
