@@ -7,11 +7,23 @@
       ".git/**",
       "README.md"
     ],
+    "headers": [
+      {
+        "source": "**/*.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+          { "key": "Pragma", "value": "no-cache" }
+        ]
+      }
+    ],
     "rewrites": [
       {
         "source": "/discount/registration",
         "destination": "/discount/registration/index.html"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
