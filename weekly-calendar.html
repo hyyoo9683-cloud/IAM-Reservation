@@ -47,7 +47,14 @@
   .cat { margin: 14px 14px 0; background: var(--bg2); border-radius: 12px; overflow: hidden;
          box-shadow: 0 1px 4px rgba(24,95,165,.06); }
   .cat-hd { padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--blue);
-            background: var(--blue-lt); }
+            background: var(--blue-lt); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cat-hd-title { min-width: 0; }
+  .cat-hd-5f { flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--blue); background: #fff;
+               border: 1px solid var(--blue); border-radius: 999px; padding: 3px 10px; cursor: pointer;
+               white-space: nowrap; transition: background .12s, color .12s; }
+  .cat-hd-5f:hover { background: var(--blue); color: #fff; }
+  .cat-hd-5f.empty { color: var(--text3); border-color: var(--border2); cursor: default; }
+  .cat-hd-5f.empty:hover { background: #fff; color: var(--text3); }
   .cat-body { padding: 4px 0; }
   .item { display: flex; align-items: center; gap: 10px; padding: 11px 16px;
           border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
@@ -113,7 +120,7 @@
   </label>
   <div class="view-toggle">
     <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
-    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 제외 전체)</button>
+    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 요약)</button>
   </div>
 </div>
 
@@ -124,6 +131,13 @@
   <div class="modal">
     <button class="modal-close" onclick="closeDetail()">×</button>
     <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-5f">
+  <div class="modal">
+    <button class="modal-close" onclick="closeFloor5()">×</button>
+    <div id="f5-content"></div>
   </div>
 </div>
 
@@ -299,11 +313,40 @@ function renderWeek() {
             <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-room">${esc(r.room)}</span>
           </div>`).join('');
-    return `<div class="cat"><div class="cat-hd">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</div><div class="cat-body">${body}</div></div>`;
+    const sgCount = reservations.filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정').length;
+    const sgBadge = sgCount > 0
+      ? `<span class="cat-hd-5f" onclick='showFloor5(${JSON.stringify(ds)})'>5층 소그룹실 ${sgCount}건 ▸</span>`
+      : `<span class="cat-hd-5f empty">5층 소그룹실 없음</span>`;
+    return `<div class="cat"><div class="cat-hd"><span class="cat-hd-title">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</span>${sgBadge}</div><div class="cat-body">${body}</div></div>`;
   }).join('');
 
   document.getElementById('body').innerHTML = html;
 }
+
+window.showFloor5 = (ds) => {
+  const items = reservations
+    .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
+    .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+  const d = new Date(ds + 'T00:00:00');
+  const dow = DOWS[d.getDay()];
+  const body = !items.length
+    ? '<div class="empty-row">예약 없음</div>'
+    : items.map(r => `
+        <div class="item" onclick='closeFloor5();showDetail(${JSON.stringify(r.id)})'>
+          <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
+          <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+          <span class="item-room">${esc(r.room)}</span>
+        </div>`).join('');
+  document.getElementById('f5-content').innerHTML = `
+    <div class="modal-title">5층 소그룹실 · ${d.getMonth()+1}월 ${d.getDate()}일 (${dow})</div>
+    ${body}
+  `;
+  document.getElementById('modal-5f').classList.add('open');
+};
+window.closeFloor5 = () => document.getElementById('modal-5f').classList.remove('open');
+document.getElementById('modal-5f').addEventListener('click', e => {
+  if (e.target.id === 'modal-5f') closeFloor5();
+});
 
 window.showDetail = (id) => {
   const r = reservations.find(x => x.id === id);
