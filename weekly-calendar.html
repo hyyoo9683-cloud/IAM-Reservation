@@ -62,8 +62,12 @@
   .item-lodging:hover { background: #F5E3C4; }
   .item-lodging .item-time { color: #854F0B; }
   /* 시간/장소·목적을 줄바꿈해 좁은 컬럼에서도 텍스트가 잘리지 않게 하는 2줄 레이아웃 */
+  /* 시간·장소는 밑줄, 예약 목적만 볼드로 강조 */
   .item-stack { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .item-stack .item-time { font-weight: 500; text-decoration: underline; }
   .item-meta { font-size: 13px; color: var(--text3); width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .meta-place { text-decoration: underline; }
+  .meta-purpose { font-weight: 700; color: var(--text); }
   .empty-row { padding: 18px 16px; text-align: center; color: var(--text3); font-size: 13px; }
   .loading { text-align: center; padding: 60px; color: var(--text3); }
 
@@ -78,7 +82,7 @@
              border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
   .item-5f:first-child { border-top: none; }
   .item-5f:hover { background: #EAF3FA; }
-  .item-5f-time { font-weight: 700; font-size: 12px; color: var(--blue); }
+  .item-5f-time { font-weight: 500; text-decoration: underline; font-size: 12px; color: var(--blue); }
   .item-5f-meta { font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cat-body-5f .empty-row { padding: 14px 10px; font-size: 12px; }
 
@@ -321,7 +325,7 @@ function renderWeek() {
       : items.map(r => `
           <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
-            <span class="item-meta">${esc(r.room)} · ${esc(r.purpose) || '(목적 미기재)'}</span>
+            <span class="item-meta"><span class="meta-place">${esc(r.room)}</span> · <span class="meta-purpose">${esc(r.purpose) || '(목적 미기재)'}</span></span>
           </div>`).join('');
     const sgItems = reservations
       .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
@@ -331,7 +335,7 @@ function renderWeek() {
       : sgItems.map(r => `
           <div class="item-5f" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-5f-time">${dispStart(r)}–${dispEnd(r)}</span>
-            <span class="item-5f-meta">${esc(r.room)} · ${esc(r.purpose) || '(목적 미기재)'}</span>
+            <span class="item-5f-meta"><span class="meta-place">${esc(r.room)}</span> · <span class="meta-purpose">${esc(r.purpose) || '(목적 미기재)'}</span></span>
           </div>`).join('');
     return `<div class="cat">
         <div class="cat-hd"><span class="cat-hd-title">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</span></div>
