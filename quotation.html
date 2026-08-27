@@ -731,6 +731,7 @@ table{width:100%;table-layout:fixed;border-collapse:collapse;margin-top:4px;}
 th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;text-align:center;border:1px solid #1a2533;}
 td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;white-space:nowrap;}
 td.left{text-align:left;white-space:normal;}
+td:first-child{white-space:normal;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 td.sm{font-size:13px;color:#333;line-height:1.6;word-break:keep-all;}
 /* 방 목록이 많아 비고 칸이 여러 줄로 길어져도, 인쇄 시 그 행이 페이지 경계에서 잘리지 않도록 함 */
@@ -762,15 +763,14 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     <div class="info-label">${L.issueDate}</div>
     <div class="info-val">${issueDateFmt}</div>
   </div>
-  <div class="info-cell" style="position:relative">
+  <div class="info-cell">
     <div class="info-label">${L.supplier}</div>
     <div class="info-val">${lang === 'en' ? ISSUER.nameEn : ISSUER.name}</div>
     <div class="info-sub">
-      <div style="margin:14px 0">${L.ceo} ${ISSUER.ceo}&nbsp;&nbsp;${L.seal}</div>
+      <div style="margin:14px 0">${L.ceo} ${ISSUER.ceo}&nbsp;&nbsp;<span style="position:relative;display:inline-block">${L.seal}<img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:34px;width:auto;opacity:.85;pointer-events:none"></span></div>
       ${lang === 'en' ? ISSUER.addressEn : ISSUER.address}<br>
       ${ISSUER.phone}
     </div>
-    <img src="data:image/png;base64,${ISSUER_STAMP_B64}" alt="" style="position:absolute;left:64px;top:45px;height:34px;width:auto;opacity:.85">
   </div>
   <div class="info-cell" style="display:flex;align-items:center;">
     <span style="font-size:14px;color:#555;font-style:italic">${L.asBelow}</span>
@@ -785,8 +785,8 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
 <table>
   <thead>
     <tr>
-      <th style="width:10%">${L.thDate}</th>
-      <th style="width:13%">${L.thTime}</th>
+      <th style="width:13%">${L.thDate}</th>
+      <th style="width:10%">${L.thTime}</th>
       <th style="width:8%">${L.thSpace}</th>
       <th style="width:12%">${L.thItem}</th>
       <th style="width:12%">${L.thSupply}</th>
