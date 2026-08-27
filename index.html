@@ -1491,20 +1491,24 @@ textarea { resize: vertical; min-height: 60px; }
                 <div class="lbl" id="m-date-lbl" style="display:flex;align-items:center;gap:6px">날짜 <span class="req">*</span>
                   <button type="button" onclick="document.getElementById('m-date').value=tsToday();checkAvail();updateApplySummary()" style="font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600">오늘</button>
                 </div>
-                <input type="date" id="m-date" onchange="checkAvail();updateApplySummary()">
+                <input type="date" id="m-date" onchange="checkAvail();updateApplySummary();renderRecurExcludeList()">
               </div>
               <div class="fg" id="m-end-date-wrap" style="display:none">
                 <div class="lbl">종료 날짜 <span class="req">*</span></div>
-                <input type="date" id="m-end-date" onchange="checkAvail();updateApplySummary()">
+                <input type="date" id="m-end-date" onchange="checkAvail();updateApplySummary();renderRecurExcludeList()">
               </div>
             </div>
             <div class="fg" id="m-recur-wrap" style="display:none">
               <div class="lbl">반복 유형</div>
-              <select id="m-recur" onchange="checkAvail();updateApplySummary()">
+              <select id="m-recur" onchange="checkAvail();updateApplySummary();renderRecurExcludeList()">
                 <option value="weekly">매 주</option>
                 <option value="biweekly">격 주</option>
                 <option value="monthly">매 달 동일 요일</option>
               </select>
+            </div>
+            <div class="fg" id="m-recur-exclude-wrap" style="display:none">
+              <div class="lbl">제외할 날짜 <span style="font-weight:400;color:var(--text3);font-size:11px">(선택 — 필요 없는 날짜는 체크 해제)</span></div>
+              <div id="m-recur-exclude-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:150px;overflow-y:auto;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--bg2)"></div>
             </div>
             <div class="fl" id="m-time-row">
               <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="m-start" onchange="onStartChange()"></select></div>
@@ -4102,6 +4106,39 @@ function generateAvailDates(sd, ed, recur) {
   }
   return dates;
 }
+
+// 정기 예약(신청) 중 특정 회차 날짜만 제외하고 싶을 때 사용 — 신청 폼 전용 상태
+let recurExcludedDates = new Set();
+window.toggleRecurExcludeDate = (d, checked) => {
+  if (checked) recurExcludedDates.delete(d); else recurExcludedDates.add(d);
+  updateApplySummary();
+};
+window.renderRecurExcludeList = () => {
+  const wrap = document.getElementById('m-recur-exclude-wrap');
+  const listEl = document.getElementById('m-recur-exclude-list');
+  if (!wrap || !listEl) return;
+  const isRecur = document.getElementById('m-is-recur')?.checked;
+  const date = document.getElementById('m-date')?.value;
+  const endDate = document.getElementById('m-end-date')?.value;
+  const recur = document.getElementById('m-recur')?.value || 'weekly';
+  if (!isRecur || !date || !endDate || endDate < date) {
+    wrap.style.display = 'none'; listEl.innerHTML = ''; recurExcludedDates.clear();
+    return;
+  }
+  const dates = generateAvailDates(date, endDate, recur);
+  recurExcludedDates.forEach(d => { if (!dates.includes(d)) recurExcludedDates.delete(d); });
+  if (dates.length <= 1) { wrap.style.display = 'none'; listEl.innerHTML = ''; return; }
+  wrap.style.display = '';
+  listEl.innerHTML = dates.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const lbl = `${dt.getMonth()+1}/${dt.getDate()}(${DOWS_KR_MULTI[dt.getDay()]})`;
+    const excluded = recurExcludedDates.has(d);
+    return `<label style="display:flex;align-items:center;gap:4px;font-size:12px;padding:3px 8px;border-radius:6px;background:${excluded?'var(--bg)':'var(--green-lt)'};color:${excluded?'var(--text3)':'var(--green)'};cursor:pointer;user-select:none">
+      <input type="checkbox" ${excluded?'':'checked'} onchange="toggleRecurExcludeDate('${d}', this.checked)" style="width:12px;height:12px;cursor:pointer">${lbl}
+    </label>`;
+  }).join('');
+};
+
 window.runAvailSearch = () => {
   const sd    = document.getElementById('avail-s-date').value;
   const ed    = document.getElementById('avail-e-date').value;
@@ -4495,6 +4532,7 @@ window.toggleRecur = () => {
   document.getElementById('m-recur-wrap').style.display    = on ? '' : 'none';
   document.getElementById('m-date-lbl').innerHTML =
     (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+  renderRecurExcludeList();
 };
 let multiDates = []; // [{date, start, end}] — 비정기 모드는 날짜마다 시간을 따로 지정할 수 있음
 window.toggleMulti = (forceOff) => {
@@ -4630,9 +4668,9 @@ window.checkAvail = () => {
   const endDate = document.getElementById('m-end-date')?.value;
   const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
-  // 정기 예약이면 모든 날짜 생성, 아니면 단일 날짜
+  // 정기 예약이면 모든 날짜 생성(제외 날짜 반영), 아니면 단일 날짜
   const dates = (isRecur && endDate && endDate >= date)
-    ? generateAvailDates(date, endDate, recur)
+    ? generateAvailDates(date, endDate, recur).filter(d => !recurExcludedDates.has(d))
     : [date];
 
   // 차단일 포함 여부 체크 (정기 예약)
@@ -4723,7 +4761,7 @@ window.updateApplySummary = () => {
   const dateVal = isMulti
     ? (multiDates.length ? `비정기 ${multiDates.length}건` : '–')
     : isRecur
-      ? (g('m-date') && g('m-end-date') ? `${g('m-date')} ~ ${g('m-end-date')} (${recurLabel})` : g('m-date') || '–')
+      ? (g('m-date') && g('m-end-date') ? `${g('m-date')} ~ ${g('m-end-date')} (${recurLabel}${recurExcludedDates.size ? `, ${recurExcludedDates.size}일 제외` : ''})` : g('m-date') || '–')
       : (g('m-date') || '–');
   const rows = [
     ['기관', g('m-type')], ['담당자', g('m-manager')], ['실사용자', g('m-steward-name')],
@@ -4752,6 +4790,9 @@ window.resetApply = () => {
   document.getElementById('m-end-date-wrap').style.display = 'none';
   document.getElementById('m-recur-wrap').style.display    = 'none';
   document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
+  recurExcludedDates.clear();
+  document.getElementById('m-recur-exclude-wrap').style.display = 'none';
+  document.getElementById('m-recur-exclude-list').innerHTML = '';
   document.querySelectorAll('[id^=arc-]').forEach(c => c.classList.remove('sel'));
   document.getElementById('m-room').value = '';
   document.getElementById('m-avail').innerHTML = '';
@@ -4810,7 +4851,9 @@ window.submitApply = async () => {
   // items: {date, start, end} 배열 — 비정기 모드는 날짜마다 다른 시간을 가질 수 있어 dates 배열 대신 사용
   let items = isMulti
     ? multiDates.map(d => ({ date: d.date, start: d.start, end: d.end }))
-    : (isRecur ? generateAvailDates(date, endDate, recur) : [date]).map(d => ({ date: d, start, end }));
+    : (isRecur ? generateAvailDates(date, endDate, recur).filter(d => !recurExcludedDates.has(d)) : [date]).map(d => ({ date: d, start, end }));
+
+  if (isRecur && items.length === 0) { T('제외 날짜를 확인해주세요 (신청 가능한 날짜가 없습니다)', '#A32D2D'); return; }
 
   const lastMinuteItems = items.filter(it => isLastMinuteDate(it.date));
   if (lastMinuteItems.length > 0) {
