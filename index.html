@@ -1489,9 +1489,9 @@ textarea { resize: vertical; min-height: 60px; }
             <div class="fl" id="m-date-row">
               <div class="fg">
                 <div class="lbl" id="m-date-lbl" style="display:flex;align-items:center;gap:6px">날짜 <span class="req">*</span>
-                  <button type="button" onclick="document.getElementById('m-date').value=tsToday();checkAvail();updateApplySummary()" style="font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600">오늘</button>
+                  <button type="button" onclick="document.getElementById('m-date').value=tsToday();checkAvail();updateApplySummary();renderRecurWeekdayList();renderRecurExcludeList()" style="font-size:10px;padding:1px 7px;border:1px solid var(--border);border-radius:5px;background:var(--bg2);color:var(--blue);cursor:pointer;font-weight:600">오늘</button>
                 </div>
-                <input type="date" id="m-date" onchange="checkAvail();updateApplySummary();renderRecurExcludeList()">
+                <input type="date" id="m-date" onchange="checkAvail();updateApplySummary();renderRecurWeekdayList();renderRecurExcludeList()">
               </div>
               <div class="fg" id="m-end-date-wrap" style="display:none">
                 <div class="lbl">종료 날짜 <span class="req">*</span></div>
@@ -1500,11 +1500,15 @@ textarea { resize: vertical; min-height: 60px; }
             </div>
             <div class="fg" id="m-recur-wrap" style="display:none">
               <div class="lbl">반복 유형</div>
-              <select id="m-recur" onchange="checkAvail();updateApplySummary();renderRecurExcludeList()">
+              <select id="m-recur" onchange="checkAvail();updateApplySummary();renderRecurWeekdayList();renderRecurExcludeList()">
                 <option value="weekly">매 주</option>
                 <option value="biweekly">격 주</option>
                 <option value="monthly">매 달 동일 요일</option>
               </select>
+            </div>
+            <div class="fg" id="m-recur-weekday-wrap" style="display:none">
+              <div class="lbl">반복 요일 <span style="font-weight:400;color:var(--text3);font-size:11px">(필요하면 요일 추가 — 예: 화·목, *는 시작 날짜 요일)</span></div>
+              <div id="m-recur-weekday-list" style="display:flex;gap:6px;flex-wrap:wrap"></div>
             </div>
             <div class="fg" id="m-recur-exclude-wrap" style="display:none">
               <div class="lbl">제외할 날짜 <span style="font-weight:400;color:var(--text3);font-size:11px">(선택 — 필요 없는 날짜는 체크 해제)</span></div>
@@ -4084,10 +4088,15 @@ window.resetAvailSearch = () => {
   document.getElementById('avail-summary').innerHTML = '';
   renderSpaces();
 };
-function generateAvailDates(sd, ed, recur) {
+function generateAvailDates(sd, ed, recur, weekdays) {
   if (recur === 'once') return [sd];
   const s = new Date(sd + 'T00:00:00'), e = new Date(ed + 'T00:00:00'), dates = [];
   let d = new Date(s);
+  // weekly + 복수 요일(예: 화·목)이 지정된 경우 — 선택된 요일 전부를 매주 반복
+  if (recur === 'weekly' && weekdays && weekdays.length > 1) {
+    while (d <= e) { if (weekdays.includes(d.getDay())) dates.push(toDateStr(d)); d.setDate(d.getDate()+1); }
+    return dates;
+  }
   if (recur === 'daily')    { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+1); } }
   else if (recur === 'weekly')   { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+7); } }
   else if (recur === 'biweekly') { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+14); } }
@@ -4107,6 +4116,42 @@ function generateAvailDates(sd, ed, recur) {
   return dates;
 }
 
+// 매주 반복 예약 중 여러 요일(예: 화·목)로 신청하고 싶을 때 사용 — 신청 폼 전용 상태
+let recurSelectedWeekdays = new Set();
+// weekly + 요일 2개 이상 선택 시에만 배열 반환(그 외엔 undefined로 기존 단일 요일 동작 유지)
+function activeRecurWeekdays(recur) {
+  return recur === 'weekly' && recurSelectedWeekdays.size > 1 ? [...recurSelectedWeekdays] : undefined;
+}
+window.toggleRecurWeekday = (dow, checked) => {
+  const date = document.getElementById('m-date')?.value;
+  const dateDow = date ? new Date(date + 'T00:00:00').getDay() : null;
+  if (dow === dateDow) return; // 시작 날짜의 요일은 항상 포함(해제 불가)
+  if (checked) recurSelectedWeekdays.add(dow); else recurSelectedWeekdays.delete(dow);
+  renderRecurWeekdayList(); renderRecurExcludeList(); checkAvail(); updateApplySummary();
+};
+window.renderRecurWeekdayList = () => {
+  const wrap = document.getElementById('m-recur-weekday-wrap');
+  const listEl = document.getElementById('m-recur-weekday-list');
+  if (!wrap || !listEl) return;
+  const isRecur = document.getElementById('m-is-recur')?.checked;
+  const recur = document.getElementById('m-recur')?.value || 'weekly';
+  const date = document.getElementById('m-date')?.value;
+  if (!isRecur || recur !== 'weekly' || !date) {
+    wrap.style.display = 'none'; listEl.innerHTML = '';
+    return;
+  }
+  const dateDow = new Date(date + 'T00:00:00').getDay();
+  recurSelectedWeekdays.add(dateDow); // 시작 날짜 요일은 항상 포함
+  wrap.style.display = '';
+  listEl.innerHTML = DOWS_KR_MULTI.map((label, dow) => {
+    const checked = recurSelectedWeekdays.has(dow);
+    const locked = dow === dateDow;
+    return `<label style="display:flex;align-items:center;gap:3px;font-size:12px;padding:4px 9px;border-radius:6px;background:${checked?'var(--green-lt)':'var(--bg2)'};color:${checked?'var(--green)':'var(--text3)'};border:1px solid ${checked?'var(--green)':'var(--border)'};cursor:${locked?'default':'pointer'};user-select:none">
+      <input type="checkbox" ${checked?'checked':''} ${locked?'disabled':''} onchange="toggleRecurWeekday(${dow}, this.checked)" style="width:12px;height:12px;${locked?'':'cursor:pointer'}">${label}${locked?'*':''}
+    </label>`;
+  }).join('');
+};
+
 // 정기 예약(신청) 중 특정 회차 날짜만 제외하고 싶을 때 사용 — 신청 폼 전용 상태
 let recurExcludedDates = new Set();
 window.toggleRecurExcludeDate = (d, checked) => {
@@ -4125,7 +4170,7 @@ window.renderRecurExcludeList = () => {
     wrap.style.display = 'none'; listEl.innerHTML = ''; recurExcludedDates.clear();
     return;
   }
-  const dates = generateAvailDates(date, endDate, recur);
+  const dates = generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur));
   recurExcludedDates.forEach(d => { if (!dates.includes(d)) recurExcludedDates.delete(d); });
   if (dates.length <= 1) { wrap.style.display = 'none'; listEl.innerHTML = ''; return; }
   wrap.style.display = '';
@@ -4532,6 +4577,8 @@ window.toggleRecur = () => {
   document.getElementById('m-recur-wrap').style.display    = on ? '' : 'none';
   document.getElementById('m-date-lbl').innerHTML =
     (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+  if (!on) recurSelectedWeekdays.clear();
+  renderRecurWeekdayList();
   renderRecurExcludeList();
 };
 let multiDates = []; // [{date, start, end}] — 비정기 모드는 날짜마다 시간을 따로 지정할 수 있음
@@ -4543,6 +4590,9 @@ window.toggleMulti = (forceOff) => {
     document.getElementById('m-end-date-wrap').style.display = 'none';
     document.getElementById('m-recur-wrap').style.display    = 'none';
     document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
+    recurSelectedWeekdays.clear();
+    renderRecurWeekdayList();
+    renderRecurExcludeList();
     const gs = document.getElementById('m-start').value, ge = document.getElementById('m-end').value;
     initTimeSelects('m-multi-start-input', 'm-multi-end-input', gs, ge);
   }
@@ -4670,7 +4720,7 @@ window.checkAvail = () => {
 
   // 정기 예약이면 모든 날짜 생성(제외 날짜 반영), 아니면 단일 날짜
   const dates = (isRecur && endDate && endDate >= date)
-    ? generateAvailDates(date, endDate, recur).filter(d => !recurExcludedDates.has(d))
+    ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)).filter(d => !recurExcludedDates.has(d))
     : [date];
 
   // 차단일 포함 여부 체크 (정기 예약)
@@ -4757,7 +4807,10 @@ window.updateApplySummary = () => {
   const el = document.getElementById('apply-summary'); if (!el) return;
   const isRecur = document.getElementById('m-is-recur')?.checked;
   const isMulti = document.getElementById('m-is-multi')?.checked;
-  const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[g('m-recur')] || '';
+  const recurWds = activeRecurWeekdays(g('m-recur'));
+  const recurLabel = recurWds
+    ? `매 주(${recurWds.slice().sort().map(d => DOWS_KR_MULTI[d]).join('·')})`
+    : ({ weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[g('m-recur')] || '');
   const dateVal = isMulti
     ? (multiDates.length ? `비정기 ${multiDates.length}건` : '–')
     : isRecur
@@ -4790,6 +4843,9 @@ window.resetApply = () => {
   document.getElementById('m-end-date-wrap').style.display = 'none';
   document.getElementById('m-recur-wrap').style.display    = 'none';
   document.getElementById('m-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
+  recurSelectedWeekdays.clear();
+  document.getElementById('m-recur-weekday-wrap').style.display = 'none';
+  document.getElementById('m-recur-weekday-list').innerHTML = '';
   recurExcludedDates.clear();
   document.getElementById('m-recur-exclude-wrap').style.display = 'none';
   document.getElementById('m-recur-exclude-list').innerHTML = '';
@@ -4851,7 +4907,7 @@ window.submitApply = async () => {
   // items: {date, start, end} 배열 — 비정기 모드는 날짜마다 다른 시간을 가질 수 있어 dates 배열 대신 사용
   let items = isMulti
     ? multiDates.map(d => ({ date: d.date, start: d.start, end: d.end }))
-    : (isRecur ? generateAvailDates(date, endDate, recur).filter(d => !recurExcludedDates.has(d)) : [date]).map(d => ({ date: d, start, end }));
+    : (isRecur ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)).filter(d => !recurExcludedDates.has(d)) : [date]).map(d => ({ date: d, start, end }));
 
   if (isRecur && items.length === 0) { T('제외 날짜를 확인해주세요 (신청 가능한 날짜가 없습니다)', '#A32D2D'); return; }
 
@@ -4890,7 +4946,10 @@ window.submitApply = async () => {
 
   try {
     const recurGroup = isRecur ? `recur_${Date.now()}` : isMulti && items.length > 1 ? `multi_${Date.now()}` : null;
-    const recurLabel = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '';
+    const recurWeekdaysArr = isRecur ? activeRecurWeekdays(recur) : undefined;
+    const recurLabel = recurWeekdaysArr
+      ? `매 주(${recurWeekdaysArr.slice().sort().map(d => DOWS_KR_MULTI[d]).join('·')})`
+      : ({ weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' }[recur] || '');
     const subOrg = document.getElementById('m-subtype')?.value || '';
     const needTV      = document.getElementById('m-need-tv')?.checked || false;
     const needMic     = document.getElementById('m-need-mic')?.checked || false;
@@ -4907,6 +4966,7 @@ window.submitApply = async () => {
       baseData.recurGroup = recurGroup;
       baseData.recurType  = isMulti ? '비정기' : recurLabel;
       baseData.recurTotal = items.length;
+      if (recurWeekdaysArr) baseData.recurWeekdays = recurWeekdaysArr;
     }
 
     for (const rm of rooms) {
@@ -6676,7 +6736,7 @@ window.submitEdit = async () => {
             activeSeries = series.filter(x => x.date <= newEndDate);
           } else {
             // 연장: lastDate 이후 날짜 추가 (충돌 없는 날짜만)
-            const addDates = generateAvailDates(lastDate, newEndDate, recurCode).slice(1);
+            const addDates = generateAvailDates(lastDate, newEndDate, recurCode, r.recurWeekdays).slice(1);
             if (addDates.length) {
               const canAdd  = addDates.filter(d => noConflict(room, d, start, end, null, true));
               cantAddDates  = addDates.filter(d => !noConflict(room, d, start, end, null, true));
@@ -6688,6 +6748,7 @@ window.submitEdit = async () => {
                     ...data,
                     status: data.status || r.status || '확정',
                     date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
+                    ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
                     history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
                   });
                 }

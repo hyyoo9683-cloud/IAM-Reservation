@@ -144,6 +144,13 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - 충돌되는 건은 제외하고 가능한 건만 업데이트, 충돌 건은 모달로 안내
 - 대안 공간 추천 기능 포함
 
+### 정기 예약 복수 요일 (예: 매주 화·목)
+- 신청 폼에서 반복 유형이 "매 주"일 때만 요일 체크박스(`m-recur-weekday-list`, 시작 날짜의 요일은 항상 포함되어 해제 불가)로 요일을 추가 선택 가능 — `recurSelectedWeekdays` 전역 Set으로 관리
+- 2개 이상 선택 시에만 `generateAvailDates(sd, ed, recur, weekdays)`의 4번째 인자(`weekdays` 배열)를 사용해 선택된 요일 전체를 매주 반복 생성 — 1개(기존 단일 요일)면 `weekdays`를 넘기지 않아 기존 "시작일로부터 7일 간격" 로직 그대로 동작(하위 호환)
+- 예약 문서에 `recurWeekdays: [2,4]`(0=일~6=토)와 `recurType: '매 주(화·목)'`처럼 사람이 읽을 수 있는 라벨을 저장 — `recurType` 문자열에 "격"/"달"이 없으므로 기존 `recurType?.includes('격')` 같은 판별 로직과 호환됨
+- 관리자 수정 모달의 "전체 N회 모두 수정" 중 시리즈 **연장** 시에도 `r.recurWeekdays`를 `generateAvailDates`에 그대로 전달해 화·목 등 복수 요일 패턴이 깨지지 않게 함 (시리즈 단축은 단순 삭제라 영향 없음)
+- 신청 폼의 "제외할 날짜" 기능(`renderRecurExcludeList`)과 함께 동작 — 복수 요일로 생성된 날짜 목록에서도 개별 회차를 체크 해제해 제외 가능
+
 ## 접근 제어
 - `ADMIN_EMAILS = ["hyyoo9683@gmail.com"]` — 관리자
 - `ALLOWED_DOMAIN = "suwoncca.org"` — 허용 도메인
