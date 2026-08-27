@@ -3146,6 +3146,9 @@ window.setChangeReqTab = (tab) => {
 window.renderChangeRequests = () => {
   const el = document.getElementById('cr-list');
   if (!el) return;
+  // 메모 작성 중(포커스된 상태)에는 실시간 재렌더링으로 입력 중인 내용이 사라지지 않도록 스킵
+  const active = document.activeElement;
+  if (active && el.contains(active) && active.tagName === 'TEXTAREA') return;
   const filtered = changeReqTab ? changeRequests.filter(r => (r.status || '대기') === changeReqTab) : changeRequests;
   if (!filtered.length) {
     el.innerHTML = `<div class="card" style="text-align:center;color:var(--text3);padding:32px;font-size:14px">신청 내역이 없습니다.</div>`;
@@ -3180,7 +3183,8 @@ window.renderChangeRequests = () => {
         <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">처리 메모 (어떻게 처리했는지 기록)</label>
         <textarea id="cr-note-${r.id}" placeholder="예: 담당자와 통화 후 8/20 13시로 변경 완료 안내함"
           style="width:100%;min-height:50px;font-size:12.5px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-family:inherit;resize:vertical"
-          onchange="setChangeReqNote('${r.id}', this.value)">${(r.adminNote||'').replace(/</g,'&lt;')}</textarea>
+          onclick="event.stopPropagation()" onchange="setChangeReqNote('${r.id}', this.value)">${(r.adminNote||'').replace(/</g,'&lt;')}</textarea>
+        <button class="btn btn-ghost" style="margin-top:4px;padding:3px 10px;font-size:11px" onclick="event.stopPropagation();setChangeReqNote('${r.id}', document.getElementById('cr-note-${r.id}').value)">💾 메모 저장</button>
       </div>
       <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
       <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
