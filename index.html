@@ -1674,6 +1674,7 @@ textarea { resize: vertical; min-height: 60px; }
             <th>목적</th>
             <th onclick="sortList('status')"    style="cursor:pointer;user-select:none" id="sh-status">상태</th>
             <th onclick="sortList('createdAt')" style="cursor:pointer;user-select:none" id="sh-createdAt">신청일</th>
+            <th onclick="sortList('processedAt')" style="cursor:pointer;user-select:none" id="sh-processedAt">승인일시</th>
             <th style="width:100px">액션</th>
           </tr></thead>
           <tbody id="list-body"></tbody>
@@ -2496,6 +2497,7 @@ function createdAtMillis(c) {
 function listSortValue(r, col) {
   if (col === 'date') return (r.date || '') + ' ' + (r.start || '');
   if (col === 'createdAt') return createdAtMillis(r.createdAt);
+  if (col === 'processedAt') return createdAtMillis(r.processedAt);
   return r[col] || '';
 }
 function fmtCreatedAt(c) {
@@ -5578,6 +5580,7 @@ window.approve = async (id) => {
   try {
     await updateDoc(doc(db, 'reservations', id), {
       status: '확정',
+      processedAt: serverTimestamp(),
       history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인' }]
     });
     T('승인 완료', '#3B6D11');
@@ -5609,6 +5612,7 @@ window.approveGroup = async (idsCsv) => {
   try {
     await Promise.all(toApprove.map(r => updateDoc(doc(db, 'reservations', r.id), {
       status: '확정',
+      processedAt: serverTimestamp(),
       history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인 (정기예약 일괄)' }]
     })));
     T(unassigned.length
@@ -6603,7 +6607,10 @@ window.submitEdit = async () => {
   try {
     if (editId) {
       const r = reservations.find(x => x.id === editId); if (!r) return;
-      if (isAdmin) data.status = document.getElementById('e-status').value;
+      if (isAdmin) {
+        data.status = document.getElementById('e-status').value;
+        if (data.status === '확정' && r.status !== '확정') data.processedAt = serverTimestamp();
+      }
       const allSeries = document.getElementById('e-all-series')?.checked && r.recurGroup;
       if (allSeries) {
         const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
@@ -7127,11 +7134,11 @@ window.renderList = function renderList() {
   });
 
   // 헤더 인디케이터 업데이트
-  ['type','managerName','stewardName','room','date','status','createdAt'].forEach(col => {
+  ['type','managerName','stewardName','room','date','status','createdAt','processedAt'].forEach(col => {
     const th = document.getElementById('sh-' + col);
     if (!th) return;
     const isActive = col === listSortCol;
-    th.innerHTML = { type:'기관', managerName:'담당자', stewardName:'청지기', room:'공간', date:'날짜·시간', status:'상태', createdAt:'신청일' }[col]
+    th.innerHTML = { type:'기관', managerName:'담당자', stewardName:'청지기', room:'공간', date:'날짜·시간', status:'상태', createdAt:'신청일', processedAt:'승인일시' }[col]
       + (isActive ? (listSortDir === 1 ? ' ▲' : ' ▼') : ' <span style="color:var(--border);font-size:10px">⇅</span>');
   });
 
@@ -7141,7 +7148,7 @@ window.renderList = function renderList() {
 
   if (!data.length) {
     document.getElementById('list-body').innerHTML =
-      `<tr><td colspan="11" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`;
+      `<tr><td colspan="12" style="text-align:center;padding:20px;color:var(--text3)">예약이 없습니다</td></tr>`;
     return;
   }
 
@@ -7168,6 +7175,7 @@ window.renderList = function renderList() {
       <td>${r.room}</td><td>${r.date} ${r.start}–${r.end}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td><td>${sBadge(r.status)}</td>
       <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
+      <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.processedAt)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
         <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="openEditModal('${r.id}')">수정</button>
         <button class="btn btn-red"   style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="deleteR('${r.id}')">삭제</button>
@@ -7197,6 +7205,7 @@ window.renderList = function renderList() {
         <td style="font-size:11px;color:var(--text2);cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(first.purpose||'').replace(/"/g,'&quot;')}" onclick="${tg}">${first.purpose}</td>
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.createdAt)}</td>
+        <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.processedAt)}</td>
         <td style="white-space:nowrap">
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="${tg}">펼치기</button>
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px;margin-left:4px" onclick="openDetail('${first.id}')">상세</button>
@@ -7217,6 +7226,7 @@ window.renderList = function renderList() {
         <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td>
         <td>${sBadge(r.status)}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
+        <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.processedAt)}</td>
         <td onclick="event.stopPropagation()" style="white-space:nowrap">
           <button class="btn btn-ghost" style="padding:2px 6px;font-size:10px;color:var(--blue)" onclick="openQuickEdit('${r.id}')">일정수정</button>
           <button class="btn btn-red"   style="padding:2px 6px;font-size:10px;margin-left:3px" onclick="deleteR('${r.id}')">삭제</button>
