@@ -187,6 +187,8 @@ function timeDiffHours(start, end) {
   const [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number);
   return Math.max(0, ((eh*60+em) - (sh*60+sm)) / 60);
 }
+// 시간 요금은 30분 단위로 쪼개 청구하지 않고, 1시간 미만이어도 항상 1시간으로 올림해서 청구
+function billableHours(h) { return h > 0 ? Math.ceil(h) : 0; }
 
 // 5층 소그룹실: 방마다 한 줄(버튼 + 그 방만의 시작~종료 시간) — 페이지 로드 시 한 번만 그림
 function renderSgRooms() {
@@ -224,7 +226,7 @@ function derivePackage(start, end) {
   const hours = timeDiffHours(start, end);
   if (!hours) return { type: 'base3h', extra: 0, hours: 0 };
   if (hours <= 1.5) return { type: 'base90m', extra: 0, hours };
-  return { type: 'base3h', extra: Math.max(0, hours - 3), hours };
+  return { type: 'base3h', extra: billableHours(hours - 3), hours };
 }
 function renderQuoteDates() {
   const el = document.getElementById('q-date-rows');
@@ -431,7 +433,7 @@ window.updateCalc = () => {
     let sgCost = 0;
     SG_ROOM_IDS.forEach(id => {
       if (!document.getElementById(`sg-btn-${id}`).classList.contains('active')) return;
-      const hrs = timeDiffHours(el(`sg-start-${id}`).value, el(`sg-end-${id}`).value);
+      const hrs = billableHours(timeDiffHours(el(`sg-start-${id}`).value, el(`sg-end-${id}`).value));
       sgCost += SPACE_BY_ID[id].ratePh * hrs;
     });
     el('cost-sg').textContent = sgCost ? `${comma(sgCost)}원` : '–';
@@ -542,7 +544,7 @@ window.printQuote = async () => {
       .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
       .sort((a, b) => sgPrintRank(a) - sgPrintRank(b))
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
-        hours: timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value),
+        hours: billableHours(timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value)),
         memo: g(`sg-memo-${id}`).value.trim() }));
 
     const packageRemarks = (sp, type, extra, surcharge, base, extraAmt) => [
