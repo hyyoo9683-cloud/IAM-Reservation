@@ -182,14 +182,23 @@ import { getFirestore, collection, getDocs, query, orderBy, doc, deleteDoc }
 const ALLOWED_DOMAIN = 'suwoncca.org';
 const ADMIN_EMAILS   = ['hyyoo9683@gmail.com'];
 
-const CHK_LABELS = {
+// 구 폼(공간·모임명·특이사항 방식)과 신 폼(청지기 연락처·만족/불편 방식)의
+// 체크리스트 항목이 서로 달라 스키마별로 다른 라벨셋을 사용함
+const OLD_CHK_LABELS = {
   trash:    '쓰레기 수거 및 반출',
   furniture:'테이블·의자 원상복구',
   equipment:'사용한 장비(TV, 마이크, 리모컨 등) 정리',
   power:    '전원 OFF 확인',
   nodamage: '파손·훼손 없음',
 };
-const ALL_KEYS = Object.keys(CHK_LABELS);
+const NEW_CHK_LABELS = {
+  power:       '조명과 냉난방 시스템 전원 off',
+  furniture:   '테이블·의자 원 위치',
+  trash:       '쓰레기 수거',
+  event_items: '행사용 부착·설치 물품 정리',
+};
+// 신 폼 제출 여부는 checkedLabels 또는 contact 필드 존재로 판별
+const isNewSchema = c => c.checkedLabels !== undefined || c.contact !== undefined;
 
 const app  = initializeApp({
   apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
@@ -245,7 +254,8 @@ window.renderList = () => {
   const sp = document.getElementById('f-space').value;
   const filtered = checkouts.filter(c =>
     (!sp || c.space === sp) &&
-    (!q  || (c.org||'').toLowerCase().includes(q) || (c.space||'').toLowerCase().includes(q))
+    (!q  || (c.org||'').toLowerCase().includes(q) || (c.space||'').toLowerCase().includes(q)
+         || (c.name||'').toLowerCase().includes(q) || (c.contact||'').includes(q))
   );
   document.getElementById('page-sub').textContent =
     `총 ${checkouts.length}건${filtered.length !== checkouts.length ? ` 중 ${filtered.length}건 표시` : ''}`;
@@ -257,35 +267,46 @@ window.renderList = () => {
   document.getElementById('list-wrap').innerHTML = filtered.map(c => {
     const ts = c.submittedAt?.toDate ? c.submittedAt.toDate() : null;
     const tsStr = ts ? `${ts.getFullYear()}.${p2(ts.getMonth()+1)}.${p2(ts.getDate())} ${p2(ts.getHours())}:${p2(ts.getMinutes())}` : '';
+    const isNew  = isNewSchema(c);
+    const labels = isNew ? NEW_CHK_LABELS : OLD_CHK_LABELS;
+    const keys   = Object.keys(labels);
     const checked = c.checked || [];
-    const allOk   = ALL_KEYS.every(k => checked.includes(k));
+    const allOk   = keys.every(k => checked.includes(k));
 
-    const chkRows = ALL_KEYS.map(k => {
+    const chkRows = keys.map(k => {
       const ok = checked.includes(k);
       return `<div class="chk-row">
         <span class="chk-icon">${ok ? '✅' : '⬜'}</span>
-        <span class="chk-label" style="${ok ? '' : 'color:var(--red);font-weight:600'}">${CHK_LABELS[k]}</span>
+        <span class="chk-label" style="${ok ? '' : 'color:var(--red);font-weight:600'}">${labels[k]}</span>
       </div>`;
     }).join('');
 
-    const noteHtml = c.note ? `
+    const noteHtml = isNew
+      ? [
+          c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${c.good}</div>` : '',
+          c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${c.bad}</div>` : '',
+        ].filter(Boolean).join('<div style="height:8px"></div>')
+      : (c.note ? `
       <div class="note-box">
         <div class="note-label">특이사항</div>
         ${c.note}
-      </div>` : '';
+      </div>` : '');
+
+    const headHtml = isNew
+      ? `<span class="co-org">${c.name||'–'}</span><span class="co-date">${tsStr}</span>`
+      : `<span class="co-space">${c.space||'–'}</span><span class="co-org">${c.org||'–'}</span><span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>`;
+    const subHtml = isNew ? `연락처 ${c.contact||'–'}` : `청지기 ${c.name||'–'}`;
 
     return `<div class="co-card" id="card-${c.id}" onclick="toggleCard('${c.id}')">
       <div class="co-head">
-        <span class="co-space">${c.space||'–'}</span>
-        <span class="co-org">${c.org||'–'}</span>
-        <span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>
+        ${headHtml}
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px">
-        <span class="co-name">청지기 ${c.name||'–'}</span>
+        <span class="co-name">${subHtml}</span>
         ${allOk
           ? '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--green-lt);color:var(--green)">전항목 완료</span>'
           : '<span style="font-size:11px;font-weight:700;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber)">미완료 항목 있음</span>'}
-        ${c.note ? '<span style="font-size:11px;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber);font-weight:700">특이사항</span>' : ''}
+        ${(c.note || c.good || c.bad) ? '<span style="font-size:11px;padding:1px 7px;border-radius:5px;background:var(--amber-lt);color:var(--amber);font-weight:700">의견 있음</span>' : ''}
       </div>
       <div class="co-body">
         <div class="chk-list">${chkRows}</div>

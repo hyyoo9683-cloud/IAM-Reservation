@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
-<head>
+<html lang="ko"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>퇴실 체크리스트 — 아이엠센터</title>
@@ -28,8 +27,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 /* 카드 */
 .card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
 .sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
+.sec-note{font-size:13px;color:var(--red);background:var(--red-lt);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.5;}
 .field{margin-bottom:14px;}
 .lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+.lbl-help{font-size:12.5px;color:var(--text3);margin-bottom:8px;line-height:1.5;}
 input,select,textarea{
   width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
   font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
@@ -78,6 +79,12 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
 
 /* 에러 */
 .err-msg{font-size:13px;color:var(--red);margin-top:6px;display:none;padding:8px 10px;background:var(--red-lt);border-radius:7px;}
+
+/* QR 코드 */
+.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px;}
+.qr-img{width:150px;height:150px;padding:10px;background:#fff;border:1px solid var(--border2);border-radius:12px;}
+.qr-link{font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;}
+.qr-link:hover{text-decoration:underline;}
 </style>
 <style id="pc-font-boost">
 /* PC 화면 폰트 확대 (모바일은 영향 없음) */
@@ -87,7 +94,9 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
   .header-title{font-size:22.5px !important}
   .header-sub{font-size:14.5px !important}
   .sec-label{font-size:13.5px !important}
+  .sec-note{font-size:14px !important}
   .lbl{font-size:15.5px !important}
+  .lbl-help{font-size:13.5px !important}
   input,select,textarea{font-size:17px !important}
   .chk-box{font-size:17px !important}
   .chk-input:checked ~ .chk-box::after{font-size:17px !important}
@@ -105,81 +114,76 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
 <div class="header">
   <a class="home-btn" href="index.html">← 홈으로</a>
   <div class="header-logo">IAM CENTER</div>
-  <div class="header-title">퇴실 체크리스트</div>
+  <div class="header-title">청지기 퇴실 체크리스트</div>
   <div class="header-sub">이용 후 아래 항목을 확인하고 제출해 주세요</div>
 </div>
 
 <div id="form-wrap">
 
   <div class="card">
-    <div class="sec-label">이용 정보</div>
+    <div class="sec-label">청지기 정보</div>
     <div class="field">
-      <div class="lbl">공간</div>
-      <select id="co-space" onchange="onSpaceChange()">
-        <option value="">선택해 주세요</option>
-        <option>아론홀</option>
-        <option>샤론홀</option>
-        <option>505호</option>
-        <option>506호</option>
-        <option>507호</option>
-        <option>508호</option>
-        <option>509호</option>
-        <option>510호</option>
-        <option>511호</option>
-      </select>
-    </div>
-    <div class="field">
-      <div class="lbl">모임명</div>
-      <input id="co-org" type="text" placeholder="모임 이름">
-    </div>
-    <div class="field">
-      <div class="lbl">이용 날짜</div>
-      <input id="co-date" type="date">
+      <div class="lbl">청지기명</div>
+      <div class="lbl-help">장소 실제 사용자를 '청지기'라고 호칭합니다.</div>
+      <input id="co-name" type="text" placeholder="청지기 이름">
     </div>
     <div class="field" style="margin-bottom:0">
-      <div class="lbl">청지기명</div>
-      <input id="co-name" type="text" placeholder="청지기 이름">
+      <div class="lbl">청지기 연락처</div>
+      <input id="co-contact" type="tel" placeholder="ex) 010-0000-0000">
     </div>
   </div>
 
   <div class="card">
-    <div class="sec-label">체크리스트</div>
+    <div class="sec-label">퇴실 시 확인 후 표시해 주세요</div>
     <div class="checklist">
       <label class="check-item">
-        <input class="chk-input" type="checkbox" name="chk" value="trash">
+        <input class="chk-input" type="checkbox" name="chk" value="power">
         <span class="chk-box"></span>
-        <span class="check-text">쓰레기를 모두 수거하여 반출했습니다</span>
+        <span class="check-text">조명과 냉난방 시스템 전원 off 해 주셨나요?</span>
       </label>
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="furniture">
         <span class="chk-box"></span>
-        <span class="check-text">테이블·의자를 원래 위치로 복구했습니다</span>
-      </label>
-      <label class="check-item" id="chk-equipment-wrap" style="display:none">
-        <input class="chk-input" type="checkbox" name="chk" value="equipment">
-        <span class="chk-box"></span>
-        <span class="check-text">사용한 장비를 잘 정리하였습니다</span>
+        <span class="check-text">테이블·의자 원 위치 해 주셨나요?</span>
       </label>
       <label class="check-item">
-        <input class="chk-input" type="checkbox" name="chk" value="power">
+        <input class="chk-input" type="checkbox" name="chk" value="trash">
         <span class="chk-box"></span>
-        <span class="check-text">조명·에어컨·난방기기 전원을 껐습니다</span>
+        <span class="check-text">쓰레기 수거해 주셨나요?</span>
       </label>
       <label class="check-item">
-        <input class="chk-input" type="checkbox" name="chk" value="nodamage">
+        <input class="chk-input" type="checkbox" name="chk" value="event_items">
         <span class="chk-box"></span>
-        <span class="check-text">파손 또는 훼손된 물품이 없습니다</span>
+        <span class="check-text">행사를 위해 부착하시거나 설치한 물품은 정리하셨나요?</span>
       </label>
     </div>
   </div>
 
+  <div class="card">
+    <div class="sec-label">장소 이용에 만족하셨던 점?</div>
+    <div class="lbl-help">청지님의 격려로 인해 IAM 센터는 더욱 빛날 것입니다. 소중한 의견 감사합니다.</div>
+    <textarea id="co-good" placeholder="내 답변"></textarea>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">장소 이용에 불편하셨던 점?</div>
+    <div class="lbl-help">청지기님의 의견으로 인해 IAM 센터가 한 걸음 더 나아갑니다. 소중한 의견 감사합니다.</div>
+    <textarea id="co-bad" placeholder="내 답변"></textarea>
+  </div>
+
   <div class="card" style="margin-bottom:12px">
-    <div class="sec-label">특이사항</div>
-    <textarea id="co-note" placeholder="파손·분실·기타 안내사항이 있으면 입력해 주세요 (없으면 비워도 됩니다)"></textarea>
+    <div class="sec-label">퇴실 시 사진 전송</div>
+    <div class="lbl-help">* 퇴실 시 사진을 카카오채널(ID 아이엠센터)로 전송 부탁드립니다.</div>
+    <div class="qr-wrap">
+      <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener">
+        <img class="qr-img" alt="카카오톡 채널 QR코드" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKAQAAAABTUiuoAAACZklEQVR4nO2bQWrkMBBFX0WCXsrQB8hR7KvlSHMD+yhzgIC1HJD5s5DUcTZDZ8ATwVQtTLf9Fh+Kkr7KZRNPxvbyLAmOOuroC2RrseQI5Hh63B/FKwU4+hU0SJIEqWBLKkA2Y5uAWZK0D6PVUWjVw2F6m46eqB1q5S2XC3D0qTgve+S7jBRkEIpBKNcLcPSv0cOYf5ox74dpTeUP6DUCHP1j1No62fhtArZXYSSAJCBfJ8DRL6JH9X1AEPMexPwzUi+bmZlNw2j9v9HYqgeADNpeC5B+mbYpnIvu+7U6irQHSXtQ//t4oHJG1m/X6mh38BNoJYjttZ6+ZDa1DPpKOAraimmW1A5YqdSLtEPLnNfWOGgQ7WAcpBXQmiO1tqpFnK4V4Oiz0arntEe1LetUW2uS19YgaDZjs9gNRirYkm+yhaBm7bN3dYdAuydU6Y3B1Nu4c720M5jX1gBoW/BW+vq3Jom5Ji8ICNKKZ2sINEIqkXm/F2u3jsg2vSPyYYLDRNpH0OroC+Rb84QrQZBv1bLbkiQzu8n3rVHQ6vrallX7hO1XO2UBvm+NgvZsdcte726p1NZGT5lnawj05DKqt3jc61XmfcJx0Mfp+JNvb9Fry7M1Dvox80RQPW+tSa2hu3D4XMYwaOQxfmG1oZvvxaDZedV3XlO4TICjX+5l8LCDdRpjVml72WN+zVfCAdBPM0+pRCOBNguyuS6GhzH/uJcBtDr6Ge1zGQBaOYxtCtLb9K8EOPoE+vHGpL3L4jBb8k21Q3+9AEefiggcPR/5XkSOBdJ7FPlhNrxPOAZq/kWQo45egv4GEqKULwalPdgAAAAASUVORK5CYII=">
+      </a>
+      <a class="qr-link" href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener">QR을 스캔하거나 눌러서 카카오톡 채널로 이동</a>
+    </div>
     <div class="err-msg" id="err-msg"></div>
   </div>
 
-  <button class="submit-btn" id="submit-btn" onclick="submitCheckout()">제출하기</button>
+  <button class="submit-btn" id="submit-btn" onclick="submitCheckout()">제출</button>
 
 </div><!-- /form-wrap -->
 
@@ -204,56 +208,44 @@ const app = initializeApp({
 });
 const db = getFirestore(app);
 
-const HALL_SPACES = ['아론홀', '샤론홀'];
-
-// 오늘 날짜 기본값
-document.getElementById('co-date').value = new Date().toISOString().slice(0,10);
-
-window.onSpaceChange = () => {
-  const space = document.getElementById('co-space').value;
-  const show  = HALL_SPACES.includes(space);
-  const wrap  = document.getElementById('chk-equipment-wrap');
-  wrap.style.display = show ? '' : 'none';
-  if (!show) wrap.querySelector('.chk-input').checked = false;
+const CHK_LABELS = {
+  power:       '조명과 냉난방 시스템 전원 off 해 주셨나요?',
+  furniture:   '테이블·의자 원 위치 해 주셨나요?',
+  trash:       '쓰레기 수거해 주셨나요?',
+  event_items: '행사를 위해 부착하시거나 설치한 물품은 정리하셨나요?'
 };
 
 window.submitCheckout = async () => {
-  const space  = document.getElementById('co-space').value.trim();
-  const org    = document.getElementById('co-org').value.trim();
-  const date   = document.getElementById('co-date').value;
-  const name   = document.getElementById('co-name').value.trim();
-  const note   = document.getElementById('co-note').value.trim();
-  const errEl  = document.getElementById('err-msg');
+  const name     = document.getElementById('co-name').value.trim();
+  const contact  = document.getElementById('co-contact').value.trim();
+  const good     = document.getElementById('co-good').value.trim();
+  const bad      = document.getElementById('co-bad').value.trim();
+  const errEl    = document.getElementById('err-msg');
 
-  // 현재 보이는 항목만 카운트
-  const visibleItems = [...document.querySelectorAll('.chk-input[name="chk"]')]
-    .filter(el => el.closest('label').style.display !== 'none');
-  const checked = visibleItems.filter(el => el.checked).map(el => el.value);
-  const total   = visibleItems.length;
+  const checked = [...document.querySelectorAll('.chk-input[name="chk"]:checked')].map(el => el.value);
 
   errEl.style.display = 'none';
 
-  if (!space) { showErr('공간을 선택해 주세요.'); return; }
-  if (!org)   { showErr('모임명을 입력해 주세요.'); return; }
-  if (!date)  { showErr('이용 날짜를 선택해 주세요.'); return; }
-  if (!name)  { showErr('청지기명을 입력해 주세요.'); return; }
-  if (checked.length < total) {
-    showErr('모든 체크 항목을 확인 후 체크해 주세요.'); return;
-  }
+  if (!name)     { showErr('청지기명을 입력해 주세요.'); return; }
+  if (!contact)  { showErr('청지기 연락처를 입력해 주세요.'); return; }
+  if (checked.length === 0) { showErr('퇴실 시 확인 항목을 하나 이상 선택해 주세요.'); return; }
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '제출 중…';
 
   try {
     await addDoc(collection(db, 'checkouts'), {
-      space, org, date, name, note, checked,
+      name, contact,
+      checked,
+      checkedLabels: checked.map(v => CHK_LABELS[v]),
+      good, bad,
       submittedAt: serverTimestamp()
     });
     document.getElementById('form-wrap').style.display = 'none';
     document.getElementById('done-wrap').style.display = 'block';
   } catch(e) {
     showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-    btn.disabled = false; btn.textContent = '제출하기';
+    btn.disabled = false; btn.textContent = '제출';
   }
 };
 
@@ -263,5 +255,6 @@ function showErr(msg) {
   el.scrollIntoView({ behavior:'smooth', block:'center' });
 }
 </script>
-</body>
-</html>
+
+
+</body></html>
