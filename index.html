@@ -6972,12 +6972,19 @@ window.submitEdit = async () => {
           d.setTime(d.getTime() + dateDeltaMs);
           return toDateStr(d);
         };
-        const conflicted = activeSeries.filter(x => !noConflict(room, getEffDate(x), start, end, x.id, true));
-        const toUpdate   = activeSeries.filter(x =>  noConflict(room, getEffDate(x), start, end, x.id, true));
+        // 공간을 실제로 바꾼 게 아니라면(수정 폼의 공간이 지금 열린 회차의 원래 공간과 같다면)
+        // 회차마다 원래 지정돼 있던 공간을 그대로 유지 — 공간이 회차마다 다른 시리즈(예:
+        // 대부분 508호, 일부만 507호)에서 목적·담당자 등 다른 필드만 일괄 수정할 때 공간이
+        // 한 곳으로 뭉개지지 않게 함. 공간을 실제로 바꿨다면(다른 공간 선택) 그 새 공간을
+        // 전체 회차에 그대로 적용함(의도적인 일괄 공간 변경으로 간주).
+        const roomChanged = room !== r.room;
+        const getEffRoom = x => roomChanged ? room : x.room;
+        const conflicted = activeSeries.filter(x => !noConflict(getEffRoom(x), getEffDate(x), start, end, x.id, true));
+        const toUpdate   = activeSeries.filter(x =>  noConflict(getEffRoom(x), getEffDate(x), start, end, x.id, true));
 
         if (toUpdate.length) {
           await Promise.all(toUpdate.map(x => updateDoc(doc(db, 'reservations', x.id), {
-            ...data, date: getEffDate(x),
+            ...data, date: getEffDate(x), room: getEffRoom(x),
             history: [...(x.history || []), { time: nowStr(), msg: `수정됨 (전체 시리즈, ${isAdmin ? '관리자' : '사용자'})` }]
           })));
         }
