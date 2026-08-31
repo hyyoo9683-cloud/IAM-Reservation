@@ -2207,9 +2207,15 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fg"><div class="lbl">실사용자 연락처 <span class="req">*</span></div><input id="e-steward-tel" oninput="formatTelInput(this)"></div>
     <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
-      <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
-        <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
-        <label for="e-is-recur" style="font-size:13px;font-weight:600;color:var(--green);cursor:pointer;margin:0">정기 예약 (반복)</label>
+      <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin:0">
+          <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+          <span style="font-size:13px;font-weight:600;color:var(--green)">정기 예약 (반복)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin:0">
+          <input type="checkbox" id="e-is-multi" onchange="toggleEditMulti()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
+          <span style="font-size:13px;font-weight:600;color:var(--green)">비정기 예약 (날짜별 다른 일정)</span>
+        </label>
       </div>
       <div id="e-recur-opts" style="display:none">
         <div class="fg" style="margin-bottom:8px">
@@ -2221,8 +2227,19 @@ textarea { resize: vertical; min-height: 60px; }
           </select>
         </div>
       </div>
+      <div id="e-multi-wrap" style="display:none">
+        <div class="lbl">날짜·시간 추가 <span class="req">*</span></div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+          <input type="date" id="e-multi-date-input" style="flex:1 1 130px;min-width:130px;padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+          <select id="e-multi-start-input" onchange="onEditMultiStartChange()" style="padding:6px 4px;border:1px solid var(--border);border-radius:8px;font-size:13px"></select>
+          <span style="align-self:center;color:var(--text3)">~</span>
+          <select id="e-multi-end-input" style="padding:6px 4px;border:1px solid var(--border);border-radius:8px;font-size:13px"></select>
+          <button type="button" class="btn btn-ghost" onclick="addEditMultiDate()" style="white-space:nowrap;padding:6px 12px">+ 추가</button>
+        </div>
+        <div id="e-multi-date-list"></div>
+      </div>
     </div>
-    <div class="fl">
+    <div class="fl" id="e-date-row-wrap">
       <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail();onJihyeNightsInput()"></div>
       <div class="fg" id="e-end-date-wrap" style="display:none"><div class="lbl">종료 날짜 <span class="req">*</span></div><input type="date" id="e-end-date"></div>
     </div>
@@ -4599,9 +4616,63 @@ window.toggleAllSeriesOpts = () => {
 };
 window.toggleEditRecur = () => {
   const on = document.getElementById('e-is-recur').checked;
+  if (on) { document.getElementById('e-is-multi').checked = false; toggleEditMulti(false); }
   document.getElementById('e-recur-opts').style.display    = on ? '' : 'none';
   document.getElementById('e-end-date-wrap').style.display = on ? '' : 'none';
   document.getElementById('e-date-lbl').innerHTML = (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+};
+let editMultiDates = []; // [{date, start, end}] — 관리자 예약 추가의 비정기(날짜별 다른 일정) 모드
+window.toggleEditMulti = (forceOff) => {
+  const on = forceOff === false ? false : document.getElementById('e-is-multi').checked;
+  if (on) {
+    document.getElementById('e-is-recur').checked = false;
+    document.getElementById('e-recur-opts').style.display = 'none';
+    document.getElementById('e-end-date-wrap').style.display = 'none';
+    document.getElementById('e-date-lbl').innerHTML = '날짜 <span class="req">*</span>';
+    const gs = document.getElementById('e-start').value, ge = document.getElementById('e-end').value;
+    initTimeSelects('e-multi-start-input', 'e-multi-end-input', gs, ge);
+  }
+  document.getElementById('e-date-row-wrap').style.display = on ? 'none' : '';
+  document.getElementById('e-time-row-wrap').style.display = on ? 'none' : '';
+  document.getElementById('e-multi-wrap').style.display     = on ? '' : 'none';
+};
+window.onEditMultiStartChange = () => {
+  const v = document.getElementById('e-multi-start-input').value;
+  const e = document.getElementById('e-multi-end-input');
+  e.innerHTML = buildEndOpts(v, e.value > v ? e.value : nextSlot(v));
+};
+function renderEditMultiDates() {
+  const el = document.getElementById('e-multi-date-list');
+  if (!el) return;
+  if (!editMultiDates.length) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:4px 0">추가된 날짜 없음</div>';
+    return;
+  }
+  el.innerHTML = editMultiDates.map((d, idx) => {
+    const dt = new Date(d.date + 'T00:00:00');
+    const lbl = `${dt.getMonth()+1}/${dt.getDate()}(${DOWS_KR_MULTI[dt.getDay()]}) ${d.start}~${d.end}`;
+    return `<div style="display:flex;align-items:center;gap:8px;background:var(--bg2);border-radius:6px;padding:5px 8px;margin-bottom:3px;font-size:12px">
+      <span style="flex:1;font-weight:600">${lbl}</span>
+      <button type="button" onclick="removeEditMultiDate(${idx})" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;line-height:1;padding:0 4px">×</button>
+    </div>`;
+  }).join('');
+}
+window.addEditMultiDate = () => {
+  const input = document.getElementById('e-multi-date-input');
+  const val   = input.value;
+  const start = document.getElementById('e-multi-start-input').value;
+  const end   = document.getElementById('e-multi-end-input').value;
+  if (!val) { T('날짜를 선택해주세요', '#A32D2D'); return; }
+  if (!start || !end || start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
+  if (editMultiDates.some(d => d.date === val && d.start === start && d.end === end)) { T('이미 추가된 날짜·시간입니다', '#A32D2D'); return; }
+  editMultiDates.push({ date: val, start, end });
+  editMultiDates.sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  renderEditMultiDates();
+  input.value = '';
+};
+window.removeEditMultiDate = (idx) => {
+  editMultiDates.splice(idx, 1);
+  renderEditMultiDates();
 };
 window.toggleRecur = () => {
   const on = document.getElementById('m-is-recur').checked;
@@ -5857,6 +5928,8 @@ function applyRoomFieldVisibility(room, isNew) {
       const recurCb = document.getElementById('e-is-recur'); if (recurCb) recurCb.checked = false;
       const recurOpts = document.getElementById('e-recur-opts'); if (recurOpts) recurOpts.style.display = 'none';
       const endWrap = document.getElementById('e-end-date-wrap'); if (endWrap) endWrap.style.display = 'none';
+      const multiCb = document.getElementById('e-is-multi'); if (multiCb) multiCb.checked = false;
+      toggleEditMulti(false);
     }
   }
   const dateLbl = document.getElementById('e-date-lbl');
@@ -5866,8 +5939,10 @@ function applyRoomFieldVisibility(room, isNew) {
   }
   // 지혜홀은 시작/종료(시간)가 실제 예약 시간이 아니라 전일 블록 고정값이라 의미가 없으므로
   // 이 행 전체를 숨기고, 대신 지혜홀 세부사항의 체크인/체크아웃 시간(선택) 입력을 사용함
+  // (비정기 모드일 때도 별도의 날짜별 시간 입력을 쓰므로 이 행은 숨김)
+  const isMultiMode = !!document.getElementById('e-is-multi')?.checked;
   const timeRowWrap = document.getElementById('e-time-row-wrap');
-  if (timeRowWrap) timeRowWrap.style.display = isJihye ? 'none' : '';
+  if (timeRowWrap) timeRowWrap.style.display = (isJihye || isMultiMode) ? 'none' : '';
 }
 window.onJihyeNightsInput = () => {
   const checkin = document.getElementById('e-date')?.value;
@@ -6681,6 +6756,11 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-is-recur').checked = false;
     document.getElementById('e-recur-opts').style.display    = 'none';
     document.getElementById('e-end-date-wrap').style.display = 'none';
+    document.getElementById('e-is-multi').checked = false;
+    editMultiDates = []; renderEditMultiDates();
+    document.getElementById('e-multi-wrap').style.display     = 'none';
+    document.getElementById('e-date-row-wrap').style.display = '';
+    document.getElementById('e-time-row-wrap').style.display = '';
     initTimeSelects('e-start', 'e-end');
     if (isAdmin) document.getElementById('e-status').value = '확정';
     if (prefill) {
@@ -6718,8 +6798,10 @@ window.submitEdit = async () => {
     jihyeCheckoutTime = document.getElementById('e-jihye-checkout-time').value;
     start = '00:00'; end = '23:59';
   }
+  // 비정기(날짜별 다른 일정)는 신규 등록에서만 지원
+  const isMulti = !editId && !!document.getElementById('e-is-multi')?.checked;
 
-  if (!type || !manager || !sName || !sTel || !room || !date) {
+  if (!type || !manager || !sName || !sTel || !room || (!isMulti && !date)) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
   if (isIamHall) {
@@ -6727,10 +6809,11 @@ window.submitEdit = async () => {
   } else if (!people || !purpose) {
     T('필수 항목을 입력해주세요', '#A32D2D'); return;
   }
-  if (start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
+  if (isMulti && editMultiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
+  if (!isMulti && start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
   // 전체 시리즈 수정 모드 및 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
   const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
-  if (!_editAllSeries && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
+  if (!isMulti && !_editAllSeries && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
     T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
   }
 
@@ -6979,32 +7062,38 @@ window.submitEdit = async () => {
       const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
 
       const nights = isJihye ? Math.max(1, parseInt(document.getElementById('e-jihye-nights').value) || 1) : 1;
-      let dates, recurGroup = null, recurLabel = null;
+      let items, recurGroup = null, recurLabel = null;
       if (isJihye) {
         // 체크아웃 당일도 실제로 사용하는 날이라 그날도 예약 문서를 만들어 차단함
         // (그래서 N박이어도 항상 N+1일치 문서가 생성됨 — 1박이어도 체크인+체크아웃 2일)
         const endD = new Date(date + 'T00:00:00'); endD.setDate(endD.getDate() + nights);
-        dates = generateAvailDates(date, toDateStr(endD), 'daily');
+        const dates = generateAvailDates(date, toDateStr(endD), 'daily');
         recurGroup = `jihye_${Date.now()}`; recurLabel = '연박';
+        items = dates.map(d => ({ date: d, start, end }));
       } else if (isRecur) {
-        dates = generateAvailDates(date, endDate, recurType);
+        const dates = generateAvailDates(date, endDate, recurType);
         recurGroup = `recur_${Date.now()}`; recurLabel = recurLabelMap[recurType];
+        items = dates.map(d => ({ date: d, start, end }));
+      } else if (isMulti) {
+        items = editMultiDates.map(d => ({ date: d.date, start: d.start, end: d.end }));
+        recurGroup = items.length > 1 ? `multi_${Date.now()}` : null;
+        recurLabel = '비정기';
       } else {
-        dates = [date];
+        items = [{ date, start, end }];
       }
 
       data.status    = document.getElementById('e-status').value || '확정';
       data.userEmail = ''; // 관리자가 대신 등록하는 예약이라 신청자 이메일이 없음 — 담당자 이름으로만 매칭
       data.createdAt = serverTimestamp();
-      if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabel; data.recurTotal = dates.length; }
-      for (let i = 0; i < dates.length; i++) {
+      if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabel; data.recurTotal = items.length; }
+      for (let i = 0; i < items.length; i++) {
         await addDoc(collection(db, 'reservations'), {
           ...data,
-          date: dates[i],
-          history: [{ time: nowStr(), msg: recurGroup ? `관리자 추가 (${recurLabel} ${i+1}/${dates.length}회)` : '관리자 추가' }]
+          date: items[i].date, start: items[i].start, end: items[i].end,
+          history: [{ time: nowStr(), msg: recurGroup ? `관리자 추가 (${recurLabel} ${i+1}/${items.length}건)` : '관리자 추가' }]
         });
       }
-      T(dates.length > 1 ? `예약 ${dates.length}건 추가됐습니다` : '예약이 추가됐습니다', '#3B6D11');
+      T(items.length > 1 ? `예약 ${items.length}건 추가됐습니다` : '예약이 추가됐습니다', '#3B6D11');
     }
     closeModal('modal-edit');
   } catch (e) {
