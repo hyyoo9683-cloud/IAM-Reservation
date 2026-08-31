@@ -6462,6 +6462,32 @@ window.openBulkSmsModal = (type) => {
   openModal('modal-sms');
 };
 
+// 같은 공간의 날짜들을 요일·시간이 같고 정확히 7일 간격인 "연속 구간"으로 묶어서
+// 사람이 읽기 편한 줄로 압축 — 1~2건은 "9/5, 9/12 (토) 8:00-10:00", 3건 이상은
+// "9/26-11/28(매주 토 8:00-10:00)" 형태 (문자/카카오 메시지 본문용)
+function formatSeriesRunLines(entries) {
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  const md = ds => { const d = new Date(ds + 'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; };
+  const lines = [];
+  let i = 0;
+  while (i < entries.length) {
+    let j = i;
+    while (
+      j + 1 < entries.length &&
+      entries[j+1].start === entries[i].start && entries[j+1].end === entries[i].end &&
+      (new Date(entries[j+1].date+'T00:00:00') - new Date(entries[j].date+'T00:00:00')) === 7*86400000
+    ) { j++; }
+    const run  = entries.slice(i, j+1);
+    const time = `${run[0].start}-${run[0].end}`;
+    const dow  = DOWS_KR[new Date(run[0].date+'T00:00:00').getDay()];
+    if (run.length === 1) lines.push(`${md(run[0].date)}(${dow}) ${time}`);
+    else if (run.length === 2) lines.push(`${run.map(x => md(x.date)).join(', ')} (${dow}) ${time}`);
+    else lines.push(`${md(run[0].date)}-${md(run[run.length-1].date)}(매주 ${dow} ${time})`);
+    i = j + 1;
+  }
+  return lines;
+}
+
 window.renderSmsBody = () => {
   if (smsBulkIds && smsBulkIds.length) { renderBulkSmsBody(); return; }
   const r = reservations.find(x => x.id === smsCtxId);
@@ -6479,21 +6505,26 @@ window.renderSmsBody = () => {
     const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
     // 비정기이거나 시리즈 내 시간·공간이 회차마다 다르면(수정으로 어긋난 경우 포함) 날짜별 나열
     const timesUniform = series.every(x => x.start === series[0].start && x.end === series[0].end);
-    // 공간은 다수결로 대표값을 정해 장소란에 쓰고, 그 대표값과 다른 소수 회차만 날짜별 목록에서 별도 표기
-    // (예: 16건 중 1건만 506호면 "장소: 아론홀"로 두고 그 1건만 "@ 506호"로 표시)
-    const roomCounts = {};
-    series.forEach(x => { roomCounts[x.room] = (roomCounts[x.room] || 0) + 1; });
-    const majorityRoom = Object.keys(roomCounts).reduce((a, b) => roomCounts[a] >= roomCounts[b] ? a : b);
-    const roomsUniform = series.every(x => x.room === majorityRoom);
+    // 공간이 하나라도 섞여 있으면(공간별로 시간대가 다를 수 있어) 아래에서 공간별 섹션으로 나눠 표시
+    const roomsUniform = series.every(x => x.room === series[0].room);
     const isIrregular  = r.recurType === '비정기' || !timesUniform || !roomsUniform;
-    if (isIrregular) {
+    if (isIrregular && !roomsUniform) {
+      // 공간이 섞여 있으면 공간별로 "*공간명" 섹션으로 나눠서 날짜를 표시
+      const roomsOrder = [];
+      const byRoom = new Map();
+      series.forEach(x => {
+        if (!byRoom.has(x.room)) { byRoom.set(x.room, []); roomsOrder.push(x.room); }
+        byRoom.get(x.room).push(x);
+      });
+      const sections = roomsOrder.map(rm => `*${rm}\n${formatSeriesRunLines(byRoom.get(rm)).join('\n')}`);
+      ilsi = '\n' + sections.join('\n\n') + '\n';
+      room = roomsOrder.map(rm => roomToSmsName(rm)).join(', ');
+    } else if (isIrregular) {
       const entries = series.map(x => {
         const d = new Date(x.date + 'T00:00:00');
-        const roomPart = x.room === majorityRoom ? '' : ` @ ${roomToSmsName(x.room)}`;
-        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}${roomPart}`;
+        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
       });
       ilsi = entries.join('\n');
-      room = roomToSmsName(majorityRoom);
     } else {
       const first = series[0], last = series[series.length - 1];
       const fd = new Date(first.date + 'T00:00:00');
