@@ -6520,11 +6520,30 @@ window.renderSmsBody = () => {
       ilsi = '\n' + sections.join('\n\n') + '\n';
       room = roomsOrder.map(rm => roomToSmsName(rm)).join(', ');
     } else if (isIrregular) {
-      const entries = series.map(x => {
-        const d = new Date(x.date + 'T00:00:00');
-        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
+      // 비정기 예약이 요일 2개 이상에 걸쳐 있으면(예: 매주 목·금) 요일별로 묶어서 표시 —
+      // 같은 요일끼리 날짜를 나열하고, 그 요일의 시간이 전부 같으면 한 번만 표기
+      const md = ds => { const d = new Date(ds + 'T00:00:00'); return `${d.getMonth()+1}/${d.getDate()}`; };
+      const byDow = new Map();
+      series.forEach(x => {
+        const dow = new Date(x.date + 'T00:00:00').getDay();
+        if (!byDow.has(dow)) byDow.set(dow, []);
+        byDow.get(dow).push(x);
       });
-      ilsi = entries.join('\n');
+      if (byDow.size > 1) {
+        ilsi = [...byDow.keys()].sort((a, b) => a - b).map(dow => {
+          const entries = byDow.get(dow);
+          const timeUniform = entries.every(x => x.start === entries[0].start && x.end === entries[0].end);
+          const dates = entries.map(x => md(x.date)).join(', ');
+          if (timeUniform) return `${DOWS_KR[dow]}요일 예약 일정 ${dates}(${entries[0].start}-${entries[0].end})`;
+          return `${DOWS_KR[dow]}요일 예약 일정\n` + entries.map(x => `${md(x.date)} ${x.start}-${x.end}`).join('\n');
+        }).join('\n');
+      } else {
+        const entries = series.map(x => {
+          const d = new Date(x.date + 'T00:00:00');
+          return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
+        });
+        ilsi = entries.join('\n');
+      }
     } else {
       const first = series[0], last = series[series.length - 1];
       const fd = new Date(first.date + 'T00:00:00');
