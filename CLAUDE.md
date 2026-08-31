@@ -140,6 +140,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 - `recurGroup` 필드로 같은 시리즈 예약들이 연결됨
 - 수정 모달에서 "전체 N회 모두 수정" 체크박스(`e-all-series`) 선택 시 allSeries 모드
 - "적용 시작일"(`e-series-from-date`, 기본값 현재 수정 중인 회차의 날짜)을 지정하면 그 이전 회차는 그대로 두고 이후 회차만 수정됨 (예: 6/6~10/17 시리즈에서 7/25부터만 공간·시간 변경)
+- "시작 날짜 변경"(`e-series-start-date`)·"종료 날짜 변경"(`e-series-end-date`)으로 시리즈 자체의 기간을 앞/뒤로 늘리거나 줄일 수 있음 — 앞당기면/늘리면 회차 추가, 미루면/줄이면 회차 삭제. 시작일 앞당김은 `generatePriorAvailDates(anchorDate, targetStart, recur, weekdays)`로 계산하는데, 이때 반드시 시리즈의 **실제 첫 회차 날짜**를 기준점(anchor)으로 삼아 과거 방향으로 역산함 (사용자가 입력한 날짜를 기준점으로 앞으로 계산하면 매주/매달 패턴의 요일이 어긋날 수 있음) — 종료일 연장은 기존처럼 `generateAvailDates(lastDate, newEndDate, ...)`로 실제 마지막 회차 날짜를 기준점 삼아 정방향 계산
 - `dateDeltaMs`로 날짜 이동 delta 계산, `getEffDate(x)`로 각 건의 이동된 날짜 반환
 - 충돌되는 건은 제외하고 가능한 건만 업데이트, 충돌 건은 모달로 안내
 - 대안 공간 추천 기능 포함

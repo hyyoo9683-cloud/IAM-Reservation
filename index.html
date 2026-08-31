@@ -4115,6 +4115,43 @@ function generateAvailDates(sd, ed, recur, weekdays) {
   }
   return dates;
 }
+// 정기 예약 시리즈의 시작일을 앞당길 때(관리자 "전체 회차 모두 수정") 사용 —
+// 실제로 존재하는 회차 날짜(anchorDate, 예: 시리즈 첫 회차)를 기준점으로 삼아
+// 거꾸로(과거 방향) 걸어가며 targetStart 이후의 정확한 패턴 날짜만 생성함.
+// (targetStart 자체를 기준점으로 앞으로 계산하면 매주/매달 패턴의 요일이
+// 어긋날 수 있어, 반드시 유효한 기존 회차 날짜에서 역산해야 함)
+function generatePriorAvailDates(anchorDate, targetStart, recur, weekdays) {
+  if (!targetStart || targetStart >= anchorDate) return [];
+  const anchor = new Date(anchorDate + 'T00:00:00');
+  const target = new Date(targetStart + 'T00:00:00');
+  const dates = [];
+  if (recur === 'weekly' && weekdays && weekdays.length > 1) {
+    let d = new Date(anchor); d.setDate(d.getDate() - 1);
+    while (d >= target) { if (weekdays.includes(d.getDay())) dates.unshift(toDateStr(d)); d.setDate(d.getDate() - 1); }
+    return dates;
+  }
+  const stepDays = recur === 'daily' ? 1 : recur === 'biweekly' ? 14 : recur === 'weekly' ? 7 : 0;
+  if (stepDays) {
+    let d = new Date(anchor); d.setDate(d.getDate() - stepDays);
+    while (d >= target) { dates.unshift(toDateStr(d)); d.setDate(d.getDate() - stepDays); }
+    return dates;
+  }
+  if (recur === 'monthly') {
+    const dow = anchor.getDay(), weekNum = Math.floor((anchor.getDate()-1)/7);
+    let cy = anchor.getFullYear(), cm = anchor.getMonth();
+    while (true) {
+      cm -= 1; if (cm < 0) { cm = 11; cy -= 1; }
+      const fd = new Date(cy, cm, 1).getDay();
+      let off = dow - fd; if (off < 0) off += 7;
+      const td = 1 + off + weekNum * 7;
+      if (td > new Date(cy, cm + 1, 0).getDate()) break; // 그 달엔 n번째 같은 요일이 없음 — 패턴 중단
+      const cand = new Date(cy, cm, td);
+      if (cand < target) break;
+      dates.unshift(toDateStr(cand));
+    }
+  }
+  return dates;
+}
 
 // 매주 반복 예약 중 여러 요일(예: 화·목)로 신청하고 싶을 때 사용 — 신청 폼 전용 상태
 let recurSelectedWeekdays = new Set();
@@ -6559,6 +6596,7 @@ window.openEditModal = (id, prefill) => {
       const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
       const idx = series.findIndex(x => x.id === r.id) + 1;
       const total = r.recurTotal || series.length;
+      const firstDate = series[0].date;
       const lastDate = series[series.length - 1].date;
       recurBanner.style.display = '';
       recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})
@@ -6567,11 +6605,16 @@ window.openEditModal = (id, prefill) => {
           <span style="font-size:12px;font-weight:700">전체 ${total}회 모두 수정</span>
         </label>
         <div id="e-all-series-opts" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 시작·종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             <span style="font-size:11px;font-weight:600;white-space:nowrap">적용 시작일</span>
             <input type="date" id="e-series-from-date" value="${r.date}" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
             <span style="font-size:10px;color:var(--text3);white-space:nowrap">이전 회차는 그대로 유지</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <span style="font-size:11px;font-weight:600;white-space:nowrap">시작 날짜 변경</span>
+            <input type="date" id="e-series-start-date" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap">현재 ${firstDate.slice(5).replace('-','/')} · 앞당기면 회차 추가</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <span style="font-size:11px;font-weight:600;white-space:nowrap">종료 날짜 변경</span>
@@ -6721,39 +6764,72 @@ window.submitEdit = async () => {
       const allSeries = document.getElementById('e-all-series')?.checked && r.recurGroup;
       if (allSeries) {
         const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+        const firstDate = series[0].date;
         const lastDate  = series[series.length - 1].date;
-        const newEndDate = document.getElementById('e-series-end-date')?.value || '';
+        const newStartDate = document.getElementById('e-series-start-date')?.value || '';
+        const newEndDate   = document.getElementById('e-series-end-date')?.value   || '';
         const recurCode = r.recurType?.includes('격') ? 'biweekly' : r.recurType?.includes('달') ? 'monthly' : 'weekly';
         let activeSeries = [...series];
 
-        let cantAddDates = [];
+        if ((newStartDate || firstDate) > (newEndDate || lastDate)) {
+          T('시작 날짜가 종료 날짜보다 늦습니다', '#A32D2D'); return;
+        }
+
+        // 시작 날짜 변경: 앞당기면(과거) 앞쪽에 회차 추가, 미루면 앞쪽 회차 삭제
+        let startAddDates = [];
+        if (newStartDate && newStartDate !== firstDate) {
+          if (newStartDate > firstDate) {
+            // 단축: 새 시작 날짜 이전 회차 삭제
+            const toDelete = series.filter(x => x.date < newStartDate);
+            await Promise.all(toDelete.map(x => deleteDoc(doc(db, 'reservations', x.id))));
+            activeSeries = activeSeries.filter(x => x.date >= newStartDate);
+          } else {
+            // 앞당김: firstDate를 기준점으로 역산해 새 시작 날짜까지의 회차 생성 (패턴 어긋남 방지)
+            startAddDates = generatePriorAvailDates(firstDate, newStartDate, recurCode, r.recurWeekdays);
+          }
+        }
+
+        // 종료 날짜 변경: 연장하면 뒤쪽에 회차 추가, 단축하면 뒤쪽 회차 삭제
+        let endAddDates = [];
         if (newEndDate && newEndDate !== lastDate) {
-          if (newEndDate < series[0].date) { T('종료 날짜가 시작 날짜보다 빠릅니다', '#A32D2D'); return; }
           if (newEndDate < lastDate) {
             // 단축: 새 종료 날짜 이후 회차 삭제
             const toDelete = series.filter(x => x.date > newEndDate);
             await Promise.all(toDelete.map(x => deleteDoc(doc(db, 'reservations', x.id))));
-            activeSeries = series.filter(x => x.date <= newEndDate);
+            activeSeries = activeSeries.filter(x => x.date <= newEndDate);
           } else {
-            // 연장: lastDate 이후 날짜 추가 (충돌 없는 날짜만)
-            const addDates = generateAvailDates(lastDate, newEndDate, recurCode, r.recurWeekdays).slice(1);
-            if (addDates.length) {
-              const canAdd  = addDates.filter(d => noConflict(room, d, start, end, null, true));
-              cantAddDates  = addDates.filter(d => !noConflict(room, d, start, end, null, true));
-              if (canAdd.length) {
-                const newTotal = series.length + canAdd.length;
-                data.recurTotal = newTotal;
-                for (const d of canAdd) {
-                  await addDoc(collection(db, 'reservations'), {
-                    ...data,
-                    status: data.status || r.status || '확정',
-                    date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: newTotal,
-                    ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
-                    history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
-                  });
-                }
-              }
-            }
+            // 연장: lastDate 이후 날짜 추가
+            endAddDates = generateAvailDates(lastDate, newEndDate, recurCode, r.recurWeekdays).slice(1);
+          }
+        }
+
+        const startCanAdd = startAddDates.filter(d => noConflict(room, d, start, end, null, true));
+        const endCanAdd   = endAddDates.filter(d => noConflict(room, d, start, end, null, true));
+        let cantAddDates = [
+          ...startAddDates.filter(d => !noConflict(room, d, start, end, null, true)),
+          ...endAddDates.filter(d => !noConflict(room, d, start, end, null, true)),
+        ];
+
+        const totalAdded = startCanAdd.length + endCanAdd.length;
+        if (totalAdded) {
+          data.recurTotal = activeSeries.length + totalAdded;
+          for (const d of startCanAdd) {
+            await addDoc(collection(db, 'reservations'), {
+              ...data,
+              status: data.status || r.status || '확정',
+              date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
+              ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
+              history: [{ time: nowStr(), msg: '시리즈 시작일 앞당김 추가' }]
+            });
+          }
+          for (const d of endCanAdd) {
+            await addDoc(collection(db, 'reservations'), {
+              ...data,
+              status: data.status || r.status || '확정',
+              date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
+              ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
+              history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
+            });
           }
         }
 
