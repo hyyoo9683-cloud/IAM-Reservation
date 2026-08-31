@@ -6393,7 +6393,7 @@ window.renderSmsBody = () => {
   if (!r) return;
   const type = smsCtxType;
   const seriesMode = !!document.getElementById('sms-series-toggle')?.checked;
-  const room    = roomToSmsName(r.room);
+  let room      = roomToSmsName(r.room);
   const purpose = r.purpose || '';
   const time    = `${r.start}-${r.end}`;
 
@@ -6402,15 +6402,18 @@ window.renderSmsBody = () => {
   let ilsi;
   if (r.recurGroup && seriesMode) {
     const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
-    // 비정기이거나 시리즈 내 시간이 제각각이면 날짜별 나열
+    // 비정기이거나 시리즈 내 시간·공간이 회차마다 다르면(수정으로 어긋난 경우 포함) 날짜별 나열
     const timesUniform = series.every(x => x.start === series[0].start && x.end === series[0].end);
-    const isIrregular  = r.recurType === '비정기' || !timesUniform;
+    const roomsUniform = series.every(x => x.room === series[0].room);
+    const isIrregular  = r.recurType === '비정기' || !timesUniform || !roomsUniform;
     if (isIrregular) {
       const entries = series.map(x => {
         const d = new Date(x.date + 'T00:00:00');
-        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}`;
+        const roomPart = roomsUniform ? '' : ` @ ${roomToSmsName(x.room)}`;
+        return `${d.getMonth()+1}.${d.getDate()}(${DOWS_KR[d.getDay()]}) ${x.start}-${x.end}${roomPart}`;
       });
       ilsi = entries.join('\n');
+      if (!roomsUniform) room = '날짜별 상이 (아래 참고)';
     } else {
       const first = series[0], last = series[series.length - 1];
       const fd = new Date(first.date + 'T00:00:00');
