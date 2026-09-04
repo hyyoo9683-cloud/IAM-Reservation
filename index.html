@@ -6004,6 +6004,33 @@ window.checkEditAvail = () => {
     el.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:4px 0">실을 선택하면 이용 가능 여부를 확인할 수 있습니다</div>`;
     return;
   }
+
+  // "전체 N회 모두 수정" 모드면 지금 열린 회차 하나만이 아니라 적용 대상이 되는
+  // 모든 회차에 대해 새 공간이 가능한지 함께 확인해서 보여줌
+  const r = editId ? reservations.find(x => x.id === editId) : null;
+  const allSeriesOn = !!document.getElementById('e-all-series')?.checked && r?.recurGroup;
+  if (allSeriesOn) {
+    const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b) => a.date.localeCompare(b.date));
+    const fromDate = document.getElementById('e-series-from-date')?.value || series[0].date;
+    const dateDeltaMs = date !== r.date
+      ? new Date(date + 'T00:00:00').getTime() - new Date(r.date + 'T00:00:00').getTime()
+      : 0;
+    const targets = series.filter(x => x.date >= fromDate);
+    const pairs = targets.map(x => {
+      if (dateDeltaMs === 0) return { id: x.id, date: x.date };
+      const d = new Date(x.date + 'T00:00:00'); d.setTime(d.getTime() + dateDeltaMs);
+      return { id: x.id, date: toDateStr(d) };
+    });
+    const conflictPairs = pairs.filter(p => !noConflict(room, p.date, start, end, p.id, true));
+    if (!conflictPairs.length) {
+      el.innerHTML = `<div class="avail-ok">✓ ${room} 전체 ${pairs.length}회 모두 사용 가능</div>`;
+    } else {
+      el.innerHTML = `<div class="avail-no">✗ ${room}: 총 ${pairs.length}회 중 ${conflictPairs.length}회 날짜에 예약 충돌이 있습니다</div>
+        <div style="margin-top:5px;font-size:11px;color:var(--red)">${conflictPairs.map(p => p.date).join(', ')}</div>`;
+    }
+    return;
+  }
+
   const confirmedOk = noConflict(room, date, start, end, editId, true);
   const allOk       = noConflict(room, date, start, end, editId, false);
   if (!confirmedOk) {
@@ -6736,14 +6763,14 @@ window.openEditModal = (id, prefill) => {
       recurBanner.style.display = '';
       recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})
         <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none">
-          <input type="checkbox" id="e-all-series" onchange="toggleAllSeriesOpts()" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
+          <input type="checkbox" id="e-all-series" onchange="toggleAllSeriesOpts();checkEditAvail()" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
           <span style="font-size:12px;font-weight:700">전체 ${total}회 모두 수정</span>
         </label>
         <div id="e-all-series-opts" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
           <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 시작·종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             <span style="font-size:11px;font-weight:600;white-space:nowrap">적용 시작일</span>
-            <input type="date" id="e-series-from-date" value="${r.date}" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <input type="date" id="e-series-from-date" value="${r.date}" onchange="checkEditAvail()" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
             <span style="font-size:10px;color:var(--text3);white-space:nowrap">이전 회차는 그대로 유지</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
