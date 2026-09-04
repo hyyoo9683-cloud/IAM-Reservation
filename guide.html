@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아이엠센터 이용 안내</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --ink: #1d1f1a;
+    --ink-soft: #565a4f;
+    --ink-faint: #8b8f80;
+    --accent: #45604f;
+    --accent-soft: #e2e8de;
+    --accent-strong: #2f4436;
+    --line: #dcdbd0;
+    --line-strong: #1d1f1a;
+    --shadow: 0 1px 3px rgba(29,31,26,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15170f;
+      --surface: #1b1d15;
+      --ink: #ecece3;
+      --ink-soft: #b7bcac;
+      --ink-faint: #767b6a;
+      --accent: #8fb69a;
+      --accent-soft: #26301f;
+      --accent-strong: #a9cdb2;
+      --line: #33362a;
+      --line-strong: #ecece3;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #15170f;
+    --surface: #1b1d15;
+    --ink: #ecece3;
+    --ink-soft: #b7bcac;
+    --ink-faint: #767b6a;
+    --accent: #8fb69a;
+    --accent-soft: #26301f;
+    --accent-strong: #a9cdb2;
+    --line: #33362a;
+    --line-strong: #ecece3;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(40px, 8vw, 96px) clamp(20px, 5vw, 32px) 64px;
+  }
+
+  .home-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    margin: 0 0 22px;
+  }
+  .home-link:hover { color: var(--accent-strong); }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 18px;
+  }
+
+  header h1 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: clamp(30px, 5.4vw, 44px);
+    letter-spacing: 0.02em;
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+
+  .contact-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: baseline;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0 0 26px;
+  }
+
+  .contact-line a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .contact-line a:hover { color: var(--accent-strong); border-color: var(--accent-strong); }
+  .contact-line .sep { color: var(--ink-faint); }
+
+  .rule {
+    border: 0;
+    border-top: 2px solid var(--line-strong);
+    margin: 0;
+  }
+  .rule.thin {
+    border-top: 1px solid var(--line);
+  }
+
+  .intro {
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    max-width: 58ch;
+    margin: 28px 0 0;
+  }
+
+  .intro strong { color: var(--ink); font-weight: 600; }
+
+  main {
+    margin-top: 12px;
+  }
+
+  section.item {
+    display: grid;
+    grid-template-columns: 84px 1px 1fr;
+    gap: 0 28px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  section.item:last-of-type { border-bottom: none; }
+
+  .num {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 40px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+    line-height: 1;
+    padding-top: 2px;
+  }
+
+  .divider { background: var(--line); }
+
+  .item h2 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0 0 12px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+
+  .item p {
+    margin: 0 0 10px;
+    color: var(--ink-soft);
+    font-size: 15px;
+    max-width: 56ch;
+  }
+  .item p:last-child { margin-bottom: 0; }
+
+  .item strong { color: var(--ink); font-weight: 600; }
+
+  .note {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    margin-top: 12px;
+  }
+
+  .roles {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+
+  .role-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .role-card .role-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--accent-strong);
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .role-card p { font-size: 14px; margin: 0; }
+
+  .halls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 18px;
+  }
+
+  .hall-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .hall-card .hall-name {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 17px;
+    margin: 0 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .hall-card .hall-name::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  .capacity-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    font-family: "IBM Plex Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .capacity-row .cap-num {
+    font-family: "Noto Serif KR", serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+
+  .capacity-row .cap-num small {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    margin-left: 2px;
+  }
+
+  .capacity-arrow {
+    color: var(--ink-faint);
+    font-size: 13px;
+  }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 22px;
+    border-top: 2px solid var(--line-strong);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+  }
+
+  .wordmark {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .wordmark .dots { color: var(--accent); letter-spacing: 0.14em; }
+
+  footer .contact-line { margin: 0; }
+
+  @media (max-width: 520px) {
+    section.item {
+      grid-template-columns: 52px 1px 1fr;
+      gap: 0 16px;
+      padding: 30px 0;
+    }
+    .num { font-size: 30px; }
+    .roles, .halls { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <a class="home-link" href="index.html">← 홈으로</a>
+  <header>
+    <p class="eyebrow">I AM CENTER · SPACE RESERVATION GUIDE</p>
+    <h1>아이엠센터 이용 안내</h1>
+    <hr class="rule">
+  </header>
+
+  <main>
+    <section class="item">
+      <div class="num">01</div>
+      <div class="divider"></div>
+      <div>
+        <h2>예약 책임자와 청지기 시스템</h2>
+        <p>아이엠센터는 공동체 내에 건강한 모임이 이루어질 수 있도록, <strong>'예약 책임자'</strong>와 <strong>'청지기'</strong> 제도를 운영하고 있습니다.</p>
+        <div class="roles">
+          <div class="role-card">
+            <p class="role-label">예약 책임자</p>
+            <p>예약 신청과 모임 진행에 책임을 갖는 분으로, 교회 목회자·목양 간사(원천교회)·팀장 교사(중앙기독학교)·아이엠센터 내부 기관 담당자입니다.</p>
+          </div>
+          <div class="role-card">
+            <p class="role-label">청지기</p>
+            <p>모임 공간을 실제로 사용하시는 분을 말합니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="item">
+      <div class="num">02</div>
+      <div class="divider"></div>
+      <div>
+        <h2>예약 신청서 작성</h2>
+        <p><strong>예약 책임자만 공간 예약 신청이 가능</strong>하며, 예약 취소 및 변경은 청지기(실제 이용자)도 가능합니다.</p>
+        <p class="note">* 외부 대관 예약과 별개</p>
+      </div>
+    </section>
+
+    <section class="item">
+      <div class="num">03</div>
+      <div class="divider"></div>
+      <div>
+        <h2>예약 가능 모임</h2>
+        <p><strong>제자 훈련, 기도 모임, 교회 행사, 소그룹 모임, 회의</strong> 등 모임으로 이용할 수 있습니다. 교회 포도원 모임과 학교 수업 용도로 예약은 받지 않으니, 양해 부탁드립니다.</p>
+      </div>
+    </section>
+
+    <section class="item">
+      <div class="num">04</div>
+      <div class="divider"></div>
+      <div>
+        <h2>아론홀과 샤론홀 예약 조건</h2>
+        <div class="halls">
+          <div class="hall-card">
+            <p class="hall-name">아론홀</p>
+            <div class="capacity-row">
+              <span class="cap-num">15<small>명</small></span>
+              <span class="capacity-arrow">최소 ~ 최대</span>
+              <span class="cap-num">50<small>명</small></span>
+            </div>
+          </div>
+          <div class="hall-card">
+            <p class="hall-name">샤론홀</p>
+            <div class="capacity-row">
+              <span class="cap-num">50<small>명</small></span>
+              <span class="capacity-arrow">최소 ~ 최대</span>
+              <span class="cap-num">140<small>명</small></span>
+            </div>
+          </div>
+        </div>
+        <p class="note">* 최소 인원을 충족하지 않는 모임의 경우, 예약이 어렵습니다.</p>
+      </div>
+    </section>
+
+    <section class="item">
+      <div class="num">05</div>
+      <div class="divider"></div>
+      <div>
+        <h2>외부 대관</h2>
+        <p>아이엠센터 내 공간 대관 관련하여서는 개별적으로 문의하시기 바랍니다. 자세한 안내와 대관 진행을 도와드리겠습니다.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p class="wordmark">I AM <span class="dots">···</span></p>
+    <p class="contact-line">
+      <span>문의</span>
+      <a href="tel:07070181439">070-7018-1439</a>
+      <span class="sep">/</span>
+      <a href="mailto:iamspace@suwoncca.org">iamspace@suwoncca.org</a>
+    </p>
+  </footer>
+</div>
+
+</body>
+</html>
