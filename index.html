@@ -4978,8 +4978,9 @@ window.submitApply = async () => {
   const manager = document.getElementById('m-manager').value.trim();
   const sName   = document.getElementById('m-steward-name').value.trim();
   const sTel    = document.getElementById('m-steward-tel').value.trim();
-  const room    = document.getElementById('m-room').value;
   const isMultiRoom = document.getElementById('m-multi-room')?.checked;
+  // 공간을 아무것도 선택하지 않고 제출하면 빈 값으로 저장되던 문제 — 공실 희망을 기본값으로
+  const room    = isMultiRoom ? document.getElementById('m-room').value : (document.getElementById('m-room').value || '공실 희망');
   const rooms   = isMultiRoom ? applyMultiRooms.slice() : [room];
   const date    = document.getElementById('m-date').value;
   const start   = document.getElementById('m-start').value;
