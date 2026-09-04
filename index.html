@@ -13,7 +13,7 @@
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
   import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query,
-    onSnapshot, serverTimestamp, increment }
+    onSnapshot, serverTimestamp, increment, deleteField }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
@@ -44,7 +44,7 @@
   window._fb = {
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, orderBy, query,
+    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, orderBy, query,
     ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
@@ -1662,6 +1662,7 @@ textarea { resize: vertical; min-height: 60px; }
           </select>
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;background:var(--green);border-color:var(--green)" onclick="bulkChangeSubOrg()">세부기관 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--amber,#854F0B);border-color:var(--amber,#854F0B)" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
@@ -2490,7 +2491,7 @@ const fb = window._fb;
 const {
   auth, db, storage,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment,
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField,
   ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
   ALLOWED_DOMAIN, ADMIN_EMAILS
 } = fb;
@@ -7749,6 +7750,31 @@ window.bulkGroupRecur = async () => {
     T(`${ids.length}건이 정기 예약 시리즈로 묶였습니다 (${recurType})`, '#3B6D11');
     clearBulkSelect();
   } catch(e) { T('묶기 실패: ' + e.message, '#A32D2D'); }
+};
+// 실수로 다른 예약과 같은 시리즈(recurGroup)로 묶였거나, 특정 회차만 따로 떼어
+// 독립된 예약으로 만들고 싶을 때 사용 — 선택한 건만 그룹에서 분리(recurGroup 등 제거),
+// 같은 그룹의 나머지 예약은 그대로 유지하고 recurTotal만 남은 건수로 갱신함
+window.bulkUngroupRecur = async () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
+  const targets = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean).filter(r => r.recurGroup);
+  if (!targets.length) { T('선택한 항목 중 그룹(정기/비정기)에 속한 예약이 없습니다', '#A32D2D'); return; }
+  const datePreview = targets.map(r => `${r.date} ${r.room}`).join(', ');
+  if (!confirm(`선택한 ${targets.length}건을 그룹에서 분리해 개별 예약으로 만드시겠습니까?\n${datePreview}\n\n(같은 그룹의 나머지 예약은 그대로 유지됩니다)`)) return;
+  try {
+    const affectedGroups = [...new Set(targets.map(r => r.recurGroup))];
+    const targetIds = new Set(targets.map(r => r.id));
+    await Promise.all(targets.map(r => updateDoc(doc(db, 'reservations', r.id), {
+      recurGroup: deleteField(), recurType: deleteField(), recurTotal: deleteField(), recurWeekdays: deleteField(),
+      history: [...(r.history || []), { time: nowStr(), msg: '그룹에서 분리 (개별 예약으로 전환)' }]
+    })));
+    await Promise.all(affectedGroups.flatMap(gid => {
+      const remaining = reservations.filter(x => x.recurGroup === gid && !targetIds.has(x.id));
+      return remaining.map(x => updateDoc(doc(db, 'reservations', x.id), { recurTotal: remaining.length }));
+    }));
+    T(`${targets.length}건을 개별 예약으로 분리했습니다`, '#3B6D11');
+    clearBulkSelect();
+  } catch(e) { T('분리 실패: ' + e.message, '#A32D2D'); }
 };
 
 function renderMyList() {
