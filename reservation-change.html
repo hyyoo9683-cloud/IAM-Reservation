@@ -127,7 +127,11 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
           <option value="샤론홀">샤론홀</option>
         </select></div>
       <div class="field"><div class="lbl">예약 날짜 <span class="req-mark">*</span></div>
-        <input type="date" id="f-date"></div>
+        <input type="date" id="f-date" oninput="checkLastMinuteNotice()"></div>
+    </div>
+    <div class="notice" id="last-minute-notice" style="display:none;background:var(--red-lt);color:var(--red)">
+      ⚠️ 변경·취소하려는 날짜가 하루 앞으로 다가와 담당자의 즉각적인 확인이 어려울 수 있습니다.<br>
+      빠른 확인을 위해 카카오톡 채널 <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener" style="color:var(--red);font-weight:700;text-decoration:underline">'아이엠센터'</a>로도 문의해 주세요.
     </div>
     <div class="fl">
       <div class="field"><div class="lbl">시작 시간</div>
@@ -210,6 +214,17 @@ document.getElementById('f-start').addEventListener('change', () => {
   endEl.innerHTML = buildEndOpts(startVal);
   if (prevEnd && prevEnd > startVal) endEl.value = prevEnd;
 });
+
+// 변경·취소하려는 예약 날짜가 하루 앞(오늘 또는 내일)이면 담당자가 즉시 확인하지 못할 수 있음을 안내
+window.checkLastMinuteNotice = () => {
+  const dateVal = document.getElementById('f-date').value;
+  const notice = document.getElementById('last-minute-notice');
+  if (!dateVal) { notice.style.display = 'none'; return; }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const target = new Date(dateVal + 'T00:00:00');
+  const diffDays = Math.round((target - today) / 86400000);
+  notice.style.display = (diffDays >= 0 && diffDays <= 1) ? 'block' : 'none';
+};
 
 window.selectType = (type) => {
   curType = type;
