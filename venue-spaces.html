@@ -317,7 +317,7 @@
     <h1>공간 안내</h1>
     <hr class="rule">
     <p class="intro">아이엠센터에서 예약 이용 가능한 공간을 소개합니다.<br>
-      정확한 대관 일정과 조건은 아래 연락처로 문의해 주세요.
+      정확한 이용 일정과 조건은 아래 연락처로 문의해 주세요.
     </p>
   </header>
 
@@ -326,7 +326,7 @@
   </main>
 
   <div class="cta-box">
-    <h2>대관 문의</h2>
+    <h2>이용 문의</h2>
     <p>공간 이용을 원하시면 아래로 편하게 연락해 주세요.</p>
     <p class="contact-line">
       <a href="tel:07070181439">070-7018-1439</a>
@@ -361,7 +361,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
-// 외부 대관 소개 대상에서 제외 — 아이엠홀은 별도 사이트 예정, 지혜홀은 숙박 전용이라 대관 대상 아님
+// 소개 대상에서 제외 — 아이엠홀은 별도 사이트 예정, 지혜홀은 숙박 전용이라 이 페이지 대상 아님
 const EXCLUDE_NAMES = ['아이엠홀', '지혜홀'];
 // 소그룹실(5층) 내 소형/중형 구분 기준 — 소형 10~16인, 중형 20인 이상
 const SMALL_GROUP_MAX_CAP = 16;
