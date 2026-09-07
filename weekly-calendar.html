@@ -62,6 +62,15 @@
   .item-lodging:hover { background: #F5E3C4; }
   .item-lodging .item-time { color: #854F0B; }
   .item-lodging .item-purpose-main { color: #854F0B; }
+  .item-main-event { background: #E8F5E9; }
+  .item-main-event:hover { background: #D7ECD9; }
+  .item-main-event .item-time { color: #1B5E20; }
+  .item-main-event .item-purpose, .item-main-event .item-purpose-main { color: #1B5E20; font-weight: 700; }
+  .item-main-badge {
+    display: inline-block; font-size: 10px; font-weight: 700; line-height: 1.5;
+    padding: 1px 7px; border-radius: 999px; background: #1B5E20; color: #fff;
+    margin-right: 6px; vertical-align: middle;
+  }
   /* 시간/장소·목적을 줄바꿈해 좁은 컬럼에서도 텍스트가 잘리지 않게 하는 2줄 레이아웃 */
   /* 예약 목적을 첫 줄에 볼드로, 시간·장소는 둘째 줄에 보조 텍스트로 표시 */
   .item-stack { flex-direction: column; align-items: flex-start; gap: 3px; }
@@ -167,7 +176,7 @@
 
 <script type="module">
 import { initializeApp }           from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const app = initializeApp({
   apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
@@ -193,11 +202,21 @@ const CATS = [
 const isWeekRoom = (room) => !FLOOR5_ROOMS.includes(room);
 const DOWS = ['일','월','화','수','목','금','토'];
 
+// 관리자 "콘텐츠 편집 > 주간 캘린더"에서 등록한 목적 키워드 — 5층 소그룹실이어도 이 키워드가
+// 목적에 포함되면 주간 보기 좌측 메인 칸에 표시(예: 수요성경공부)
+let MAIN_KEYWORDS = [];
+const isMainEvent = (r) => MAIN_KEYWORDS.some(k => k && r.purpose && r.purpose.includes(k));
+// 메인 행사로 지정된 예약을 항상 맨 위로, 그 안에서는 기존처럼 시간순
+const byMainThenTime = (a, b) => {
+  const am = isMainEvent(a) ? 0 : 1, bm = isMainEvent(b) ? 0 : 1;
+  return am !== bm ? am - bm : (a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+};
+
 let reservations = [], blockedDates = [];
 let mode = 'day';
 let dayOffset = 0;
 let weekOffset = 0;
-let loaded = { res: false, bd: false };
+let loaded = { res: false, bd: false, mk: false };
 
 const toDateStr = d =>
   `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -271,7 +290,7 @@ window.jumpToDate = (dateStr) => {
 };
 
 function render() {
-  if (!loaded.res || !loaded.bd) return;
+  if (!loaded.res || !loaded.bd || !loaded.mk) return;
   renderNav();
   if (mode === 'day') renderDay();
   else renderWeek();
@@ -296,16 +315,16 @@ function renderDay() {
     const inCat = cat.match ? cat.match : (room) => cat.rooms.includes(room);
     const items = reservations
       .filter(r => inCat(r.room) && r.date === ds && r.status === '확정')
-      .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+      .sort(byMainThenTime);
     const rangeLabel = items.length
       ? ` · ${dispStart(items[0])}-${items.reduce((max, r) => dispEnd(r) > max ? dispEnd(r) : max, dispEnd(items[0]))}`
       : '';
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
+          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
             <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
-            <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+            <span class="item-purpose">${isMainEvent(r) ? '<span class="item-main-badge">메인</span>' : ''}${esc(r.purpose) || '(목적 미기재)'}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
           </div>`).join('');
     return `<div class="cat"><div class="cat-hd">${cat.label}${rangeLabel}</div><div class="cat-body">${body}</div></div>`;
@@ -327,17 +346,17 @@ function renderWeek() {
     const ds = toDateStr(d);
     const dow = DOWS[d.getDay()];
     const items = reservations
-      .filter(r => isWeekRoom(r.room) && r.date === ds && r.status === '확정')
-      .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+      .filter(r => (isWeekRoom(r.room) || isMainEvent(r)) && r.date === ds && r.status === '확정')
+      .sort(byMainThenTime);
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
-            <span class="item-purpose-main">${esc(r.purpose) || '(목적 미기재)'}</span>
+          <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
+            <span class="item-purpose-main">${isMainEvent(r) ? '<span class="item-main-badge">메인</span>' : ''}${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-meta">${dispStart(r)}–${dispEnd(r)} · ${esc(r.room)}</span>
           </div>`).join('');
     const sgItems = reservations
-      .filter(r => FLOOR5_ROOMS.includes(r.room) && r.date === ds && r.status === '확정')
+      .filter(r => FLOOR5_ROOMS.includes(r.room) && !isMainEvent(r) && r.date === ds && r.status === '확정')
       .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
     const sgBody = !sgItems.length
       ? '<div class="empty-row">예약 없음</div>'
@@ -395,6 +414,9 @@ onSnapshot(collection(db, 'blockedDates'), snap => {
   blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   loaded.bd = true; render();
 });
+getDoc(doc(db, 'siteContent', 'weeklyCalendar')).then(snap => {
+  MAIN_KEYWORDS = (snap.exists() && Array.isArray(snap.data().mainKeywords)) ? snap.data().mainKeywords : [];
+}).catch(() => {}).finally(() => { loaded.mk = true; render(); });
 </script>
 </body>
 </html>

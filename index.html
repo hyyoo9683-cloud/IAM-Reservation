@@ -1072,6 +1072,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-notices')">공지사항</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-apply-popup')">예약 신청 안내</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-venue-spaces')">공간 안내</button>
+        <button type="button" class="ce-tab" onclick="ceTab(this,'ce-weekly-calendar')">주간 캘린더</button>
       </div>
 
       <!-- ── FAQ 편집 패널 ── -->
@@ -1273,6 +1274,22 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="ce-save-bar">
           <span class="ce-save-hint">변경 후 저장하면 공간 안내 페이지에 즉시 반영됩니다</span>
           <button type="button" class="ce-btn ce-btn-primary" id="ce-vs-save-btn" onclick="ceSaveVenueSpaces()">💾 저장</button>
+        </div>
+      </div>
+
+      <!-- ── 주간 캘린더(weekly-calendar.html) 메인 행사 키워드 편집 패널 ── -->
+      <div class="ce-panel" id="ce-weekly-calendar">
+        <div class="ce-about-card">
+          <h3>📅 주간 캘린더 — 메인 행사로 표시할 목적 키워드</h3>
+          <p style="font-size:13px;color:var(--ed-ink3);margin:-6px 0 16px">weekly-calendar.html의 주간(週) 보기는 기본적으로 5층 소그룹실 예약을 오른쪽 칸에 따로 모아 보여줍니다. 여기에 목적(예: <b>수요성경공부</b>) 키워드를 한 줄에 하나씩 등록하면, 그 목적이 포함된 예약은 5층 소그룹실이어도 왼쪽 메인 칸에 표시됩니다.</p>
+          <div class="ce-field">
+            <label class="ce-label">키워드 목록 (한 줄에 하나씩)</label>
+            <textarea id="ce-wc-keywords" class="ce-input" rows="6" placeholder="수요성경공부"></textarea>
+          </div>
+        </div>
+        <div class="ce-save-bar">
+          <span class="ce-save-hint">변경 후 저장하면 주간 캘린더에 즉시 반영됩니다</span>
+          <button type="button" class="ce-btn ce-btn-primary" id="ce-wc-save-btn" onclick="ceSaveWeeklyCalendar()">💾 저장</button>
         </div>
       </div>
     </div>
@@ -8916,13 +8933,17 @@ const CE = {
     groupRoomDesc: '',
     imhallDesc: ''
   },
+  defaultWeeklyCalendar: {
+    mainKeywords: []   // 예: '수요성경공부' — 5층 소그룹실이어도 weekly-calendar.html 주간 뷰에서 메인(좌측) 칸에 표시
+  },
 
   // ── 메모리 캐시 ──
   faqItems: null,    // [{q,a,note}]
   busRoutes: null,   // [{stop,lines}]
   floors: null,      // [{name,body,photos:[{url,caption},...],fontSize}]
   floorActiveIdx: 0,
-  venueSpaces: null, // {seminarDesc, groupRoomDesc, imhallDesc} — venue-spaces.html 섹션별 소개 문구
+  venueSpaces: null,     // {seminarDesc, groupRoomDesc, imhallDesc} — venue-spaces.html 섹션별 소개 문구
+  weeklyCalendar: null,  // {mainKeywords:[...]} — weekly-calendar.html 메인 행사 지정 키워드
   floorPhotoIdx: {}, // { [floorIndex]: 현재 보여지는 사진 인덱스 }
   floorNewFiles: {}, // { [floorIndex]: {blob,caption}[] } 저장 전 임시 압축 이미지
   homeCards: null,   // { [key]: {title,desc} }
@@ -8992,6 +9013,15 @@ const CE = {
       if (snap.exists()) return { ...this.defaultVenueSpaces, ...snap.data() };
     } catch(e) {}
     return JSON.parse(JSON.stringify(this.defaultVenueSpaces));
+  },
+
+  async loadWeeklyCalendar() {
+    try {
+      const {doc,getDoc} = window._fb;
+      const snap = await getDoc(doc(this.db(),'siteContent','weeklyCalendar'));
+      if (snap.exists()) return { ...this.defaultWeeklyCalendar, ...snap.data() };
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(this.defaultWeeklyCalendar));
   },
 
   // ── FAQ 렌더링 (사용자 뷰) ──
@@ -9148,6 +9178,10 @@ const CE = {
     // 공간 안내(venue-spaces.html) 소개 문구
     if (!this.venueSpaces) this.venueSpaces = await this.loadVenueSpaces();
     this.renderVenueSpacesEditor();
+
+    // 주간 캘린더(weekly-calendar.html) 메인 행사 키워드
+    if (!this.weeklyCalendar) this.weeklyCalendar = await this.loadWeeklyCalendar();
+    this.renderWeeklyCalendarEditor();
   },
 
   // ── 홈 카드 편집기 렌더 ──
@@ -9265,6 +9299,34 @@ const CE = {
         updatedBy: (window.curUser && window.curUser.email) || ''
       });
       window.T('공간 안내 소개 문구 저장 완료! 즉시 반영됩니다 ✓');
+    } catch(e) {
+      window.T('저장 실패: ' + e.message, '#A32D2D');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 저장';
+    }
+  },
+
+  // ── 주간 캘린더(weekly-calendar.html) 메인 행사 키워드 편집기 렌더 ──
+  renderWeeklyCalendarEditor() {
+    const p = this.weeklyCalendar || this.defaultWeeklyCalendar;
+    const el = document.getElementById('ce-wc-keywords');
+    if (el) el.value = (p.mainKeywords || []).join('\n');
+  },
+
+  async saveWeeklyCalendar() {
+    const btn = document.getElementById('ce-wc-save-btn');
+    btn.disabled = true; btn.textContent = '저장 중…';
+    try {
+      const {doc, setDoc} = window._fb;
+      const mainKeywords = document.getElementById('ce-wc-keywords').value
+        .split('\n').map(s => s.trim()).filter(Boolean);
+      this.weeklyCalendar = { mainKeywords };
+      await setDoc(doc(this.db(),'siteContent','weeklyCalendar'), {
+        ...this.weeklyCalendar,
+        updatedAt: new Date().toISOString(),
+        updatedBy: (window.curUser && window.curUser.email) || ''
+      });
+      window.T('주간 캘린더 설정 저장 완료! 즉시 반영됩니다 ✓');
     } catch(e) {
       window.T('저장 실패: ' + e.message, '#A32D2D');
     } finally {
@@ -9672,6 +9734,7 @@ window.ceFloorBold = (i) => {
 window.ceSaveHomeCards = () => CE.saveHomeCards();
 window.ceSaveApplyPopup = () => CE.saveApplyPopup();
 window.ceSaveVenueSpaces = () => CE.saveVenueSpaces();
+window.ceSaveWeeklyCalendar = () => CE.saveWeeklyCalendar();
 window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.toggle('open'); };
 
 /* 로그인 모달 */
