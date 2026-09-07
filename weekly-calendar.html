@@ -203,10 +203,13 @@ const DOWS = ['일','월','화','수','목','금','토'];
 // 목적에 포함되면 주간 보기 좌측 메인 칸에 표시(예: 수요성경공부)
 let MAIN_KEYWORDS = [];
 const isMainEvent = (r) => MAIN_KEYWORDS.some(k => k && r.purpose && r.purpose.includes(k));
-// 메인 행사로 지정된 예약을 항상 맨 위로, 그 안에서는 기존처럼 시간순
+// 5층 소그룹실은 같은 시간대일 때 505→511호 순으로 정렬(그 외 공간은 순서 영향 없음)
+const roomRank = (room) => { const i = FLOOR5_ROOMS.indexOf(room); return i === -1 ? 99 : i; };
+// 메인 행사로 지정된 예약을 항상 맨 위로, 그 다음 시간순, 같은 시간이면 실 순서(505~511호)
 const byMainThenTime = (a, b) => {
   const am = isMainEvent(a) ? 0 : 1, bm = isMainEvent(b) ? 0 : 1;
-  return am !== bm ? am - bm : (a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+  if (am !== bm) return am - bm;
+  return a.start.localeCompare(b.start) || a.end.localeCompare(b.end) || roomRank(a.room) - roomRank(b.room);
 };
 
 let reservations = [], blockedDates = [];
