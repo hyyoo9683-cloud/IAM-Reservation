@@ -33,6 +33,7 @@
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `guide.html` | 아이엠센터 이용 안내(예약 책임자·청지기 제도, 예약 방법, 아론홀·샤론홀 조건 등) — "예약 신청" 진입 시 거치는 동의 게이트 페이지(하단 체크박스 동의 후 `index.html?apply=1`로 이동, 로그인 안 되어 있으면 로그인 후 자동으로 신청 폼으로 이어짐). 직접 링크로도 공유 가능. 카카오톡 인앱 브라우저로 열면 페이지 진입 즉시 전체 화면 오버레이(`#kakao-overlay`)로 안내 내용 자체를 덮어서 Chrome/Safari로 나가기 전에는 아무것도 진행할 수 없게 막음(iOS는 자동 이동+실패 대비 수동 링크, Android는 "Chrome으로 열기" 버튼) |
 | `reservation-change.html` | 예약 변경·취소 신청 페이지 (누구나 제출 가능, `changeRequests` 컬렉션에 저장) — 공간은 5층 소그룹실(505~511호)·아론홀·샤론홀 중 select로만 선택 가능 |
+| `venue-spaces.html` | 외부 대관 가능 공간 소개 페이지 (로그인 불필요, 공개) — `spaces` 컬렉션을 실시간으로 불러와 층별로 그룹핑해 사진·정원·설명·비품 태그 표시, guide.html과 동일한 디자인 톤. 아이엠홀(별도 사이트 예정)·지혜홀(숙박 전용)은 `EXCLUDE_NAMES`로 목록에서 제외 |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `functions/index.js`, `functions/lib/*.js` | Cloud Functions — 예약 승인 시 Resend로 이메일 발송 (아래 "예약 이메일 알림" 참고) |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
