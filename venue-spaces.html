@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대관 가능한 공간</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --ink: #1d1f1a;
+    --ink-soft: #565a4f;
+    --ink-faint: #8b8f80;
+    --accent: #45604f;
+    --accent-soft: #e2e8de;
+    --accent-strong: #2f4436;
+    --line: #dcdbd0;
+    --line-strong: #1d1f1a;
+    --shadow: 0 1px 3px rgba(29,31,26,0.06);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15170f;
+      --surface: #1b1d15;
+      --ink: #ecece3;
+      --ink-soft: #b7bcac;
+      --ink-faint: #767b6a;
+      --accent: #8fb69a;
+      --accent-soft: #26301f;
+      --accent-strong: #a9cdb2;
+      --line: #33362a;
+      --line-strong: #ecece3;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #15170f;
+    --surface: #1b1d15;
+    --ink: #ecece3;
+    --ink-soft: #b7bcac;
+    --ink-faint: #767b6a;
+    --accent: #8fb69a;
+    --accent-soft: #26301f;
+    --accent-strong: #a9cdb2;
+    --line: #33362a;
+    --line-strong: #ecece3;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.7;
+    word-break: keep-all;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(40px, 8vw, 96px) clamp(20px, 5vw, 32px) 64px;
+  }
+
+  .home-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    text-decoration: none;
+    margin: 0 0 22px;
+  }
+  .home-link:hover { color: var(--accent-strong); }
+
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent-strong);
+    margin: 0 0 18px;
+  }
+
+  header h1 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: clamp(30px, 5.4vw, 44px);
+    letter-spacing: 0.02em;
+    margin: 0 0 22px;
+    text-wrap: balance;
+  }
+
+  .contact-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: baseline;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0 0 26px;
+  }
+  .contact-line a { color: var(--ink-soft); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .contact-line a:hover { color: var(--accent-strong); border-color: var(--accent-strong); }
+  .contact-line .sep { color: var(--ink-faint); }
+
+  .rule { border: 0; border-top: 2px solid var(--line-strong); margin: 0; }
+
+  .intro {
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    max-width: 58ch;
+    margin: 28px 0 0;
+  }
+  .intro strong { color: var(--ink); font-weight: 600; }
+  .intro .excluded-note { display: block; margin-top: 8px; font-size: 13px; color: var(--ink-faint); }
+
+  main { margin-top: 12px; }
+
+  section.item {
+    display: grid;
+    grid-template-columns: 84px 1px 1fr;
+    gap: 0 28px;
+    padding: 40px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  section.item:last-of-type { border-bottom: none; }
+
+  .num {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 40px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-faint);
+    line-height: 1;
+    padding-top: 2px;
+  }
+
+  .divider { background: var(--line); }
+
+  .item h2 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .item .floor-count { font-size: 13px; color: var(--ink-faint); margin: 0 0 18px; }
+
+  .venue-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .venue-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .venue-img {
+    aspect-ratio: 4 / 3;
+    background: var(--accent-soft);
+    color: var(--ink-faint);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .venue-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .venue-body {
+    padding: 16px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+  }
+
+  .venue-name {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 16.5px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .venue-name::before {
+    content: "";
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex: none;
+  }
+
+  .capacity-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .cap-label { color: var(--ink-faint); font-size: 12.5px; }
+  .capacity-row .cap-num {
+    font-family: "Noto Serif KR", serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent-strong);
+  }
+  .capacity-row .cap-num small {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--ink-faint);
+    margin-left: 2px;
+  }
+
+  .venue-desc {
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  .venue-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+  .venue-tag {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+  }
+
+  .state-msg {
+    color: var(--ink-faint);
+    font-size: 14px;
+    padding: 32px 0;
+    text-align: center;
+  }
+
+  .cta-box {
+    margin-top: 40px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    text-align: center;
+  }
+  .cta-box h2 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+  .cta-box p { font-size: 14px; color: var(--ink-soft); margin: 0 0 16px; }
+  .cta-box .contact-line { justify-content: center; margin: 0; font-size: 14px; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 22px;
+    border-top: 2px solid var(--line-strong);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 20px;
+  }
+  .wordmark {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--ink);
+  }
+  .wordmark .dots { color: var(--accent); letter-spacing: 0.14em; }
+  footer .contact-line { margin: 0; }
+
+  @media (min-width: 900px) {
+    .page { max-width: 900px; }
+    .intro { max-width: 70ch; }
+  }
+
+  @media (max-width: 520px) {
+    section.item { grid-template-columns: 52px 1px 1fr; gap: 0 16px; padding: 30px 0; }
+    .num { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <a class="home-link" href="guide.html">← 이용 안내로</a>
+
+  <header>
+    <p class="eyebrow">I AM CENTER · VENUE SPACES</p>
+    <h1>대관 가능한 공간</h1>
+    <hr class="rule">
+    <p class="intro">아이엠센터에서 외부 대관이 가능한 공간을 소개합니다.<br>
+      정확한 대관 일정과 조건은 아래 연락처로 문의해 주세요.
+      <span class="excluded-note">* 아이엠홀은 별도 안내 페이지에서 확인하실 수 있습니다.</span>
+    </p>
+  </header>
+
+  <main id="venue-main">
+    <p class="state-msg">공간 정보를 불러오는 중입니다...</p>
+  </main>
+
+  <div class="cta-box">
+    <h2>대관 문의</h2>
+    <p>공간 이용을 원하시면 아래로 편하게 연락해 주세요.</p>
+    <p class="contact-line">
+      <a href="tel:07070181439">070-7018-1439</a>
+      <span class="sep">/</span>
+      <a href="mailto:iamspace@suwoncca.org">iamspace@suwoncca.org</a>
+    </p>
+  </div>
+
+  <footer>
+    <p class="wordmark">I AM <span class="dots">···</span></p>
+    <p class="contact-line">
+      <span>문의</span>
+      <a href="tel:07070181439">070-7018-1439</a>
+      <span class="sep">/</span>
+      <a href="mailto:iamspace@suwoncca.org">iamspace@suwoncca.org</a>
+    </p>
+  </footer>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// 외부 대관 소개 대상에서 제외 — 아이엠홀은 별도 사이트 예정, 지혜홀은 숙박 전용이라 대관 대상 아님
+const EXCLUDE_NAMES = ['아이엠홀', '지혜홀'];
+const FLOOR_ORDER = ['2층', '5층', '6층'];
+
+function esc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function floorRank(f) {
+  const i = FLOOR_ORDER.indexOf(f);
+  return i === -1 ? 99 : i;
+}
+
+function cardHtml(s) {
+  const img = (s.photos && s.photos[0])
+    ? `<div class="venue-img"><img src="${esc(s.photos[0])}" alt="${esc(s.name)}" loading="lazy"></div>`
+    : `<div class="venue-img">사진 준비 중</div>`;
+  const tags = (s.amenities || []).map(a => `<span class="venue-tag">${esc(a)}</span>`).join('');
+  return `<div class="venue-card">
+    ${img}
+    <div class="venue-body">
+      <p class="venue-name">${esc(s.name)}</p>
+      ${s.cap ? `<div class="capacity-row"><span class="cap-label">정원</span><span class="cap-num">${esc(s.cap)}<small>명</small></span></div>` : ''}
+      ${s.desc ? `<p class="venue-desc">${esc(s.desc)}</p>` : ''}
+      ${tags ? `<div class="venue-tags">${tags}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function sectionHtml(floor, items, num) {
+  return `<section class="item">
+    <div class="num">${String(num).padStart(2, '0')}</div>
+    <div class="divider"></div>
+    <div>
+      <h2>${esc(floor)}</h2>
+      <p class="floor-count">${items.length}개 공간</p>
+      <div class="venue-grid">${items.map(cardHtml).join('')}</div>
+    </div>
+  </section>`;
+}
+
+async function load() {
+  const main = document.getElementById('venue-main');
+  try {
+    const snap = await getDocs(collection(db, 'spaces'));
+    const list = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name));
+
+    if (!list.length) {
+      main.innerHTML = '<p class="state-msg">현재 소개할 수 있는 공간이 없습니다.</p>';
+      return;
+    }
+
+    list.sort((a, b) => floorRank(a.floor) - floorRank(b.floor) || (a.name || '').localeCompare(b.name || '', 'ko', { numeric: true }));
+
+    const groups = {};
+    list.forEach(s => { const f = s.floor || '기타'; (groups[f] = groups[f] || []).push(s); });
+    const floors = Object.keys(groups).sort((a, b) => floorRank(a) - floorRank(b));
+
+    main.innerHTML = floors.map((f, i) => sectionHtml(f, groups[f], i + 1)).join('');
+  } catch (e) {
+    main.innerHTML = '<p class="state-msg">공간 정보를 불러오지 못했습니다. 아래 연락처로 문의해 주세요.</p>';
+  }
+}
+
+load();
+</script>
+
+</body>
+</html>
