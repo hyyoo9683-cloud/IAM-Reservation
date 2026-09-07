@@ -398,7 +398,7 @@ async function load() {
     const snap = await getDocs(collection(db, 'spaces'));
     const list = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name));
+      .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name) && !/로비/.test(s.name));
 
     if (!list.length) {
       main.innerHTML = '<p class="state-msg">현재 소개할 수 있는 공간이 없습니다.</p>';
