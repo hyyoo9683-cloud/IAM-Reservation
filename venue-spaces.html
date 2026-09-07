@@ -153,6 +153,16 @@
   }
   .item .floor-count { font-size: 13px; color: var(--ink-faint); margin: 0 0 18px; }
 
+  .subgroup { margin-top: 24px; }
+  .subgroup:first-child { margin-top: 0; }
+  .subgroup-heading {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 600;
+    font-size: 14.5px;
+    color: var(--accent-strong);
+    margin: 0 0 10px;
+  }
+
   .venue-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -354,15 +364,15 @@ const db  = getFirestore(app);
 
 // 외부 대관 소개 대상에서 제외 — 아이엠홀은 별도 사이트 예정, 지혜홀은 숙박 전용이라 대관 대상 아님
 const EXCLUDE_NAMES = ['아이엠홀', '지혜홀'];
-const FLOOR_ORDER = ['2층', '5층', '6층'];
+// 소그룹실(5층) 내 소형/중형 구분 기준 — 소형 10~16인, 중형 20인 이상
+const SMALL_GROUP_MAX_CAP = 16;
 
 function esc(v) {
   return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 
-function floorRank(f) {
-  const i = FLOOR_ORDER.indexOf(f);
-  return i === -1 ? 99 : i;
+function byNameKo(a, b) {
+  return (a.name || '').localeCompare(b.name || '', 'ko', { numeric: true });
 }
 
 function cardHtml(s) {
@@ -381,14 +391,26 @@ function cardHtml(s) {
   </div>`;
 }
 
-function sectionHtml(floor, items, num) {
+function gridHtml(items) {
+  return `<div class="venue-grid">${items.map(cardHtml).join('')}</div>`;
+}
+
+function subgroupHtml(label, items) {
+  if (!items.length) return '';
+  return `<div class="subgroup">
+    <p class="subgroup-heading">${esc(label)}</p>
+    ${gridHtml(items)}
+  </div>`;
+}
+
+function sectionHtml(title, num, count, bodyHtml) {
   return `<section class="item">
     <div class="num">${String(num).padStart(2, '0')}</div>
     <div class="divider"></div>
     <div>
-      <h2>${esc(floor)}</h2>
-      <p class="floor-count">${items.length}개 공간</p>
-      <div class="venue-grid">${items.map(cardHtml).join('')}</div>
+      <h2>${esc(title)}</h2>
+      <p class="floor-count">${count}개 공간</p>
+      ${bodyHtml}
     </div>
   </section>`;
 }
@@ -406,13 +428,28 @@ async function load() {
       return;
     }
 
-    list.sort((a, b) => floorRank(a.floor) - floorRank(b.floor) || (a.name || '').localeCompare(b.name || '', 'ko', { numeric: true }));
+    // 세미나실(2층 아론홀·6층 샤론홀) / 소그룹실(5층) / 그 외로 분류
+    const seminar = list.filter(s => s.floor === '2층' || s.floor === '6층' || ['아론홀', '샤론홀'].includes(s.name));
+    const groupRooms = list.filter(s => s.floor === '5층' && !seminar.includes(s));
+    const rest = list.filter(s => !seminar.includes(s) && !groupRooms.includes(s));
 
-    const groups = {};
-    list.forEach(s => { const f = s.floor || '기타'; (groups[f] = groups[f] || []).push(s); });
-    const floors = Object.keys(groups).sort((a, b) => floorRank(a) - floorRank(b));
+    seminar.sort(byNameKo);
+    groupRooms.sort(byNameKo);
+    rest.sort((a, b) => (a.floor || '').localeCompare(b.floor || '') || byNameKo(a, b));
 
-    main.innerHTML = floors.map((f, i) => sectionHtml(f, groups[f], i + 1)).join('');
+    const small  = groupRooms.filter(s => s.cap > 0 && s.cap <= SMALL_GROUP_MAX_CAP);
+    const medium = groupRooms.filter(s => !small.includes(s));
+
+    const sections = [];
+    let n = 1;
+    if (seminar.length) sections.push(sectionHtml('세미나실', n++, seminar.length, gridHtml(seminar)));
+    if (groupRooms.length) {
+      const body = subgroupHtml('소형 · 10~16인', small) + subgroupHtml('중형 · 20인 이상', medium);
+      sections.push(sectionHtml('소그룹실', n++, groupRooms.length, body));
+    }
+    if (rest.length) sections.push(sectionHtml('기타 공간', n++, rest.length, gridHtml(rest)));
+
+    main.innerHTML = sections.join('');
   } catch (e) {
     main.innerHTML = '<p class="state-msg">공간 정보를 불러오지 못했습니다. 아래 연락처로 문의해 주세요.</p>';
   }
