@@ -229,6 +229,7 @@
     font-size: 13.5px;
     color: var(--ink-soft);
     margin: 0;
+    white-space: pre-line;
   }
 
   .venue-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
@@ -374,7 +375,7 @@ function cardHtml(s) {
     <div class="venue-body">
       <p class="venue-name">${esc(s.name)}</p>
       ${s.cap ? `<div class="capacity-row"><span class="cap-label">정원</span><span class="cap-num">${esc(s.cap)}<small>명</small></span></div>` : ''}
-      ${s.desc ? `<p class="venue-desc">${esc(s.desc)}</p>` : ''}
+      ${(s.venueDesc || s.desc) ? `<p class="venue-desc">${esc(s.venueDesc || s.desc)}</p>` : ''}
       ${tags ? `<div class="venue-tags">${tags}</div>` : ''}
     </div>
   </div>`;

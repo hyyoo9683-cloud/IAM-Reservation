@@ -2394,6 +2394,7 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fg"><div class="lbl">카테고리 <span style="font-weight:400;color:var(--text3)">(검색용 태그, 여러 개는 쉼표로 구분 · 예: 소그룹, TV)</span></div><input id="sp-category" placeholder="예: 거울방, 소그룹, TV"></div>
     <div class="fg"><div class="lbl">설명</div><input id="sp-desc" placeholder="간단한 공간 설명"></div>
+    <div class="fg"><div class="lbl">대관 소개 문구 <span style="font-weight:400;color:var(--text3)">(선택 · 대관 안내 페이지 전용, 위 설명보다 길게 작성 가능)</span></div><textarea id="sp-venue-desc" rows="3" placeholder="대관 가능 공간 소개 페이지에 표시될 조금 더 자세한 소개 문구"></textarea></div>
     <div class="fg">
       <div class="lbl">의자 / 책상 수량</div>
       <div class="fl" style="margin-bottom:10px">
@@ -4368,6 +4369,7 @@ window.openSpaceModal = (id = null) => {
     document.getElementById('sp-cap').value    = sp.cap || '';
     document.getElementById('sp-category').value = getSpaceCategories(sp).join(', ');
     document.getElementById('sp-desc').value   = sp.desc || '';
+    document.getElementById('sp-venue-desc').value = sp.venueDesc || '';
     document.getElementById('sp-chairs').value = sp.chairs || '';
     document.getElementById('sp-desks').value  = sp.desks  || '';
     const aMap = { 'TV': 'a-tv', 'Wi-Fi': 'a-wifi', '냉난방': 'a-ac', '마이크/음향': 'a-mic' };
@@ -4376,7 +4378,7 @@ window.openSpaceModal = (id = null) => {
     renderExistingPhotos();
   } else {
     document.getElementById('space-modal-title').textContent = '새 공간 추가';
-    ['sp-name', 'sp-floor', 'sp-desc', 'sp-category'].forEach(id2 => document.getElementById(id2).value = '');
+    ['sp-name', 'sp-floor', 'sp-desc', 'sp-venue-desc', 'sp-category'].forEach(id2 => document.getElementById(id2).value = '');
     document.getElementById('sp-cap').value = '';
     existingPhotos = [];
     document.getElementById('existing-photos').innerHTML = '';
@@ -4435,6 +4437,7 @@ window.submitSpace = async () => {
   const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
   const categories = document.getElementById('sp-category').value.split(',').map(c => c.trim()).filter(Boolean);
   const desc   = document.getElementById('sp-desc').value.trim();
+  const venueDesc = document.getElementById('sp-venue-desc').value.trim();
   const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
   const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
   const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
@@ -4460,7 +4463,7 @@ window.submitSpace = async () => {
       photoUrls.push(await getDownloadURL(snap.ref));
     }
 
-    const data = { name, floor, cap, categories, desc, chairs, desks, amenities, photos: photoUrls };
+    const data = { name, floor, cap, categories, desc, venueDesc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
       await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
       spaces = window.spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
