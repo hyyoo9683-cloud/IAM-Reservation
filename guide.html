@@ -341,6 +341,17 @@
     line-height: 1.5;
     text-align: center;
   }
+  .kakao-notice button {
+    background: var(--bg);
+    color: var(--ink);
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 8px;
+  }
 
   footer {
     margin-top: 48px;
@@ -508,7 +519,12 @@
       location.href = 'x-safari-https://' + location.host + location.pathname + location.search;
     }, 700);
   } else if (isAndroid) {
-    notice.innerHTML = '카카오톡 내에서는 로그인이 제한됩니다. 우측 상단 ⋮ 메뉴 → <b>외부 브라우저로 열기</b>를 눌러주세요.';
+    // index.html의 카카오톡 배너와 동일하게 intent:// 스킴으로 한 번의 탭만으로 Chrome이 열리도록 함
+    notice.innerHTML = '카카오톡 내에서는 로그인이 제한됩니다.<button type="button" id="kakao-android-btn">Chrome으로 열기</button>';
+    var target = location.host + location.pathname + location.search;
+    document.getElementById('kakao-android-btn').onclick = function() {
+      location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
+    };
   }
 })();
 </script>
