@@ -1070,7 +1070,6 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-about')">아이엠센터 소개</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-floors')">층별 소개</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-notices')">공지사항</button>
-        <button type="button" class="ce-tab" onclick="ceTab(this,'ce-apply-popup')">예약 신청 안내</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-venue-spaces')">공간 안내</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-weekly-calendar')">주간 캘린더</button>
       </div>
@@ -1222,34 +1221,6 @@ textarea { resize: vertical; min-height: 60px; }
         </div>
         <div class="ce-notice-list" id="ce-notice-list">
           <div style="text-align:center;padding:32px;color:var(--ed-ink3)">공지사항을 불러오는 중…</div>
-        </div>
-      </div>
-
-      <!-- ── 예약 신청 안내 팝업 편집 패널 ── -->
-      <div class="ce-panel" id="ce-apply-popup">
-        <div class="ce-about-card">
-          <h3>📋 예약 신청 전 안내 팝업</h3>
-          <p style="font-size:13px;color:var(--ed-ink3);margin:-6px 0 16px">로그인하지 않은 사용자가 예약 신청을 시도할 때 표시되는 안내 팝업 내용입니다.</p>
-          <div class="ce-field">
-            <label class="ce-label">아이콘 (이모지)</label>
-            <input id="ce-ap-icon" class="ce-input" style="max-width:100px">
-          </div>
-          <div class="ce-field">
-            <label class="ce-label">제목</label>
-            <input id="ce-ap-title" class="ce-input">
-          </div>
-          <div class="ce-field">
-            <label class="ce-label">본문 (HTML 태그 사용 가능: &lt;b&gt;, &lt;br&gt; 등)</label>
-            <textarea id="ce-ap-body" class="ce-input" rows="4"></textarea>
-          </div>
-          <div class="ce-field">
-            <label class="ce-label">문의 연락처 (HTML 태그 사용 가능)</label>
-            <input id="ce-ap-contact" class="ce-input">
-          </div>
-        </div>
-        <div class="ce-save-bar">
-          <span class="ce-save-hint">변경 후 저장하면 예약 신청 안내 팝업에 즉시 반영됩니다</span>
-          <button type="button" class="ce-btn ce-btn-primary" id="ce-ap-save-btn" onclick="ceSaveApplyPopup()">💾 저장</button>
         </div>
       </div>
 
@@ -8922,12 +8893,6 @@ const CE = {
     about:'아이엠센터 소개 카드', apply:'예약 신청 카드', public:'예약 현황 카드',
     mylist:'내 예약 카드', steward:'예약 변경·취소 신청 카드', ext:'외부 신청 카드'
   },
-  defaultApplyPopup: {
-    icon: '📋',
-    title: '예약 신청 전 확인해 주세요',
-    body: '모든 예약은 각 기관의 <b>예약 책임자</b>만 신청할 수 있습니다.<br><br>예약 책임자: <b>목사, 간사, 교사,<br>아이엠센터 내 기관 담당자</b> 등',
-    contact: '문의 <b>070-7018-1439</b>'
-  },
   defaultVenueSpaces: {
     seminarDesc: '',
     groupRoomDesc: '',
@@ -8947,7 +8912,6 @@ const CE = {
   floorPhotoIdx: {}, // { [floorIndex]: 현재 보여지는 사진 인덱스 }
   floorNewFiles: {}, // { [floorIndex]: {blob,caption}[] } 저장 전 임시 압축 이미지
   homeCards: null,   // { [key]: {title,desc} }
-  applyPopup: null,  // {icon,title,body,contact}
 
   // ── Firestore helpers ──
   db() { return window._fb && window._fb.db; },
@@ -8995,15 +8959,6 @@ const CE = {
       if (snap.exists() && snap.data().cards) return snap.data().cards;
     } catch(e) {}
     return JSON.parse(JSON.stringify(this.defaultHomeCards));
-  },
-
-  async loadApplyPopup() {
-    try {
-      const {doc,getDoc} = window._fb;
-      const snap = await getDoc(doc(this.db(),'siteContent','applyPopup'));
-      if (snap.exists()) return { ...this.defaultApplyPopup, ...snap.data() };
-    } catch(e) {}
-    return JSON.parse(JSON.stringify(this.defaultApplyPopup));
   },
 
   async loadVenueSpaces() {
@@ -9171,10 +9126,6 @@ const CE = {
     if (!this.homeCards) this.homeCards = await this.loadHomeCards();
     this.renderHomeCardsEditor();
 
-    // 예약 신청 안내 팝업
-    if (!this.applyPopup) this.applyPopup = await this.loadApplyPopup();
-    this.renderApplyPopupEditor();
-
     // 공간 안내(venue-spaces.html) 소개 문구
     if (!this.venueSpaces) this.venueSpaces = await this.loadVenueSpaces();
     this.renderVenueSpacesEditor();
@@ -9219,57 +9170,6 @@ const CE = {
       if (t && c.title) t.textContent = c.title;
       if (d && c.desc) d.textContent = c.desc;
     });
-  },
-
-  // ── 예약 신청 안내 팝업 렌더링 (사용자 뷰) ──
-  renderApplyPopupUser() {
-    const p = this.applyPopup || this.defaultApplyPopup;
-    const ico = document.getElementById('ap-ico-text');
-    const title = document.getElementById('ap-title-text');
-    const body = document.getElementById('ap-body-text');
-    const contact = document.getElementById('ap-contact-text');
-    if (ico) ico.textContent = p.icon || '';
-    if (title) title.textContent = p.title || '';
-    if (body) body.innerHTML = p.body || '';
-    if (contact) contact.innerHTML = p.contact || '';
-  },
-
-  // ── 예약 신청 안내 팝업 편집기 렌더 ──
-  renderApplyPopupEditor() {
-    const p = this.applyPopup || this.defaultApplyPopup;
-    const ico = document.getElementById('ce-ap-icon');
-    const title = document.getElementById('ce-ap-title');
-    const body = document.getElementById('ce-ap-body');
-    const contact = document.getElementById('ce-ap-contact');
-    if (ico) ico.value = p.icon || '';
-    if (title) title.value = p.title || '';
-    if (body) body.value = p.body || '';
-    if (contact) contact.value = p.contact || '';
-  },
-
-  async saveApplyPopup() {
-    const btn = document.getElementById('ce-ap-save-btn');
-    btn.disabled = true; btn.textContent = '저장 중…';
-    try {
-      const {doc, setDoc} = window._fb;
-      this.applyPopup = {
-        icon: document.getElementById('ce-ap-icon').value,
-        title: document.getElementById('ce-ap-title').value,
-        body: document.getElementById('ce-ap-body').value,
-        contact: document.getElementById('ce-ap-contact').value
-      };
-      await setDoc(doc(this.db(),'siteContent','applyPopup'), {
-        ...this.applyPopup,
-        updatedAt: new Date().toISOString(),
-        updatedBy: (window.curUser && window.curUser.email) || ''
-      });
-      window.T('예약 신청 안내 팝업 저장 완료! 즉시 반영됩니다 ✓');
-      this.renderApplyPopupUser();
-    } catch(e) {
-      window.T('저장 실패: ' + e.message, '#A32D2D');
-    } finally {
-      btn.disabled = false; btn.textContent = '💾 저장';
-    }
   },
 
   // ── 공간 안내(venue-spaces.html) 소개 문구 편집기 렌더 ──
@@ -9732,7 +9632,6 @@ window.ceFloorBold = (i) => {
   ta.focus();
 };
 window.ceSaveHomeCards = () => CE.saveHomeCards();
-window.ceSaveApplyPopup = () => CE.saveApplyPopup();
 window.ceSaveVenueSpaces = () => CE.saveVenueSpaces();
 window.ceSaveWeeklyCalendar = () => CE.saveWeeklyCalendar();
 window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.toggle('open'); };
@@ -9782,7 +9681,6 @@ document.addEventListener('DOMContentLoaded', () => {
     CE.renderAboutPage();
     CE.renderFloorPage();
     CE.loadHomeCards().then(cards => { CE.homeCards = cards; CE.renderHomeCards(); });
-    CE.loadApplyPopup().then(p => { CE.applyPopup = p; CE.renderApplyPopupUser(); });
   }
   // 공지 로드
   setTimeout(() => { if (typeof hmLoadNotices === 'function') hmLoadNotices(); }, 800);
