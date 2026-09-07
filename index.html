@@ -2737,7 +2737,7 @@ window.googleLogin = async (fromModal = false) => {
   // iOS 카카오톡 → 네이티브 Safari로 강제 이동
   if (isKakao && isIOS) {
     showLoginMsg('로그인을 위해 Safari로 이동합니다...');
-    setTimeout(() => { location.href = 'x-safari-https://' + location.host + location.pathname; }, 800);
+    setTimeout(() => { location.href = 'x-safari-https://' + location.host + location.pathname + location.search; }, 800);
     return;
   }
   // Android 카카오톡 → 외부 브라우저 안내
@@ -2803,6 +2803,8 @@ getRedirectResult(auth).catch(() => { /* 잔존 리다이렉트 오류 모두 �
 onAuthStateChanged(auth, async user => {
   if (!user) {
     // 미로그인: 사이드바 숨김 + 환영 문구 초기화
+    // 다음 로그인 때 최초 1회 라우팅(홈/신청폼 등)이 다시 이루어지도록 플래그 초기화
+    window._initialRouteDone = false;
     curUser = window.curUser = null; isAdmin = window.isAdmin = false;
     document.querySelector('.shell').classList.add('no-sidebar');
     const sbLogin = document.getElementById('sb-login-btn');
@@ -2874,10 +2876,15 @@ onAuthStateChanged(auth, async user => {
     // 전체 데이터 로드 (orgs, blockedDates, adminNotes 포함)
     await loadData();
     // 로그인 페이지 진입 전 특정 페이지 요청 또는 딥링크 요청이 있었으면 이동
-    if (window._pendingPage) { const p = window._pendingPage; window._pendingPage = null; go(p); }
-    else if (window._deepLinkPage) { const p = window._deepLinkPage; window._deepLinkPage = null; go(p); }
-    else if (!isAdmin) go('home');
-    else go('dashboard');
+    // onAuthStateChanged는 같은 로그인 세션 중에도 여러 번 재발화할 수 있어(토큰 갱신 등),
+    // 최초 1회만 자동 라우팅하도록 막아 이미 신청폼 등으로 이동한 뒤 다시 홈으로 튕기는 것을 방지
+    if (!window._initialRouteDone) {
+      window._initialRouteDone = true;
+      if (window._pendingPage) { const p = window._pendingPage; window._pendingPage = null; go(p); }
+      else if (window._deepLinkPage) { const p = window._deepLinkPage; window._deepLinkPage = null; go(p); }
+      else if (!isAdmin) go('home');
+      else go('dashboard');
+    }
   } else {
     await signOut(auth);
     const msg = document.getElementById('lm-msg');
