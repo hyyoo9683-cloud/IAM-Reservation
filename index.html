@@ -1071,6 +1071,7 @@ textarea { resize: vertical; min-height: 60px; }
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-floors')">층별 소개</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-notices')">공지사항</button>
         <button type="button" class="ce-tab" onclick="ceTab(this,'ce-apply-popup')">예약 신청 안내</button>
+        <button type="button" class="ce-tab" onclick="ceTab(this,'ce-venue-spaces')">공간 안내</button>
       </div>
 
       <!-- ── FAQ 편집 패널 ── -->
@@ -1248,6 +1249,30 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="ce-save-bar">
           <span class="ce-save-hint">변경 후 저장하면 예약 신청 안내 팝업에 즉시 반영됩니다</span>
           <button type="button" class="ce-btn ce-btn-primary" id="ce-ap-save-btn" onclick="ceSaveApplyPopup()">💾 저장</button>
+        </div>
+      </div>
+
+      <!-- ── 공간 안내(venue-spaces.html) 소개 문구 편집 패널 ── -->
+      <div class="ce-panel" id="ce-venue-spaces">
+        <div class="ce-about-card">
+          <h3>🏢 공간 안내 페이지 소개 문구</h3>
+          <p style="font-size:13px;color:var(--ed-ink3);margin:-6px 0 16px">venue-spaces.html의 각 구분(세미나실·소그룹실·아이엠홀)마다 한 번씩만 표시되는 소개 문구입니다. 실별로 따로 쓰는 게 아니라 구분당 하나씩만 작성하면 됩니다.</p>
+          <div class="ce-field">
+            <label class="ce-label">세미나실 (아론홀·샤론홀) 소개</label>
+            <textarea id="ce-vs-seminar" class="ce-input" rows="4"></textarea>
+          </div>
+          <div class="ce-field">
+            <label class="ce-label">소그룹실 (5층) 소개</label>
+            <textarea id="ce-vs-group-room" class="ce-input" rows="4"></textarea>
+          </div>
+          <div class="ce-field">
+            <label class="ce-label">아이엠홀 소개</label>
+            <textarea id="ce-vs-imhall" class="ce-input" rows="4"></textarea>
+          </div>
+        </div>
+        <div class="ce-save-bar">
+          <span class="ce-save-hint">변경 후 저장하면 공간 안내 페이지에 즉시 반영됩니다</span>
+          <button type="button" class="ce-btn ce-btn-primary" id="ce-vs-save-btn" onclick="ceSaveVenueSpaces()">💾 저장</button>
         </div>
       </div>
     </div>
@@ -2394,7 +2419,6 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fg"><div class="lbl">카테고리 <span style="font-weight:400;color:var(--text3)">(검색용 태그, 여러 개는 쉼표로 구분 · 예: 소그룹, TV)</span></div><input id="sp-category" placeholder="예: 거울방, 소그룹, TV"></div>
     <div class="fg"><div class="lbl">설명</div><input id="sp-desc" placeholder="간단한 공간 설명"></div>
-    <div class="fg"><div class="lbl">대관 소개 문구 <span style="font-weight:400;color:var(--text3)">(선택 · 대관 안내 페이지 전용, 위 설명보다 길게 작성 가능)</span></div><textarea id="sp-venue-desc" rows="3" placeholder="대관 가능 공간 소개 페이지에 표시될 조금 더 자세한 소개 문구"></textarea></div>
     <div class="fg">
       <div class="lbl">의자 / 책상 수량</div>
       <div class="fl" style="margin-bottom:10px">
@@ -4369,7 +4393,6 @@ window.openSpaceModal = (id = null) => {
     document.getElementById('sp-cap').value    = sp.cap || '';
     document.getElementById('sp-category').value = getSpaceCategories(sp).join(', ');
     document.getElementById('sp-desc').value   = sp.desc || '';
-    document.getElementById('sp-venue-desc').value = sp.venueDesc || '';
     document.getElementById('sp-chairs').value = sp.chairs || '';
     document.getElementById('sp-desks').value  = sp.desks  || '';
     const aMap = { 'TV': 'a-tv', 'Wi-Fi': 'a-wifi', '냉난방': 'a-ac', '마이크/음향': 'a-mic' };
@@ -4378,7 +4401,7 @@ window.openSpaceModal = (id = null) => {
     renderExistingPhotos();
   } else {
     document.getElementById('space-modal-title').textContent = '새 공간 추가';
-    ['sp-name', 'sp-floor', 'sp-desc', 'sp-venue-desc', 'sp-category'].forEach(id2 => document.getElementById(id2).value = '');
+    ['sp-name', 'sp-floor', 'sp-desc', 'sp-category'].forEach(id2 => document.getElementById(id2).value = '');
     document.getElementById('sp-cap').value = '';
     existingPhotos = [];
     document.getElementById('existing-photos').innerHTML = '';
@@ -4437,7 +4460,6 @@ window.submitSpace = async () => {
   const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
   const categories = document.getElementById('sp-category').value.split(',').map(c => c.trim()).filter(Boolean);
   const desc   = document.getElementById('sp-desc').value.trim();
-  const venueDesc = document.getElementById('sp-venue-desc').value.trim();
   const chairs = parseInt(document.getElementById('sp-chairs').value) || 0;
   const desks  = parseInt(document.getElementById('sp-desks').value)  || 0;
   const aMap   = { 'a-tv': 'TV', 'a-wifi': 'Wi-Fi', 'a-ac': '냉난방', 'a-mic': '마이크/음향' };
@@ -4463,7 +4485,7 @@ window.submitSpace = async () => {
       photoUrls.push(await getDownloadURL(snap.ref));
     }
 
-    const data = { name, floor, cap, categories, desc, venueDesc, chairs, desks, amenities, photos: photoUrls };
+    const data = { name, floor, cap, categories, desc, chairs, desks, amenities, photos: photoUrls };
     if (spaceEditId) {
       await withTimeout(updateDoc(doc(db, 'spaces', spaceEditId), data), 15000);
       spaces = window.spaces = spaces.map(s => s.id === spaceEditId ? { ...s, ...data } : s);
@@ -8889,12 +8911,18 @@ const CE = {
     body: '모든 예약은 각 기관의 <b>예약 책임자</b>만 신청할 수 있습니다.<br><br>예약 책임자: <b>목사, 간사, 교사,<br>아이엠센터 내 기관 담당자</b> 등',
     contact: '문의 <b>070-7018-1439</b>'
   },
+  defaultVenueSpaces: {
+    seminarDesc: '',
+    groupRoomDesc: '',
+    imhallDesc: ''
+  },
 
   // ── 메모리 캐시 ──
   faqItems: null,    // [{q,a,note}]
   busRoutes: null,   // [{stop,lines}]
   floors: null,      // [{name,body,photos:[{url,caption},...],fontSize}]
   floorActiveIdx: 0,
+  venueSpaces: null, // {seminarDesc, groupRoomDesc, imhallDesc} — venue-spaces.html 섹션별 소개 문구
   floorPhotoIdx: {}, // { [floorIndex]: 현재 보여지는 사진 인덱스 }
   floorNewFiles: {}, // { [floorIndex]: {blob,caption}[] } 저장 전 임시 압축 이미지
   homeCards: null,   // { [key]: {title,desc} }
@@ -8955,6 +8983,15 @@ const CE = {
       if (snap.exists()) return { ...this.defaultApplyPopup, ...snap.data() };
     } catch(e) {}
     return JSON.parse(JSON.stringify(this.defaultApplyPopup));
+  },
+
+  async loadVenueSpaces() {
+    try {
+      const {doc,getDoc} = window._fb;
+      const snap = await getDoc(doc(this.db(),'siteContent','venueSpaces'));
+      if (snap.exists()) return { ...this.defaultVenueSpaces, ...snap.data() };
+    } catch(e) {}
+    return JSON.parse(JSON.stringify(this.defaultVenueSpaces));
   },
 
   // ── FAQ 렌더링 (사용자 뷰) ──
@@ -9107,6 +9144,10 @@ const CE = {
     // 예약 신청 안내 팝업
     if (!this.applyPopup) this.applyPopup = await this.loadApplyPopup();
     this.renderApplyPopupEditor();
+
+    // 공간 안내(venue-spaces.html) 소개 문구
+    if (!this.venueSpaces) this.venueSpaces = await this.loadVenueSpaces();
+    this.renderVenueSpacesEditor();
   },
 
   // ── 홈 카드 편집기 렌더 ──
@@ -9190,6 +9231,40 @@ const CE = {
       });
       window.T('예약 신청 안내 팝업 저장 완료! 즉시 반영됩니다 ✓');
       this.renderApplyPopupUser();
+    } catch(e) {
+      window.T('저장 실패: ' + e.message, '#A32D2D');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 저장';
+    }
+  },
+
+  // ── 공간 안내(venue-spaces.html) 소개 문구 편집기 렌더 ──
+  renderVenueSpacesEditor() {
+    const p = this.venueSpaces || this.defaultVenueSpaces;
+    const seminar = document.getElementById('ce-vs-seminar');
+    const groupRoom = document.getElementById('ce-vs-group-room');
+    const imhall = document.getElementById('ce-vs-imhall');
+    if (seminar) seminar.value = p.seminarDesc || '';
+    if (groupRoom) groupRoom.value = p.groupRoomDesc || '';
+    if (imhall) imhall.value = p.imhallDesc || '';
+  },
+
+  async saveVenueSpaces() {
+    const btn = document.getElementById('ce-vs-save-btn');
+    btn.disabled = true; btn.textContent = '저장 중…';
+    try {
+      const {doc, setDoc} = window._fb;
+      this.venueSpaces = {
+        seminarDesc: document.getElementById('ce-vs-seminar').value,
+        groupRoomDesc: document.getElementById('ce-vs-group-room').value,
+        imhallDesc: document.getElementById('ce-vs-imhall').value
+      };
+      await setDoc(doc(this.db(),'siteContent','venueSpaces'), {
+        ...this.venueSpaces,
+        updatedAt: new Date().toISOString(),
+        updatedBy: (window.curUser && window.curUser.email) || ''
+      });
+      window.T('공간 안내 소개 문구 저장 완료! 즉시 반영됩니다 ✓');
     } catch(e) {
       window.T('저장 실패: ' + e.message, '#A32D2D');
     } finally {
@@ -9596,6 +9671,7 @@ window.ceFloorBold = (i) => {
 };
 window.ceSaveHomeCards = () => CE.saveHomeCards();
 window.ceSaveApplyPopup = () => CE.saveApplyPopup();
+window.ceSaveVenueSpaces = () => CE.saveVenueSpaces();
 window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.toggle('open'); };
 
 /* 로그인 모달 */
