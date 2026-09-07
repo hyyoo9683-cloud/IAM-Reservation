@@ -152,6 +152,7 @@
     text-wrap: balance;
   }
   .item .floor-count { font-size: 13px; color: var(--ink-faint); margin: 0 0 18px; }
+  .item-note { font-size: 15px; color: var(--ink-soft); margin: 0; }
 
   .subgroup { margin-top: 24px; }
   .subgroup:first-child { margin-top: 0; }
@@ -409,7 +410,7 @@ function sectionHtml(title, num, count, bodyHtml) {
     <div class="divider"></div>
     <div>
       <h2>${esc(title)}</h2>
-      <p class="floor-count">${count}개 공간</p>
+      ${count != null ? `<p class="floor-count">${count}개 공간</p>` : ''}
       ${bodyHtml}
     </div>
   </section>`;
@@ -417,16 +418,14 @@ function sectionHtml(title, num, count, bodyHtml) {
 
 async function load() {
   const main = document.getElementById('venue-main');
+  const sections = [];
+  let n = 1;
+
   try {
     const snap = await getDocs(collection(db, 'spaces'));
     const list = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name) && !/로비/.test(s.name));
-
-    if (!list.length) {
-      main.innerHTML = '<p class="state-msg">현재 소개할 수 있는 공간이 없습니다.</p>';
-      return;
-    }
 
     // 세미나실(2층 아론홀·6층 샤론홀) / 소그룹실(5층) / 그 외로 분류
     const seminar = list.filter(s => s.floor === '2층' || s.floor === '6층' || ['아론홀', '샤론홀'].includes(s.name));
@@ -440,19 +439,20 @@ async function load() {
     const small  = groupRooms.filter(s => s.cap > 0 && s.cap <= SMALL_GROUP_MAX_CAP);
     const medium = groupRooms.filter(s => !small.includes(s));
 
-    const sections = [];
-    let n = 1;
     if (seminar.length) sections.push(sectionHtml('세미나실', n++, seminar.length, gridHtml(seminar)));
     if (groupRooms.length) {
       const body = subgroupHtml('소형 · 10~16인', small) + subgroupHtml('중형 · 20인 이상', medium);
       sections.push(sectionHtml('소그룹실', n++, groupRooms.length, body));
     }
     if (rest.length) sections.push(sectionHtml('기타 공간', n++, rest.length, gridHtml(rest)));
-
-    main.innerHTML = sections.join('');
   } catch (e) {
-    main.innerHTML = '<p class="state-msg">공간 정보를 불러오지 못했습니다. 아래 연락처로 문의해 주세요.</p>';
+    sections.push('<p class="state-msg">공간 정보를 불러오지 못했습니다. 아래 연락처로 문의해 주세요.</p>');
   }
+
+  // 아이엠홀은 별도 사이트 예정이라 목록에는 없지만, 안내를 위해 고정 섹션으로 표시
+  sections.push(sectionHtml('아이엠홀', n++, null, `<p class="item-note">이용은 개별적으로 문의 부탁드립니다.</p>`));
+
+  main.innerHTML = sections.join('');
 }
 
 load();
