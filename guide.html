@@ -330,28 +330,91 @@
 
   .agree-btn:not(:disabled):hover { opacity: .88; }
 
-  .kakao-notice {
+  /* ── 카카오톡 인앱 브라우저 차단 오버레이 ── */
+  .kakao-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0;
+    inset: 0;
     z-index: 999;
-    background: var(--ink);
-    color: var(--bg);
-    padding: 12px 16px;
-    font-size: 13px;
-    line-height: 1.5;
-    text-align: center;
-  }
-  .kakao-notice button {
     background: var(--bg);
-    color: var(--ink);
-    border: none;
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-left: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
   }
+  .kakao-overlay.show { display: flex; }
+  .kakao-card {
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(29,31,26,0.14);
+    padding: 40px 30px 34px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .kakao-card { box-shadow: 0 24px 64px rgba(0,0,0,0.4); }
+  }
+  :root[data-theme="dark"] .kakao-card { box-shadow: 0 24px 64px rgba(0,0,0,0.4); }
+  .kakao-card .wordmark { margin: 0 0 28px; }
+  .kakao-icon {
+    width: 52px; height: 52px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .kakao-card h2 {
+    font-family: "Noto Serif KR", serif;
+    font-weight: 700;
+    font-size: 21px;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .kakao-card p {
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    margin: 0 0 26px;
+    line-height: 1.65;
+  }
+  .kakao-card .chrome-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent-strong);
+    color: var(--bg);
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .kakao-card .chrome-btn:hover { opacity: .88; }
+  .kakao-card .manual-link {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--ink-faint);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+  }
+  .kakao-card .manual-link:hover { color: var(--accent-strong); }
+  .redirect-spinner {
+    width: 22px; height: 22px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    border: 2.5px solid var(--line);
+    border-top-color: var(--accent-strong);
+    animation: kakao-spin .8s linear infinite;
+  }
+  @keyframes kakao-spin { to { transform: rotate(360deg); } }
 
   footer {
     margin-top: 48px;
@@ -393,7 +456,9 @@
 </head>
 <body>
 
-<div class="kakao-notice" id="kakao-notice" style="display:none"></div>
+<div class="kakao-overlay" id="kakao-overlay">
+  <div class="kakao-card" id="kakao-card"></div>
+</div>
 
 <div class="page">
   <a class="home-link" href="index.html">← 홈으로</a>
@@ -504,24 +569,37 @@
 
 <script>
 // 카카오톡 인앱 브라우저에서는 구글 로그인이 차단되므로, 나중에 로그인 단계에서 걸리기 전에
-// 이 페이지를 여는 시점에 바로 외부 브라우저로 안내(iOS는 자동 이동, Android는 안내 문구)
+// 이 페이지를 여는 즉시 전체 화면으로 덮어서 외부 브라우저로 유도함
+// (iOS는 자동 이동 + 실패 대비 수동 링크, Android는 Chrome으로 열기 버튼 — 누르기 전엔 안내 내용 자체를 볼 수 없음)
 (function() {
   var ua = navigator.userAgent || '';
   if (!/KAKAOTALK/i.test(ua)) return;
   var isIOS = /iPhone|iPad|iPod/i.test(ua);
   var isAndroid = /Android/i.test(ua);
-  var notice = document.getElementById('kakao-notice');
-  if (!notice) return;
-  notice.style.display = 'block';
+  var overlay = document.getElementById('kakao-overlay');
+  var card = document.getElementById('kakao-card');
+  if (!overlay || !card) return;
+  var target = location.host + location.pathname + location.search;
+
   if (isIOS) {
-    notice.textContent = '카카오톡에서는 로그인이 제한되어 있어 Safari로 이동합니다...';
-    setTimeout(function() {
-      location.href = 'x-safari-https://' + location.host + location.pathname + location.search;
-    }, 700);
+    card.innerHTML =
+      '<div class="redirect-spinner"></div>' +
+      '<p class="wordmark">I AM <span class="dots">···</span></p>' +
+      '<h2>Safari로 이동 중입니다</h2>' +
+      '<p>카카오톡 안에서는 로그인이 제한되어 있어,<br>안내를 계속 보실 수 있도록 Safari로 옮겨드릴게요.</p>' +
+      '<button type="button" class="manual-link" id="kakao-manual-btn">자동으로 이동하지 않는다면 여기를 눌러주세요</button>';
+    overlay.classList.add('show');
+    var goSafari = function() { location.href = 'x-safari-https://' + target; };
+    document.getElementById('kakao-manual-btn').onclick = goSafari;
+    setTimeout(goSafari, 700);
   } else if (isAndroid) {
-    // index.html의 카카오톡 배너와 동일하게 intent:// 스킴으로 한 번의 탭만으로 Chrome이 열리도록 함
-    notice.innerHTML = '카카오톡 내에서는 로그인이 제한됩니다.<button type="button" id="kakao-android-btn">Chrome으로 열기</button>';
-    var target = location.host + location.pathname + location.search;
+    card.innerHTML =
+      '<div class="kakao-icon">🌐</div>' +
+      '<p class="wordmark">I AM <span class="dots">···</span></p>' +
+      '<h2>Chrome에서 계속 진행해주세요</h2>' +
+      '<p>카카오톡 안에서는 구글 로그인이 제한되어 있어,<br>이 화면에서는 예약 신청을 진행할 수 없어요.</p>' +
+      '<button type="button" class="chrome-btn" id="kakao-android-btn">Chrome으로 열기 →</button>';
+    overlay.classList.add('show');
     document.getElementById('kakao-android-btn').onclick = function() {
       location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
     };
