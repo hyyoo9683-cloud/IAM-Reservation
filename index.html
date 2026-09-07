@@ -52,9 +52,12 @@
   // 딥링크: ?page=about 등 URL 파라미터로 특정 페이지 바로 열기 (카카오톡 채널 등 외부 링크용)
   // 모듈 스크립트 중 가장 먼저 실행되는 지점에서 계산해, onAuthStateChanged 발화 타이밍과 무관하게 항상 값이 준비되도록 함
   (function() {
-    const p = new URLSearchParams(location.search).get('page');
+    const qs = new URLSearchParams(location.search);
+    const p = qs.get('page');
     const PUBLIC_DEEPLINK_PAGES = ['about', 'faq', 'spaces', 'public'];
     if (p && PUBLIC_DEEPLINK_PAGES.includes(p)) window._deepLinkPage = p;
+    // guide.html(이용 안내)에서 동의 후 넘어온 경우 — 로그인 필요한 예약 신청 페이지로 바로 이동
+    if (qs.get('apply') === '1') window._pendingPage = 'apply';
   })();
 </script>
 
@@ -863,23 +866,6 @@ textarea { resize: vertical; min-height: 60px; }
     <div class="ep-btns">
       <button class="ep-cancel" onclick="iamCloseExtPopup()">닫기</button>
       <button class="ep-ok" onclick="window.open('venue-apply.html','_blank')">대관 신청서 작성</button>
-    </div>
-  </div>
-</div>
-
-<!-- ════ 예약 신청 안내 팝업 ════ -->
-<div id="iam-apply-popup" onclick="if(event.target===this)iamCloseApplyPopup()">
-  <div class="ap-card">
-    <div class="ap-ico" id="ap-ico-text">📋</div>
-    <div class="ap-title" id="ap-title-text">예약 신청 전 확인해 주세요</div>
-    <div class="ap-body" id="ap-body-text">
-      모든 예약은 각 기관의 <b>예약 책임자</b>만 신청할 수 있습니다.<br><br>
-      예약 책임자: <b>목사, 간사, 교사,<br>아이엠센터 내 기관 담당자</b> 등
-    </div>
-    <div class="ap-contact" id="ap-contact-text">문의 <b>070-7018-1439</b></div>
-    <div class="ap-btns">
-      <button class="ap-cancel" onclick="iamCloseApplyPopup()">닫기</button>
-      <button class="ap-ok" onclick="iamConfirmApply()">계속하기 →</button>
     </div>
   </div>
 </div>
@@ -2825,7 +2811,9 @@ onAuthStateChanged(auth, async user => {
     // 딥링크 페이지 요청이 있으면 그 페이지로 이동
     // (onAuthStateChanged가 세션 복원 전 null로 먼저 발화했다가 잠시 후 실제 로그인 사용자로 다시 발화하는 경우가 흔하므로,
     //  이 시점에서는 값을 지우지 않고 남겨둔다 — 로그인 branch에서 최종적으로 소비/삭제함)
-    if (window._deepLinkPage) go(window._deepLinkPage);
+    // 로그인이 필요한 페이지(예: 예약 신청) 요청이 있으면 로그인 화면으로 안내
+    if (window._pendingPage) go('login');
+    else if (window._deepLinkPage) go(window._deepLinkPage);
     return;
   }
 
@@ -9592,23 +9580,15 @@ window.fqToggle2   = (i)   => { document.getElementById('fqd'+i)?.classList.togg
 
 /* 로그인 모달 */
 
-window.iamOpenApplyPopup = function(type) {
-  window._applyType = type || 'internal';
-  if (window.curUser) { go('apply'); return; }
-  document.getElementById('iam-apply-popup').classList.add('open');
+// 예약 신청은 이용 안내(guide.html) 페이지에서 동의 체크 후 넘어오도록 함
+window.iamOpenApplyPopup = function() {
+  location.href = 'guide.html';
 };
 window.iamOpenExtPopup = function() {
   document.getElementById('iam-ext-popup').classList.add('open');
 };
 window.iamCloseExtPopup = function() {
   document.getElementById('iam-ext-popup').classList.remove('open');
-};
-window.iamCloseApplyPopup = function() {
-  document.getElementById('iam-apply-popup').classList.remove('open');
-};
-window.iamConfirmApply = function() {
-  iamCloseApplyPopup();
-  go('apply');
 };
 
 /* go() 래퍼 + 초기화: DOMContentLoaded에서 실행 (모듈 이후 보장) */
