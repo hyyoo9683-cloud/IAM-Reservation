@@ -1672,6 +1672,7 @@ textarea { resize: vertical; min-height: 60px; }
           <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;background:var(--green);border-color:var(--green)" onclick="bulkChangeSubOrg()">세부기관 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--amber,#854F0B);border-color:var(--amber,#854F0B)" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--red)" onclick="bulkCancelSelected()">✕ 선택 취소</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
@@ -7823,6 +7824,14 @@ window.bulkChangeSubOrg = async () => {
     document.getElementById('bulk-subtype-sel').innerHTML = '<option value="">세부기관 변경 선택</option>' + buildAllSubOrgOptions();
     clearBulkSelect();
   } catch(e) { T('변경 실패: ' + e.message, '#A32D2D'); }
+};
+// 정기 예약 시리즈 전체가 아니라 목록에서 개별로 체크한 회차만 골라서 취소할 때 사용
+// (기존 rejectGroup과 동일한 로직 재사용 — 취소 사유 입력 후 상태만 '취소'로 변경, 문서는 삭제하지 않음)
+window.bulkCancelSelected = async () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('취소할 항목을 선택해주세요', '#A32D2D'); return; }
+  await rejectGroup(ids.join(','));
+  clearBulkSelect();
 };
 window.bulkGroupRecur = async () => {
   const ids = getSelectedIds();
