@@ -153,16 +153,15 @@ body.has-kakao-banner .shell { padding-top: var(--kakao-banner-h, 0px); }
 .stat-num { font-size: 28px; font-weight: 700; color: var(--blue); line-height: 1; }
 .stat-lbl { font-size: 12px; color: var(--blue-mid); margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
 /* 이번주 예약 — 요일별 칸 */
-.wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 6px; }
-.wk-day-col { background: var(--bg3); border: 1px solid var(--border2); border-radius: 8px; padding: 6px; min-width: 0; }
-.wk-day-hd { font-size: 11px; font-weight: 700; color: var(--text2); text-align: center; padding-bottom: 5px; margin-bottom: 5px; border-bottom: 1px solid var(--border2); white-space: nowrap; }
+.wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; }
+.wk-day-col { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 8px; min-width: 0; }
+.wk-day-hd { font-size: 13px; font-weight: 700; color: var(--text2); text-align: center; padding-bottom: 6px; margin-bottom: 6px; border-bottom: 1px solid var(--border2); white-space: nowrap; }
 .wk-day-dow { font-weight: 400; color: var(--text3); margin-left: 2px; }
-.wk-day-body { display: flex; flex-direction: column; gap: 4px; min-height: 20px; max-height: 180px; overflow-y: auto; }
-.wk-chip { background: #fff; color: var(--blue); border: 1px solid var(--blue); font-size: 11px; font-weight: 600; padding: 4px 6px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wk-chip:hover { background: var(--blue-lt); }
-.wk-chip-iam { color: #7B2FD1; border-color: #7B2FD1; }
-.wk-chip-iam:hover { background: #F3E8FD; }
-.wk-empty { font-size: 11px; color: var(--text3); text-align: center; padding: 4px 0; }
+.wk-day-body { display: flex; flex-direction: column; gap: 5px; min-height: 20px; max-height: 200px; overflow-y: auto; }
+.wk-chip { background: var(--blue-lt); color: var(--blue); font-size: 13px; font-weight: 600; padding: 5px 7px; border-radius: 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wk-chip:hover { filter: brightness(.95); }
+.wk-chip-iam { background: #F3E8FD; color: #7B2FD1; }
+.wk-empty { font-size: 12px; color: var(--text3); text-align: center; padding: 4px 0; }
 .fl   { display: flex; gap: 12px; }
 .fl>* { flex: 1; }
 .fg  { margin-bottom: 12px; }
@@ -7494,7 +7493,12 @@ function renderDashboard() {
     weekDayList.push(toDateStr(d));
   }
   const DOWS_KR = ['일','월','화','수','목','금','토'];
-  const itemTitle = (item) => item.kind === 'av' ? (item.r.purpose || '') : (item.c.eventName || '');
+  // 체크리스트 문서에 reservationId가 없는(레거시) 경우, 같은 실·날짜·시작시간의 확정 예약을 찾아 대체
+  const findReservationForChecklist = (c, occDate) => {
+    if (c.reservationId) return c.reservationId;
+    const m = reservations.find(r => r.room === c.room && r.date === occDate && r.status === '확정' && (!c.start || r.start === c.start));
+    return m ? m.id : null;
+  };
   const weekChipHtml = (item) => {
     if (item.kind === 'av') {
       const r = item.r;
@@ -7503,32 +7507,29 @@ function renderDashboard() {
     }
     const c = item.c;
     const isIam = c.room === '아이엠홀';
-    // 자동 생성된 체크리스트는 원본 예약 id(reservationId)가 있어 그 예약 상세로 바로 이동, 없으면 체크리스트로 대체 이동
-    const clickAttr = c.reservationId ? `openDetail('${c.reservationId}')` : `window.open('checklist-view.html?id=${c.id}','_blank')`;
+    const targetId = findReservationForChecklist(c, item.occDate);
+    const clickAttr = targetId ? `openDetail('${targetId}')` : `window.open('checklist-view.html?id=${c.id}','_blank')`;
     const title = (c.eventName || '(제목 없음)').replace(/</g, '&lt;');
     return `<div class="wk-chip${isIam ? ' wk-chip-iam' : ''}" onclick="${clickAttr}" title="${(c.eventName||'').replace(/"/g,'&quot;')}">${title}</div>`;
   };
-  // "주일"이 포함된 항목(주일예배 등)은 여러 건이어도 칩 하나로 축약(개별 건은 클릭 대상이 불분명해 상세로 이동하지 않음)
-  const dayChipsHtml = (dayItems) => {
-    const sundayItems = dayItems.filter(it => /주일/.test(itemTitle(it)));
-    const restItems = dayItems.filter(it => !sundayItems.includes(it));
-    const chips = [];
-    if (sundayItems.length === 1) chips.push(weekChipHtml(sundayItems[0]));
-    else if (sundayItems.length > 1) chips.push(`<div class="wk-chip" style="cursor:default">주일예배 (${sundayItems.length}건)</div>`);
-    chips.push(...restItems.map(weekChipHtml));
-    return chips;
+  // 주일(일요일)에는 예배 관련 예약이 여러 건 몰리는 경우가 많아, 그 날짜가 일요일이면 칩 하나로 축약해서 보여줌
+  const dayChipsHtml = (dayItems, isSunday) => {
+    if (isSunday && dayItems.length > 1) {
+      return [`<div class="wk-chip" style="cursor:default">주일예배 (${dayItems.length}건)</div>`];
+    }
+    return dayItems.map(weekChipHtml);
   };
 
   document.getElementById('today-checklist-list').innerHTML = !weekItems.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">이번 주에 등록된 예약이 없습니다</div>'
     : `<div class="wk-grid">
         ${weekDayList.map(ds => {
-          const dow = DOWS_KR[new Date(ds + 'T00:00:00').getDay()];
+          const dow = new Date(ds + 'T00:00:00').getDay();
           const dayLabel = ds === today ? '오늘' : ds.slice(5).replace('-', '/');
           const dayItems = weekItems.filter(it => it.occDate === ds);
-          const chips = dayChipsHtml(dayItems);
+          const chips = dayChipsHtml(dayItems, dow === 0);
           return `<div class="wk-day-col">
-            <div class="wk-day-hd">${dayLabel}<span class="wk-day-dow">(${dow})</span></div>
+            <div class="wk-day-hd">${dayLabel}<span class="wk-day-dow">(${DOWS_KR[dow]})</span></div>
             <div class="wk-day-body">${chips.length ? chips.join('') : '<div class="wk-empty">-</div>'}</div>
           </div>`;
         }).join('')}
