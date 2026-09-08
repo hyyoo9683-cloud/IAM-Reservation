@@ -395,6 +395,7 @@ window.showDetail = (id) => {
     <div class="modal-row"><span class="k">기관</span><span class="v">${esc(r.type)}${r.subOrg ? ' · ' + esc(r.subOrg) : ''}</span></div>
     <div class="modal-row"><span class="k">담당자</span><span class="v">${esc(r.managerName)}</span></div>
     <div class="modal-row"><span class="k">청지기</span><span class="v">${esc(r.stewardName)} ${esc(r.stewardTel)}</span></div>
+    ${r.userEmail ? `<div class="modal-row"><span class="k">신청 이메일</span><span class="v">${esc(r.userEmail)}</span></div>` : ''}
     <div class="modal-row"><span class="k">인원</span><span class="v">${esc(r.people)}명</span></div>
     ${iamRows}
     <div class="modal-row"><span class="k">상태</span><span class="v"><span class="status-badge status-${esc(r.status)}">${esc(r.status)}</span></span></div>
