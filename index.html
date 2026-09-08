@@ -1622,6 +1622,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
       </div>
+      <div class="card"><div class="card-title">오늘 준비물 확인 (TV·탕비실)</div><div id="today-facility-list"></div></div>
       <div class="card"><div class="card-title">이번주 체크리스트</div><div id="today-checklist-list"></div></div>
       <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
@@ -2300,6 +2301,27 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="e-purpose"></div>
       </div>
       <div class="fg"><div class="lbl">추가 요청사항</div><textarea id="e-memo"></textarea></div>
+      <div class="fg">
+        <div class="lbl">필요 시설</div>
+        <div style="display:flex;flex-direction:row;gap:20px;margin-top:6px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="e-need-tv" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+            <label for="e-need-tv" style="font-size:13px;cursor:pointer;margin:0">TV 사용</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="e-need-mic" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+            <label for="e-need-mic" style="font-size:13px;cursor:pointer;margin:0">마이크 사용</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="e-need-pantry" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+            <label for="e-need-pantry" style="font-size:13px;cursor:pointer;margin:0">탕비실 이용</label>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="checkbox" id="e-need-terrace" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+            <label for="e-need-terrace" style="font-size:13px;cursor:pointer;margin:0">야외테라스 사용</label>
+          </div>
+        </div>
+      </div>
     </div>
     <div id="e-iam-details" style="display:none">
       <div class="divider"></div>
@@ -6866,6 +6888,10 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-people').value       = r.people || '';
     document.getElementById('e-purpose').value      = r.purpose || '';
     document.getElementById('e-memo').value         = r.memo || '';
+    document.getElementById('e-need-tv').checked      = !!r.needTV;
+    document.getElementById('e-need-mic').checked     = !!r.needMic;
+    document.getElementById('e-need-pantry').checked  = !!r.needPantry;
+    document.getElementById('e-need-terrace').checked = !!r.needTerrace;
     initTimeSelects('e-start', 'e-end', r.start, r.end);
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
     document.getElementById('e-iam-showname').value        = r.showName || '';
@@ -6902,6 +6928,7 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-jihye-checkin-time').value = '';
     document.getElementById('e-jihye-checkout-time').value = '';
     document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = false);
+    ['e-need-tv', 'e-need-mic', 'e-need-pantry', 'e-need-terrace'].forEach(fid => { const el = document.getElementById(fid); if (el) el.checked = false; });
     applyRoomFieldVisibility('', true);
     document.getElementById('e-room').value = '';
     document.getElementById('e-is-recur').checked = false;
@@ -6975,7 +7002,11 @@ window.submitEdit = async () => {
     room, date, start, end,
     people:  isIamHall ? (parseInt(document.getElementById('e-iam-audience').value) || 0) : parseInt(people),
     purpose: isIamHall ? iamShowName : purpose,
-    memo:    isIamHall ? document.getElementById('e-iam-etc').value.trim() : memo
+    memo:    isIamHall ? document.getElementById('e-iam-etc').value.trim() : memo,
+    needTV:      document.getElementById('e-need-tv').checked,
+    needMic:     document.getElementById('e-need-mic').checked,
+    needPantry:  document.getElementById('e-need-pantry').checked,
+    needTerrace: document.getElementById('e-need-terrace').checked
   };
   if (isIamHall) {
     data.showName        = iamShowName;
@@ -7283,6 +7314,23 @@ function renderDashboard() {
   document.getElementById('d-today').textContent = todayConfirmed.length;
   document.getElementById('d-wait').textContent  = waitR.length;
   document.getElementById('d-total').textContent = reservations.length;
+
+  // 오늘 준비물 확인 — TV 필요 / 탕비실 이용 체크된 오늘 확정 예약만 모아서 최상단에 표시
+  const facilityRow = (label, list) => !list.length ? '' : `
+    <div style="margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px">${label} (${list.length}건)</div>
+      ${list.map(r => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);margin-bottom:4px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
+          <span style="font-weight:700;font-size:12px;color:var(--blue);flex-shrink:0;width:52px">${r.start}</span>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">${r.room}</span>
+          <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.purpose || ''}</span>
+        </div>`).join('')}
+    </div>`;
+  const tvList     = todayConfirmed.filter(r => r.needTV).sort((a,b) => a.start.localeCompare(b.start));
+  const pantryList = todayConfirmed.filter(r => r.needPantry).sort((a,b) => a.start.localeCompare(b.start));
+  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('☕ 탕비실 이용', pantryList);
+  document.getElementById('today-facility-list').innerHTML = facilityHtml
+    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 TV·탕비실이 필요한 예약이 없습니다</div>';
 
   // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
   const TODAY_CATS = [
