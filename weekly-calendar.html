@@ -49,7 +49,7 @@
     border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--blue);
     font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;
   }
-  .occupancy-bar .oc-hint { font-size: 11.5px; font-weight: 400; color: var(--text3); }
+  .occupancy-bar .oc-hint { display: block; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--text3); }
   .occupancy-bar .oc-arrow { transition: transform .15s; flex-shrink: 0; }
   .occupancy-bar.open .oc-arrow { transform: rotate(180deg); }
   .occupancy-detail {
@@ -62,6 +62,17 @@
   .oc-row .oc-bar-track { flex: 1; background: var(--border2); border-radius: 999px; height: 8px; overflow: hidden; }
   .oc-row .oc-bar-fill { background: var(--blue); height: 100%; border-radius: 999px; }
   .oc-row .oc-count { flex-shrink: 0; width: 48px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+
+  /* 주간 보기 — 요일 카드별 이용객 추정(더 컴팩트한 버전) */
+  .occ-week-bar {
+    background: var(--blue-lt); padding: 7px 16px; font-size: 12px; color: var(--blue);
+    font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    border-top: 1px solid var(--border2);
+  }
+  .occ-week-bar .oc-arrow { transition: transform .15s; flex-shrink: 0; font-weight: 400; }
+  .occ-week-bar.open .oc-arrow { transform: rotate(180deg); }
+  .occ-week-detail { display: none; padding: 8px 16px; border-top: 1px solid var(--border2); }
+  .occ-week-detail.open { display: block; }
 
   .cat { margin: 14px 14px 0; background: var(--bg2); border-radius: 12px; overflow: hidden;
          box-shadow: 0 1px 4px rgba(24,95,165,.06); }
@@ -372,6 +383,12 @@ window.toggleOccupancy = () => {
   document.getElementById('occupancy-bar').classList.toggle('open');
   document.getElementById('occupancy-detail').classList.toggle('open');
 };
+window.toggleWeekOccupancy = (i) => {
+  const bar = document.getElementById('occ-w-bar-' + i);
+  const detail = document.getElementById('occ-w-detail-' + i);
+  if (bar) bar.classList.toggle('open');
+  if (detail) detail.classList.toggle('open');
+};
 
 function renderDay() {
   const d     = curDate();
@@ -419,7 +436,7 @@ function renderWeek() {
   document.getElementById('date-label').textContent =
     `${start.getMonth()+1}.${start.getDate()} ~ ${endD.getMonth()+1}.${endD.getDate()}${weekOffset === 0 ? ' · 이번주' : ''}`;
   document.getElementById('blocked-banner-wrap').innerHTML = '';
-  // 이용객 추정은 일간 보기 전용
+  // 일간 보기 전용 상단 요약 바는 숨기고, 주간 보기는 요일 카드마다 자체 요약을 따로 표시
   document.getElementById('occupancy-bar').style.display = 'none';
   document.getElementById('occupancy-detail').classList.remove('open');
 
@@ -447,8 +464,23 @@ function renderWeek() {
             <span class="item-5f-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
             <span class="item-5f-meta">${dispStart(r)}–${dispEnd(r)} · ${esc(r.room)}</span>
           </div>`).join('');
+    const dayItems = reservations.filter(r => r.date === ds && r.status === '확정' && parseInt(r.people) > 0);
+    const oc = estimateOccupancy(dayItems);
+    const occHtml = !oc ? '' : `
+        <div class="occ-week-bar" id="occ-w-bar-${i}" onclick="toggleWeekOccupancy(${i})">
+          <span>👥 예상 이용객 약 ${oc.total}명 (동시간대 최대 약 ${oc.peak}명)</span><span class="oc-arrow">▾</span>
+        </div>
+        <div class="occ-week-detail" id="occ-w-detail-${i}">
+          ${oc.hourly.map(h => `
+            <div class="oc-row">
+              <span class="oc-hour">${h.hour}</span>
+              <span class="oc-bar-track"><span class="oc-bar-fill" style="width:${oc.peak ? Math.round(h.count / oc.peak * 100) : 0}%"></span></span>
+              <span class="oc-count">${h.count}명</span>
+            </div>`).join('')}
+        </div>`;
     return `<div class="cat">
         <div class="cat-hd"><span class="cat-hd-title">${d.getMonth()+1}월 ${d.getDate()}일 (${dow})${ds === todayS ? ' · 오늘' : ''}</span></div>
+        ${occHtml}
         <div class="cat-body-split">
           <div class="cat-body-main">${body}</div>
           <div class="cat-body-5f"><div class="cat-5f-hd">5층 소그룹실</div>${sgBody}</div>
