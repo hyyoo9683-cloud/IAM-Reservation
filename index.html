@@ -1622,7 +1622,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
       </div>
-      <div class="card"><div class="card-title">오늘 준비물 확인 (TV·탕비실)</div><div id="today-facility-list"></div></div>
+      <div class="card"><div class="card-title">오늘 준비물 확인 (TV·마이크·탕비실)</div><div id="today-facility-list"></div></div>
       <div class="card"><div class="card-title">이번주 체크리스트</div><div id="today-checklist-list"></div></div>
       <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
@@ -7327,10 +7327,11 @@ function renderDashboard() {
         </div>`).join('')}
     </div>`;
   const tvList     = todayConfirmed.filter(r => r.needTV).sort((a,b) => a.start.localeCompare(b.start));
+  const micList    = todayConfirmed.filter(r => r.needMic).sort((a,b) => a.start.localeCompare(b.start));
   const pantryList = todayConfirmed.filter(r => r.needPantry).sort((a,b) => a.start.localeCompare(b.start));
-  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('☕ 탕비실 이용', pantryList);
+  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('🎤 마이크 필요', micList) + facilityRow('☕ 탕비실 이용', pantryList);
   document.getElementById('today-facility-list').innerHTML = facilityHtml
-    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 TV·탕비실이 필요한 예약이 없습니다</div>';
+    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 TV·마이크·탕비실이 필요한 예약이 없습니다</div>';
 
   // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
   const TODAY_CATS = [
@@ -7466,10 +7467,14 @@ function renderDashboard() {
     !AV_NOTICE_EXCLUDE_ROOMS.includes(r.room) &&
     r.date >= today && r.date <= weekEnd);
 
+  // 아이엠홀 → 아론홀 → 샤론홀 → 그 외 순으로 묶고, 각 그룹 안에서는 날짜순
+  const WEEK_ROOM_PRIORITY = ['아이엠홀', '아론홀', '샤론홀'];
+  const weekRoomRank = (room) => { const i = WEEK_ROOM_PRIORITY.indexOf(room); return i === -1 ? 99 : i; };
+  const weekItemRoom = (item) => item.kind === 'av' ? item.r.room : item.c.room;
   const weekItems = [
     ...weekChecklists.map(x => ({ occDate: x.occDate, kind: 'checklist', c: x.c })),
     ...weekAvReservations.map(r => ({ occDate: r.date, kind: 'av', r })),
-  ].sort((a, b) => a.occDate.localeCompare(b.occDate));
+  ].sort((a, b) => weekRoomRank(weekItemRoom(a)) - weekRoomRank(weekItemRoom(b)) || a.occDate.localeCompare(b.occDate));
 
   document.getElementById('today-checklist-list').innerHTML = !weekItems.length
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">이번 주에 등록된 행사 체크리스트가 없습니다</div>'
@@ -7479,6 +7484,13 @@ function renderDashboard() {
           const dateLabel = r.date === today ? '오늘' : r.date.slice(5).replace('-','/');
           const timeLabel = (r.start || r.end) ? ` ${r.start||''}${r.start||r.end?'-':''}${r.end||''}` : '';
           const avLabel = [r.needTV ? '📺 TV' : '', r.needMic ? '🎤 마이크' : ''].filter(Boolean).join(' · ');
+          if (/주일/.test(r.purpose || '')) {
+            return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:4px;cursor:pointer" onclick="openDetail('${r.id}')">
+              <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+              <span style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.purpose||'').replace(/</g,'&lt;')}</span>
+              <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${avLabel}</span>
+            </div>`;
+          }
           return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
             <span style="background:var(--amber-lt);color:var(--amber);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(r.room||'').replace(/</g,'&lt;')}</span>
             <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
@@ -7495,8 +7507,19 @@ function renderDashboard() {
         const allDone = total > 0 && done === total;
         const dateLabel = occDate === today ? '오늘' : occDate.slice(5).replace('-','/');
         const timeLabel = (c.start || c.end) ? ` ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
-        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
-          <span style="background:var(--blue-lt);color:var(--blue);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(c.room||'').replace(/</g,'&lt;')}</span>
+        if (/주일/.test(c.eventName || '')) {
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:4px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
+            <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+            <span style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'').replace(/</g,'&lt;')}</span>
+            <span style="font-size:11px;color:${allDone ? 'var(--green)' : 'var(--text3)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
+          </div>`;
+        }
+        // 아이엠홀만 별도 색(보라)으로 강조 표시, 아론홀·샤론홀·그 외는 기존 파란색 그대로
+        const isIam = c.room === '아이엠홀';
+        const badgeBg = isIam ? '#F3E8FD' : 'var(--blue-lt)';
+        const badgeColor = isIam ? '#7B2FD1' : 'var(--blue)';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid ${isIam ? '#D9BCF5' : 'var(--border)'};margin-bottom:8px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
+          <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(c.room||'').replace(/</g,'&lt;')}</span>
           <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
           <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'(제목 없음)').replace(/</g,'&lt;')}</span>
           <span style="font-size:11px;font-weight:700;color:${allDone ? 'var(--green)' : 'var(--text2)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
