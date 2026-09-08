@@ -44,6 +44,25 @@
   .blocked-banner { margin: 12px 14px 0; background: #F5F5F5; color: #777; border-radius: 8px;
                      padding: 10px 14px; font-size: 13px; text-align: center; }
 
+  .occupancy-bar {
+    margin: 12px 14px 0; background: var(--blue-lt); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--blue);
+    font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .occupancy-bar .oc-hint { font-size: 11.5px; font-weight: 400; color: var(--text3); }
+  .occupancy-bar .oc-arrow { transition: transform .15s; flex-shrink: 0; }
+  .occupancy-bar.open .oc-arrow { transform: rotate(180deg); }
+  .occupancy-detail {
+    margin: 0 14px; background: var(--bg2); border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 8px 8px; padding: 10px 14px; display: none;
+  }
+  .occupancy-detail.open { display: block; }
+  .oc-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; color: var(--text2); }
+  .oc-row .oc-hour { flex-shrink: 0; width: 52px; font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; }
+  .oc-row .oc-bar-track { flex: 1; background: var(--border2); border-radius: 999px; height: 8px; overflow: hidden; }
+  .oc-row .oc-bar-fill { background: var(--blue); height: 100%; border-radius: 999px; }
+  .oc-row .oc-count { flex-shrink: 0; width: 48px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+
   .cat { margin: 14px 14px 0; background: var(--bg2); border-radius: 12px; overflow: hidden;
          box-shadow: 0 1px 4px rgba(24,95,165,.06); }
   .cat-hd { padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--blue);
@@ -162,6 +181,11 @@
 </div>
 
 <div id="blocked-banner-wrap"></div>
+<div class="occupancy-bar" id="occupancy-bar" style="display:none" onclick="toggleOccupancy()">
+  <span id="occupancy-summary"></span>
+  <span class="oc-arrow">▾</span>
+</div>
+<div class="occupancy-detail" id="occupancy-detail"></div>
 <div id="body"><div class="loading">불러오는 중…</div></div>
 
 <div class="modal-bg" id="modal-detail">
@@ -296,6 +320,59 @@ function render() {
   else renderWeek();
 }
 
+// 그날 확정 예약들의 인원(people)을 시간대별로 겹쳐서 더해 대략적인 동시간대 이용객 수를 추정
+// (정확한 실제 입퇴실 집계가 아니라 예약 인원 기준 러프한 추정치)
+function estimateOccupancy(items) {
+  if (!items.length) return null;
+  const total = items.reduce((s, r) => s + (parseInt(r.people) || 0), 0);
+  let minH = 24, maxH = 0;
+  items.forEach(r => {
+    const sh = parseInt((r.start || '00:00').split(':')[0]);
+    const [eh, em] = (r.end || '00:00').split(':').map(Number);
+    const ehRounded = em > 0 ? eh + 1 : eh;
+    if (sh < minH) minH = sh;
+    if (ehRounded > maxH) maxH = ehRounded;
+  });
+  if (maxH <= minH) maxH = minH + 1;
+  let peak = 0;
+  const hourly = [];
+  for (let h = minH; h < maxH; h++) {
+    const hs = String(h).padStart(2, '0') + ':00';
+    const he = String(h + 1).padStart(2, '0') + ':00';
+    const count = items
+      .filter(r => !(he <= r.start || hs >= r.end))
+      .reduce((s, r) => s + (parseInt(r.people) || 0), 0);
+    hourly.push({ hour: hs, count });
+    if (count > peak) peak = count;
+  }
+  return { total, hourly, peak };
+}
+
+function renderOccupancy(ds) {
+  const bar = document.getElementById('occupancy-bar');
+  const detail = document.getElementById('occupancy-detail');
+  if (!bar || !detail) return;
+  const items = reservations.filter(r => r.date === ds && r.status === '확정' && parseInt(r.people) > 0);
+  const oc = estimateOccupancy(items);
+  if (!oc) {
+    bar.style.display = 'none';
+    detail.classList.remove('open');
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = `<span>👥 이 날 예상 이용객 <b>약 ${oc.total}명</b> <span class="oc-hint">(동시간대 최대 약 ${oc.peak}명 · 대략적인 추정치)</span></span><span class="oc-arrow">▾</span>`;
+  detail.innerHTML = oc.hourly.map(h => `
+    <div class="oc-row">
+      <span class="oc-hour">${h.hour}</span>
+      <span class="oc-bar-track"><span class="oc-bar-fill" style="width:${oc.peak ? Math.round(h.count / oc.peak * 100) : 0}%"></span></span>
+      <span class="oc-count">${h.count}명</span>
+    </div>`).join('');
+}
+window.toggleOccupancy = () => {
+  document.getElementById('occupancy-bar').classList.toggle('open');
+  document.getElementById('occupancy-detail').classList.toggle('open');
+};
+
 function renderDay() {
   const d     = curDate();
   const ds    = toDateStr(d);
@@ -310,6 +387,8 @@ function renderDay() {
   document.getElementById('blocked-banner-wrap').innerHTML = bd
     ? `<div class="blocked-banner">🚫 이 날짜는 예약이 불가능합니다 (${esc(bd.reason)})</div>`
     : '';
+
+  renderOccupancy(ds);
 
   const html = CATS.map(cat => {
     const inCat = cat.match ? cat.match : (room) => cat.rooms.includes(room);
@@ -340,6 +419,9 @@ function renderWeek() {
   document.getElementById('date-label').textContent =
     `${start.getMonth()+1}.${start.getDate()} ~ ${endD.getMonth()+1}.${endD.getDate()}${weekOffset === 0 ? ' · 이번주' : ''}`;
   document.getElementById('blocked-banner-wrap').innerHTML = '';
+  // 이용객 추정은 일간 보기 전용
+  document.getElementById('occupancy-bar').style.display = 'none';
+  document.getElementById('occupancy-detail').classList.remove('open');
 
   const html = Array.from({ length: 7 }, (_, i) => {
     const d  = new Date(start); d.setDate(d.getDate() + i);
