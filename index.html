@@ -2230,7 +2230,7 @@ textarea { resize: vertical; min-height: 60px; }
       <div id="e-recur-opts" style="display:none">
         <div class="fg" style="margin-bottom:8px">
           <div class="lbl">반복 유형</div>
-          <select id="e-recur">
+          <select id="e-recur" onchange="checkEditAvail()">
             <option value="weekly">매 주</option>
             <option value="biweekly">격 주</option>
             <option value="monthly">매 달 동일 요일</option>
@@ -2251,7 +2251,7 @@ textarea { resize: vertical; min-height: 60px; }
     </div>
     <div class="fl" id="e-date-row-wrap">
       <div class="fg"><div class="lbl" id="e-date-lbl">날짜 <span class="req">*</span></div><input type="date" id="e-date" onchange="checkEditAvail();onJihyeNightsInput()"></div>
-      <div class="fg" id="e-end-date-wrap" style="display:none"><div class="lbl">종료 날짜 <span class="req">*</span></div><input type="date" id="e-end-date"></div>
+      <div class="fg" id="e-end-date-wrap" style="display:none"><div class="lbl">종료 날짜 <span class="req">*</span></div><input type="date" id="e-end-date" onchange="checkEditAvail()"></div>
     </div>
     <div id="e-jihye-details" style="display:none">
       <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:8px">🛏 지혜홀 세부사항</div>
@@ -4633,12 +4633,20 @@ window.toggleAllSeriesOpts = () => {
       : '날짜 <span class="req">*</span>';
   }
 };
+// 정기 예약(신규 등록) 시 특정 회차만 다른 실로 재지정 — {날짜: 실 이름}
+let editRecurRoomOverrides = {};
 window.toggleEditRecur = () => {
   const on = document.getElementById('e-is-recur').checked;
   if (on) { document.getElementById('e-is-multi').checked = false; toggleEditMulti(false); }
   document.getElementById('e-recur-opts').style.display    = on ? '' : 'none';
   document.getElementById('e-end-date-wrap').style.display = on ? '' : 'none';
   document.getElementById('e-date-lbl').innerHTML = (on ? '시작 날짜' : '날짜') + ' <span class="req">*</span>';
+  editRecurRoomOverrides = {};
+  checkEditAvail();
+};
+window.setRecurRoomOverride = (d, val) => {
+  if (val) editRecurRoomOverrides[d] = val; else delete editRecurRoomOverrides[d];
+  checkEditAvail();
 };
 let editMultiDates = []; // [{date, start, end}] — 관리자 예약 추가의 비정기(날짜별 다른 일정) 모드
 window.toggleEditMulti = (forceOff) => {
@@ -6049,6 +6057,39 @@ window.checkEditAvail = () => {
     return;
   }
 
+  // 신규 정기 예약(반복) 등록 시 — 전체 회차에 대해 지정한 실이 가능한지 확인하고,
+  // 충돌하는 회차만 다른 실로 재지정할 수 있게 함(회차마다 실이 달라야 하는 경우 대응)
+  const isNewRecur = !editId && !!document.getElementById('e-is-recur')?.checked;
+  if (isNewRecur) {
+    const endDate = document.getElementById('e-end-date')?.value;
+    const recurType = document.getElementById('e-recur')?.value || 'weekly';
+    if (!endDate) {
+      el.innerHTML = `<div style="font-size:12px;color:var(--text2);padding:4px 0">종료 날짜를 입력하면 전체 회차의 사용 가능 여부를 확인합니다</div>`;
+      return;
+    }
+    const dates = generateAvailDates(date, endDate, recurType);
+    // 더 이상 존재하지 않는 날짜의 재지정은 정리
+    Object.keys(editRecurRoomOverrides).forEach(d => { if (!dates.includes(d)) delete editRecurRoomOverrides[d]; });
+    const roomOptions = spaceSort(spaces).map(s => s.name);
+    const conflictDates = dates.filter(d => !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, true));
+    if (!conflictDates.length) {
+      el.innerHTML = `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>`;
+    } else {
+      el.innerHTML = `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:5px">
+          ${conflictDates.map(d => `
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px">
+              <span style="color:var(--red);flex-shrink:0;width:88px">${d}</span>
+              <select style="flex:1;padding:3px 6px;font-size:11px;border:1px solid var(--border);border-radius:6px" onchange="setRecurRoomOverride('${d}', this.value)">
+                <option value="">다른 실로 변경...</option>
+                ${roomOptions.map(rn => `<option value="${rn}"${editRecurRoomOverrides[d] === rn ? ' selected' : ''}>${rn}</option>`).join('')}
+              </select>
+            </div>`).join('')}
+        </div>`;
+    }
+    return;
+  }
+
   const confirmedOk = noConflict(room, date, start, end, editId, true);
   const allOk       = noConflict(room, date, start, end, editId, false);
   if (!confirmedOk) {
@@ -6860,6 +6901,7 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-end-date-wrap').style.display = 'none';
     document.getElementById('e-is-multi').checked = false;
     editMultiDates = []; renderEditMultiDates();
+    editRecurRoomOverrides = {};
     document.getElementById('e-multi-wrap').style.display     = 'none';
     document.getElementById('e-date-row-wrap').style.display = '';
     document.getElementById('e-time-row-wrap').style.display = '';
@@ -6913,9 +6955,10 @@ window.submitEdit = async () => {
   }
   if (isMulti && editMultiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
   if (!isMulti && start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
-  // 전체 시리즈 수정 모드 및 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
+  // 전체 시리즈 수정 모드, 신규 정기 예약, 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
   const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
-  if (!isMulti && !_editAllSeries && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
+  const _isNewRecur = !editId && !!document.getElementById('e-is-recur')?.checked;
+  if (!isMulti && !_editAllSeries && !_isNewRecur && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
     T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
   }
 
@@ -7182,7 +7225,9 @@ window.submitEdit = async () => {
       } else if (isRecur) {
         const dates = generateAvailDates(date, endDate, recurType);
         recurGroup = `recur_${Date.now()}`; recurLabel = recurLabelMap[recurType];
-        items = dates.map(d => ({ date: d, start, end }));
+        // 회차별로 다른 실이 필요한 경우(충돌 등)를 위해 checkEditAvail()에서 지정한
+        // 날짜별 실 재지정(editRecurRoomOverrides)이 있으면 그 실을, 없으면 기본 실을 사용
+        items = dates.map(d => ({ date: d, start, end, room: editRecurRoomOverrides[d] || room }));
       } else if (isMulti) {
         items = editMultiDates.map(d => ({ date: d.date, start: d.start, end: d.end }));
         recurGroup = items.length > 1 ? `multi_${Date.now()}` : null;
@@ -7199,6 +7244,7 @@ window.submitEdit = async () => {
         await addDoc(collection(db, 'reservations'), {
           ...data,
           date: items[i].date, start: items[i].start, end: items[i].end,
+          room: items[i].room || data.room,
           history: [{ time: nowStr(), msg: recurGroup ? `관리자 추가 (${recurLabel} ${i+1}/${items.length}건)` : '관리자 추가' }]
         });
       }
