@@ -6071,9 +6071,16 @@ window.checkEditAvail = () => {
     // 더 이상 존재하지 않는 날짜의 재지정은 정리
     Object.keys(editRecurRoomOverrides).forEach(d => { if (!dates.includes(d)) delete editRecurRoomOverrides[d]; });
     const roomOptions = spaceSort(spaces).map(s => s.name);
+    // 확정 예약과의 충돌(반드시 실 재지정 필요)과, 대기 중인 예약과의 충돌(경고만 표시)을 구분
     const conflictDates = dates.filter(d => !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, true));
+    const pendingConflictDates = dates.filter(d =>
+      !conflictDates.includes(d) && !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, false)
+    );
     if (!conflictDates.length) {
-      el.innerHTML = `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>`;
+      el.innerHTML = `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>` +
+        (pendingConflictDates.length
+          ? `<div class="avail-warn" style="font-size:12px;color:var(--orange,#d97706);background:var(--orange-lt,#fff7ed);border-radius:6px;padding:5px 10px;margin-top:4px">⚠ 대기 중인 예약과 겹치는 날짜가 있습니다(확정 전): ${pendingConflictDates.join(', ')}</div>`
+          : '');
     } else {
       el.innerHTML = `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
         <div style="margin-top:6px;display:flex;flex-direction:column;gap:5px">
@@ -7234,6 +7241,15 @@ window.submitEdit = async () => {
         recurLabel = '비정기';
       } else {
         items = [{ date, start, end }];
+      }
+
+      // 화면에 보여준 미리보기가 어떤 이유로든 실제와 어긋났을 가능성에 대비해,
+      // 저장 직전에 회차별로 다시 한 번 충돌 여부를 확인하고 하나라도 걸리면 전체 저장을 막음
+      // (isRecur/isMulti는 위에서 이 검사를 생략하고 화면 미리보기만 믿고 있었음)
+      const finalConflicts = items.filter(it => !noConflict(it.room || room, it.date, it.start, it.end, null, true));
+      if (finalConflicts.length) {
+        T(`다음 날짜에 이미 확정된 예약이 있어 저장할 수 없습니다: ${finalConflicts.map(it => it.date).join(', ')}`, '#A32D2D');
+        return;
       }
 
       data.status    = document.getElementById('e-status').value || '확정';
