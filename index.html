@@ -7467,6 +7467,16 @@ function renderDashboard() {
     !AV_NOTICE_EXCLUDE_ROOMS.includes(r.room) &&
     r.date >= today && r.date <= weekEnd);
 
+  // 날짜는 항상 보이게, 시간은 🕐 아이콘을 눌러야만 펼쳐지도록(행 자체 클릭은 상세로 이동하므로 이벤트 전파 차단)
+  function weekDateTimeHtml(dateLabel, timeLabel) {
+    const t = (timeLabel || '').trim();
+    const dateSpan = `<span style="font-weight:700;font-size:12px;color:var(--text);flex-shrink:0;white-space:nowrap">${dateLabel}</span>`;
+    if (!t) return dateSpan;
+    return dateSpan +
+      `<span onclick="event.stopPropagation();var t=this.nextElementSibling;t.style.display=t.style.display==='inline'?'none':'inline'" style="cursor:pointer;font-size:11px;color:var(--text3);flex-shrink:0" title="시간 보기">🕐</span>` +
+      `<span style="display:none;font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${t}</span>`;
+  }
+
   // 아이엠홀 → 아론홀 → 샤론홀 → 그 외 순으로 묶고, 각 그룹 안에서는 날짜순
   const WEEK_ROOM_PRIORITY = ['아이엠홀', '아론홀', '샤론홀'];
   const weekRoomRank = (room) => { const i = WEEK_ROOM_PRIORITY.indexOf(room); return i === -1 ? 99 : i; };
@@ -7486,14 +7496,14 @@ function renderDashboard() {
           const avLabel = [r.needTV ? '📺 TV' : '', r.needMic ? '🎤 마이크' : ''].filter(Boolean).join(' · ');
           if (/주일/.test(r.purpose || '')) {
             return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:4px;cursor:pointer" onclick="openDetail('${r.id}')">
-              <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+              ${weekDateTimeHtml(dateLabel, timeLabel)}
               <span style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.purpose||'').replace(/</g,'&lt;')}</span>
               <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${avLabel}</span>
             </div>`;
           }
           return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
             <span style="background:var(--amber-lt);color:var(--amber);font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(r.room||'').replace(/</g,'&lt;')}</span>
-            <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+            ${weekDateTimeHtml(dateLabel, timeLabel)}
             <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(r.purpose||'(제목 없음)').replace(/</g,'&lt;')}</span>
             <span style="font-size:11px;font-weight:700;color:var(--amber);flex-shrink:0;white-space:nowrap">${avLabel}</span>
           </div>`;
@@ -7509,7 +7519,7 @@ function renderDashboard() {
         const timeLabel = (c.start || c.end) ? ` ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
         if (/주일/.test(c.eventName || '')) {
           return `<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;margin-bottom:4px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
-            <span style="font-size:11px;color:var(--text3);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+            ${weekDateTimeHtml(dateLabel, timeLabel)}
             <span style="font-size:12px;color:var(--text2);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'').replace(/</g,'&lt;')}</span>
             <span style="font-size:11px;color:${allDone ? 'var(--green)' : 'var(--text3)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
           </div>`;
@@ -7520,7 +7530,7 @@ function renderDashboard() {
         const badgeColor = isIam ? '#7B2FD1' : 'var(--blue)';
         return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid ${isIam ? '#D9BCF5' : 'var(--border)'};margin-bottom:8px;cursor:pointer" onclick="window.open('checklist-view.html?id=${c.id}','_blank')">
           <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(c.room||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">${dateLabel}${timeLabel}</span>
+          ${weekDateTimeHtml(dateLabel, timeLabel)}
           <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.isRecur ? '🔁 ' : ''}${(c.eventName||'(제목 없음)').replace(/</g,'&lt;')}</span>
           <span style="font-size:11px;font-weight:700;color:${allDone ? 'var(--green)' : 'var(--text2)'};flex-shrink:0;white-space:nowrap">✓ ${done}/${total}</span>
         </div>`;
