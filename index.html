@@ -1632,7 +1632,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
       </div>
-      <div class="card"><div class="card-title">오늘 준비물 확인 (TV·마이크·탕비실)</div><div id="today-facility-list"></div></div>
+      <div class="card"><div class="card-title">준비물 확인 (TV·마이크·탕비실, 3일치)</div><div id="today-facility-list"></div></div>
       <div class="card"><div class="card-title">이번주 예약</div><div id="today-checklist-list"></div></div>
       <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
@@ -7325,23 +7325,29 @@ function renderDashboard() {
   document.getElementById('d-wait').textContent  = waitR.length;
   document.getElementById('d-total').textContent = reservations.length;
 
-  // 오늘 준비물 확인 — TV 필요 / 탕비실 이용 체크된 오늘 확정 예약만 모아서 최상단에 표시
+  // 준비물 확인 — TV·마이크 필요 / 탕비실 이용 체크된 예약을 오늘부터 3일치(오늘+이틀) 모아서 최상단에 표시
+  const facilityEndD = new Date(today + 'T00:00:00'); facilityEndD.setDate(facilityEndD.getDate() + 2);
+  const facilityEnd = toDateStr(facilityEndD);
+  const facilityConfirmed = reservations.filter(r => r.date >= today && r.date <= facilityEnd && r.status === '확정')
+                              .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+  const facilityDateLabel = (d) => d === today ? '오늘' : d.slice(5).replace('-', '/');
   const facilityRow = (label, list) => !list.length ? '' : `
     <div style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px">${label} (${list.length}건)</div>
       ${list.map(r => `
         <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);margin-bottom:4px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
+          <span style="font-weight:700;font-size:11px;color:var(--text2);flex-shrink:0;width:36px">${facilityDateLabel(r.date)}</span>
           <span style="font-weight:700;font-size:12px;color:var(--blue);flex-shrink:0;width:52px">${r.start}</span>
           <span style="font-size:11px;color:var(--text3);flex-shrink:0">${r.room}</span>
           <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.purpose || ''}</span>
         </div>`).join('')}
     </div>`;
-  const tvList     = todayConfirmed.filter(r => r.needTV).sort((a,b) => a.start.localeCompare(b.start));
-  const micList    = todayConfirmed.filter(r => r.needMic).sort((a,b) => a.start.localeCompare(b.start));
-  const pantryList = todayConfirmed.filter(r => r.needPantry).sort((a,b) => a.start.localeCompare(b.start));
+  const tvList     = facilityConfirmed.filter(r => r.needTV);
+  const micList    = facilityConfirmed.filter(r => r.needMic);
+  const pantryList = facilityConfirmed.filter(r => r.needPantry);
   const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('🎤 마이크 필요', micList) + facilityRow('☕ 탕비실 이용', pantryList);
   document.getElementById('today-facility-list').innerHTML = facilityHtml
-    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 TV·마이크·탕비실이 필요한 예약이 없습니다</div>';
+    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">앞으로 3일간 TV·마이크·탕비실이 필요한 예약이 없습니다</div>';
 
   // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
   const TODAY_CATS = [
