@@ -109,6 +109,13 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 "전체 N회 모두 수정"(`e-all-series`, 간격 기반 `generateAvailDates`)은 매일 간격인 연박에는
 맞지 않아 `recurType==='연박'`인 경우 해당 UI 자체를 숨기고 위 체크인/박수/체크아웃 입력만 노출함.
 
+## 필요 시설 (TV/마이크/탕비실/야외테라스)
+`needTV`, `needMic`, `needPantry`, `needTerrace` 필드 — 원래 사용자 신청 폼에만 있던 체크박스였는데,
+관리자 "+ 예약 추가/수정" 모달에도 동일한 체크박스가 있어 관리자가 직접 등록·수정할 때도 설정
+가능함. 대시보드 최상단 "오늘 준비물 확인(TV·탕비실)" 카드에서 오늘 확정 예약 중 TV 필요·탕비실
+이용 체크된 것만 모아서 보여줌(마이크·야외테라스는 이 카드에는 없음, 다른 곳(체크리스트 자동 생성
+대상 외 TV·마이크 요청 안내)에서 별도로 다룸).
+
 ## 주요 함수 위치 (index.html)
 - `noConflict(room, date, start, end, skipId, confirmedOnly)` — 충돌 체크
 - `classifyPurpose(purpose, room, org)` — 사용 목적 자동 분류
