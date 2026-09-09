@@ -1668,6 +1668,10 @@ textarea { resize: vertical; min-height: 60px; }
         <input type="date" id="fdate-s" onchange="filterRenderList()" style="width:145px;padding:7px 8px;font-size:13px">
         <span style="color:var(--text3)">~</span>
         <input type="date" id="fdate-e" onchange="filterRenderList()" style="width:145px;padding:7px 8px;font-size:13px">
+        <label style="font-size:13px;color:var(--text2);white-space:nowrap;margin-left:8px">시간대</label>
+        <select id="ftime-s" onchange="filterRenderList()" style="width:100px;padding:7px 8px;font-size:13px"><option value="">시작 전체</option></select>
+        <span style="color:var(--text3)">~</span>
+        <select id="ftime-e" onchange="filterRenderList()" style="width:100px;padding:7px 8px;font-size:13px"><option value="">종료 전체</option></select>
       </div>
       <!-- 일괄 액션 바 (선택 시 노출) -->
       <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
@@ -2183,10 +2187,11 @@ textarea { resize: vertical; min-height: 60px; }
 <div class="modal-bg" id="modal-sms">
   <div class="modal">
     <div class="modal-title" id="sms-modal-title">📨 문자 작성</div>
-    <div id="sms-contact-bar" style="display:none;align-items:center;gap:8px;background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px">
+    <div id="sms-contact-bar" style="display:none;align-items:center;gap:8px;background:var(--blue-lt);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12px;flex-wrap:wrap">
       <span style="color:var(--text2)">수신자</span>
       <span id="sms-contact-name" style="font-weight:700;color:var(--text)"></span>
       <span id="sms-contact-tel" style="font-weight:700;color:var(--blue);margin-left:auto;cursor:pointer" onclick="navigator.clipboard.writeText(this.textContent).then(()=>{this.style.opacity='.4';setTimeout(()=>this.style.opacity='1',800)})" title="클릭하여 복사"></span>
+      <span id="sms-contact-copyall" style="display:none;font-weight:700;color:var(--green);cursor:pointer;white-space:nowrap" onclick="copyAllSmsContacts()" title="선택된 모든 청지기 번호를 쉼표로 이어붙여 복사">📋 번호 전체 복사</span>
     </div>
     <div id="sms-series-toggle-wrap" style="display:none;margin-bottom:8px">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);cursor:pointer;user-select:none">
@@ -2551,6 +2556,7 @@ let curPage = 'spaces';
 let editId = null;
 let smsCtxId = null, smsCtxType = null;
 let smsBulkIds = null; // 다건 선택 문자/카카오 발송 모드일 때 선택된 예약 id 배열
+let smsBulkContacts = []; // 다건 선택 시 [ [tel, name], ... ] (중복 tel 제거)
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
@@ -2617,6 +2623,14 @@ const buildStartOpts = (sel) =>
 const buildEndOpts = (start, sel) =>
   SLOTS.filter(s => s > start).map(s => `<option value="${s}"${s === sel ? ' selected' : ''}>${s}</option>`).join('');
 const nextSlot = (val) => { const i = SLOTS.indexOf(val); return i >= 0 && i < SLOTS.length - 1 ? SLOTS[i + 1] : SLOTS[SLOTS.length - 1]; };
+
+// 예약 목록 검색바의 시간대 필터 select 채우기 (정적 목록이라 1회만)
+(() => {
+  const sSel = document.getElementById('ftime-s');
+  const eSel = document.getElementById('ftime-e');
+  if (sSel) sSel.innerHTML += SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+  if (eSel) eSel.innerHTML += SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+})();
 
 function initTimeSelects(sId, eId, sv, ev) {
   sv = sv || '09:00';
@@ -3298,6 +3312,8 @@ window.setChangeReqNote = async (id, value) => {
 window.openChangeSmsModal = (reqId, type) => {
   const r = changeRequests.find(x => x.id === reqId);
   if (!r) return;
+  smsBulkIds = null;
+  smsBulkContacts = [];
   const isCancel = r.requestType === '취소';
   const room = roomToSmsName(r.newRoom || r.room || '');
   const time = (r.start && r.end) ? `${r.start}-${r.end}` : (r.start || r.end || '');
@@ -3336,6 +3352,7 @@ ${MSG_FOOTER}`;
 
   const tel = r.requesterTel || '';
   const contactBar = document.getElementById('sms-contact-bar');
+  document.getElementById('sms-contact-copyall').style.display = 'none';
   if (tel) {
     document.getElementById('sms-contact-name').textContent = r.requesterName || '';
     document.getElementById('sms-contact-tel').textContent = tel;
@@ -6533,6 +6550,7 @@ window.openSmsModal = (id, type, seriesDefault = true) => {
   const r = reservations.find(x => x.id === id);
   if (!r) return;
   smsBulkIds = null;
+  smsBulkContacts = [];
   smsCtxId = id; smsCtxType = type;
 
   const toggleWrap = document.getElementById('sms-series-toggle-wrap');
@@ -6549,6 +6567,7 @@ window.openSmsModal = (id, type, seriesDefault = true) => {
   // 연락처 바 표시
   const tel = r.stewardTel || '';
   const contactBar = document.getElementById('sms-contact-bar');
+  document.getElementById('sms-contact-copyall').style.display = 'none';
   if (tel) {
     document.getElementById('sms-contact-name').textContent = r.stewardName || '';
     document.getElementById('sms-contact-tel').textContent = tel;
@@ -6575,19 +6594,35 @@ window.openBulkSmsModal = (type) => {
   // 연락처 바: 선택된 예약들의 연락처가 하나로 모이면 표시, 여러 명이면 요약 표시
   const contactBar = document.getElementById('sms-contact-bar');
   const contacts = [...new Map(rows.filter(r => r.stewardTel).map(r => [r.stewardTel, r.stewardName])).entries()];
+  smsBulkContacts = contacts;
+  const copyAllBtn = document.getElementById('sms-contact-copyall');
   if (contacts.length === 1) {
     document.getElementById('sms-contact-name').textContent = contacts[0][1] || '';
     document.getElementById('sms-contact-tel').textContent = contacts[0][0];
     contactBar.style.display = 'flex';
+    copyAllBtn.style.display = 'none';
   } else if (contacts.length > 1) {
     document.getElementById('sms-contact-name').textContent = `${contacts[0][1] || ''} 외 ${contacts.length - 1}명`;
     document.getElementById('sms-contact-tel').textContent = contacts[0][0];
     contactBar.style.display = 'flex';
+    copyAllBtn.style.display = 'inline';
+    copyAllBtn.textContent = `📋 번호 전체 복사 (${contacts.length})`;
   } else {
     contactBar.style.display = 'none';
+    copyAllBtn.style.display = 'none';
   }
 
   openModal('modal-sms');
+};
+
+// 선택한 예약들의 청지기 연락처를 전화번호만 쉼표로 이어붙여 클립보드에 복사 (문자앱 수신자란에 붙여넣기용)
+window.copyAllSmsContacts = () => {
+  if (!smsBulkContacts.length) return;
+  const text = smsBulkContacts.map(c => c[0]).join(', ');
+  const msgEl = document.getElementById('sms-copy-msg');
+  const done = () => { if (msgEl) { msgEl.textContent = `✅ 번호 ${smsBulkContacts.length}개 복사됐습니다!`; setTimeout(() => { msgEl.textContent = ''; }, 2500); } };
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(done);
+  else done();
 };
 
 // 같은 공간의 날짜들을 요일·시간이 같고 정확히 7일 간격인 "연속 구간"으로 묶어서
@@ -7606,7 +7641,7 @@ window.sortList = (col) => {
 };
 
 window.resetListFilter = () => {
-  ['fname','fr','ft','f-suborg','fdate-s','fdate-e'].forEach(id => {
+  ['fname','fr','ft','f-suborg','fdate-s','fdate-e','ftime-s','ftime-e'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   clearBulkSelect();
@@ -7632,6 +7667,8 @@ window.renderList = function renderList() {
   const fSubOrg  = document.getElementById('f-suborg')?.value || '';
   const fds      = document.getElementById('fdate-s')?.value || '';
   const fde      = document.getElementById('fdate-e')?.value || '';
+  const fts      = document.getElementById('ftime-s')?.value || '';
+  const fte      = document.getElementById('ftime-e')?.value || '';
 
   // 이번 주 날짜 범위
   let weekStart = '', weekEnd = '';
@@ -7654,6 +7691,8 @@ window.renderList = function renderList() {
   if (listWeekFilter) data = data.filter(r => r.date >= weekStart && r.date <= weekEnd);
   if (fds) data = data.filter(r => r.date >= fds);
   if (fde) data = data.filter(r => r.date <= fde);
+  if (fts) data = data.filter(r => r.end > fts);
+  if (fte) data = data.filter(r => r.start < fte);
   if (fr) data = data.filter(r => r.room === fr);
   if (ft) data = data.filter(r => r.type === ft);
   if (fSubOrg === '__none__') data = data.filter(r => !r.subOrg);
