@@ -1705,6 +1705,7 @@ textarea { resize: vertical; min-height: 60px; }
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--amber,#854F0B);border-color:var(--amber,#854F0B)" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--red)" onclick="bulkCancelSelected()">✕ 선택 취소</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--blue)" onclick="copySelectedStewardTels()">📋 청지기 번호 복사</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
           <button class="btn btn-red"     style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">선택 삭제</button>
@@ -8026,6 +8027,19 @@ window.bulkCancelSelected = async () => {
   if (!ids.length) { T('취소할 항목을 선택해주세요', '#A32D2D'); return; }
   await rejectGroup(ids.join(','));
   clearBulkSelect();
+};
+// 예약 목록에서 체크박스로 선택한 건들의 청지기 연락처만 바로 클립보드에 복사
+// (문자 작성 모달을 거치지 않고 번호만 빠르게 복사해서 문자 앱 등에 붙여넣기 위함)
+window.copySelectedStewardTels = () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('선택된 예약이 없습니다', '#A32D2D'); return; }
+  const rows = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
+  const tels = [...new Map(rows.filter(r => r.stewardTel).map(r => [r.stewardTel, r.stewardName])).keys()];
+  if (!tels.length) { T('선택한 예약에 청지기 연락처가 없습니다', '#A32D2D'); return; }
+  const text = tels.join(', ');
+  const done = () => T(`청지기 번호 ${tels.length}개가 복사됐습니다`, '#3B6D11');
+  if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(done);
+  else done();
 };
 window.bulkGroupRecur = async () => {
   const ids = getSelectedIds();
