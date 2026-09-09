@@ -236,6 +236,23 @@ textarea { resize: vertical; min-height: 60px; }
 .filter-chip { padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border2); background: var(--bg); font-size: 14px; color: var(--text2); cursor: pointer; font-weight: 500; }
 .filter-chip.active { background: var(--blue); color: #fff; border-color: var(--blue); }
 
+/* ── 목록/상세 분할 레이아웃 (변경·취소 신청, 퇴실 체크 이력 등) ── */
+.cr-split { display: flex; gap: 14px; align-items: flex-start; }
+.cr-list-col { flex: 1 1 320px; max-width: 380px; min-width: 260px; display: flex; flex-direction: column; gap: 6px; }
+.cr-detail-col { flex: 2 1 420px; min-width: 300px; position: sticky; top: 14px; }
+.cr-row { background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; padding: 9px 11px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; }
+.cr-row:hover { border-color: var(--blue); }
+.cr-row.sel { border-color: var(--blue); background: var(--blue-lt); }
+.cr-row.recent:not(.sel) { background: #FFF6DD; border-color: #E8C766; }
+.cr-row .cr-row-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cr-row .cr-row-badge { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.cr-row .cr-row-sub { font-size: 11.5px; color: var(--text3); display: flex; justify-content: space-between; gap: 6px; }
+@media (max-width: 760px) {
+  .cr-split { flex-direction: column; }
+  .cr-list-col { max-width: none; width: 100%; }
+  .cr-detail-col { position: static; width: 100%; }
+}
+
 /* ── 체크박스 ── */
 .check-row input[type=checkbox] { width: auto; accent-color: var(--blue); }
 .check-row label { font-size: 12px; color: var(--text2); }
@@ -2067,7 +2084,10 @@ textarea { resize: vertical; min-height: 60px; }
         <button class="filter-chip" id="cr-tab-대기" onclick="setChangeReqTab('대기')">대기</button>
         <button class="filter-chip" id="cr-tab-완료" onclick="setChangeReqTab('완료')">처리완료</button>
       </div>
-      <div id="cr-list"></div>
+      <div class="cr-split">
+        <div class="cr-list-col" id="cr-list"></div>
+        <div class="cr-detail-col" id="cr-detail"></div>
+      </div>
     </div>
 
   </div><!-- /main -->
@@ -2552,6 +2572,7 @@ let eventChecklists = [];
 let venueRequests = [];
 let checkouts = [];
 let changeReqTab = '';
+let selectedChangeReqId = null;
 let curPage = 'spaces';
 let editId = null;
 let smsCtxId = null, smsCtxType = null;
@@ -3234,60 +3255,104 @@ window.setChangeReqTab = (tab) => {
   renderChangeRequests();
 };
 
+// 신청 후 24시간 이내면 "최근 신청"으로 보고 목록에서 다른 색으로 강조
+const CR_RECENT_MS = 24 * 60 * 60 * 1000;
+const isRecentChangeReq = (r) => {
+  const t = r.createdAt?.toDate ? r.createdAt.toDate().getTime() : 0;
+  return t > 0 && (Date.now() - t) < CR_RECENT_MS;
+};
+
 window.renderChangeRequests = () => {
-  const el = document.getElementById('cr-list');
-  if (!el) return;
+  const listEl = document.getElementById('cr-list');
+  const detailEl = document.getElementById('cr-detail');
+  if (!listEl || !detailEl) return;
   // 메모 작성 중(포커스된 상태)에는 실시간 재렌더링으로 입력 중인 내용이 사라지지 않도록 스킵
   const active = document.activeElement;
-  if (active && el.contains(active) && active.tagName === 'TEXTAREA') return;
+  if (active && detailEl.contains(active) && active.tagName === 'TEXTAREA') return;
   const filtered = changeReqTab ? changeRequests.filter(r => (r.status || '대기') === changeReqTab) : changeRequests;
   if (!filtered.length) {
-    el.innerHTML = `<div class="card" style="text-align:center;color:var(--text3);padding:32px;font-size:14px">신청 내역이 없습니다.</div>`;
+    listEl.innerHTML = `<div class="card" style="text-align:center;color:var(--text3);padding:32px;font-size:14px">신청 내역이 없습니다.</div>`;
+    detailEl.innerHTML = '';
     return;
   }
-  el.innerHTML = filtered.map(r => {
+  if (!filtered.some(r => r.id === selectedChangeReqId)) selectedChangeReqId = filtered[0].id;
+
+  listEl.innerHTML = filtered.map(r => {
     const isCancel = r.requestType === '취소';
     const badgeColor = isCancel ? 'var(--red)' : 'var(--blue)';
     const badgeBg    = isCancel ? 'var(--red-lt)' : 'var(--blue-lt)';
     const done = (r.status || '대기') === '완료';
     const time = (r.start || r.end) ? `${r.start||''}${r.start||r.end?'–':''}${r.end||''}` : '';
-    return `<div class="card" style="margin-bottom:10px">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-          <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:12px;padding:3px 10px;border-radius:20px">${isCancel?'취소':'변경'} 신청</span>
-          <span style="font-weight:700;font-size:14px">${(r.room||'').replace(/</g,'&lt;')}</span>
-          <span style="color:var(--text2);font-size:13px">${r.date||''} ${time}</span>
-          ${done ? '<span style="color:var(--green);font-size:12px;font-weight:700">✓ 처리완료</span>' : '<span style="color:var(--amber,#854F0B);font-size:12px;font-weight:700">대기 중</span>'}
-        </div>
-        <div style="font-size:11px;color:var(--text3)">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+    const sel = r.id === selectedChangeReqId;
+    const recent = isRecentChangeReq(r);
+    return `<div class="cr-row${sel ? ' sel' : ''}${recent ? ' recent' : ''}" onclick="selectChangeReq('${r.id}')">
+      <div class="cr-row-top">
+        <span class="cr-row-badge" style="background:${badgeBg};color:${badgeColor}">${isCancel?'취소':'변경'}</span>
+        <span style="font-weight:700;font-size:13px">${(r.room||'').replace(/</g,'&lt;')}</span>
+        ${recent ? '<span style="font-size:10px;color:#A3730B;font-weight:700">NEW</span>' : ''}
       </div>
-      ${(r.purpose || r.managerName) ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">
-        ${r.purpose ? `모임명: ${r.purpose.replace(/</g,'&lt;')}` : ''}${r.purpose && r.managerName ? ' · ' : ''}${r.managerName ? `담당자: ${r.managerName.replace(/</g,'&lt;')}` : ''}
-      </div>` : ''}
-      ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
-      ${!isCancel ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px">
-        <label style="font-size:11px;color:var(--text3);white-space:nowrap">변경된 장소</label>
-        <input type="text" id="cr-newroom-${r.id}" value="${(r.newRoom||'').replace(/"/g,'&quot;')}" placeholder="비워두면 기존 장소로 안내"
-          style="flex:1;max-width:200px;font-size:12px;padding:5px 8px" onchange="setChangeReqNewRoom('${r.id}', this.value)">
-      </div>` : ''}
-      <div style="margin-top:8px">
-        <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">처리 메모 (어떻게 처리했는지 기록)</label>
-        <textarea id="cr-note-${r.id}" placeholder="예: 담당자와 통화 후 8/20 13시로 변경 완료 안내함"
-          style="width:100%;min-height:50px;font-size:12.5px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-family:inherit;resize:vertical"
-          onclick="event.stopPropagation()" onchange="setChangeReqNote('${r.id}', this.value)">${(r.adminNote||'').replace(/</g,'&lt;')}</textarea>
-        <button class="btn btn-ghost" style="margin-top:4px;padding:3px 10px;font-size:11px" onclick="event.stopPropagation();setChangeReqNote('${r.id}', document.getElementById('cr-note-${r.id}').value)">💾 메모 저장</button>
-      </div>
-      <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
-      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
-        <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
-        <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
-        ${done
-          ? `<button class="btn btn-ghost" style="color:var(--text3)" onclick="setChangeReqStatus('${r.id}','대기')">대기로 되돌리기</button>`
-          : `<button class="btn btn-ghost" onclick="setChangeReqStatus('${r.id}','완료')">처리완료로 표시</button>`}
+      <div style="font-size:12px;color:var(--text2)">${r.date||''} ${time}</div>
+      <div class="cr-row-sub">
+        <span>${(r.requesterName||'').replace(/</g,'&lt;')}</span>
+        <span style="${done?'color:var(--green)':'color:var(--amber,#854F0B)'};font-weight:700">${done ? '✓ 완료' : '대기 중'}</span>
       </div>
     </div>`;
   }).join('');
+
+  renderChangeReqDetail();
+};
+
+window.selectChangeReq = (id) => {
+  selectedChangeReqId = id;
+  renderChangeRequests();
+};
+
+window.renderChangeReqDetail = () => {
+  const detailEl = document.getElementById('cr-detail');
+  if (!detailEl) return;
+  const r = changeRequests.find(x => x.id === selectedChangeReqId);
+  if (!r) { detailEl.innerHTML = ''; return; }
+  const isCancel = r.requestType === '취소';
+  const badgeColor = isCancel ? 'var(--red)' : 'var(--blue)';
+  const badgeBg    = isCancel ? 'var(--red-lt)' : 'var(--blue-lt)';
+  const done = (r.status || '대기') === '완료';
+  const time = (r.start || r.end) ? `${r.start||''}${r.start||r.end?'–':''}${r.end||''}` : '';
+  detailEl.innerHTML = `<div class="card">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:12px;padding:3px 10px;border-radius:20px">${isCancel?'취소':'변경'} 신청</span>
+        <span style="font-weight:700;font-size:14px">${(r.room||'').replace(/</g,'&lt;')}</span>
+        <span style="color:var(--text2);font-size:13px">${r.date||''} ${time}</span>
+        ${done ? '<span style="color:var(--green);font-size:12px;font-weight:700">✓ 처리완료</span>' : '<span style="color:var(--amber,#854F0B);font-size:12px;font-weight:700">대기 중</span>'}
+      </div>
+      <div style="font-size:11px;color:var(--text3)">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
+    </div>
+    ${(r.purpose || r.managerName) ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">
+      ${r.purpose ? `모임명: ${r.purpose.replace(/</g,'&lt;')}` : ''}${r.purpose && r.managerName ? ' · ' : ''}${r.managerName ? `담당자: ${r.managerName.replace(/</g,'&lt;')}` : ''}
+    </div>` : ''}
+    ${r.detail ? `<div style="margin-top:6px;font-size:13.5px;color:var(--text);white-space:pre-wrap;background:var(--bg2);border-radius:8px;padding:8px 10px">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
+    ${!isCancel ? `<div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+      <label style="font-size:11px;color:var(--text3);white-space:nowrap">변경된 장소</label>
+      <input type="text" id="cr-newroom-${r.id}" value="${(r.newRoom||'').replace(/"/g,'&quot;')}" placeholder="비워두면 기존 장소로 안내"
+        style="flex:1;max-width:200px;font-size:12px;padding:5px 8px" onchange="setChangeReqNewRoom('${r.id}', this.value)">
+    </div>` : ''}
+    <div style="margin-top:8px">
+      <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px">처리 메모 (어떻게 처리했는지 기록)</label>
+      <textarea id="cr-note-${r.id}" placeholder="예: 담당자와 통화 후 8/20 13시로 변경 완료 안내함"
+        style="width:100%;min-height:50px;font-size:12.5px;padding:6px 8px;border:1px solid var(--border);border-radius:7px;font-family:inherit;resize:vertical"
+        onclick="event.stopPropagation()" onchange="setChangeReqNote('${r.id}', this.value)">${(r.adminNote||'').replace(/</g,'&lt;')}</textarea>
+      <button class="btn btn-ghost" style="margin-top:4px;padding:3px 10px;font-size:11px" onclick="event.stopPropagation();setChangeReqNote('${r.id}', document.getElementById('cr-note-${r.id}').value)">💾 메모 저장</button>
+    </div>
+    <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
+      <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
+      <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
+      ${done
+        ? `<button class="btn btn-ghost" style="color:var(--text3)" onclick="setChangeReqStatus('${r.id}','대기')">대기로 되돌리기</button>`
+        : `<button class="btn btn-ghost" onclick="setChangeReqStatus('${r.id}','완료')">처리완료로 표시</button>`}
+    </div>
+  </div>`;
 };
 
 window.setChangeReqStatus = async (id, status) => {
