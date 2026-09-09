@@ -6924,6 +6924,10 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('edit-modal-title').textContent  = '예약 수정';
     document.getElementById('edit-submit-btn').textContent   = '수정 저장';
     document.getElementById('e-recur-wrap').style.display = 'none';
+    // 기존 예약 수정 시에는 "정기 예약" 체크박스 자체가 안 보이므로(위에서 e-recur-wrap 숨김),
+    // 신규 등록 모달에서 넘어온 종료 날짜 입력칸이 남아있지 않도록 항상 함께 숨김
+    // (정기 시리즈 수정은 별도의 "전체 N회 수정" 영역/e-series-end-date를 사용함)
+    document.getElementById('e-end-date-wrap').style.display = 'none';
     document.getElementById('e-type').value         = r.type || '';
     syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype', r.subOrg || '');
     document.getElementById('e-manager').value      = r.managerName || '';
