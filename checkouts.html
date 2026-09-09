@@ -96,12 +96,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .co-name{font-size:13px;color:var(--text2);}
 .co-body{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2);}
 
-/* 의견 모아보기 */
-.cmt-date-group{margin-bottom:20px;}
-.cmt-date-h{font-size:14px;font-weight:800;color:var(--text);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--border);}
-.cmt-item{background:#fff;border:1px solid var(--border2);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;}
-.cmt-item:hover{border-color:var(--border);}
-.cmt-item-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+/* 의견 모아보기 (이름 없이 의견 내용만 간결하게) */
+.cmt-date-group{margin-bottom:16px;}
+.cmt-date-h{font-size:14px;font-weight:800;color:var(--text);margin-bottom:6px;padding-bottom:6px;border-bottom:2px solid var(--border);}
+.cmt-item{cursor:pointer;margin-bottom:6px;}
+.cmt-item .note-box{transition:filter .15s;}
+.cmt-item:hover .note-box{filter:brightness(.96);}
+.cmt-item .note-box:not(:last-child){margin-bottom:4px;}
 
 .chk-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
 .chk-row{display:flex;align-items:center;gap:8px;font-size:14px;}
@@ -450,20 +451,13 @@ window.renderComments = () => {
     })();
     const itemsHtml = items.map(c => {
       const isNew = isNewSchema(c);
-      const label = isNew ? (c.name || '–') : `${c.space||'–'} · ${c.org||'–'}`;
       const commentHtml = isNew
         ? [
             c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${c.good}</div>` : '',
             c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${c.bad}</div>` : '',
-          ].filter(Boolean).join('<div style="height:6px"></div>')
+          ].filter(Boolean).join('')
         : `<div class="note-box"><div class="note-label">특이사항</div>${c.note}</div>`;
-      return `<div class="cmt-item" onclick="setView('list');selectCheckout('${c.id}')">
-        <div class="cmt-item-head">
-          <span class="co-org" style="font-size:14px">${label}</span>
-          <span class="co-date">${tsStrOf(c)}</span>
-        </div>
-        ${commentHtml}
-      </div>`;
+      return `<div class="cmt-item" onclick="setView('list');selectCheckout('${c.id}')">${commentHtml}</div>`;
     }).join('');
     return `<div class="cmt-date-group">
       <div class="cmt-date-h">${dateLabel} <span style="font-weight:400;color:var(--text3);font-size:12px">· ${items.length}건</span></div>
