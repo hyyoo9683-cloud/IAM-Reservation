@@ -3475,13 +3475,12 @@ window.jumpToReservationFromRequest = (reqId) => {
   const fname = document.getElementById('fname');
   const fds = document.getElementById('fdate-s');
   const fde = document.getElementById('fdate-e');
-  const roomMatched = fr && r.room && [...fr.options].some(o => o.value === r.room);
-  if (fr) fr.value = roomMatched ? r.room : '';
-  // 청지기(신청자) 이름으로도 검색되도록 채워서 같은 공간·날짜에 여러 건이 있어도 바로 찾을 수 있게 함
-  // (이름 정보가 없고 공간도 select에서 못 찾았을 때만, 예전처럼 공간명을 텍스트 검색어로 사용)
-  if (fname) fname.value = r.requesterName || r.managerName || (!roomMatched ? (r.room || '') : '');
+  // 공간 필터는 걸지 않고(정기 예약 등으로 다른 회차만 걸릴 수 있음), 이름 + 시작 날짜(그 이후
+  // 전체, 종료 날짜는 비움)로만 좁혀서 신청서에 적힌 날짜 이후의 관련 예약을 폭넓게 찾을 수 있게 함
+  if (fr) fr.value = '';
+  if (fname) fname.value = r.requesterName || r.managerName || r.room || '';
   if (fds) fds.value = r.date || '';
-  if (fde) fde.value = r.date || '';
+  if (fde) fde.value = '';
   filterRenderList();
   showChangeReqBanner(reqId);
 };
