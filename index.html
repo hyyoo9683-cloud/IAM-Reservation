@@ -1705,6 +1705,7 @@ textarea { resize: vertical; min-height: 60px; }
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--amber,#854F0B);border-color:var(--amber,#854F0B)" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--red)" onclick="bulkCancelSelected()">✕ 선택 취소</button>
+          <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--blue)" onclick="openBulkRescheduleModal()">📅 선택 일정 변경</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:var(--blue)" onclick="copySelectedStewardTels()">📋 청지기 번호 복사</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
           <button class="btn btn-ghost"   style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
@@ -2200,6 +2201,40 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="btn btn-primary" style="justify-content:center" onclick="closeModal('modal-approve-msg');openSmsModal(document.getElementById('approve-msg-id').value,'sms')">📨 문자 작성</button>
       <button class="btn btn-ghost" style="justify-content:center;color:var(--green)" onclick="closeModal('modal-approve-msg');openSmsModal(document.getElementById('approve-msg-id').value,'kakao')">💬 카카오 메시지 작성</button>
       <button class="btn btn-ghost" style="justify-content:center;color:var(--text3)" onclick="closeModal('modal-approve-msg')">나중에</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 선택 예약 일괄 일정 변경 모달 ════════════ -->
+<div class="modal-bg" id="modal-bulk-reschedule">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">📅 선택 일정 변경</div>
+    <div id="bulk-resched-count" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
+    <div class="fg">
+      <div class="lbl">요일 변경</div>
+      <select id="br-weekday">
+        <option value="">변경 안 함</option>
+        <option value="0">일요일로</option>
+        <option value="1">월요일로</option>
+        <option value="2">화요일로</option>
+        <option value="3">수요일로</option>
+        <option value="4">목요일로</option>
+        <option value="5">금요일로</option>
+        <option value="6">토요일로</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">선택한 각 건을 그 주(일~토) 안에서 지정한 요일로 옮깁니다</div>
+    </div>
+    <div class="fl">
+      <div class="fg"><div class="lbl">시작 시간</div><select id="br-start"><option value="">변경 안 함</option></select></div>
+      <div class="fg"><div class="lbl">종료 시간</div><select id="br-end"><option value="">변경 안 함</option></select></div>
+    </div>
+    <div class="fg">
+      <div class="lbl">공간 변경</div>
+      <select id="br-room"><option value="">변경 안 함</option></select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitBulkReschedule()">변경 저장</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-bulk-reschedule')">취소</button>
     </div>
   </div>
 </div>
@@ -8027,6 +8062,74 @@ window.bulkCancelSelected = async () => {
   if (!ids.length) { T('취소할 항목을 선택해주세요', '#A32D2D'); return; }
   await rejectGroup(ids.join(','));
   clearBulkSelect();
+};
+// 정기 예약 시리즈 전체가 아니라, 목록에서 개별로 체크한 회차만 골라서 요일·시간·공간을
+// 한꺼번에 바꿀 때 사용 (예: 화·목 중 화요일 회차만 수요일로 옮기기 등 회차별 예외 대응)
+window.openBulkRescheduleModal = () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
+  document.getElementById('bulk-resched-count').textContent = `${ids.length}건 선택됨`;
+  document.getElementById('br-weekday').value = '';
+  const timeOpts = '<option value="">변경 안 함</option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+  document.getElementById('br-start').innerHTML = timeOpts;
+  document.getElementById('br-end').innerHTML   = timeOpts;
+  const roomSel = document.getElementById('br-room');
+  roomSel.innerHTML = '<option value="">변경 안 함</option>' + spaceSort(spaces).map(s => `<option>${s.name}</option>`).join('');
+  openModal('modal-bulk-reschedule');
+};
+window.submitBulkReschedule = async () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
+  const weekdayVal = document.getElementById('br-weekday').value;
+  const newStart = document.getElementById('br-start').value;
+  const newEnd   = document.getElementById('br-end').value;
+  const newRoom  = document.getElementById('br-room').value;
+  if (weekdayVal === '' && !newStart && !newEnd && !newRoom) {
+    T('요일·시간·공간 중 하나 이상 변경할 값을 선택해주세요', '#A32D2D'); return;
+  }
+  if ((newStart && !newEnd) || (!newStart && newEnd)) { T('시작·종료 시간은 함께 선택해주세요', '#A32D2D'); return; }
+  if (newStart && newEnd && newStart >= newEnd) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
+
+  const idSet = new Set(ids);
+  const rows = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
+  const targets = rows.map(r => {
+    let date = r.date;
+    if (weekdayVal !== '') {
+      const d = new Date(r.date + 'T00:00:00');
+      d.setDate(d.getDate() + (parseInt(weekdayVal) - d.getDay()));
+      date = toDateStr(d);
+    }
+    return { id: r.id, room: newRoom || r.room, date, start: newStart || r.start, end: newEnd || r.end };
+  });
+
+  // 충돌 확인: 선택 항목 밖의 기존 확정 예약과 겹치는지 + 선택 항목끼리 서로 겹치는지
+  const conflicts = targets.filter(t =>
+    reservations.some(r => !idSet.has(r.id) && r.room === t.room && r.date === t.date &&
+      r.status === '확정' && !(t.end <= r.start || t.start >= r.end)) ||
+    targets.some(o => o.id !== t.id && o.room === t.room && o.date === t.date &&
+      !(t.end <= o.start || t.start >= o.end))
+  );
+  if (conflicts.length) {
+    T(`다음 항목이 다른 예약과 겹쳐서 변경할 수 없습니다: ${conflicts.map(t => `${t.date} ${t.start}-${t.end}`).join(', ')}`, '#A32D2D');
+    return;
+  }
+
+  try {
+    await Promise.all(targets.map(t => {
+      const r = rows.find(x => x.id === t.id);
+      const changes = [];
+      if (t.date  !== r.date)                       changes.push(`날짜 ${r.date}→${t.date}`);
+      if (t.start !== r.start || t.end !== r.end)    changes.push(`시간 ${r.start}-${r.end}→${t.start}-${t.end}`);
+      if (t.room  !== r.room)                        changes.push(`공간 ${r.room}→${t.room}`);
+      return updateDoc(doc(db, 'reservations', t.id), {
+        room: t.room, date: t.date, start: t.start, end: t.end,
+        history: [...(r.history || []), { time: nowStr(), msg: `일괄 일정 변경 (${changes.join(', ')})` }]
+      });
+    }));
+    T(`${targets.length}건의 일정이 변경됐습니다`, '#3B6D11');
+    closeModal('modal-bulk-reschedule');
+    clearBulkSelect();
+  } catch (e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
 // 예약 목록에서 체크박스로 선택한 건들의 청지기 연락처만 바로 클립보드에 복사
 // (문자 작성 모달을 거치지 않고 번호만 빠르게 복사해서 문자 앱 등에 붙여넣기 위함)
