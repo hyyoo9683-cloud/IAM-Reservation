@@ -2205,6 +2205,19 @@ textarea { resize: vertical; min-height: 60px; }
   </div>
 </div>
 
+<!-- ════════════ 선택 일정 변경 후 메시지 선택 모달 ════════════ -->
+<div class="modal-bg" id="modal-reschedule-msg">
+  <div class="modal" style="max-width:320px">
+    <div class="modal-title">✅ 일정이 변경됐습니다</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">변경 안내 메시지를 바로 작성하시겠습니까?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary" style="justify-content:center" onclick="closeModal('modal-reschedule-msg');openBulkSmsModal('sms','change',lastRescheduleIds)">📨 문자 작성</button>
+      <button class="btn btn-ghost" style="justify-content:center;color:var(--green)" onclick="closeModal('modal-reschedule-msg');openBulkSmsModal('kakao','change',lastRescheduleIds)">💬 카카오 메시지 작성</button>
+      <button class="btn btn-ghost" style="justify-content:center;color:var(--text3)" onclick="closeModal('modal-reschedule-msg')">나중에</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 선택 예약 일괄 일정 변경 모달 ════════════ -->
 <div class="modal-bg" id="modal-bulk-reschedule">
   <div class="modal" style="max-width:420px">
@@ -2615,6 +2628,8 @@ let editId = null;
 let smsCtxId = null, smsCtxType = null;
 let smsBulkIds = null; // 다건 선택 문자/카카오 발송 모드일 때 선택된 예약 id 배열
 let smsBulkContacts = []; // 다건 선택 시 [ [tel, name], ... ] (중복 tel 제거)
+let smsBulkMode = 'confirm'; // 'confirm'(예약확정 안내) | 'change'(선택 일정 변경 후 안내)
+let lastRescheduleIds = []; // 선택 일정 변경 저장 직후, 변경 안내 문자 작성용으로 잠깐 보관
 let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
@@ -6680,12 +6695,12 @@ window.openSmsModal = (id, type, seriesDefault = true) => {
 };
 
 // 예약 목록에서 여러 건 선택 후 한 번에 문자/카카오 작성 (장소·시간·목적만 나열, 기본 형식 유지)
-window.openBulkSmsModal = (type) => {
-  const ids = getSelectedIds();
+window.openBulkSmsModal = (type, mode = 'confirm', idsOverride = null) => {
+  const ids = idsOverride || getSelectedIds();
   if (!ids.length) { T('선택된 예약이 없습니다', '#A32D2D'); return; }
   const rows = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
   if (!rows.length) return;
-  smsCtxId = null; smsCtxType = type;
+  smsCtxId = null; smsCtxType = type; smsBulkMode = mode;
   smsBulkIds = rows.map(r => r.id);
 
   document.getElementById('sms-series-toggle-wrap').style.display = 'none';
@@ -6901,9 +6916,10 @@ function renderBulkSmsBody() {
     `장소: ${roomToSmsName(e.room)}\n일시: ${e.ilsi}\n목적: ${e.purpose}`
   ).join('\n\n');
 
+  const isChange = smsBulkMode === 'change';
   const baseBody =
-`[예약확정 알림]
-신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.
+`${isChange ? '[예약변경 알림]' : '[예약확정 알림]'}
+${isChange ? '신청하신 IAM센터 예약 일정이 아래와 같이 변경되었습니다.' : '신청하신 IAM센터 예약이 확정되었습니다. 예약해주셔서 감사합니다.'}
 
 ${list}`;
 
@@ -8186,8 +8202,10 @@ window.submitBulkReschedule = async () => {
       });
     }));
     T(`${targets.length}건의 일정이 변경됐습니다`, '#3B6D11');
+    lastRescheduleIds = targets.map(t => t.id);
     closeModal('modal-bulk-reschedule');
     clearBulkSelect();
+    openModal('modal-reschedule-msg');
   } catch (e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
 // 예약 목록에서 체크박스로 선택한 건들의 청지기 연락처만 바로 클립보드에 복사
