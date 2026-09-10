@@ -7969,8 +7969,11 @@ window.saveQuickEdit = async () => {
 function getSelectedIds() {
   const fromRows = [...document.querySelectorAll('.row-chk:checked')].map(c => c.value);
   const fromGroups = [..._selectedGroupIds].flatMap(gid => {
-    const groupIds = reservations.filter(r => r.recurGroup === gid).map(r => r.id);
-    if (!expandedGroups.has(gid)) return groupIds; // 접혀있으면(개별 회차 체크 불가) 시리즈 전체 선택
+    // 그룹 체크박스의 data-ids는 "현재 검색·필터 조건에 걸려 화면에 보이는" 회차만 담고 있음
+    // (recurGroup 전체 문서를 다시 조회하면 날짜·이름 필터 밖의 과거/미래 회차까지 끌려옴)
+    const groupChk = document.querySelector(`.group-sel-btn[data-group="${gid}"]`);
+    const groupIds = groupChk ? (groupChk.dataset.ids || '').split(',').filter(Boolean) : [];
+    if (!expandedGroups.has(gid)) return groupIds; // 접혀있으면(개별 회차 체크 불가) 보이는 회차 전체 선택
     // 펼쳐진 상태면 개별 체크박스로 해제한 회차는 제외 — 그룹 헤더 체크 이후 일부 회차만
     // 체크 해제해도 해제한 회차가 계속 "선택됨"으로 남는 문제 방지
     const uncheckedIds = new Set(
