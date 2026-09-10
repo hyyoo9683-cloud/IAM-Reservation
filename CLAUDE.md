@@ -207,6 +207,16 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 (`submitBulkReschedule()`) 모두 `computeBulkRescheduleTargets()`/`findBulkRescheduleConflicts()`를
 공유해 같은 기준으로 판정함.
 
+## 예약 목록 체크박스 선택 (`getSelectedIds()`)
+정기 예약 그룹은 헤더 체크박스(`.group-sel-btn`, 접힌 상태에서도 시리즈 전체를 한 번에 선택)와,
+펼쳤을 때 회차별 체크박스(`.row-chk[data-group]`) 두 단계로 선택 가능. **그룹이 펼쳐져 있으면
+개별 체크박스 상태가 항상 우선**함 — 헤더로 전체 선택 후 일부 회차만 체크 해제하면 그 회차는
+선택에서 제외됨(`getSelectedIds()`가 `expandedGroups`를 확인해, 펼쳐진 그룹은 DOM의 개별 체크
+상태 기준으로 다시 필터링). 그룹이 접혀 있으면 개별 체크박스가 없으므로 헤더 체크 = 시리즈
+전체 선택으로 취급. `onRowCheck()`이 개별 체크박스를 누를 때마다 그 그룹의 헤더 체크박스를
+전체/일부(indeterminate)/없음 상태로 동기화하고 `_selectedGroupIds`도 함께 갱신함 — 반대로
+`toggleGroupSel()`은 헤더를 누르면 펼쳐진 개별 체크박스들도 그 상태로 맞춰줌.
+
 ### 정기 예약 복수 요일 (예: 매주 화·목)
 - 신청 폼에서 반복 유형이 "매 주"일 때만 요일 체크박스(`m-recur-weekday-list`, 시작 날짜의 요일은 항상 포함되어 해제 불가)로 요일을 추가 선택 가능 — `recurSelectedWeekdays` 전역 Set으로 관리
 - 2개 이상 선택 시에만 `generateAvailDates(sd, ed, recur, weekdays)`의 4번째 인자(`weekdays` 배열)를 사용해 선택된 요일 전체를 매주 반복 생성 — 1개(기존 단일 요일)면 `weekdays`를 넘기지 않아 기존 "시작일로부터 7일 간격" 로직 그대로 동작(하위 호환)
