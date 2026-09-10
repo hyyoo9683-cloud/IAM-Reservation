@@ -302,9 +302,21 @@ recurGroup으로 다시 조회하면 날짜 필터 범위 밖(예: 시작 날짜
 - 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김
 - `curUser` 가 null이면 상세 팝업에서도 개인정보 미표시
 
+## 저장공간 정리 (관리자 전용 페이지, index.html `go('storage-cleanup')`)
+- **오래된 사진·첨부파일 압축**: `spaces`(공간 사진)·`venue_requests`(큐시트) Storage 파일 중 6개월
+  지난 이미지를 화질 낮춰 같은 경로에 재업로드(원본 URL 유지, 파일 자체는 삭제 안 함).
+  `system/storageCleanup` 문서에 마지막 실행 기록
+- **오래된 예약 처리 이력 축약**: `reservations`는 삭제·핵심 필드 변경이 금지된 대상이라, 예약
+  날짜가 6개월 지난 문서의 `history`(처리 이력) 배열만 "N건 처리 이력 (6개월 경과, 축약됨)" 한
+  줄로 요약(`runHistoryCleanup()`) — 공간·날짜·시간·담당자·상태 등 다른 필드는 전혀 안 건드림.
+  이미 축약한 문서는 `historyCompacted: true`로 표시해 재실행 시 건너뜀. `system/historyCleanup`
+  문서에 마지막 실행 기록
+
 ## 주의사항
 - **데이터 절대 삭제 금지** — Firestore 실제 운영 데이터 (예약(`reservations`) 등 핵심 운영 데이터 대상)
   - 예외: `checkouts`(퇴실 체크 기록)는 청소 체크리스트 성격이라 장기 보관 필요 없음 — checkouts.html에
     관리자가 직접 확인/삭제할 수 있는 버튼이 있음 (사용자 명시적 요청으로 추가된 예외)
+  - `reservations`의 `history` 필드만은 "저장공간 정리" 페이지에서 6개월 지난 문서에 한해 요약
+    축약이 허용됨(위 참고) — 그 외 필드·문서 자체는 여전히 삭제·덮어쓰기 금지
 - index.html 수정 시 문법 오류 주의 (4500줄+ 단일 파일)
 - Firebase CI 토큰은 GitHub Secret `FIREBASE_TOKEN`에 저장됨 (채팅/코드에 노출 금지)
