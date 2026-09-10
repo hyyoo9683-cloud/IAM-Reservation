@@ -160,6 +160,7 @@ let curUser   = null;
 let history   = [];
 let quoteDates = [];
 let editingQuoteId = null; // 발행 이력에서 "수정"으로 불러온 견적의 문서 id (null이면 새 견적 작성 모드)
+let refRequestId = null; // venue.html 대관 신청에서 넘어온 경우 그 신청 문서 id (venue_requests) — 저장 시 quotations 문서에 함께 기록해 신청 목록에서 견적서를 역추적할 수 있게 함
 
 // 복합 견적(아론홀·샤론홀·5층 소그룹실) 상태 — 공간마다 체크박스로 켜고 끄는 고정 구성.
 // (예전에는 "+ 공간 추가"로 카드를 계속 늘리는 방식이었는데, 칸이 커서 불편하다는 피드백을 받아
@@ -275,6 +276,9 @@ onAuthStateChanged(auth, async user => {
   document.getElementById('user-name').textContent    = user.displayName||user.email.split('@')[0];
   initForm();
   await loadHistory();
+  // venue.html 등에서 "?id=견적서문서ID"로 들어온 경우, 그 견적서를 바로 불러와서 보여줌
+  const openId = new URLSearchParams(location.search).get('id');
+  if (openId && history.some(h => h.id === openId)) editQuote(openId);
 });
 
 function showLogin() {
@@ -304,6 +308,7 @@ function initForm() {
   document.getElementById('q-issue-date').value = today;
   document.getElementById('q-client').value     = params.get('client')  || '';
   document.getElementById('q-purpose').value    = params.get('purpose') || '';
+  refRequestId = params.get('ref') || null;
 
   try {
     const dp = params.get('dates');
@@ -850,6 +855,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       discountCustomPct: discountType === 'custom' ? Math.round(discountRate * 100) : 0,
       quoteLang: lang,
       memo,
+      refRequestId: refRequestId || null,
     };
     if (editingQuoteId) {
       await updateDoc(doc(db,'quotations', editingQuoteId), {
@@ -959,6 +965,7 @@ function resolveCombo(h) {
 }
 
 function loadQuoteIntoForm(h) {
+  refRequestId = h.refRequestId || refRequestId || null;
   const venueEl = document.getElementById('q-venue');
   const resolvedVenue = (h.venue && VENUES[h.venue]) ? h.venue : COMBO_VENUE;
   if (venueEl) venueEl.value = resolvedVenue;
