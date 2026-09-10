@@ -11,7 +11,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, doc,
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
   getDocs, orderBy, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
@@ -47,6 +47,11 @@ const VENUES = {
     stdEquip: [],
     paidServices: ['다과 IAM 제공', '케이터링', '다과 별도 준비', '기타 서비스'],
   },
+  '아이엠홀': {
+    type: 'hourly',
+    stdEquip: ['음향 시스템', '조명 시스템', '무선 마이크 4', '스크린·빔프로젝터'],
+    paidServices: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '조명 지원 (BMS)', '케이터링', '다과 별도 준비'],
+  },
 };
 
 const STATUSES = {
@@ -67,6 +72,7 @@ let quotesByRef = {}; // venue_requests 문서 id → 그 신청에 연결된 �
 let curId    = null;
 let curTab   = '전체';
 let formDates = [];
+let selectedSpaces = []; // 폼에서 현재 선택된 공간들 (지혜홀 선택 시 단독 선택으로 강제됨)
 let pendingCueSheet = null; // 업로드 대기 중인 큐시트 파일
 
 function renderDateRows() {
@@ -187,7 +193,7 @@ function renderList() {
       </div>
       <div class="req-card-mid">${esc(r.eventName||'(행사명 없음)')}</div>
       <div class="req-card-bot">
-        <span>${esc(r.space||'–')}</span>
+        <span>${esc((r.spaces?.length ? r.spaces : [r.space]).filter(Boolean).join(', ') || '–')}</span>
         <span>${r.eventDate||'날짜 미정'}</span>
         <span>${esc(r.managerName||'–')}</span>
       </div>
@@ -221,14 +227,25 @@ async function uploadCueSheet(file) {
   return { url, name: file.name };
 }
 
+// 선택된 공간들의 장비·유상서비스를 합쳐서(중복 제거) 보여줌 — 공간마다 목록이 달라
+// 여러 홀을 함께 선택해도 폼에서 놓치는 항목 없이 전부 체크할 수 있게 함
+function mergedVenueInfo(spaces) {
+  const type = spaces.some(s => VENUES[s]?.type === 'lodging') ? 'lodging' : 'hourly';
+  const stdEquip = [...new Set(spaces.flatMap(s => VENUES[s]?.stdEquip || []))];
+  const paidServices = [...new Set(spaces.flatMap(s => VENUES[s]?.paidServices || []))];
+  return { type, stdEquip, paidServices };
+}
+
 function buildFormHTML(r) {
   const isEdit  = !!r;
   const v       = (f, def='') => isEdit ? esc(r[f]||def) : def;
-  const curSpace = isEdit ? (r.space||'아론홀') : '아론홀';
-  const vInfo   = VENUES[curSpace] || VENUES['아론홀'];
+  selectedSpaces = isEdit
+    ? (r.spaces?.length ? r.spaces.filter(s => VENUES[s]) : (r.space && VENUES[r.space] ? [r.space] : ['아론홀']))
+    : ['아론홀'];
+  const vInfo = mergedVenueInfo(selectedSpaces);
 
   const spaceChips = Object.keys(VENUES).map(s =>
-    `<button type="button" class="space-chip${s===curSpace?' sel':''}" onclick="selectSpace('${s}')">${s}</button>`
+    `<button type="button" class="space-chip${selectedSpaces.includes(s)?' sel':''}" onclick="selectSpace('${s}')">${s}</button>`
   ).join('');
 
   const stdEquipHTML = vInfo.stdEquip.map(e =>
@@ -310,14 +327,14 @@ function buildFormHTML(r) {
     <div style="display:flex;gap:8px">
       ${quoteBtnHtml}
       ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>`:''}
+      ${isEdit?`<button class="btn-ghost" style="color:var(--red)" onclick="deleteRequest('${r.id}')">🗑 삭제</button>`:''}
     </div>
   </div>
   ${regBannerHtml}
   <div class="form-body">
-    <input type="hidden" id="f-space" value="${curSpace}">
 
     <!-- 1. 공간 선택 -->
-    <div class="form-sec first">공간 선택</div>
+    <div class="form-sec first">공간 선택 <span style="font-weight:400;color:var(--text3);font-size:11.5px">(여러 곳 함께 선택 가능 · 지혜홀은 단독으로만)</span></div>
     <div class="space-chips">${spaceChips}</div>
 
     <!-- 2. 업체 정보 -->
@@ -400,23 +417,37 @@ function buildFormHTML(r) {
 // ── 공간 전환 ──────────────────────────────────────────────
 
 window.selectSpace = space => {
-  document.getElementById('f-space').value = space;
+  const isLodging = VENUES[space]?.type === 'lodging';
+  if (isLodging) {
+    // 지혜홀(숙박)은 날짜 모델이 완전히 달라 다른 공간과 함께 선택할 수 없음 — 단독 선택으로 강제
+    selectedSpaces = selectedSpaces.includes(space) ? [] : [space];
+  } else {
+    // 숙박 공간이 이미 선택돼 있었다면(방금 위 분기로 들어온 상태) 비우고 시간제 공간으로 전환
+    selectedSpaces = selectedSpaces.filter(s => VENUES[s]?.type !== 'lodging');
+    if (selectedSpaces.includes(space)) {
+      if (selectedSpaces.length > 1) selectedSpaces = selectedSpaces.filter(s => s !== space);
+      // 마지막 하나는 해제 불가 — 최소 한 공간은 항상 선택돼 있어야 함
+    } else {
+      selectedSpaces.push(space);
+    }
+  }
+
   // 칩 선택 표시
   document.querySelectorAll('.space-chip').forEach(b =>
-    b.classList.toggle('sel', b.textContent === space)
+    b.classList.toggle('sel', selectedSpaces.includes(b.textContent))
   );
-  const vInfo = VENUES[space];
+  const vInfo = mergedVenueInfo(selectedSpaces);
   // 시간제/숙박 섹션 토글
   const hourly = document.getElementById('sec-hourly');
   const lodging = document.getElementById('sec-lodging');
   if (hourly)  hourly.style.display  = vInfo.type === 'hourly'  ? '' : 'none';
   if (lodging) lodging.style.display = vInfo.type === 'lodging' ? '' : 'none';
-  // 기본 장비 태그 (없으면 섹션 숨김)
+  // 기본 장비 태그 (없으면 섹션 숨김) — 선택된 모든 공간의 장비를 합쳐서 표시
   const stdSec = document.getElementById('sec-std-equip');
   const stdEl  = document.getElementById('std-equip');
   if (stdSec) stdSec.style.display = vInfo.stdEquip.length ? '' : 'none';
   if (stdEl)  stdEl.innerHTML = vInfo.stdEquip.map(e => `<span class="equip-tag">${e}</span>`).join('');
-  // 추가 서비스 체크박스
+  // 추가 서비스 체크박스 (선택된 모든 공간의 서비스를 합쳐서 표시, 체크 상태는 초기화됨)
   document.getElementById('paid-services').innerHTML =
     vInfo.paidServices.map(e =>
       `<label class="equip-opt"><input type="checkbox" value="${e}"> ${e}</label>`
@@ -437,9 +468,10 @@ window.toggleCateringDetail = el => {
 
 function collectForm(id) {
   const g = i => document.getElementById(i);
-  const space  = g('f-space')?.value || '';
-  const vInfo  = VENUES[space];
-  const isHourly = vInfo?.type === 'hourly';
+  const spaces = selectedSpaces.slice();
+  const space  = spaces[0] || ''; // 기존 코드·문서와의 하위 호환용 대표 공간(첫 번째 선택)
+  const vInfo  = mergedVenueInfo(spaces);
+  const isHourly = vInfo.type === 'hourly';
 
   const paidServices   = [...document.querySelectorAll('#paid-services input[type=checkbox]:checked')].map(c => c.value);
   const cateringVendor = document.querySelector('input[name="catering-vendor"]:checked')?.value || '';
@@ -450,7 +482,7 @@ function collectForm(id) {
   const eventDateEnd = dates.length > 1 ? dates[dates.length-1].date : '';
 
   const data = {
-    space,
+    space, spaces,
     orgName:      g('f-org')?.value.trim()  || '',
     managerName:  g('f-mgr')?.value.trim()  || '',
     tel:          g('f-tel')?.value.trim()  || '',
@@ -480,6 +512,7 @@ function collectForm(id) {
 
 window.saveNew = async () => {
   const data = collectForm(null);
+  if (!data.spaces.length) { alert('공간을 하나 이상 선택해주세요.'); return; }
   if (!data.orgName || !data.managerName || !data.tel) {
     alert('업체명, 담당자 이름, 연락처는 필수입니다.'); return;
   }
@@ -501,6 +534,7 @@ window.saveNew = async () => {
 
 window.saveEdit = async id => {
   const data = collectForm(id);
+  if (!data.spaces.length) { alert('공간을 하나 이상 선택해주세요.'); return; }
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
@@ -525,6 +559,21 @@ window.setStatus = async (id, status) => {
   } catch(e) { alert('상태 변경 실패: ' + e.message); }
 };
 
+// 신청서 자체를 삭제 — 견적서(quotations)나 이미 등록된 예약(reservations)은 지워지지 않고 그대로 남음
+window.deleteRequest = async id => {
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  const warn = r.reservationIds?.length
+    ? `\n(이미 등록된 예약 ${r.reservationIds.length}건은 삭제되지 않고 그대로 남습니다.)` : '';
+  if (!confirm(`"${r.orgName||'이 신청'}" 신청서를 삭제하시겠습니까? 되돌릴 수 없습니다.${warn}`)) return;
+  try {
+    await deleteDoc(doc(db,'venue_requests', id));
+    if (curId === id) curId = null;
+    await loadRequests();
+    showNewForm();
+  } catch(e) { alert('삭제 실패: ' + e.message); }
+};
+
 window.openRequest = id => {
   curId = id; renderList();
   pendingCueSheet = null;
@@ -543,6 +592,9 @@ window.openQuotation = id => {
   const dates = r.dates?.length
     ? r.dates
     : [{ date: r.eventDate||'', timeStart: r.timeStart||'', timeEnd: r.timeEnd||'' }];
+  // 공간이 여러 개 선택된 신청이면(spaces 배열) 대표 공간(r.space, 첫 번째로 선택한 곳) 기준으로만
+  // 견적서 폼을 채워줌 — quotation.html의 복합 견적 모드가 아이엠홀·지혜홀까지는 지원하지 않아
+  // 나머지 공간은 관리자가 견적서에서 직접 추가해야 함
   const params = new URLSearchParams({
     venue:   r.space   || '',
     dates:   JSON.stringify(dates),
@@ -580,8 +632,10 @@ window.registerAsReservation = async (id) => {
   if (r.reservationIds?.length &&
       !confirm(`이미 ${r.reservationIds.length}건의 예약이 등록되어 있습니다. 그래도 새로 등록하시겠습니까? (기존 예약은 그대로 남고 새로 추가됩니다)`)) return;
 
-  const vInfo = VENUES[r.space];
-  const isLodging = vInfo?.type === 'lodging';
+  const spaces = (r.spaces?.length ? r.spaces : [r.space]).filter(s => VENUES[s]);
+  if (!spaces.length) { alert('신청서에 유효한 공간 정보가 없습니다.'); return; }
+  const isLodging = VENUES[spaces[0]]?.type === 'lodging'; // 지혜홀은 항상 단독 선택이라 spaces[0]만으로 충분
+
   let items = [];
   if (isLodging) {
     if (!r.dateIn || !r.nights) { alert('체크인 날짜·박수 정보가 없어 예약을 등록할 수 없습니다. 신청서를 먼저 채워주세요.'); return; }
@@ -596,16 +650,18 @@ window.registerAsReservation = async (id) => {
   }
   if (!items.length) { alert('예약을 만들 날짜·시간 정보가 부족합니다. 신청서 내용을 확인해주세요.'); return; }
 
-  const conflicts = await checkRoomConflicts(r.space, items);
-  if (conflicts.length) {
-    alert(`다음 날짜에 이미 확정된 예약이 있어 등록할 수 없습니다:\n${conflicts.map(c => c.date).join(', ')}`);
+  // 선택된 공간이 여러 곳이면 같은 날짜·시간에 공간별로 각각 예약을 만들기 때문에, 공간별로 따로 충돌 확인
+  const conflictsBySpace = await Promise.all(spaces.map(async sp => ({ sp, conflicts: await checkRoomConflicts(sp, items) })));
+  const anyConflicts = conflictsBySpace.filter(x => x.conflicts.length);
+  if (anyConflicts.length) {
+    const msg = anyConflicts.map(x => `${x.sp}: ${x.conflicts.map(c => c.date).join(', ')}`).join('\n');
+    alert(`다음 공간·날짜에 이미 확정된 예약이 있어 등록할 수 없습니다:\n${msg}`);
     return;
   }
 
   const btn = document.getElementById('btn-register-reservation');
   if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
   try {
-    const recurGroup = items.length > 1 ? `venue_${Date.now()}` : null;
     const base = {
       type: r.orgName || '외부 대관',
       managerName: r.managerName || '',
@@ -621,26 +677,31 @@ window.registerAsReservation = async (id) => {
       base.checkinTime = r.timeStart || '';
       base.checkoutTime = r.timeEnd || '';
     }
-    if (recurGroup) {
-      base.recurGroup = recurGroup;
-      base.recurType  = isLodging ? '연박' : '비정기';
-      base.recurTotal = items.length;
-    }
     const newIds = [];
-    for (const it of items) {
-      const docRef = await addDoc(collection(db,'reservations'), {
-        ...base, room: r.space, date: it.date, start: it.start, end: it.end,
-        createdAt: serverTimestamp(),
-        history: [{ time: nowStr(), msg: `대관 신청에서 예약 등록 (venue_requests/${r.id})` }],
-      });
-      newIds.push(docRef.id);
+    // 공간마다 별도의 recurGroup으로 묶음 — 같은 시간대라도 실이 다르면 서로 다른 예약 시리즈로 취급
+    for (const sp of spaces) {
+      const recurGroup = items.length > 1 ? `venue_${Date.now()}_${sp}` : null;
+      const spBase = { ...base };
+      if (recurGroup) {
+        spBase.recurGroup = recurGroup;
+        spBase.recurType  = isLodging ? '연박' : '비정기';
+        spBase.recurTotal = items.length;
+      }
+      for (const it of items) {
+        const docRef = await addDoc(collection(db,'reservations'), {
+          ...spBase, room: sp, date: it.date, start: it.start, end: it.end,
+          createdAt: serverTimestamp(),
+          history: [{ time: nowStr(), msg: `대관 신청에서 예약 등록 (venue_requests/${r.id})` }],
+        });
+        newIds.push(docRef.id);
+      }
     }
     await updateDoc(doc(db,'venue_requests', r.id), {
       reservationIds: [...(r.reservationIds||[]), ...newIds],
     });
     await loadRequests();
     openRequest(r.id);
-    alert(`예약 ${items.length}건이 등록되었습니다.`);
+    alert(`예약 ${newIds.length}건이 등록되었습니다. (공간 ${spaces.length}곳 × ${items.length}일정)`);
   } catch(e) {
     alert('예약 등록 실패: ' + e.message);
     if (btn) { btn.disabled = false; btn.textContent = '📅 예약으로 등록'; }
