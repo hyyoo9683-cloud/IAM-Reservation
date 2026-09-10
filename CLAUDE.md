@@ -205,7 +205,11 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 시간·공간 select를 바꿀 때마다 `checkBulkReschedule()`이 건별로 "날짜(요일) 시간 · 공간 — ✓ 가능/
 ✗ 충돌" 미리보기(`#br-preview`)를 바로 보여줘서 저장 전에 확인 가능 — 미리보기와 실제 저장
 (`submitBulkReschedule()`) 모두 `computeBulkRescheduleTargets()`/`findBulkRescheduleConflicts()`를
-공유해 같은 기준으로 판정함.
+공유해 같은 기준으로 판정함. 저장 성공 시 예약 승인 때와 같은 방식으로 "변경 안내 메시지를 바로
+작성하시겠습니까?" 팝업(`#modal-reschedule-msg`)이 뜨고, 문자/카카오 선택 시 방금 변경된 건들
+기준으로 `openBulkSmsModal(type, 'change', lastRescheduleIds)`가 열림 — `smsBulkMode`
+(`'confirm'`|`'change'`)에 따라 `renderBulkSmsBody()`가 "[예약확정 알림]"/"[예약변경 알림]" 중
+맞는 문구를 사용함.
 
 ## 예약 목록 체크박스 선택 (`getSelectedIds()`)
 정기 예약 그룹은 헤더 체크박스(`.group-sel-btn`, 접힌 상태에서도 시리즈 전체를 한 번에 선택)와,
