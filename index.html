@@ -22,7 +22,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query,
+  import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query, where,
     onSnapshot, serverTimestamp, increment, deleteField }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata }
@@ -54,7 +54,7 @@
   window._fb = {
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, orderBy, query,
+    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, orderBy, query, where,
     ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
@@ -2113,6 +2113,21 @@ textarea { resize: vertical; min-height: 60px; }
           <div class="card-title">실행 결과</div>
           <div id="sc-result"></div>
         </div>
+
+        <div class="card">
+          <div class="card-title">오래된 예약 처리 이력 축약</div>
+          <div style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 12px">
+            예약 날짜가 오늘 기준 <b>6개월</b>보다 지난 예약들의 <b>처리 이력(history, 수정·승인·취소 등 로그)</b>만
+            "N건 처리됨(축약됨)" 한 줄로 요약합니다. <b>공간·날짜·시간·담당자·상태 등 예약 자체의 정보는
+            전혀 바뀌지 않으며</b>, 문서 자체도 삭제하지 않습니다 — history가 길게 쌓인 문서의 용량만 줄입니다.
+          </div>
+          <div id="hc-last-run" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+          <button class="btn btn-primary" id="hc-run-btn" onclick="runHistoryCleanup()">🗜 지금 축약 실행</button>
+        </div>
+        <div class="card" id="hc-result-card" style="display:none">
+          <div class="card-title">실행 결과</div>
+          <div id="hc-result"></div>
+        </div>
       </div>
     </div>
 
@@ -2646,7 +2661,7 @@ const fb = window._fb;
 const {
   auth, db, storage,
   GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField,
+  collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, query, where,
   ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
   ALLOWED_DOMAIN, ADMIN_EMAILS
 } = fb;
@@ -3335,6 +3350,84 @@ window.runStorageCleanup = async () => {
   renderStorageCleanup();
 };
 
+// ── 오래된 예약 처리 이력(history) 축약 ──────────────────────────
+// 예약 자체(공간·날짜·시간·담당자·상태 등)는 절대 건드리지 않고, 그 예약의 history 배열만
+// 한 줄 요약으로 줄임 — reservations는 CLAUDE.md 규칙상 삭제·핵심 필드 변경 금지 대상이라
+// "정리"의 범위를 history 필드 하나로만 한정함
+window.renderHistoryCleanup = async () => {
+  const el = document.getElementById('hc-last-run');
+  if (!el) return;
+  el.textContent = '불러오는 중…';
+  try {
+    const snap = await getDoc(doc(db, 'system', 'historyCleanup'));
+    if (snap.exists() && snap.data().lastRunAt) {
+      const raw = snap.data().lastRunAt;
+      const d = raw.toDate ? raw.toDate() : new Date(raw);
+      const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
+      el.textContent = `마지막 실행: ${d.toLocaleDateString('ko-KR')} (${daysAgo}일 전)` +
+        (daysAgo >= 180 ? ' — 6개월이 지났어요. 다시 실행해 주세요.' : '');
+    } else {
+      el.textContent = '아직 실행한 적이 없습니다.';
+    }
+  } catch (e) {
+    el.textContent = '';
+  }
+};
+
+window.runHistoryCleanup = async () => {
+  const btn = document.getElementById('hc-run-btn');
+  const resultCard = document.getElementById('hc-result-card');
+  const resultEl = document.getElementById('hc-result');
+  if (!btn) return;
+  if (!confirm('예약 날짜가 6개월보다 지난 예약들의 처리 이력(history)만 한 줄로 축약합니다.\n예약 자체의 정보는 바뀌지 않고 문서도 삭제되지 않습니다. 계속할까요?')) return;
+  btn.disabled = true; btn.textContent = '축약 진행 중…';
+  resultCard.style.display = 'none';
+
+  const cutoff = toDateStr(new Date(Date.now() - 1000 * 60 * 60 * 24 * 182)); // 약 6개월
+  const summary = { scanned: 0, eligible: 0, compacted: 0, errors: 0 };
+  try {
+    const snap = await getDocs(query(collection(db, 'reservations'), where('date', '<', cutoff)));
+    summary.scanned = snap.size;
+    const targets = snap.docs.filter(d => {
+      const data = d.data();
+      return !data.historyCompacted && Array.isArray(data.history) && data.history.length > 1;
+    });
+    summary.eligible = targets.length;
+    for (const d of targets) {
+      const history = d.data().history;
+      try {
+        await updateDoc(doc(db, 'reservations', d.id), {
+          history: [{ time: nowStr(), msg: `${history.length}건 처리 이력 (6개월 경과, 축약됨)` }],
+          historyCompacted: true,
+        });
+        summary.compacted++;
+      } catch (e) {
+        summary.errors++;
+      }
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:13px">조회 실패: ${e.message}</div>`;
+    resultCard.style.display = '';
+    btn.disabled = false; btn.textContent = '🗜 지금 축약 실행';
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, 'system', 'historyCleanup'), { lastRunAt: serverTimestamp(), summary, runBy: curUser?.email || '' });
+  } catch (e) {}
+
+  resultEl.innerHTML = `
+    <div style="font-size:13.5px;line-height:2;color:var(--text)">
+      6개월 이전 예약: <b>${summary.scanned}개</b><br>
+      축약 대상 (이력 2건 이상 · 미처리): <b>${summary.eligible}개</b><br>
+      축약 완료: <b style="color:var(--green)">${summary.compacted}개</b><br>
+      오류: <b style="color:${summary.errors ? 'var(--red)' : 'var(--text3)'}">${summary.errors}개</b>
+    </div>`;
+  resultCard.style.display = '';
+  btn.disabled = false; btn.textContent = '🗜 지금 축약 실행';
+  renderHistoryCleanup();
+};
+
 // ── 예약 변경·취소 신청 (관리자) ──────────────────────────────
 window.setChangeReqTab = (tab) => {
   changeReqTab = tab;
@@ -3836,7 +3929,7 @@ window.go = (page) => {
   if (page === 'blocked')        renderBlockedDates();
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
-  if (page === 'storage-cleanup') renderStorageCleanup();
+  if (page === 'storage-cleanup') { renderStorageCleanup(); renderHistoryCleanup(); }
   if (page === 'change-requests') renderChangeRequests();
 };
 
