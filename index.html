@@ -239,7 +239,13 @@ textarea { resize: vertical; min-height: 60px; }
 /* ── 예약 목록 일괄 작업 바 (기능별로 묶어서 구분) ── */
 .bulk-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .bulk-group-lbl { font-size: 10.5px; font-weight: 700; color: var(--text3); white-space: nowrap; margin-right: 2px; }
-.bulk-sep { width: 1px; align-self: stretch; min-height: 22px; background: var(--border2); }
+.bulk-sep { width: 1px; align-self: stretch; min-height: 20px; background: var(--border2); }
+.bulk-mini { font-size: 11.5px; padding: 4px 7px; border: 1px solid var(--border2); border-radius: 6px; background: #fff; color: var(--text2); }
+.bulk-btn {
+  font-size: 11.5px; padding: 4px 9px; border: 1px solid var(--border2); border-radius: 6px;
+  background: #fff; color: var(--text2); cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.bulk-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-lt); }
 
 /* ── 목록/상세 분할 레이아웃 (변경·취소 신청, 퇴실 체크 이력 등) ── */
 .cr-split { display: flex; gap: 14px; align-items: flex-start; }
@@ -1696,52 +1702,50 @@ textarea { resize: vertical; min-height: 60px; }
         <select id="ftime-e" onchange="filterRenderList()" style="width:100px;padding:7px 8px;font-size:13px"><option value="">종료 전체</option></select>
       </div>
       <!-- 일괄 액션 바 (선택 시 노출) -->
-      <div id="bulk-bar" style="display:none;background:var(--blue-lt);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:10px;flex-direction:column;gap:8px">
-        <span id="bulk-count" style="font-size:12px;font-weight:600;color:var(--blue)">0개 선택</span>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <div id="bulk-bar" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;flex-direction:column;gap:6px">
+        <span id="bulk-count" style="font-size:11.5px;font-weight:600;color:var(--text2)">0개 선택</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
 
           <div class="bulk-group">
             <span class="bulk-group-lbl">분류</span>
-            <select id="bulk-type-sel" style="width:130px;font-size:12px" onchange="updateBulkSubOrgs()">
-              <option value="">기관 변경 선택</option>
+            <select id="bulk-type-sel" class="bulk-mini" style="width:120px" onchange="updateBulkSubOrgs();bulkChangeType()">
+              <option value="">기관 변경</option>
             </select>
-            <button class="btn btn-primary" style="font-size:12px;padding:5px 12px" onclick="bulkChangeType()">기관 변경</button>
-            <select id="bulk-subtype-sel" style="width:150px;font-size:12px">
-              <option value="">세부기관 변경 선택</option>
+            <select id="bulk-subtype-sel" class="bulk-mini" style="width:140px" onchange="bulkChangeSubOrg()">
+              <option value="">세부기관 변경</option>
             </select>
-            <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;background:var(--green);border-color:var(--green)" onclick="bulkChangeSubOrg()">세부기관 변경</button>
           </div>
 
           <span class="bulk-sep"></span>
 
           <div class="bulk-group">
             <span class="bulk-group-lbl">정기예약</span>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--green);border-color:var(--green)" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--amber,#854F0B);border-color:var(--amber,#854F0B)" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
+            <button class="bulk-btn" onclick="bulkGroupRecur()">🔁 정기 예약으로 묶기</button>
+            <button class="bulk-btn" onclick="bulkUngroupRecur()">🔓 그룹에서 분리(개별화)</button>
           </div>
 
           <span class="bulk-sep"></span>
 
           <div class="bulk-group">
             <span class="bulk-group-lbl">일정</span>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--blue)" onclick="openBulkRescheduleModal()">📅 선택 일정 변경</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--red)" onclick="bulkCancelSelected()">✕ 선택 취소</button>
+            <button class="bulk-btn" onclick="openBulkRescheduleModal()">📅 선택 일정 변경</button>
+            <button class="bulk-btn" onclick="bulkCancelSelected()">✕ 선택 취소</button>
           </div>
 
           <span class="bulk-sep"></span>
 
           <div class="bulk-group">
             <span class="bulk-group-lbl">연락</span>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:var(--blue)" onclick="copySelectedStewardTels()">📋 청지기 번호 복사</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:#5E7468" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px;color:#3B6D11" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
+            <button class="bulk-btn" onclick="copySelectedStewardTels()">📋 청지기 번호 복사</button>
+            <button class="bulk-btn" onclick="openBulkSmsModal('sms')">📨 선택 문자</button>
+            <button class="bulk-btn" onclick="openBulkSmsModal('kakao')">💬 선택 카카오</button>
           </div>
 
           <span class="bulk-sep"></span>
 
           <div class="bulk-group" style="margin-left:auto">
-            <button class="btn btn-red"   style="font-size:12px;padding:5px 12px" onclick="bulkDelete()">🗑 선택 삭제</button>
-            <button class="btn btn-ghost" style="font-size:12px;padding:5px 12px" onclick="clearBulkSelect()">선택 해제</button>
+            <button class="bulk-btn" style="color:var(--red)" onclick="bulkDelete()">🗑 선택 삭제</button>
+            <button class="bulk-btn" onclick="clearBulkSelect()">선택 해제</button>
           </div>
 
         </div>
