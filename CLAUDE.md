@@ -23,8 +23,8 @@
 | `notice.html` | 공지사항 관리 (로그인 필요) |
 | `notices-public.html` | 공지사항 공개 페이지 |
 | `portal.html` | 인트라넷 포털 |
-| `quotation.html` | 견적서 발급 |
-| `venue.html` | 대관 신청 관리 |
+| `quotation.html` | 견적서 발급 — `?ref=venue_requests문서ID`로 열리면(venue.html에서 연결) 저장 시 그 값을 `quotations.refRequestId`로 함께 기록. `?id=견적서문서ID`로 열리면 발행 이력에서 그 견적서를 자동으로 불러와 보여줌(venue.html의 "견적서 보기" 링크가 이 방식 사용) |
+| `venue.html` | 대관 신청 관리 — 신청 목록을 불러올 때 `quotations`도 함께 읽어 신청 건별 가장 최근 견적서를 매칭(`quotesByRef`). 카드에 "📄 견적 ○○○원 보기" 표시, 상세 패널 버튼도 이미 견적서가 있으면 "📄 견적서 보기"(quotation.html?id=...)로 바뀜 — 재발행이 필요하면 "+ 새 견적서"로 별도 작성(같은 신청에 여러 견적서가 쌓일 수 있고, 그중 issuedAt 기준 가장 최근 것만 카드에 연결됨) |
 | `event-checklist.html` | 행사 준비 체크리스트(공통 항목, `eventChecklists` 컬렉션) 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
 | `checklist-view.html` | `event-checklist.html`의 체크리스트 단건 보기/체크 (대시보드 "이번 주 체크리스트"에서 연결, 로그인 필요) |
 | `manager-checklist.html` | 담당자별 개인 체크리스트(`managerChecklists` 컬렉션, 예약건마다 담당자 개인이 자유롭게 항목 작성) — `event-checklist.html`과는 별개 기능. 예약을 아론홀·샤론홀·아이엠홀·전체 탭으로 필터링해 선택 |
