@@ -3475,12 +3475,11 @@ window.jumpToReservationFromRequest = (reqId) => {
   const fname = document.getElementById('fname');
   const fds = document.getElementById('fdate-s');
   const fde = document.getElementById('fdate-e');
-  if (fr && r.room && [...fr.options].some(o => o.value === r.room)) {
-    fr.value = r.room;
-    if (fname) fname.value = '';
-  } else if (fname) {
-    fname.value = r.room || '';
-  }
+  const roomMatched = fr && r.room && [...fr.options].some(o => o.value === r.room);
+  if (fr) fr.value = roomMatched ? r.room : '';
+  // 청지기(신청자) 이름으로도 검색되도록 채워서 같은 공간·날짜에 여러 건이 있어도 바로 찾을 수 있게 함
+  // (이름 정보가 없고 공간도 select에서 못 찾았을 때만, 예전처럼 공간명을 텍스트 검색어로 사용)
+  if (fname) fname.value = r.requesterName || r.managerName || (!roomMatched ? (r.room || '') : '');
   if (fds) fds.value = r.date || '';
   if (fde) fde.value = r.date || '';
   filterRenderList();
