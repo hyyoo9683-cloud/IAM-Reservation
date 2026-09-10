@@ -2212,7 +2212,7 @@ textarea { resize: vertical; min-height: 60px; }
     <div id="bulk-resched-count" style="font-size:12px;color:var(--text2);margin-bottom:12px"></div>
     <div class="fg">
       <div class="lbl">요일 변경</div>
-      <select id="br-weekday">
+      <select id="br-weekday" onchange="checkBulkReschedule()">
         <option value="">변경 안 함</option>
         <option value="0">일요일로</option>
         <option value="1">월요일로</option>
@@ -2225,13 +2225,14 @@ textarea { resize: vertical; min-height: 60px; }
       <div style="font-size:11px;color:var(--text3);margin-top:4px">선택한 각 건을 그 주(일~토) 안에서 지정한 요일로 옮깁니다</div>
     </div>
     <div class="fl">
-      <div class="fg"><div class="lbl">시작 시간</div><select id="br-start"><option value="">변경 안 함</option></select></div>
-      <div class="fg"><div class="lbl">종료 시간</div><select id="br-end"><option value="">변경 안 함</option></select></div>
+      <div class="fg"><div class="lbl">시작 시간</div><select id="br-start" onchange="checkBulkReschedule()"><option value="">변경 안 함</option></select></div>
+      <div class="fg"><div class="lbl">종료 시간</div><select id="br-end" onchange="checkBulkReschedule()"><option value="">변경 안 함</option></select></div>
     </div>
     <div class="fg">
       <div class="lbl">공간 변경</div>
-      <select id="br-room"><option value="">변경 안 함</option></select>
+      <select id="br-room" onchange="checkBulkReschedule()"><option value="">변경 안 함</option></select>
     </div>
+    <div id="br-preview" style="font-size:12.5px;margin-bottom:10px"></div>
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitBulkReschedule()">변경 저장</button>
       <button class="btn btn-ghost" onclick="closeModal('modal-bulk-reschedule')">취소</button>
@@ -8075,22 +8076,16 @@ window.openBulkRescheduleModal = () => {
   document.getElementById('br-end').innerHTML   = timeOpts;
   const roomSel = document.getElementById('br-room');
   roomSel.innerHTML = '<option value="">변경 안 함</option>' + spaceSort(spaces).map(s => `<option>${s.name}</option>`).join('');
+  document.getElementById('br-preview').innerHTML = '';
   openModal('modal-bulk-reschedule');
 };
-window.submitBulkReschedule = async () => {
-  const ids = getSelectedIds();
-  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
-  const weekdayVal = document.getElementById('br-weekday').value;
-  const newStart = document.getElementById('br-start').value;
-  const newEnd   = document.getElementById('br-end').value;
-  const newRoom  = document.getElementById('br-room').value;
-  if (weekdayVal === '' && !newStart && !newEnd && !newRoom) {
-    T('요일·시간·공간 중 하나 이상 변경할 값을 선택해주세요', '#A32D2D'); return;
-  }
-  if ((newStart && !newEnd) || (!newStart && newEnd)) { T('시작·종료 시간은 함께 선택해주세요', '#A32D2D'); return; }
-  if (newStart && newEnd && newStart >= newEnd) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
 
-  const idSet = new Set(ids);
+// 선택 항목 + 모달에 입력된 값으로 "실제로 이동될 대상"을 계산 (미리보기·저장에서 공유)
+function computeBulkRescheduleTargets(ids) {
+  const weekdayVal = document.getElementById('br-weekday').value;
+  const newStart   = document.getElementById('br-start').value;
+  const newEnd     = document.getElementById('br-end').value;
+  const newRoom    = document.getElementById('br-room').value;
   const rows = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean);
   const targets = rows.map(r => {
     let date = r.date;
@@ -8101,14 +8096,55 @@ window.submitBulkReschedule = async () => {
     }
     return { id: r.id, room: newRoom || r.room, date, start: newStart || r.start, end: newEnd || r.end };
   });
-
-  // 충돌 확인: 선택 항목 밖의 기존 확정 예약과 겹치는지 + 선택 항목끼리 서로 겹치는지
-  const conflicts = targets.filter(t =>
+  return { weekdayVal, newStart, newEnd, newRoom, rows, targets };
+}
+// 충돌 확인: 선택 항목 밖의 기존 확정 예약과 겹치는지 + 선택 항목끼리(이동 후) 서로 겹치는지
+function findBulkRescheduleConflicts(targets, idSet) {
+  return targets.filter(t =>
     reservations.some(r => !idSet.has(r.id) && r.room === t.room && r.date === t.date &&
       r.status === '확정' && !(t.end <= r.start || t.start >= r.end)) ||
     targets.some(o => o.id !== t.id && o.room === t.room && o.date === t.date &&
       !(t.end <= o.start || t.start >= o.end))
   );
+}
+// 요일·시간·공간 select를 바꿀 때마다, 실제로 저장하면 어떻게 되는지(공간이 비어있는지 포함)
+// 건별로 바로 보여줌 — 저장을 눌러보기 전에 충돌 여부를 미리 확인할 수 있게 함
+window.checkBulkReschedule = () => {
+  const ids = getSelectedIds();
+  const el = document.getElementById('br-preview');
+  if (!ids.length) { el.innerHTML = ''; return; }
+  const { weekdayVal, newStart, newRoom, targets } = computeBulkRescheduleTargets(ids);
+  if (weekdayVal === '' && !newStart && !newRoom) {
+    el.innerHTML = '<div style="color:var(--text3)">요일·시간·공간을 변경하면 건별로 실 사용 가능 여부를 미리 보여줍니다</div>';
+    return;
+  }
+  const idSet = new Set(ids);
+  const conflictIds = new Set(findBulkRescheduleConflicts(targets, idSet).map(t => t.id));
+  const DOWS_KR = ['일','월','화','수','목','금','토'];
+  el.innerHTML = targets.map(t => {
+    const ok = !conflictIds.has(t.id);
+    const dow = DOWS_KR[new Date(t.date + 'T00:00:00').getDay()];
+    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;color:${ok ? 'var(--text2)' : 'var(--red)'}">
+      <span>${t.date}(${dow}) ${t.start}-${t.end} · ${(t.room||'').replace(/</g,'&lt;')}</span>
+      <span style="font-weight:700;white-space:nowrap">${ok ? '✓ 가능' : '✗ 충돌'}</span>
+    </div>`;
+  }).join('') + (conflictIds.size
+    ? `<div style="color:var(--red);font-size:11px;margin-top:4px">⚠️ 충돌하는 ${conflictIds.size}건이 있어 이대로는 저장할 수 없습니다</div>`
+    : '');
+};
+
+window.submitBulkReschedule = async () => {
+  const ids = getSelectedIds();
+  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
+  const { weekdayVal, newStart, newEnd, newRoom, rows, targets } = computeBulkRescheduleTargets(ids);
+  if (weekdayVal === '' && !newStart && !newEnd && !newRoom) {
+    T('요일·시간·공간 중 하나 이상 변경할 값을 선택해주세요', '#A32D2D'); return;
+  }
+  if ((newStart && !newEnd) || (!newStart && newEnd)) { T('시작·종료 시간은 함께 선택해주세요', '#A32D2D'); return; }
+  if (newStart && newEnd && newStart >= newEnd) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
+
+  const idSet = new Set(ids);
+  const conflicts = findBulkRescheduleConflicts(targets, idSet);
   if (conflicts.length) {
     T(`다음 항목이 다른 예약과 겹쳐서 변경할 수 없습니다: ${conflicts.map(t => `${t.date} ${t.start}-${t.end}`).join(', ')}`, '#A32D2D');
     return;
