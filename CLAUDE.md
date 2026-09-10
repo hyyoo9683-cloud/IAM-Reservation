@@ -24,7 +24,7 @@
 | `notices-public.html` | 공지사항 공개 페이지 |
 | `portal.html` | 인트라넷 포털 |
 | `quotation.html` | 견적서 발급 — `?ref=venue_requests문서ID`로 열리면(venue.html에서 연결) 저장 시 그 값을 `quotations.refRequestId`로 함께 기록. `?id=견적서문서ID`로 열리면 발행 이력에서 그 견적서를 자동으로 불러와 보여줌(venue.html의 "견적서 보기" 링크가 이 방식 사용) |
-| `venue.html` | 대관 신청 관리 (아론홀·샤론홀·지혜홀만 대상 — 아이엠홀은 금액/항목 미확정으로 이 폼 자체에 없음) — 신청 목록을 불러올 때 `quotations`도 함께 읽어 신청 건별 가장 최근 견적서를 매칭(`quotesByRef`). 카드에 "📄 견적 ○○○원 보기" 표시, 상세 패널 버튼도 이미 견적서가 있으면 "📄 견적서 보기"(quotation.html?id=...)로 바뀜 — 재발행이 필요하면 "+ 새 견적서"로 별도 작성(같은 신청에 여러 견적서가 쌓일 수 있고, 그중 issuedAt 기준 가장 최근 것만 카드에 연결됨). 신청 상태가 "승인"이면 상세 화면에 "📅 예약으로 등록" 버튼이 뜨며(`registerAsReservation()`), 누르면 신청서 내용을 바탕으로 실제 `reservations` 문서를 확정 상태로 생성함 — 자동 트리거가 아니라 관리자가 직접 눌러야 하는 수동 버튼(상태를 "승인"으로 바꾼다고 자동 생성되지 않음, 중복 생성 방지를 관리자가 통제하도록 의도적으로 설계). 아래 "대관 신청 → 예약 등록 연동" 참고 |
+| `venue.html` | 대관 신청 관리 (아론홀·샤론홀·아이엠홀·지혜홀 대상) — 공간 칩을 여러 개 함께 선택 가능(`selectedSpaces` 배열, 신청 문서에 `spaces` 필드로 저장, `space`는 대표/첫 번째 공간으로 하위 호환 유지). 지혜홀(숙박)은 날짜 모델이 달라 항상 단독 선택으로 강제됨. 신청 목록을 불러올 때 `quotations`도 함께 읽어 신청 건별 가장 최근 견적서를 매칭(`quotesByRef`). 카드에 "📄 견적 ○○○원 보기" 표시, 상세 패널 버튼도 이미 견적서가 있으면 "📄 견적서 보기"(quotation.html?id=...)로 바뀜 — 재발행이 필요하면 "+ 새 견적서"로 별도 작성(같은 신청에 여러 견적서가 쌓일 수 있고, 그중 issuedAt 기준 가장 최근 것만 카드에 연결됨). 신청 상태가 "승인"이면 상세 화면에 "📅 예약으로 등록" 버튼이 뜨며(`registerAsReservation()`), 누르면 신청서 내용을 바탕으로 실제 `reservations` 문서를 확정 상태로 생성함(공간이 여러 곳이면 공간마다 별도로 생성) — 자동 트리거가 아니라 관리자가 직접 눌러야 하는 수동 버튼(상태를 "승인"으로 바꾼다고 자동 생성되지 않음, 중복 생성 방지를 관리자가 통제하도록 의도적으로 설계). 상세 화면 "🗑 삭제"로 신청서 자체 삭제 가능(`deleteRequest()`, 이미 발행된 견적서·등록된 예약은 삭제되지 않고 남음). 아래 "대관 신청 → 예약 등록 연동" 참고 |
 | `event-checklist.html` | 행사 준비 체크리스트(공통 항목, `eventChecklists` 컬렉션) 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
 | `checklist-view.html` | `event-checklist.html`의 체크리스트 단건 보기/체크 (대시보드 "이번 주 체크리스트"에서 연결, 로그인 필요) |
 | `manager-checklist.html` | 담당자별 개인 체크리스트(`managerChecklists` 컬렉션, 예약건마다 담당자 개인이 자유롭게 항목 작성) — `event-checklist.html`과는 별개 기능. 예약을 아론홀·샤론홀·아이엠홀·전체 탭으로 필터링해 선택 |
@@ -252,31 +252,44 @@ recurGroup으로 다시 조회하면 날짜 필터 범위 밖(예: 시작 날짜
 ## 셀프 예약 불가 공간 (아이엠홀·지혜홀)
 - `index.html`의 `SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀']` — 일반 사용자 예약 신청 칩(`buildRoomChips()`)에서 제외됨
 - 관리자 전용 예약 등록·수정 모달(`editChipsHtml()`)에는 모든 공간이 그대로 노출되므로, 관리자가 대관 신청·상담 이후 받은 예약을 수동으로 등록 가능
-- 아이엠홀: 대관 신청 후 관리자가 직접 예약 등록 (venue.html 연동은 금액/항목 미확정으로 보류)
+- 아이엠홀: venue.html 대관 신청 대상에 포함됨(다른 시간제 공간과 함께 선택 가능) — "예약으로 등록"으로 실제 예약 생성 가능. quotation.html 견적 계산에는 아직 아이엠홀 항목이 없어, 견적서는 여전히 관리자가 별도로 작성
 - 지혜홀(숙박): `jihye-apply.html`에서 신청서 접수 → `venue_requests` 컬렉션에 저장 (venue.html 숙박 항목과 동일한 필드 구조: `dateIn`, `nights`, `rooms`, `eventDate`, `eventName`)
 - 두 공간 모두 `spaces` 컬렉션에 문서로 등록되어 있어야 예약 등록이 가능 — **공간 관리(관리자) 페이지에서 관리자가 직접 추가해야 함**
 - 예약 목록 페이지의 **"📥 CSV 가져오기"**로 구글 시트 붙여넣기 일괄 등록 가능 (`detectCols()`가 헤더 텍스트로 컬럼 자동 인식). 아이엠홀 세부사항(공연명/행사명, 리허설 시작·종료, 관객 수, 사용하는 실, 주차, 기타) 컬럼도 헤더에 해당 단어가 포함되면 자동 인식되어 함께 저장됨
 
+## 대관 신청 (venue.html) 공간 복수 선택
+`selectSpace(space)`가 `selectedSpaces`(모듈 전역 배열)를 토글함 — 아론홀·샤론홀·아이엠홀(모두
+hourly)은 몇 개든 함께 선택 가능하고, 선택된 공간들의 `stdEquip`/`paidServices`를 합쳐서
+(`mergedVenueInfo()`, 중복 제거) 폼에 보여줌. 지혜홀(lodging)은 날짜 모델(`dateIn`/`nights`)이
+hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(지혜홀 선택 시 다른 선택 초기화,
+반대로 hourly 공간 선택 시 지혜홀 선택 해제). 저장 시 `data.spaces`(선택된 전체 배열)와
+`data.space`(spaces[0], 하위 호환용 대표 공간) 둘 다 기록. 목록 카드에는 `spaces`를 쉼표로
+나열해서 표시.
+
 ## 대관 신청 → 예약 등록 연동 (venue.html)
-`venue_requests` 문서(아론홀·샤론홀·지혜홀만 대상)의 상태가 "승인"이면 상세 화면에 "📅 예약으로
-등록" 버튼이 뜨고, 누르면 `registerAsReservation(id)`가 신청서 내용으로 `reservations` 문서를
-**확정** 상태로 직접 생성함:
-- 아론홀·샤론홀(hourly): `dates`(복수 날짜·시간 배열, 없으면 `eventDate`/`timeStart`/`timeEnd`)의
-  각 항목마다 문서 하나씩 생성. 2건 이상이면 `recurGroup: venue_<timestamp>`, `recurType: '비정기'`로 묶음
+`venue_requests` 문서의 상태가 "승인"이면 상세 화면에 "📅 예약으로 등록" 버튼이 뜨고, 누르면
+`registerAsReservation(id)`가 신청서 내용으로 `reservations` 문서를 **확정** 상태로 직접 생성함:
+- 아론홀·샤론홀·아이엠홀(hourly): `dates`(복수 날짜·시간 배열, 없으면 `eventDate`/`timeStart`/`timeEnd`)의
+  각 항목마다 문서 하나씩 생성. 2건 이상이면 `recurGroup: venue_<timestamp>_<공간명>`, `recurType: '비정기'`로 묶음
 - 지혜홀(lodging): `dateIn`부터 `nights`박 **+ 체크아웃 당일**까지 매일 문서를 생성(index.html
   지혜홀 규칙과 동일하게 항상 N+1일치), `start`/`end`는 `00:00`~`23:59` 고정, `recurType: '연박'`,
   `jihyeRooms`/`checkinTime`/`checkoutTime`도 함께 채움
+- **공간이 여러 곳 선택된 신청**은 `spaces` 배열의 공간마다 위 로직을 반복해 공간별로 별도
+  문서(공간별 별도 recurGroup)를 생성 — 예: 아론홀+아이엠홀 2곳 선택 시 같은 날짜·시간으로 두
+  공간 각각에 예약이 생성됨
 - 공통 매핑: `type: r.orgName`(내부 기관 분류 체계와 무관하게 외부 기관명을 그대로 씀),
   `managerName`/`stewardName` 모두 `r.managerName`, `stewardTel: r.tel`, `people: r.headcount`,
   `purpose: r.eventName`, `userEmail: ''`(관리자 대신 등록이라 신청자 이메일 없음 — index.html의
   "+ 예약 추가"와 같은 이유)
-- 저장 전 `checkRoomConflicts()`로 같은 공간의 기존 **확정** 예약과 겹치는지 확인, 겹치면 등록 자체를
-  막음(index.html의 `noConflict` 겹침 판정과 동일한 기준)
+- 저장 전 `checkRoomConflicts()`로 **공간마다 각각** 기존 **확정** 예약과 겹치는지 확인, 하나라도
+  겹치면 전체 등록을 막음(index.html의 `noConflict` 겹침 판정과 동일한 기준)
 - 생성된 문서 id들을 `venue_requests.reservationIds` 배열에 기록해 이미 등록된 신청은 카드·상세에
   "✓ 예약 N건 등록됨"으로 표시됨. **자동으로 실행되지 않음** — 상태를 "승인"으로 바꾸는 것만으로는
   예약이 생성되지 않고, 관리자가 이 버튼을 직접 눌러야만 생성됨(중복 생성 여부를 관리자가 판단하고
   통제하도록 의도적으로 수동 트리거로 설계). 이미 등록된 신청도 "다시 등록"으로 추가 생성 가능(기존
   예약은 삭제되지 않고 그대로 남음)
+- 신청서 자체는 상세 화면 "🗑 삭제"(`deleteRequest()`)로 삭제 가능 — `venue_requests` 문서만
+  지워지고, 이미 발행된 `quotations`나 이미 생성된 `reservations`는 그대로 남음(연동만 끊어짐)
 
 ## 예약 이메일 알림 (Cloud Functions)
 현재는 **1단계(기반 구조) + 2단계(예약 승인 이메일)**까지만 구현됨. 변경·취소 메일, 관리자용/내부기관용 주간 리포트는 아직 미구현 (구조만 고려, 아래 "다음 단계" 참고).
