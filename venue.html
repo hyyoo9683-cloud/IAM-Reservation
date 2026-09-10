@@ -12,7 +12,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { getFirestore, collection, addDoc, updateDoc, doc,
-  getDocs, orderBy, query, serverTimestamp }
+  getDocs, orderBy, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js";
@@ -177,6 +177,9 @@ function renderList() {
           📄 견적 ${comma(quote.total)}원 보기
         </div>`
       : '';
+    const regHtml = r.reservationIds?.length
+      ? `<div class="req-card-reg">✓ 예약 ${r.reservationIds.length}건 등록됨</div>`
+      : '';
     return `<div class="req-card${active}" onclick="openRequest('${r.id}')">
       <div class="req-card-top">
         <span class="req-org">${esc(r.orgName||'–')}</span>
@@ -189,6 +192,7 @@ function renderList() {
         <span>${esc(r.managerName||'–')}</span>
       </div>
       ${quoteHtml}
+      ${regHtml}
     </div>`;
   }).join('');
 }
@@ -288,6 +292,18 @@ function buildFormHTML(r) {
        <button class="btn-ghost" onclick="openQuotation('${r.id}')" title="이 신청으로 새 견적서를 다시 작성합니다">+ 새 견적서</button>`
     : (isEdit ? `<button class="btn-quote" onclick="openQuotation('${r.id}')">📋 견적서 작성</button>` : '');
 
+  const regBannerHtml = (isEdit && r.status === '승인') ? (
+    r.reservationIds?.length
+      ? `<div class="reg-banner done">
+          <span>✓ 예약 ${r.reservationIds.length}건 등록됨</span>
+          <button id="btn-register-reservation" class="btn-ghost" onclick="registerAsReservation('${r.id}')">다시 등록</button>
+        </div>`
+      : `<div class="reg-banner">
+          <span>승인된 신청이에요 — 아직 실제 예약(reservations)으로는 등록되지 않았습니다</span>
+          <button id="btn-register-reservation" class="btn-primary" onclick="registerAsReservation('${r.id}')">📅 예약으로 등록</button>
+        </div>`
+  ) : '';
+
   return `
   <div class="detail-header">
     <div class="detail-title">${isEdit?'신청서 수정':'새 대관 신청 접수'}</div>
@@ -296,6 +312,7 @@ function buildFormHTML(r) {
       ${isEdit?`<button class="btn-ghost" onclick="showNewForm()">+ 새 접수</button>`:''}
     </div>
   </div>
+  ${regBannerHtml}
   <div class="form-body">
     <input type="hidden" id="f-space" value="${curSpace}">
 
@@ -540,6 +557,95 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function comma(n) { return Math.round(n||0).toLocaleString('ko-KR'); }
+// toISOString()은 UTC 기준이라 UTC+9에서 날짜가 하루 밀림 → 로컬 날짜 문자열 사용 (index.html과 동일)
+const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function nowStr() {
+  return new Date().toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+// ── 승인된 대관 신청을 실제 예약(reservations)으로 등록 ──────────
+// 같은 공간에 이미 확정된 예약이 겹치는지 확인 (index.html의 noConflict와 같은 겹침 판정)
+async function checkRoomConflicts(room, items) {
+  const snap = await getDocs(query(collection(db,'reservations'), where('room','==', room)));
+  const existing = snap.docs.map(d => d.data());
+  return items.filter(it => existing.some(r2 =>
+    r2.date === it.date && r2.status === '확정' && !(it.end <= r2.start || it.start >= r2.end)
+  ));
+}
+
+window.registerAsReservation = async (id) => {
+  const r = requests.find(x => x.id === id);
+  if (!r) return;
+  if (r.status !== '승인') { alert('승인된 신청만 예약으로 등록할 수 있습니다.'); return; }
+  if (r.reservationIds?.length &&
+      !confirm(`이미 ${r.reservationIds.length}건의 예약이 등록되어 있습니다. 그래도 새로 등록하시겠습니까? (기존 예약은 그대로 남고 새로 추가됩니다)`)) return;
+
+  const vInfo = VENUES[r.space];
+  const isLodging = vInfo?.type === 'lodging';
+  let items = [];
+  if (isLodging) {
+    if (!r.dateIn || !r.nights) { alert('체크인 날짜·박수 정보가 없어 예약을 등록할 수 없습니다. 신청서를 먼저 채워주세요.'); return; }
+    const d = new Date(r.dateIn + 'T00:00:00');
+    for (let i = 0; i <= r.nights; i++) { // 체크아웃 당일도 실제 사용일로 보고 함께 차단 (index.html 지혜홀 규칙과 동일)
+      items.push({ date: toDateStr(d), start: '00:00', end: '23:59' });
+      d.setDate(d.getDate() + 1);
+    }
+  } else {
+    const src = (r.dates && r.dates.length) ? r.dates : [{ date: r.eventDate, timeStart: r.timeStart, timeEnd: r.timeEnd }];
+    items = src.filter(x => x.date && x.timeStart && x.timeEnd).map(x => ({ date: x.date, start: x.timeStart, end: x.timeEnd }));
+  }
+  if (!items.length) { alert('예약을 만들 날짜·시간 정보가 부족합니다. 신청서 내용을 확인해주세요.'); return; }
+
+  const conflicts = await checkRoomConflicts(r.space, items);
+  if (conflicts.length) {
+    alert(`다음 날짜에 이미 확정된 예약이 있어 등록할 수 없습니다:\n${conflicts.map(c => c.date).join(', ')}`);
+    return;
+  }
+
+  const btn = document.getElementById('btn-register-reservation');
+  if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
+  try {
+    const recurGroup = items.length > 1 ? `venue_${Date.now()}` : null;
+    const base = {
+      type: r.orgName || '외부 대관',
+      managerName: r.managerName || '',
+      stewardName: r.managerName || '',
+      stewardTel:  r.tel || '',
+      people: r.headcount || 0,
+      purpose: r.eventName || r.purpose || '',
+      status: '확정',
+      userEmail: '', // 관리자가 대신 등록하는 예약이라 신청자 이메일 없음 — 담당자 이름으로만 매칭
+    };
+    if (isLodging) {
+      base.jihyeRooms  = r.rooms || [];
+      base.checkinTime = r.timeStart || '';
+      base.checkoutTime = r.timeEnd || '';
+    }
+    if (recurGroup) {
+      base.recurGroup = recurGroup;
+      base.recurType  = isLodging ? '연박' : '비정기';
+      base.recurTotal = items.length;
+    }
+    const newIds = [];
+    for (const it of items) {
+      const docRef = await addDoc(collection(db,'reservations'), {
+        ...base, room: r.space, date: it.date, start: it.start, end: it.end,
+        createdAt: serverTimestamp(),
+        history: [{ time: nowStr(), msg: `대관 신청에서 예약 등록 (venue_requests/${r.id})` }],
+      });
+      newIds.push(docRef.id);
+    }
+    await updateDoc(doc(db,'venue_requests', r.id), {
+      reservationIds: [...(r.reservationIds||[]), ...newIds],
+    });
+    await loadRequests();
+    openRequest(r.id);
+    alert(`예약 ${items.length}건이 등록되었습니다.`);
+  } catch(e) {
+    alert('예약 등록 실패: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = '📅 예약으로 등록'; }
+  }
+};
 </script>
 
 <style>
@@ -622,6 +728,9 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
   font-size:11.5px;font-weight:700;color:var(--blue);cursor:pointer;
 }
 .req-card-quote:hover{text-decoration:underline;}
+.req-card-reg{
+  margin-top:5px;font-size:11.5px;font-weight:700;color:var(--green);
+}
 
 /* 상세 패널 */
 .detail-panel{flex:1;overflow-y:auto;padding:24px;}
@@ -678,6 +787,11 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .btn-quote{padding:9px 16px;border-radius:10px;border:1px solid var(--green);cursor:pointer;
   background:var(--green-lt);color:var(--green);font-size:13px;font-weight:700;font-family:var(--font);transition:all .15s;}
 .btn-quote:hover{background:var(--green);color:#fff;}
+.reg-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--blue-lt);border:1px solid var(--blue);border-radius:10px;
+  padding:10px 14px;margin-bottom:18px;font-size:12.5px;color:var(--blue);font-weight:600;}
+.reg-banner.done{background:var(--green-lt);border-color:var(--green);color:var(--green);}
+.reg-banner button{flex-shrink:0;}
 .btn-add-date{padding:4px 10px;border-radius:6px;border:1px dashed var(--border);
   background:#fff;font-size:12px;font-family:var(--font);cursor:pointer;color:var(--text3);transition:all .15s;}
 .btn-add-date:hover{border-color:var(--blue);color:var(--blue);}
