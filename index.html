@@ -2672,7 +2672,6 @@ let curUser = null, isAdmin = false;
 let reservations = [], spaces = [];
 window.spaces = spaces;
 let changeRequests = [];
-let eventChecklists = [];
 let venueRequests = [];
 let checkouts = [];
 let changeReqTab = '';
@@ -2874,22 +2873,6 @@ function recurSpanTooLong(startDate, endDate) {
   if (!startDate || !endDate) return false;
   const span = (new Date(endDate + 'T00:00:00') - new Date(startDate + 'T00:00:00')) / 86400000;
   return span > RECUR_MAX_SPAN_DAYS;
-}
-// event-checklist.html의 정기 체크리스트 판정과 동일한 규칙:
-// 매주/격주 = anchorDate로부터 N일 간격, 매달 = 같은 달의 n번째 같은 요일
-function isRecurOccurrence(anchorDate, recurType, endDate, checkDate) {
-  if (!anchorDate || !endDate) return false;
-  if (checkDate < anchorDate || checkDate > endDate) return false;
-  const a = new Date(anchorDate + 'T00:00:00');
-  const c = new Date(checkDate + 'T00:00:00');
-  const diffDays = Math.round((c - a) / 86400000);
-  if (recurType === 'weekly')   return diffDays % 7 === 0;
-  if (recurType === 'biweekly') return diffDays % 14 === 0;
-  if (recurType === 'monthly') {
-    if (a.getDay() !== c.getDay()) return false;
-    return Math.floor((a.getDate() - 1) / 7) === Math.floor((c.getDate() - 1) / 7);
-  }
-  return false;
 }
 function noConflict(room, date, start, end, skipId = null, confirmedOnly = false) {
   const conflict = reservations.find(r =>
@@ -3148,11 +3131,6 @@ async function loadData() {
     const badge = document.getElementById('badge-change-cnt');
     if (badge) badge.textContent = changeRequests.filter(r => r.status !== '완료').length;
     if (curPage === 'change-requests') renderChangeRequests();
-    if (curPage === 'dashboard') renderDashboard();
-  }, () => {});
-
-  onSnapshot(collection(db, 'eventChecklists'), snap => {
-    eventChecklists = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (curPage === 'dashboard') renderDashboard();
   }, () => {});
 
@@ -7751,65 +7729,42 @@ function renderDashboard() {
         </div>`;
       }).join('');
 
-  // 이번 주(오늘~이번 주 일요일)에 해당하는 체크리스트만 노출 — 지난 날짜는 자연히 빠짐
+  // 이번 주(오늘~이번 주 일요일)에 해당하는 확정 예약만 노출 — 지난 날짜는 자연히 빠짐.
+  // 예전엔 eventChecklists(체크리스트 자동생성 문서)를 기준으로 목록을 만들었는데, 그러면
+  // (1) 예약이 삭제돼도 체크리스트 문서가 안 지워져 계속 남아 보이고, (2) event-checklist.html을
+  // 아무도 안 열어서 체크리스트가 아직 자동생성 안 된 새 예약(예: venue.html "예약으로 등록")은
+  // 누락되는 문제가 있었음 — reservations를 직접 조회하도록 바꿔서 둘 다 해결함
   const weekDow = new Date().getDay();
   const weekSunday = new Date(); weekSunday.setDate(weekSunday.getDate() + (7 - weekDow) % 7);
   const weekEnd = toDateStr(weekSunday);
-  function findWeekOccurrence(c) {
-    if (!c.isRecur) return (c.date >= today && c.date <= weekEnd) ? c.date : null;
-    for (let d = new Date(today + 'T00:00:00'); toDateStr(d) <= weekEnd; d.setDate(d.getDate() + 1)) {
-      const ds = toDateStr(d);
-      if (isRecurOccurrence(c.date, c.recurType, c.endDate, ds)) return ds;
-    }
-    return null;
-  }
-  const weekChecklists = eventChecklists
-    .map(c => ({ c, occDate: findWeekOccurrence(c) }))
-    .filter(x => x.occDate)
-    .sort((a, b) => a.occDate.localeCompare(b.occDate));
 
-  // 체크리스트가 자동 생성되는 공간(아론홀·샤론홀·아이엠홀) 외에도, TV·마이크 요청이 체크된
-  // 확정 예약은 준비가 필요하니 이번 주 목록에 같이 보여줌 (중복 방지로 위 공간들은 제외)
-  const AV_NOTICE_EXCLUDE_ROOMS = ['아론홀', '샤론홀', '아이엠홀'];
+  // 아이엠홀·아론홀·샤론홀은 "메인" 예약으로 우선 노출, 그 외 공간은 TV·마이크 요청이 체크된
+  // 확정 예약만 준비가 필요하니 함께 보여줌 (중복 방지로 위 공간들은 제외)
+  const WEEK_MAIN_ROOMS = ['아이엠홀', '아론홀', '샤론홀'];
+  const weekMainReservations = reservations.filter(r =>
+    r.status === '확정' && WEEK_MAIN_ROOMS.includes(r.room) &&
+    r.date >= today && r.date <= weekEnd);
   const weekAvReservations = reservations.filter(r =>
     r.status === '확정' && (r.needTV || r.needMic) &&
-    !AV_NOTICE_EXCLUDE_ROOMS.includes(r.room) &&
+    !WEEK_MAIN_ROOMS.includes(r.room) &&
     r.date >= today && r.date <= weekEnd);
 
   // 아이엠홀 → 아론홀 → 샤론홀 → 그 외 순으로 묶어서 정렬
-  const WEEK_ROOM_PRIORITY = ['아이엠홀', '아론홀', '샤론홀'];
-  const weekRoomRank = (room) => { const i = WEEK_ROOM_PRIORITY.indexOf(room); return i === -1 ? 99 : i; };
-  const weekItemRoom = (item) => item.kind === 'av' ? item.r.room : item.c.room;
-  const weekItems = [
-    ...weekChecklists.map(x => ({ occDate: x.occDate, kind: 'checklist', c: x.c })),
-    ...weekAvReservations.map(r => ({ occDate: r.date, kind: 'av', r })),
-  ].sort((a, b) => weekRoomRank(weekItemRoom(a)) - weekRoomRank(weekItemRoom(b)));
+  const weekRoomRank = (room) => { const i = WEEK_MAIN_ROOMS.indexOf(room); return i === -1 ? 99 : i; };
+  const weekItems = [...weekMainReservations, ...weekAvReservations]
+    .sort((a, b) => weekRoomRank(a.room) - weekRoomRank(b.room));
 
   // 일주일 캘린더처럼 오늘~이번 주 일요일까지 요일별 칸으로 나눠서, 제목만 보이는 칩으로 표시
-  // (클릭하면 체크리스트가 아니라 해당 예약 상세가 열림)
+  // (클릭하면 해당 예약 상세가 열림)
   const weekDayList = [];
   for (let d = new Date(today + 'T00:00:00'); toDateStr(d) <= weekEnd; d.setDate(d.getDate() + 1)) {
     weekDayList.push(toDateStr(d));
   }
   const DOWS_KR = ['일','월','화','수','목','금','토'];
-  // 체크리스트 문서에 reservationId가 없는(레거시) 경우, 같은 실·날짜·시작시간의 확정 예약을 찾아 대체
-  const findReservationForChecklist = (c, occDate) => {
-    if (c.reservationId) return c.reservationId;
-    const m = reservations.find(r => r.room === c.room && r.date === occDate && r.status === '확정' && (!c.start || r.start === c.start));
-    return m ? m.id : null;
-  };
-  const weekChipHtml = (item) => {
-    if (item.kind === 'av') {
-      const r = item.r;
-      const title = (r.purpose || '(제목 없음)').replace(/</g, '&lt;');
-      return `<div class="wk-chip" onclick="openDetail('${r.id}')" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${title}</div>`;
-    }
-    const c = item.c;
-    const isIam = c.room === '아이엠홀';
-    const targetId = findReservationForChecklist(c, item.occDate);
-    const clickAttr = targetId ? `openDetail('${targetId}')` : `window.open('checklist-view.html?id=${c.id}','_blank')`;
-    const title = (c.eventName || '(제목 없음)').replace(/</g, '&lt;');
-    return `<div class="wk-chip${isIam ? ' wk-chip-iam' : ''}" onclick="${clickAttr}" title="${(c.eventName||'').replace(/"/g,'&quot;')}">${title}</div>`;
+  const weekChipHtml = (r) => {
+    const isIam = r.room === '아이엠홀';
+    const title = (r.purpose || '(제목 없음)').replace(/</g, '&lt;');
+    return `<div class="wk-chip${isIam ? ' wk-chip-iam' : ''}" onclick="openDetail('${r.id}')" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${title}</div>`;
   };
   // 주일(일요일)에는 예배 관련 예약이 여러 건 몰리는 경우가 많아, 그 날짜가 일요일이면 칩 하나로 축약해서 보여줌
   const dayChipsHtml = (dayItems, isSunday) => {
@@ -7825,7 +7780,7 @@ function renderDashboard() {
         ${weekDayList.map(ds => {
           const dow = new Date(ds + 'T00:00:00').getDay();
           const dayLabel = ds === today ? '오늘' : ds.slice(5).replace('-', '/');
-          const dayItems = weekItems.filter(it => it.occDate === ds);
+          const dayItems = weekItems.filter(r => r.date === ds);
           const chips = dayChipsHtml(dayItems, dow === 0);
           return `<div class="wk-day-col">
             <div class="wk-day-hd">${dayLabel}<span class="wk-day-dow">(${DOWS_KR[dow]})</span></div>
