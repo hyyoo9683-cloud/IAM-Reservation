@@ -2674,6 +2674,7 @@ window.spaces = spaces;
 let changeRequests = [];
 let venueRequests = [];
 let checkouts = [];
+let loginUsersCache = []; // 이메일별 실제 로그인 계정 정보(loginUsers 컬렉션) — 예약 목록·상세에서 신청자 이메일/실명 표시에 사용
 let changeReqTab = '';
 let selectedChangeReqId = null;
 let curPage = 'spaces';
@@ -2850,6 +2851,29 @@ function nowStr() {
 // CSV로 가져온 예약의 이메일은 대소문자·공백이 로그인 이메일과 다를 수 있으므로 정규화 후 비교
 function sameEmail(a, b) {
   return !!a && !!b && String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+}
+// 예약의 신청자 이메일(userEmail)로 실제 로그인 계정(loginUsers) 정보를 찾음 — 관리자가
+// 담당자·청지기 이름칸의 수기 입력과 실제 로그인 계정이 다른지 확인할 때 사용
+function findLoginUser(email) {
+  if (!email) return null;
+  return loginUsersCache.find(u => sameEmail(u.id, email)) || null;
+}
+// 예약 상세·목록에 표시할 "신청자 계정" HTML — userEmail이 있으면 이메일을 보여주고,
+// loginUsers에서 실제 로그인 이름을 찾을 수 있으면 함께 표시. 담당자/청지기로 적힌 이름과
+// 실제 로그인 계정 이름이 다르면(대필 신청 등) 눈에 띄게 경고 표시
+function applicantAccountHtml(r) {
+  if (!r.userEmail) return `<span style="color:var(--text3)">(로그인 계정 없음 — 관리자 등록/CSV)</span>`;
+  const lu = findLoginUser(r.userEmail);
+  const realName = (lu?.name || '').trim();
+  const mgr = (r.managerName || '').trim(), stw = (r.stewardName || '').trim();
+  const mismatch = realName && realName !== mgr && realName !== stw;
+  let html = `<span style="color:var(--blue)">${r.userEmail}</span>`;
+  if (mismatch) {
+    html += `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ 실제 로그인 계정 이름: ${realName}</div>`;
+  } else if (realName) {
+    html += `<span style="font-size:11px;color:var(--text3);margin-left:4px">(${realName})</span>`;
+  }
+  return html;
 }
 // 당일 예약 및 전날 20시 이후의 익일 예약은 온라인 신청 차단 (유선/카카오톡 문의 유도)
 function isLastMinuteDate(dateStr) {
@@ -3138,6 +3162,13 @@ async function loadData() {
     venueRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (curPage === 'dashboard') renderDashboard();
   }, () => {});
+
+  if (isAdmin) {
+    onSnapshot(collection(db, 'loginUsers'), snap => {
+      loginUsersCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (curPage === 'list') renderList();
+    }, () => {});
+  }
 
   onSnapshot(collection(db, 'checkouts'), snap => {
     checkouts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -5975,6 +6006,7 @@ window.openDetail = (id) => {
       <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}${r.subOrg ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">${r.subOrg}</span>` : ''}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${r.room}</div></div>
       ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>` : ''}
+      ${isAdmin ? `<div><div style="font-size:10px;color:var(--text3)">신청자 계정</div><div style="font-size:13px;margin-top:3px">${applicantAccountHtml(r)}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${r.date}</div></div>
       ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${r.stewardName}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.room === '지혜홀' ? '숙박(전일)' : `${r.start} – ${r.end}`}</div></div>
@@ -7950,13 +7982,24 @@ window.renderList = function renderList() {
     }
   });
 
+  // 담당자 이름 아래 작은 글씨로 신청자 이메일 표시(관리자가 이름칸 수기 입력과 실제 신청 계정이
+  // 다른지 바로 확인할 수 있도록) — 계정 이름이 담당자·청지기 이름과 다르면 주황색으로 강조
+  const managerCellHtml = r => {
+    if (!r.userEmail) return r.managerName || '';
+    const lu = findLoginUser(r.userEmail);
+    const realName = (lu?.name || '').trim();
+    const mgr = (r.managerName || '').trim(), stw = (r.stewardName || '').trim();
+    const mismatch = realName && realName !== mgr && realName !== stw;
+    return `${r.managerName || ''}<span style="font-size:10px;color:${mismatch ? 'var(--amber)' : 'var(--text3)'};display:block;margin-top:1px" title="${r.userEmail}">${mismatch ? '⚠ ' : ''}${r.userEmail}</span>`;
+  };
+
   const singleRow = r => `
     <tr class="row" onclick="openDetail('${r.id}')">
       <td onclick="event.stopPropagation()" style="text-align:center">
         <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck(this)" style="cursor:pointer;width:14px;height:14px">
       </td>
       <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-      <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${r.managerName}</td>
+      <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${managerCellHtml(r)}</td>
       <td>${r.stewardName || ''}</td>
       <td>${r.room}</td><td>${r.date}${dowTag(r.date)} ${r.start}–${r.end}</td>
       <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td><td>${sBadge(r.status)}</td>
@@ -7984,7 +8027,7 @@ window.renderList = function renderList() {
         </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
         <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}${first.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${first.subOrg}</span>` : ''}</td>
-        <td style="font-weight:600;cursor:pointer" onclick="${tg}">${first.managerName}</td>
+        <td style="font-weight:600;cursor:pointer" onclick="${tg}">${managerCellHtml(first)}</td>
         <td style="cursor:pointer" onclick="${tg}">${first.stewardName || ''}</td>
         <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
         <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date}${dowTag(first.date)} ~ ${last.date}${dowTag(last.date)}</span></td>
@@ -8005,7 +8048,7 @@ window.renderList = function renderList() {
         </td>
         <td style="color:var(--text3);font-size:10px;padding-left:12px">└ ${r.id?.slice(-4)}</td>
         <td></td>
-        <td style="font-size:11px;color:var(--text2)">${r.managerName}</td>
+        <td style="font-size:11px;color:var(--text2)">${managerCellHtml(r)}</td>
         <td style="font-size:11px;color:var(--text2)">${r.stewardName || ''}</td>
         <td style="font-size:11px">${r.room}</td>
         <td style="font-weight:600">${r.date}${dowTag(r.date)} ${r.start}–${r.end}</td>
@@ -9159,7 +9202,6 @@ function fmtLoginTs(ts) {
   return d.toLocaleString('ko', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 }
 
-let loginUsersCache = [];
 // 이름만으로(이메일 없이) 매칭되는 예약 — 담당자·청지기 이름이 이 계정의 이름과 같지만
 // userEmail은 다르거나 비어있는 건들 (이미 이메일로 확인되는 건 제외하고 검증 대상만 추림)
 function nameOnlyMatches(u) {
