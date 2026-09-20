@@ -56,6 +56,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 | `checkouts` | 퇴실 체크 기록 |
 | `allowedUsers` | 외부 허용 사용자 |
 | `eventChecklists` | 행사 체크리스트 (아론홀·샤론홀·아이엠홀 확정 예약은 `event-checklist.html` 접속 시 자동 생성, 문서 id `auto_<예약id>`, `reservationId`·`autoCreated` 필드로 구분) |
+| `loginUsers` | 로그인 이력(예약 책임자 관리). 문서 id=이메일, `name`(실제 로그인 계정 이름)·`firstLoginAt`·`lastLoginAt`·`loginCount` 등 — `trackLoginUser()`가 로그인마다 기록, 예약 목록·상세의 신청자 이메일/실명 표시에도 사용됨(아래 참고) |
 
 ## 예약 데이터 구조 (`reservations`)
 ```
@@ -159,6 +160,17 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 그러면 실제 담당자와 무관하게 관리자 본인 "내 예약"에 전부 뜨고 상태가 확정으로 바뀔 때 관리자에게
 잘못된 승인 메일이 갈 수 있었음). 커뮤니티 내 동명이인이 거의 없다는 전제로, 이런 수기 등록
 예약은 이름 매칭만으로 해당 담당자의 "내 예약"에 잡히도록 함.
+
+## 예약 목록·상세의 신청자 이메일/실제 로그인 계정 표시
+담당자·청지기 이름은 신청자가 자유롭게 입력하는 텍스트라 실제 신청 계정과 다를 수 있음(대필
+신청 등) — 관리자가 이를 확인할 수 있도록 예약 목록(`renderList()`)의 담당자 칸 아래에 작은
+글씨로 신청자 이메일(`r.userEmail`)을 함께 표시하고(`managerCellHtml()`), 예약 상세
+(`openDetail()`)에는 "신청자 계정" 항목으로 이메일을 보여줌(`applicantAccountHtml()`, isAdmin
+전용). `loginUsers` 컬렉션(문서 id=이메일, `trackLoginUser()`가 로그인마다 기록)에서 해당
+이메일의 실제 로그인 계정 이름을 찾아(`findLoginUser()`) 담당자·청지기 이름과 다르면 주황색
+"⚠ 실제 로그인 계정 이름: OOO"로 강조 표시. `loginUsers`는 `loadData()`에서 관리자 로그인 시
+`loginUsersCache`로 실시간 구독됨(예약 목록 페이지에서만 재렌더링 트리거). `userEmail`이 빈
+예약(관리자 수기 등록·CSV 가져오기)은 "(로그인 계정 없음 — 관리자 등록/CSV)"로 표시.
 
 ## 예약 변경·취소 신청 관리 (index.html)
 "예약 변경·취소 신청" 페이지(`renderChangeRequests()`)는 왼쪽 목록(`#cr-list`, `.cr-row` — 공간·날짜·
