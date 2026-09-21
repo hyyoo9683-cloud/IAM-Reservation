@@ -4430,16 +4430,18 @@ window.resetAvailSearch = () => {
   document.getElementById('avail-summary').innerHTML = '';
   renderSpaces();
 };
-function generateAvailDates(sd, ed, recur, weekdays) {
+// 반복 간격 규칙만으로 계산한 "순수" 회차 목록 — 종료 날짜가 간격에 맞지 않으면 그 이전
+// 마지막 정상 회차에서 끝남. generateAvailDates()가 예외 마지막 회차를 붙이기 전 원본이 필요한
+// 곳(미리보기에서 "마지막 회차가 예외인지" 판단할 때)에 사용
+function generateAvailDatesCore(sd, ed, recur, weekdays) {
   if (recur === 'once') return [sd];
   const s = new Date(sd + 'T00:00:00'), e = new Date(ed + 'T00:00:00'), dates = [];
   let d = new Date(s);
   // weekly + 복수 요일(예: 화·목)이 지정된 경우 — 선택된 요일 전부를 매주 반복
   if (recur === 'weekly' && weekdays && weekdays.length > 1) {
     while (d <= e) { if (weekdays.includes(d.getDay())) dates.push(toDateStr(d)); d.setDate(d.getDate()+1); }
-    return dates;
   }
-  if (recur === 'daily')    { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+1); } }
+  else if (recur === 'daily')    { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+1); } }
   else if (recur === 'weekly')   { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+7); } }
   else if (recur === 'biweekly') { while (d <= e) { dates.push(toDateStr(d)); d.setDate(d.getDate()+14); } }
   else if (recur === 'monthly') {
@@ -4455,6 +4457,16 @@ function generateAvailDates(sd, ed, recur, weekdays) {
       d = new Date(ny, nm, td);
     }
   }
+  return dates;
+}
+function generateAvailDates(sd, ed, recur, weekdays) {
+  const dates = generateAvailDatesCore(sd, ed, recur, weekdays);
+  if (recur === 'once') return dates;
+  // 종료 날짜가 반복 간격에 정확히 맞아떨어지지 않아도, 사용자가 명시적으로 지정한 종료
+  // 날짜는 예외적인 마지막 회차로 그대로 포함시킴 — 마지막 회차만 간격이 다를 수 있을 뿐,
+  // 반복 규칙에 안 맞는다고 임의로 빼지 않음
+  const edStr = toDateStr(new Date(ed + 'T00:00:00'));
+  if (dates.length && dates[dates.length - 1] !== edStr) dates.push(edStr);
   return dates;
 }
 // 정기 예약 시리즈의 시작일을 앞당길 때(관리자 "전체 회차 모두 수정") 사용 —
@@ -5165,20 +5177,18 @@ window.checkAvail = () => {
   const endDate = document.getElementById('m-end-date')?.value;
   const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
-  // 정기 예약이면 모든 날짜 생성(제외 날짜 반영), 아니면 단일 날짜
+  // 정기 예약이면 모든 날짜 생성(제외 날짜 반영), 아니면 단일 날짜 — 종료 날짜가 반복 간격과
+  // 안 맞아도 사용자가 지정한 종료 날짜 자체는 예외적인 마지막 회차로 항상 포함됨(generateAvailDates 참고)
   const isRecurRange = isRecur && endDate && endDate >= date;
   const patternDates = isRecurRange ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)) : [date];
   const dates = isRecurRange ? patternDates.filter(d => !recurExcludedDates.has(d)) : patternDates;
 
-  // 입력한 종료 날짜가 반복 간격(예: 격주)에 정확히 맞아떨어지지 않으면, 종료 날짜 자체는
-  // 회차로 만들어지지 않고 그 이전의 마지막 정상 회차에서 시리즈가 끝남 — 저장 후에야 알아채고
-  // "왜 날짜가 사라졌지"로 오해하지 않도록 미리 안내
+  // 마지막 회차가 반복 간격과 다른 예외 회차인지 미리 안내(문제가 아니라 참고용 안내)
   let recurMismatchNote = '';
-  if (isRecurRange && patternDates.length) {
-    const lastPatternDate = patternDates[patternDates.length - 1];
-    if (lastPatternDate !== endDate) {
-      const recurLabelKr = recur === 'biweekly' ? '격주' : recur === 'monthly' ? '매달' : '매주';
-      recurMismatchNote = `<div style="font-size:11px;color:var(--amber);margin-bottom:4px">⚠ 입력하신 종료 날짜(${endDate})는 ${recurLabelKr} 간격과 맞지 않아 실제 회차로 만들어지지 않습니다. 마지막 회차는 <b>${lastPatternDate}</b>입니다.</div>`;
+  if (isRecurRange) {
+    const coreDates = generateAvailDatesCore(date, endDate, recur, activeRecurWeekdays(recur));
+    if (coreDates.length && coreDates[coreDates.length - 1] !== endDate) {
+      recurMismatchNote = `<div style="font-size:11px;color:var(--text2);margin-bottom:4px">ℹ️ 마지막 회차(${endDate})는 반복 간격과 다른 예외 회차로 등록됩니다.</div>`;
     }
   }
 
@@ -6393,13 +6403,12 @@ window.checkEditAvail = () => {
       return;
     }
     const dates = generateAvailDates(date, endDate, recurType);
-    // 입력한 종료 날짜가 반복 간격에 정확히 맞아떨어지지 않으면 종료 날짜 자체는 회차로
-    // 만들어지지 않고 그 이전 마지막 정상 회차에서 시리즈가 끝남 — 저장 후 "날짜가 왜
-    // 사라졌지"로 오해하지 않도록 미리 안내
+    // 종료 날짜가 반복 간격과 안 맞아도 입력한 종료 날짜 자체는 예외적인 마지막 회차로 항상
+    // 포함됨(generateAvailDates 참고) — 그 사실만 참고용으로 안내
     let recurMismatchNote = '';
-    if (dates.length && dates[dates.length - 1] !== endDate) {
-      const recurLabelKr = recurType === 'biweekly' ? '격주' : recurType === 'monthly' ? '매달' : '매주';
-      recurMismatchNote = `<div style="font-size:11px;color:var(--amber);margin-bottom:4px">⚠ 입력하신 종료 날짜(${endDate})는 ${recurLabelKr} 간격과 맞지 않아 실제 회차로 만들어지지 않습니다. 마지막 회차는 <b>${dates[dates.length - 1]}</b>입니다.</div>`;
+    const coreDates = generateAvailDatesCore(date, endDate, recurType);
+    if (coreDates.length && coreDates[coreDates.length - 1] !== endDate) {
+      recurMismatchNote = `<div style="font-size:11px;color:var(--text2);margin-bottom:4px">ℹ️ 마지막 회차(${endDate})는 반복 간격과 다른 예외 회차로 등록됩니다.</div>`;
     }
     // 더 이상 존재하지 않는 날짜의 재지정은 정리
     Object.keys(editRecurRoomOverrides).forEach(d => { if (!dates.includes(d)) delete editRecurRoomOverrides[d]; });
