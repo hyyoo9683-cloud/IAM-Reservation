@@ -5166,9 +5166,21 @@ window.checkAvail = () => {
   const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
   // 정기 예약이면 모든 날짜 생성(제외 날짜 반영), 아니면 단일 날짜
-  const dates = (isRecur && endDate && endDate >= date)
-    ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)).filter(d => !recurExcludedDates.has(d))
-    : [date];
+  const isRecurRange = isRecur && endDate && endDate >= date;
+  const patternDates = isRecurRange ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)) : [date];
+  const dates = isRecurRange ? patternDates.filter(d => !recurExcludedDates.has(d)) : patternDates;
+
+  // 입력한 종료 날짜가 반복 간격(예: 격주)에 정확히 맞아떨어지지 않으면, 종료 날짜 자체는
+  // 회차로 만들어지지 않고 그 이전의 마지막 정상 회차에서 시리즈가 끝남 — 저장 후에야 알아채고
+  // "왜 날짜가 사라졌지"로 오해하지 않도록 미리 안내
+  let recurMismatchNote = '';
+  if (isRecurRange && patternDates.length) {
+    const lastPatternDate = patternDates[patternDates.length - 1];
+    if (lastPatternDate !== endDate) {
+      const recurLabelKr = recur === 'biweekly' ? '격주' : recur === 'monthly' ? '매달' : '매주';
+      recurMismatchNote = `<div style="font-size:11px;color:var(--amber);margin-bottom:4px">⚠ 입력하신 종료 날짜(${endDate})는 ${recurLabelKr} 간격과 맞지 않아 실제 회차로 만들어지지 않습니다. 마지막 회차는 <b>${lastPatternDate}</b>입니다.</div>`;
+    }
+  }
 
   // 차단일 포함 여부 체크 (정기 예약)
   const blockedInRange = dates.filter(d => isBlockedDate(d));
@@ -5184,7 +5196,7 @@ window.checkAvail = () => {
     const label = dates.length > 1
       ? `✓ ${room} 전체 ${dates.length}회 모두 사용 가능합니다`
       : `✓ ${room} 해당 시간 사용 가능합니다`;
-    el.innerHTML = `<div class="avail-ok">${label}</div>`;
+    el.innerHTML = recurMismatchNote + `<div class="avail-ok">${label}</div>`;
     return;
   }
 
@@ -5205,10 +5217,10 @@ window.checkAvail = () => {
     }
   }
 
-  let html = dates.length > 1
+  let html = recurMismatchNote + (dates.length > 1
     ? `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
        <div style="margin-top:5px;font-size:11px;color:var(--red)">${conflictDates.join(', ')}</div>`
-    : `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`;
+    : `<div class="avail-no">✗ ${room}은(는) 해당 시간 이미 예약이 있습니다</div>`);
 
   if (nextSlot) {
     html += `<div style="margin-top:6px;font-size:12px;color:var(--text2)">📅 ${firstConflict} 가능 시간: <strong>${nextSlot}</strong></div>`;
@@ -6381,6 +6393,14 @@ window.checkEditAvail = () => {
       return;
     }
     const dates = generateAvailDates(date, endDate, recurType);
+    // 입력한 종료 날짜가 반복 간격에 정확히 맞아떨어지지 않으면 종료 날짜 자체는 회차로
+    // 만들어지지 않고 그 이전 마지막 정상 회차에서 시리즈가 끝남 — 저장 후 "날짜가 왜
+    // 사라졌지"로 오해하지 않도록 미리 안내
+    let recurMismatchNote = '';
+    if (dates.length && dates[dates.length - 1] !== endDate) {
+      const recurLabelKr = recurType === 'biweekly' ? '격주' : recurType === 'monthly' ? '매달' : '매주';
+      recurMismatchNote = `<div style="font-size:11px;color:var(--amber);margin-bottom:4px">⚠ 입력하신 종료 날짜(${endDate})는 ${recurLabelKr} 간격과 맞지 않아 실제 회차로 만들어지지 않습니다. 마지막 회차는 <b>${dates[dates.length - 1]}</b>입니다.</div>`;
+    }
     // 더 이상 존재하지 않는 날짜의 재지정은 정리
     Object.keys(editRecurRoomOverrides).forEach(d => { if (!dates.includes(d)) delete editRecurRoomOverrides[d]; });
     const roomOptions = spaceSort(spaces).map(s => s.name);
@@ -6390,12 +6410,12 @@ window.checkEditAvail = () => {
       !conflictDates.includes(d) && !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, false)
     );
     if (!conflictDates.length) {
-      el.innerHTML = `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>` +
+      el.innerHTML = recurMismatchNote + `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>` +
         (pendingConflictDates.length
           ? `<div class="avail-warn" style="font-size:12px;color:var(--orange,#d97706);background:var(--orange-lt,#fff7ed);border-radius:6px;padding:5px 10px;margin-top:4px">⚠ 대기 중인 예약과 겹치는 날짜가 있습니다(확정 전): ${pendingConflictDates.join(', ')}</div>`
           : '');
     } else {
-      el.innerHTML = `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
+      el.innerHTML = recurMismatchNote + `<div class="avail-no">✗ ${room}: 총 ${dates.length}회 중 ${conflictDates.length}회 날짜에 예약 충돌이 있습니다</div>
         <div style="margin-top:6px;display:flex;flex-direction:column;gap:5px">
           ${conflictDates.map(d => `
             <div style="display:flex;align-items:center;gap:6px;font-size:11px">
