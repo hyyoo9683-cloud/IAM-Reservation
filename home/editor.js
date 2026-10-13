@@ -18,12 +18,19 @@ export async function start() {
   const { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await authApi();
   user = await new Promise(res => { const un = onAuthStateChanged(auth, u => { un(); res(u); }); });
   if (!user) {
+    const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
     try {
-      const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
       user = (await signInWithPopup(auth, p)).user;
     } catch (e) {
-      if (e.code !== 'auth/popup-closed-by-user') alert('로그인에 실패했습니다: ' + (e.message || e));
-      return;
+      // ?edit=1로 바로 열었을 때처럼 클릭 없이 띄운 팝업은 브라우저가 막음 → 로그인 버튼을 보여주고,
+      // 그 버튼 클릭 안에서 바로 팝업을 띄움(클릭으로 연 팝업은 차단되지 않음)
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
+        user = await askLoginClick(() => signInWithPopup(auth, p));
+        if (!user) return;
+      } else {
+        if (e.code !== 'auth/popup-closed-by-user') alert('로그인에 실패했습니다: ' + (e.message || e));
+        return;
+      }
     }
   }
   if (!(await isAdminAccount(user.email))) {
@@ -39,6 +46,27 @@ export async function start() {
   document.addEventListener('click', blockNavigation, true);
   addEventListener('beforeunload', e => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
   setEditing(true);
+}
+
+// 팝업이 막혔을 때 보여주는 '관리자 로그인' 버튼 — 로그인되면 사용자, 닫으면 null
+function askLoginClick(signIn) {
+  return new Promise(resolve => {
+    const box = document.createElement('div');
+    box.className = 'ed-login';
+    box.innerHTML = `<p>편집 모드를 열려면 관리자 계정으로 로그인하세요.</p>
+      <button type="button" class="primary" data-a="login">Google로 로그인</button>
+      <button type="button" class="ghost" data-a="close">닫기</button>`;
+    document.body.appendChild(box);
+    box.addEventListener('click', async e => {
+      const a = e.target.closest('button')?.dataset.a; if (!a) return;
+      if (a === 'close') { box.remove(); resolve(null); return; }
+      try { const r = await signIn(); box.remove(); resolve(r.user); }
+      catch (err) {
+        if (err.code === 'auth/popup-blocked') alert('브라우저가 로그인 팝업을 막았습니다. 주소창 오른쪽의 팝업 차단 표시에서 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.');
+        else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') alert('로그인에 실패했습니다: ' + (err.message || err));
+      }
+    });
+  });
 }
 
 // ── 하단 편집 도구 막대 ────────────────────────────────────────
@@ -181,7 +209,25 @@ function decorate() {
     el.appendChild(chip);
   });
 
-  // 4) 섹션 조작 막대
+  // 4) 홈페이지 공지 추가·삭제 (notice.items — 인트라넷 공지와 별개)
+  document.querySelector('[data-notice-add]')?.addEventListener('click', e => {
+    e.preventDefault();
+    const d = new Date();
+    const date = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    draft.notice.items = [{ category: '안내', title: '새 공지 제목', date }, ...(draft.notice.items || [])];
+    render(); updateStatus();
+    document.querySelector('[data-k="notice.items.0.title"]')?.focus();
+  });
+  document.querySelectorAll('[data-notice-del]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const i = Number(b.dataset.noticeDel);
+    const n = draft.notice.items[i];
+    if (!confirm(`이 공지를 삭제할까요?\n${n?.title || ''}`)) return;
+    draft.notice.items.splice(i, 1);
+    render(); updateStatus();
+  }));
+
+  // 5) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);

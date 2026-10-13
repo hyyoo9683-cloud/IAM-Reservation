@@ -1,11 +1,10 @@
-// 아이엠센터 홈페이지 렌더링 — 콘텐츠(siteContent/homepage) + 공연·행사(programs) + 공지(notices)
-import { db, doc, getDoc, getDocs, collection, query, where, orderBy, limit } from './fb.js';
+// 아이엠센터 홈페이지 렌더링 — 콘텐츠(siteContent/homepage, 홈페이지 공지 포함) + 공연·행사(programs)
+import { db, doc, getDoc, getDocs, collection, query, where } from './fb.js';
 import { DEFAULT_CONTENT, mergeContent, getPath } from './content.js';
 
 export const state = {
   content: structuredClone(DEFAULT_CONTENT),
   programs: [],
-  notices: [],
   editing: false,      // 편집 모드 여부 (editor.js가 켬)
 };
 
@@ -171,17 +170,17 @@ const SECTIONS = {
 
   notice() {
     const steps = c('notice.steps') || [];
-    const ns = state.notices.slice(0, 3);
+    const items = c('notice.items') || [];
     return `
 <section id="notice" data-sec="notice">
   <div class="wrap split">
     <div class="rv">
       <div class="sec-hd"><h2>${t('notice.title')}<span class="h2sub" data-k="notice.sub">${esc(c('notice.sub'))}</span></h2></div>
       <div class="list">
-        ${ns.length ? ns.map(n => `<div class="row"><span class="c">${esc(n.category || '공지')}</span><span class="ti">${esc(n.title)}</span><time>${esc(fmtDate(n.createdAt))}</time></div>`).join('')
+        ${items.length ? items.map((n, i) => `<div class="row">${t(`notice.items.${i}.category`, 'span', 'c')}${t(`notice.items.${i}.title`, 'span', 'ti')}${t(`notice.items.${i}.date`, 'time')}${state.editing ? `<button type="button" class="ed-chip ghost" data-notice-del="${i}">삭제</button>` : ''}</div>`).join('')
           : '<p class="empty">등록된 공지가 없습니다.</p>'}
       </div>
-      ${state.editing ? '<p class="edit-hint">공지 목록은 인트라넷 <a href="https://iamreservation.web.app/notice.html">공지사항 관리</a>에서 작성합니다.</p>' : ''}
+      ${state.editing ? '<p class="edit-hint">공지는 글자를 눌러 바로 고치고, <button type="button" class="ed-chip" data-notice-add>+ 공지 추가</button> 로 맨 위에 새 공지를 넣습니다. 게시해야 방문자에게 보입니다.</p>' : ''}
     </div>
     <aside class="rent rv">
       ${t('notice.rentEyebrow', 'p', 'eyebrow rent-eb')}
@@ -245,11 +244,6 @@ function fmtRange(s, e) {
   if (!e || e === s) return fmtOne(s);
   return `${s.replace(/-/g, '.')} – ${e.slice(5).replace('-', '.')}`;
 }
-function fmtDate(ts) {
-  const d = ts?.toDate ? ts.toDate() : (ts ? new Date(ts) : null);
-  if (!d || isNaN(d)) return '';
-  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
-}
 // 포스터가 없을 때 쓰는 임시 배경 (순서대로 돌아가며 색을 바꿔 카드가 구분되게)
 function posterGradient(i) {
   const g = ['#1d2b3a,#0a0f15', '#c9a24a,#6e4f1c', '#47584a,#1a221c', '#3a1e1e,#120909', '#3b3552,#15121f', '#2c2c2c,#050505'];
@@ -276,10 +270,9 @@ export function render() {
 // ── 데이터 불러오기 ───────────────────────────────────────────
 export async function loadAll() {
   const today = new Date().toISOString().slice(0, 10);
-  const [contentSnap, progSnap, noticeSnap] = await Promise.allSettled([
+  const [contentSnap, progSnap] = await Promise.allSettled([
     getDoc(doc(db, 'siteContent', 'homepage')),
     getDocs(query(collection(db, 'programs'), where('published', '==', true))),
-    getDocs(query(collection(db, 'notices'), orderBy('createdAt', 'desc'), limit(10))),
   ]);
   if (contentSnap.status === 'fulfilled' && contentSnap.value.exists()) {
     state.content = mergeContent(contentSnap.value.data());
@@ -289,11 +282,7 @@ export async function loadAll() {
       .filter(p => (p.endDate || p.startDate || '') >= today)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.startDate).localeCompare(String(b.startDate)));
   }
-  if (noticeSnap.status === 'fulfilled') {
-    const all = noticeSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
-    state.notices = [...all.filter(n => n.pinned), ...all.filter(n => !n.pinned)];
-  }
-  [contentSnap, progSnap, noticeSnap].forEach(r => { if (r.status === 'rejected') console.warn('홈페이지 데이터 불러오기 실패', r.reason); });
+  [contentSnap, progSnap].forEach(r => { if (r.status === 'rejected') console.warn('홈페이지 데이터 불러오기 실패', r.reason); });
 }
 
 // ── 화면 동작 (슬라이더, 레일, 탭, 등장 효과) ─────────────────────

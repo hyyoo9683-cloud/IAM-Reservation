@@ -362,9 +362,10 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - Hosting 구성: `firebase.json`의 hosting 배열 — `main`(저장소 루트 → iamreservation 사이트), `home`(`home/` → iamcenter 사이트), 대상 연결은 `.firebaserc`의 `targets`. 배포 워크플로우가 예약 시스템을 먼저 배포한 뒤 iamcenter 사이트를 확인(없으면 `hosting:sites:create`로 생성)하고 `hosting:home`을 따로 배포함
 - 홈페이지에서 예약 시스템 페이지로 가는 링크는 `https://iamreservation.web.app/...` 전체 주소로 씀(별도 사이트에서는 `../index.html` 같은 상대 주소가 깨짐). 예전에 저장된 `../x`·`/x` 링크는 `home.js`의 `safeUrl()`이 자동으로 전체 주소로 바꿈
 - 디자인 기준은 메인 시안 v4(`iamcenter-main-v4.html`, 저장소에는 없음) — 메뉴·푸터·여백을 시안과 동일하게 유지. 차이점은 Notice 목록이 링크 없는 일반 줄(`.list .row`, '공지 더보기' 없음)이라는 것뿐. 공개된 공연·행사가 하나도 없으면 What's On에 시안의 예시 카드 6개(`SAMPLE_PROGRAMS`)와 "※ 예시입니다" 안내가 보이고, 하나라도 등록하면 실제 목록으로 바뀜. 센터 소개 큰 문구는 “ ”로 감싼 말이 굵게 표시됨(`mlQuoteBold`)
+- 편집 모드 로그인: `?edit=1`로 열면 클릭 없이 팝업을 띄우게 되어 브라우저가 막을 수 있음 → `auth/popup-blocked`면 하단에 'Google로 로그인' 버튼(`askLoginClick()`)을 보여주고 그 클릭으로 팝업을 띄움
 - 새 주소에서 관리자 로그인(편집 모드)을 하려면 Firebase Authentication → 승인된 도메인에 `iamcenter.web.app`이 등록되어 있어야 함
 - `home/index.html` 뼈대·스타일, `home/home.js` 렌더링(섹션 템플릿·슬라이더 등), `home/content.js` 기본 문구·구성(`DEFAULT_CONTENT`)과 병합(`mergeContent`), `home/fb.js` Firebase 초기화·관리자 확인·이미지 업로드(긴 변 2400px JPEG로 줄여 Storage `site/...`에 저장)
-- 데이터: `siteContent/homepage`(문구·사진 URL·섹션 순서/숨김 `sections:[{id,hidden}]`) — 문서가 없거나 항목이 빠지면 `DEFAULT_CONTENT`로 채움. `programs`(공연·행사, `published==true`만 공개). 공지는 기존 `notices` 최신 글(고정 글 우선)
+- 데이터: `siteContent/homepage`(문구·사진 URL·섹션 순서/숨김 `sections:[{id,hidden}]`) — 문서가 없거나 항목이 빠지면 `DEFAULT_CONTENT`로 채움. `programs`(공연·행사, `published==true`만 공개). 공지는 인트라넷 `notices`와 별개인 홈페이지 전용 공지(`siteContent/homepage`의 `notice.items: [{category,title,date}]`) — 편집 모드에서 글자 바로 수정, '+ 공지 추가'(맨 위에 오늘 날짜로 추가)·줄별 '삭제'로 관리
 - **편집 모드**(`home/editor.js`, `home/editor.css`): 푸터 '관리자' 또는 `?edit=1` → 관리자(주 관리자·`admins`) 로그인 시 하단 막대 표시. 글자는 `data-k="경로"` 요소를 바로 수정, 사진은 `data-img`, 링크는 `data-link`, 섹션은 ↑↓·숨기기. '게시하기' 전에는 방문자에게 반영 안 됨
 - 게시·되돌리기 때마다 직전 게시본을 `siteContentHistory`(doc:'homepage')에 보관 → `home/admin.html` '버전 기록'에서 복원
 - `home/admin.html`: 공연·행사 등록·수정·공개 전환·포스터 업로드(`site/programs/`), 버전 기록

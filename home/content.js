@@ -66,6 +66,12 @@ export const DEFAULT_CONTENT = {
   notice: {
     title: 'Notice',
     sub: '대관 및 이용 안내',
+    // 홈페이지 전용 공지 — 인트라넷 notices와 별개, 편집 모드에서 추가·수정·삭제 (최신 글을 위에)
+    items: [
+      { category: '대관', title: '아이엠홀 하반기 대관 일정 안내', date: '2026.09.08' },
+      { category: '이용', title: '아론홀·샤론홀 이용 규정 안내', date: '2026.08.27' },
+      { category: '안내', title: '아이엠센터 주차 안내 업데이트', date: '2026.07.30' },
+    ],
     rentEyebrow: 'Rental',
     rentTitle: '공간이\n필요하신가요?',
     rentDesc: '아이엠홀 · 아론홀 · 샤론홀 대관 절차와 일정을 친절히 안내해 드립니다.',

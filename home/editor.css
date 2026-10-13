@@ -59,3 +59,14 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
   .ed-sec{top:72px}
   .cap-edit{display:none}
 }
+
+/* 팝업이 막혔을 때 뜨는 로그인 안내 */
+.ed-login{position:fixed;z-index:200;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;background:#111;color:#fff;padding:14px 18px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.3);font-size:14px;max-width:calc(100% - 32px)}
+.ed-login p{margin:0 6px 0 0}
+.ed-login button{border:0;border-radius:999px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;background:#2b2b2b;color:#fff}
+.ed-login button.primary{background:#f2b705;color:#111}
+
+/* 홈페이지 공지 편집: 줄 끝 삭제 버튼 */
+.editing .list .row{grid-template-columns:72px 1fr auto auto}
+@media (max-width:600px){.editing .list .row{grid-template-columns:1fr auto auto}}
+.editing .btn[data-k]{border-radius:999px}
