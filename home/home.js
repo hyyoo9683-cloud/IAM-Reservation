@@ -149,9 +149,9 @@ const SECTIONS = {
 <section id="notice" data-sec="notice">
   <div class="wrap split">
     <div class="rv">
-      <div class="sec-hd"><h2>${t('notice.title')}<span class="h2sub" data-k="notice.sub">${esc(c('notice.sub'))}</span></h2><a ${href('notice.moreLink')} class="more" data-k="notice.moreText">${esc(c('notice.moreText'))}</a></div>
+      <div class="sec-hd"><h2>${t('notice.title')}<span class="h2sub" data-k="notice.sub">${esc(c('notice.sub'))}</span></h2></div>
       <div class="list">
-        ${ns.length ? ns.map(n => `<a href="${esc(safeUrl(c('notice.moreLink')))}"><span class="c">${esc(n.category || '공지')}</span><span class="ti">${esc(n.title)}</span><time>${esc(fmtDate(n.createdAt))}</time></a>`).join('')
+        ${ns.length ? ns.map(n => `<div class="row"><span class="c">${esc(n.category || '공지')}</span><span class="ti">${esc(n.title)}</span><time>${esc(fmtDate(n.createdAt))}</time></div>`).join('')
           : '<p class="empty">등록된 공지가 없습니다.</p>'}
       </div>
       ${state.editing ? '<p class="edit-hint">공지 목록은 인트라넷 <a href="https://iamreservation.web.app/notice.html">공지사항 관리</a>에서 작성합니다.</p>' : ''}
@@ -198,7 +198,7 @@ function footerHtml() {
     <div class="top">
       <div><div class="logo">I AM <small>CENTER</small></div>${m('footer.desc')}</div>
       <div><h4>MENU</h4><ul><li><a href="#whatson">공연·행사</a></li><li><a href="#about">아이엠센터</a></li><li><a href="#spaces">공간</a></li><li><a href="#notice">대관 안내</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="#visit">오시는 길</a></li><li><a href="https://iamreservation.web.app/notices-public.html">공지사항</a></li><li><a href="https://iamreservation.web.app/index.html">공간 예약</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="#visit">오시는 길</a></li><li><a href="#notice">공지사항</a></li><li><a href="https://iamreservation.web.app/index.html">공간 예약</a></li></ul></div>
       <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>
     </div>
     <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>

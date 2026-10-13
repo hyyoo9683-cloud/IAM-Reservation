@@ -67,8 +67,6 @@ export const DEFAULT_CONTENT = {
   notice: {
     title: 'Notice',
     sub: '대관 및 이용 안내',
-    moreText: '공지 더보기',
-    moreLink: 'https://iamreservation.web.app/notices-public.html',
     rentEyebrow: 'Rental',
     rentTitle: '공간이\n필요하신가요?',
     rentDesc: '아이엠홀 · 아론홀 · 샤론홀 대관 절차와 일정을 친절히 안내해 드립니다.',
