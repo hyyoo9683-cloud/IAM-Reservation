@@ -663,13 +663,22 @@ window.printQuote = async () => {
     for (let j = i+1; j < rows.length && rows[j].date === r.date; j++) span++;
     return span > 1 ? `<td rowspan="${span}">${r.date}</td>` : `<td>${r.date}</td>`;
   };
+  // 같은 공간이 연달아 나오면 위에서 한 번만 쓰고(세로 병합), 그 아래 행들은 공간 칸을 비움
+  const spaceCellHtml = (i) => {
+    const r = rows[i];
+    if (r.space && i > 0 && rows[i-1].space === r.space) return '';
+    if (!r.space) return `<td>${r.space || ''}</td>`;
+    let span = 1;
+    for (let j = i+1; j < rows.length && rows[j].space === r.space; j++) span++;
+    return span > 1 ? `<td rowspan="${span}">${r.space}</td>` : `<td>${r.space}</td>`;
+  };
 
   const buildRows = () => {
     if (vInfo.type === 'combo') {
       return rows.map((r, i) => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
-          ${dateCellHtml(i)}<td>${r.time}</td><td>${r.space}</td>
+          ${dateCellHtml(i)}<td>${r.time}</td>${spaceCellHtml(i)}
           <td class="left">${r.item}</td>
           <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
           <td class="left sm">${r.remarks}</td>
@@ -681,7 +690,7 @@ window.printQuote = async () => {
         const s = r.total ? Math.round(r.total/1.1) : 0;
         const v = r.total ? r.total - s : 0;
         html += `<tr>
-          ${dateCellHtml(i)}<td>${r.time||''}</td><td>${r.space||''}</td>
+          ${dateCellHtml(i)}<td>${r.time||''}</td>${spaceCellHtml(i)}
           <td class="left">${r.item}</td>
           <td class="num">${r.total ? comma(s) : ''}</td>
           <td class="num">${r.total ? comma(v) : ''}</td>
@@ -1005,7 +1014,11 @@ function loadQuoteIntoForm(h) {
   quoteDates = (h.dates?.length)
     ? h.dates.map(d => ({...d}))
     : [{ date: h.date||'', timeStart:'', timeEnd:'' }];
-  document.getElementById('q-date').value = quoteDates[0]?.date || '';
+  // 지혜홀(숙박) 견적은 체크인 날짜(h.qDateIn)가 진짜 기준 — quoteDates는 콤보 견적용이라
+  // 지혜홀 저장분엔 과거에 남겨진 무관한 날짜가 들어있을 수 있음
+  document.getElementById('q-date').value = (resolvedVenue !== COMBO_VENUE && VENUES[resolvedVenue]?.type === 'lodging' && h.qDateIn)
+    ? h.qDateIn
+    : (quoteDates[0]?.date || '');
 
   // 분류 복원
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.quoteCategory || '신청')));
@@ -1023,7 +1036,10 @@ function loadQuoteIntoForm(h) {
     }
 
     // 지혜홀 전용 필드 복원
-    if (h.qDateIn)  { const el = document.getElementById('q-date-in');  if (el) el.value = h.qDateIn; }
+    // q-date-in뿐 아니라 숨은 필드 q-date도 같이 맞춰줘야 함 — 인쇄(printQuote)는 체크인
+    // 날짜를 q-date-in이 아니라 q-date에서 읽는데, q-date는 콤보 견적용 quoteDates[0].date로
+    // 초기화되는 경우가 있어 지혜홀 견적에서는 실제 체크인 날짜와 어긋날 수 있었음
+    if (h.qDateIn)  { const el = document.getElementById('q-date-in');  if (el) el.value = h.qDateIn; document.getElementById('q-date').value = h.qDateIn; }
     if (h.qNights)  { const el = document.getElementById('q-nights');   if (el) el.value = h.qNights; }
     if (h.qDateOut) { const el = document.getElementById('q-date-out'); if (el) el.value = h.qDateOut; }
     (h.qRooms || []).forEach(r => {
