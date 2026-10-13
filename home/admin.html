@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>홈페이지 관리 — 아이엠센터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{--ink:#111;--mute:#6b6b6b;--line:#e4e4e4;--soft:#f6f5f2;--accent:#f2b705;--ok:#2f7d32;--bad:#b3261e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Pretendard Variable",Pretendard,-apple-system,"Noto Sans KR",sans-serif;color:var(--ink);background:var(--soft);word-break:keep-all;line-height:1.5;font-size:14px}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{position:sticky;top:0;z-index:10;background:#111;color:#fff;display:flex;align-items:center;gap:16px;padding:0 20px;height:56px}
+.top b{font-size:16px;letter-spacing:-.01em}
+.top nav{display:flex;gap:4px;margin-left:12px}
+.top nav a{padding:8px 12px;border-radius:6px;text-decoration:none;opacity:.75}
+.top nav a.on,.top nav a:hover{background:#2b2b2b;opacity:1}
+.top .sp{flex:1}
+.top .who{font-size:12px;opacity:.7}
+.top .btn{background:#2b2b2b;color:#fff}
+.wrap{max-width:1100px;margin:0 auto;padding:28px 20px 80px}
+h2{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:4px 0 20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:#bbb}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.hd-row{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+.seg button{border:0;background:none;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+/* 공연 목록 */
+.plist{display:grid;gap:10px}
+.pitem{display:grid;grid-template-columns:64px 1fr auto;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px 10px 10px}
+.pitem .thumb{width:64px;aspect-ratio:3/4;border-radius:4px;background:#ddd center/cover;display:grid;place-items:center;font-size:10px;color:#777}
+.pitem h3{font-size:15px;font-weight:700}
+.pitem .meta{color:var(--mute);font-size:13px;margin-top:2px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:6px;border:1px solid currentColor}
+.tag.pub{color:var(--ok)}.tag.draft{color:var(--mute)}.tag.past{color:#999}
+.empty{color:var(--mute);padding:30px;text-align:center;background:#fff;border:1px dashed var(--line);border-radius:10px}
+
+/* 편집 폼 */
+dialog{margin:auto;border:0;border-radius:12px;padding:0;width:min(720px,calc(100vw - 24px));box-shadow:0 20px 60px rgba(0,0,0,.3)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg-hd{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.dlg-hd h3{font-size:17px}
+.dlg-bd{padding:20px;display:grid;grid-template-columns:180px 1fr;gap:20px;max-height:70vh;overflow:auto}
+.dlg-ft{display:flex;justify-content:space-between;gap:8px;padding:14px 20px;border-top:1px solid var(--line)}
+.dlg-ft .row{margin-left:auto}
+.poster-box{aspect-ratio:3/4;border:1px dashed #bbb;border-radius:8px;background:#f2f2f2 center/cover;display:grid;place-items:center;text-align:center;color:var(--mute);font-size:12px;cursor:pointer;position:relative}
+.poster-box.has{border-style:solid}
+.poster-box .rm{position:absolute;top:6px;right:6px;font-size:11px;padding:4px 8px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields label{display:grid;gap:4px;font-size:12px;font-weight:600;color:#444}
+.fields label.full{grid-column:1/-1}
+.fields input,.fields select{border:1px solid var(--line);border-radius:6px;padding:9px 10px;font-size:14px;font-weight:400;background:#fff}
+.fields .hint{font-weight:400;color:var(--mute);font-size:11px}
+.check{display:flex!important;grid-auto-flow:column;align-items:center;gap:8px!important}
+
+/* 버전 */
+.vlist{display:grid;gap:8px}
+.vitem{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.vitem .when{font-weight:700}
+.vitem .by{color:var(--mute);font-size:12px}
+
+.login{max-width:420px;margin:12vh auto;text-align:center}
+.login h1{font-size:24px;margin-bottom:8px}
+.login p{color:var(--mute);margin-bottom:24px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 18px;border-radius:8px;z-index:50}
+[hidden]{display:none!important}
+@media (max-width:640px){
+  .top nav{display:none}
+  .dlg-bd{grid-template-columns:1fr}
+  .poster-box{max-width:180px}
+  .fields{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="login" class="login" hidden>
+  <h1>홈페이지 관리</h1>
+  <p>관리자 계정(주 관리자 또는 admins 등록 계정)으로 로그인하세요.</p>
+  <button class="btn primary" id="btn-login">Google 계정으로 로그인</button>
+  <p id="login-err" style="color:var(--bad);margin-top:16px"></p>
+</div>
+
+<div id="app" hidden>
+  <div class="top">
+    <b>I AM CENTER · 홈페이지 관리</b>
+    <nav><a href="#programs" data-tab="programs">공연·행사</a><a href="#versions" data-tab="versions">버전 기록</a></nav>
+    <span class="sp"></span>
+    <a class="btn" href="./?edit=1" target="_blank" rel="noopener">✎ 홈페이지 편집 ↗</a>
+    <span class="who" id="who"></span>
+    <button class="btn" id="btn-logout">로그아웃</button>
+  </div>
+
+  <!-- 공연·행사 -->
+  <div class="wrap" id="tab-programs">
+    <div class="hd-row">
+      <div><h2>공연·행사</h2><p class="sub" style="margin-bottom:0">홈페이지 What's On에 표시됩니다. '공개'로 둔 것 중 종료일이 지나지 않은 항목만 보여요.</p></div>
+      <div class="row">
+        <div class="seg" id="p-filter"><button aria-pressed="true" data-f="upcoming">진행·예정</button><button aria-pressed="false" data-f="past">지난 항목</button><button aria-pressed="false" data-f="all">전체</button></div>
+        <button class="btn primary" id="btn-new">+ 새 공연·행사</button>
+      </div>
+    </div>
+    <div class="plist" id="plist"></div>
+  </div>
+
+  <!-- 버전 기록 -->
+  <div class="wrap" id="tab-versions" hidden>
+    <h2>버전 기록</h2>
+    <p class="sub">홈페이지를 새로 게시할 때마다 직전 버전이 여기에 보관됩니다. '이 버전으로 되돌리기'를 누르면 바로 방문자에게 반영돼요.</p>
+    <div class="vlist" id="vlist"></div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="pform">
+    <div class="dlg-hd"><h3 id="dlg-title">새 공연·행사</h3><button class="btn" value="cancel" formnovalidate>닫기</button></div>
+    <div class="dlg-bd">
+      <div>
+        <div class="poster-box" id="poster-box" tabindex="0" role="button" aria-label="포스터 올리기">포스터 이미지<br>(세로 3:4 권장)<br>클릭해서 올리기</div>
+        <input type="file" id="poster-file" accept="image/*" hidden>
+      </div>
+      <div class="fields">
+        <label class="full">제목 *<input name="title" required maxlength="80" placeholder="예) 가을, 찬양의 밤"></label>
+        <label>분류<select name="category"></select></label>
+        <label>장소<input name="venue" list="venues" placeholder="아이엠홀"><datalist id="venues"><option>아이엠홀</option><option>아론홀</option><option>샤론홀</option><option>조스테이블</option></datalist></label>
+        <label>시작일 *<input type="date" name="startDate" required></label>
+        <label>종료일 <span class="hint">하루 행사면 비워두세요</span><input type="date" name="endDate"></label>
+        <label class="full">날짜 표시 문구 <span class="hint">비워두면 날짜로 자동 표시 · 예) 2026.11.07 (토) 19:30</span><input name="dateText" maxlength="60"></label>
+        <label>상태 표시 <span class="hint">예) 예매중, 무료, 마감</span><input name="badge" maxlength="12" list="badges"><datalist id="badges"><option>예매중</option><option>무료</option><option>사전신청</option><option>마감</option></datalist></label>
+        <label>정렬 순서 <span class="hint">작을수록 앞</span><input type="number" name="order" value="0" step="1"></label>
+        <label class="full">예매·상세 링크 <span class="hint">https:// 로 시작</span><input type="url" name="link" placeholder="https://"></label>
+        <label class="full check"><input type="checkbox" name="published"> 홈페이지에 공개</label>
+      </div>
+    </div>
+    <div class="dlg-ft">
+      <button type="button" class="btn danger" id="btn-del">삭제</button>
+      <div class="row"><button class="btn" value="cancel" formnovalidate>취소</button><button class="btn primary" value="save" id="btn-save">저장</button></div>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { db, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, serverTimestamp,
+         authApi, isAdminAccount, uploadImage } from './fb.js';
+import { PROGRAM_CATS } from './home.js';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const today = () => new Date().toISOString().slice(0, 10);
+let me = null, programs = [], filter = 'upcoming', editingId = null, posterUrl = '';
+
+// ── 로그인 ─────────────────────────────────────────────────────
+const { auth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = await authApi();
+onAuthStateChanged(auth, async u => {
+  if (!u) { $('login').hidden = false; $('app').hidden = true; return; }
+  if (!(await isAdminAccount(u.email))) {
+    $('login-err').textContent = `${u.email} 계정은 관리자로 등록되어 있지 않습니다.`;
+    await signOut(auth); return;
+  }
+  me = u; $('who').textContent = u.email;
+  $('login').hidden = true; $('app').hidden = false;
+  showTab();
+  loadPrograms();
+});
+$('btn-login').onclick = async () => {
+  try { const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' }); await signInWithPopup(auth, p); }
+  catch (e) { if (e.code !== 'auth/popup-closed-by-user') $('login-err').textContent = '로그인 실패: ' + e.message; }
+};
+$('btn-logout').onclick = () => signOut(auth);
+
+// ── 탭 ─────────────────────────────────────────────────────────
+function showTab() {
+  const tab = location.hash === '#versions' ? 'versions' : 'programs';
+  document.querySelectorAll('[data-tab]').forEach(a => a.classList.toggle('on', a.dataset.tab === tab));
+  $('tab-programs').hidden = tab !== 'programs';
+  $('tab-versions').hidden = tab !== 'versions';
+  if (tab === 'versions' && me) loadVersions();
+}
+addEventListener('hashchange', showTab);
+
+// ── 공연·행사 ──────────────────────────────────────────────────
+async function loadPrograms() {
+  const snap = await getDocs(collection(db, 'programs'));
+  programs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderPrograms();
+}
+function isPast(p) { return (p.endDate || p.startDate || '') < today(); }
+function renderPrograms() {
+  let list = programs.filter(p => filter === 'all' || (filter === 'past' ? isPast(p) : !isPast(p)));
+  list.sort((a, b) => filter === 'past'
+    ? String(b.startDate).localeCompare(String(a.startDate))
+    : (a.order ?? 0) - (b.order ?? 0) || String(a.startDate).localeCompare(String(b.startDate)));
+  $('plist').innerHTML = list.length ? list.map(p => `
+    <div class="pitem">
+      <div class="thumb" style="${p.posterUrl ? `background-image:url('${encodeURI(p.posterUrl).replace(/'/g, '%27')}')` : ''}">${p.posterUrl ? '' : '포스터 없음'}</div>
+      <div>
+        <h3>${p.published ? '<span class="tag pub">공개</span>' : '<span class="tag draft">비공개</span>'}${isPast(p) ? '<span class="tag past">종료</span>' : ''}${esc(p.title)}</h3>
+        <div class="meta">${esc([p.category, p.venue].filter(Boolean).join(' · '))} · ${esc(p.dateText || [p.startDate, p.endDate].filter(Boolean).join(' ~ '))}${p.badge ? ' · ' + esc(p.badge) : ''}</div>
+      </div>
+      <div class="row">
+        <button class="btn" data-pub="${p.id}">${p.published ? '비공개로' : '공개하기'}</button>
+        <button class="btn" data-edit="${p.id}">수정</button>
+      </div>
+    </div>`).join('') : `<div class="empty">${filter === 'past' ? '지난 항목이 없습니다.' : '등록된 공연·행사가 없습니다. ‘+ 새 공연·행사’로 추가하세요.'}</div>`;
+}
+$('p-filter').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  filter = b.dataset.f;
+  $('p-filter').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderPrograms();
+};
+$('plist').onclick = async e => {
+  const pub = e.target.closest('[data-pub]')?.dataset.pub;
+  const ed = e.target.closest('[data-edit]')?.dataset.edit;
+  if (pub) {
+    const p = programs.find(x => x.id === pub);
+    await setDoc(doc(db, 'programs', pub), { published: !p.published, updatedAt: serverTimestamp(), updatedBy: me.email }, { merge: true });
+    p.published = !p.published; renderPrograms(); toast(p.published ? '홈페이지에 공개했습니다' : '비공개로 바꿨습니다');
+  }
+  if (ed) openForm(programs.find(x => x.id === ed));
+};
+
+// 편집 폼
+const form = $('pform');
+const F = form.elements; // form.title 같은 기본 속성과 이름이 겹치지 않게 elements로 접근
+F.category.innerHTML = PROGRAM_CATS.map(c => `<option>${c}</option>`).join('');
+$('btn-new').onclick = () => openForm(null);
+function openForm(p) {
+  editingId = p?.id || null;
+  $('dlg-title').textContent = p ? '공연·행사 수정' : '새 공연·행사';
+  form.reset();
+  for (const k of ['title', 'category', 'venue', 'startDate', 'endDate', 'dateText', 'badge', 'link']) F[k].value = p?.[k] || '';
+  if (!p) F.category.value = PROGRAM_CATS[0];
+  F.order.value = p?.order ?? 0;
+  F.published.checked = p ? !!p.published : true;
+  setPoster(p?.posterUrl || '');
+  $('btn-del').hidden = !p;
+  $('dlg').showModal();
+}
+function setPoster(url) {
+  posterUrl = url;
+  const box = $('poster-box');
+  box.classList.toggle('has', !!url);
+  box.style.backgroundImage = url ? `url('${encodeURI(url).replace(/'/g, '%27')}')` : '';
+  box.innerHTML = url ? '<button type="button" class="btn rm">지우기</button>' : '포스터 이미지<br>(세로 3:4 권장)<br>클릭해서 올리기';
+}
+$('poster-box').onclick = e => {
+  if (e.target.closest('.rm')) { e.stopPropagation(); setPoster(''); return; }
+  $('poster-file').click();
+};
+$('poster-box').onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('poster-file').click(); } };
+$('poster-file').onchange = async () => {
+  const f = $('poster-file').files[0]; if (!f) return;
+  const box = $('poster-box'); box.textContent = '업로드 중…';
+  try { setPoster(await uploadImage(f, 'site/programs')); }
+  catch (e) { alert('업로드 실패: ' + e.message); setPoster(posterUrl); }
+  $('poster-file').value = '';
+};
+form.addEventListener('submit', async e => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  if (!form.reportValidity()) return;
+  if (F.endDate.value && F.endDate.value < F.startDate.value) { alert('종료일이 시작일보다 빠릅니다.'); return; }
+  const link = F.link.value.trim();
+  if (link && !/^https?:\/\//i.test(link)) { alert('링크는 https:// 로 시작해야 합니다.'); return; }
+  const data = {
+    title: F.title.value.trim(), category: F.category.value, venue: F.venue.value.trim(),
+    startDate: F.startDate.value, endDate: F.endDate.value || '',
+    dateText: F.dateText.value.trim(), badge: F.badge.value.trim(), link,
+    order: Number(F.order.value) || 0, published: F.published.checked, posterUrl,
+    updatedAt: serverTimestamp(), updatedBy: me.email,
+  };
+  $('btn-save').disabled = true;
+  try {
+    if (editingId) await setDoc(doc(db, 'programs', editingId), data, { merge: true });
+    else await addDoc(collection(db, 'programs'), { ...data, createdAt: serverTimestamp(), createdBy: me.email });
+    $('dlg').close(); toast('저장했습니다'); loadPrograms();
+  } catch (err) { alert('저장 실패: ' + err.message); }
+  finally { $('btn-save').disabled = false; }
+});
+$('btn-del').onclick = async () => {
+  if (!editingId || !confirm('이 공연·행사를 삭제할까요? 되돌릴 수 없습니다.')) return;
+  await deleteDoc(doc(db, 'programs', editingId));
+  $('dlg').close(); toast('삭제했습니다'); loadPrograms();
+};
+
+// ── 버전 기록 ──────────────────────────────────────────────────
+const fmt = ts => { const d = ts?.toDate ? ts.toDate() : null; return d ? d.toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }) : '-'; };
+let versions = [];
+async function loadVersions() {
+  $('vlist').innerHTML = '<div class="empty">불러오는 중…</div>';
+  const [cur, hist] = await Promise.all([
+    getDoc(doc(db, 'siteContent', 'homepage')),
+    getDocs(query(collection(db, 'siteContentHistory'), where('doc', '==', 'homepage'))),
+  ]);
+  versions = hist.docs.map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.archivedAt?.toMillis?.() || 0) - (a.archivedAt?.toMillis?.() || 0));
+  const c = cur.exists() ? cur.data() : null;
+  $('vlist').innerHTML = `
+    <div class="vitem" style="border-color:var(--ink)">
+      <div><div class="when">현재 게시 중 · ${c ? fmt(c.updatedAt) : '아직 게시한 적 없음(기본 문구 표시 중)'}</div><div class="by">${c ? esc(c.updatedBy || '') : ''}</div></div>
+      <a class="btn" href="./" target="_blank" rel="noopener">보기 ↗</a>
+    </div>
+    ${versions.length ? versions.map(v => `
+    <div class="vitem">
+      <div><div class="when">${fmt(v.publishedAt)} 게시본</div><div class="by">게시: ${esc(v.publishedBy || '-')} · 보관: ${fmt(v.archivedAt)}</div></div>
+      <button class="btn" data-restore="${v.id}">이 버전으로 되돌리기</button>
+    </div>`).join('') : '<div class="empty">아직 보관된 이전 버전이 없습니다.</div>'}`;
+}
+$('vlist').onclick = async e => {
+  const id = e.target.closest('[data-restore]')?.dataset.restore; if (!id) return;
+  const v = versions.find(x => x.id === id);
+  if (!confirm(`${fmt(v.publishedAt)} 게시본으로 되돌릴까요?\n현재 게시본은 버전 기록에 보관됩니다.`)) return;
+  const ref = doc(db, 'siteContent', 'homepage');
+  const cur = await getDoc(ref);
+  if (cur.exists()) {
+    const { updatedAt, updatedBy, ...content } = cur.data();
+    await addDoc(collection(db, 'siteContentHistory'), { doc: 'homepage', content, publishedAt: updatedAt || null, publishedBy: updatedBy || '', archivedAt: serverTimestamp(), archivedBy: me.email });
+  }
+  await setDoc(ref, { ...v.content, updatedAt: serverTimestamp(), updatedBy: me.email + ' (되돌리기)' });
+  toast('되돌렸습니다'); loadVersions();
+};
+
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2200);
+}
+</script>
+</body>
+</html>

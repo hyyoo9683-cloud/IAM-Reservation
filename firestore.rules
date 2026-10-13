@@ -78,6 +78,15 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    // 홈페이지 이전 게시본 보관 (편집 모드 '게시하기'·관리자 페이지 '되돌리기'에서 기록)
+    match /siteContentHistory/{doc} {
+      allow read, write: if isAdmin();
+    }
+    // 홈페이지 공연·행사: 공개(published) 항목만 누구나 읽기, 관리자는 전체 읽기·쓰기
+    match /programs/{doc} {
+      allow read: if resource.data.published == true || isAdmin();
+      allow write: if isAdmin();
+    }
     // 공지사항: 누구나 읽기, 관리자만 쓰기
     match /notices/{doc} {
       allow read: if true;

@@ -13,6 +13,8 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(d,'reservations','other'),{userEmail:'lee@suwoncca.org',status:'대기'});
   await setDoc(doc(d,'reservations','extres'),{userEmail:'ext@gmail.com',status:'대기'});
   await setDoc(doc(d,'notices','n1'),{title:'t'});
+  await setDoc(doc(d,'programs','pub'),{title:'공개 공연',published:true});
+  await setDoc(doc(d,'programs','draft'),{title:'준비 중',published:false});
   await setDoc(doc(d,'reservations','byname'),{userEmail:'',managerName:'김철수',stewardName:'박영희',stewardTel:'010-1111-2222',status:'확정'});
   await setDoc(doc(d,'publicReservations','mine'),{room:'505호',status:'대기'});
   await setDoc(doc(d,'siteContent','home'),{a:1});
@@ -88,5 +90,15 @@ await t('외부인: 공개 사본 쓰기 차단', setDoc(doc(as(RAND),'publicRes
 await t('관리자도 공개 사본 직접 쓰기 차단(서버 함수 전용)', setDoc(doc(as(ADMIN),'publicReservations','x'),{room:'X'}), false);
 await t('관리자: 공개 사본 재생성 요청', setDoc(doc(as(SUB),'system','publicMirrorRequest'),{version:1}), true);
 await t('구성원: 공개 사본 재생성 요청 차단', setDoc(doc(as(KIM),'system','publicMirrorRequest'),{version:1}), false);
+// 홈페이지
+await t('비로그인: 공개 공연 목록 조회', getDocs(query(collection(as(null),'programs'), where('published','==',true))), true);
+await t('비로그인: 비공개 공연 읽기 차단', getDoc(doc(as(null),'programs','draft')), false);
+await t('비로그인: 공연 전체 목록(조건 없이) 차단', getDocs(collection(as(null),'programs')), false);
+await t('관리자: 공연 전체 목록', getDocs(collection(as(SUB),'programs')), true);
+await t('구성원(비관리자): 공연 등록 차단', setDoc(doc(as(KIM),'programs','x'),{title:'x',published:true}), false);
+await t('관리자: 공연 등록', setDoc(doc(as(SUB),'programs','x'),{title:'x',published:true}), true);
+await t('관리자: 홈페이지 이전 버전 보관', addDoc(collection(as(SUB),'siteContentHistory'),{doc:'homepage',content:{}}), true);
+await t('비로그인: 홈페이지 이전 버전 열람 차단', getDocs(collection(as(null),'siteContentHistory')), false);
+await t('비로그인: 홈페이지 문구 읽기', getDoc(doc(as(null),'siteContent','home')), true);
 console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
 await env.cleanup(); process.exit(fail?1:0);

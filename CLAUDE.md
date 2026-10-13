@@ -33,6 +33,7 @@
 | `guide.html` | 아이엠센터 이용 안내(예약 책임자·청지기 제도, 예약 방법, 아론홀·샤론홀 조건 등) — "예약 신청" 진입 시 거치는 동의 게이트 페이지(하단 체크박스 동의 후 `index.html?apply=1`로 이동, 로그인 안 되어 있으면 로그인 후 자동으로 신청 폼으로 이어짐). 직접 링크로도 공유 가능. 카카오톡 인앱 브라우저로 열면 페이지 진입 즉시 전체 화면 오버레이(`#kakao-overlay`)로 안내 내용 자체를 덮어서 Chrome/Safari로 나가기 전에는 아무것도 진행할 수 없게 막음(iOS는 자동 이동+실패 대비 수동 링크, Android는 "Chrome으로 열기" 버튼). 제목 바로 아래 접이식 안내(`<details class="first-time">`, 기본 닫힘)로 "예약이 처음이신가요?"를 두어 소속 외부 이용자를 `venue-spaces.html`로 안내(내부 이용자 평소 흐름에는 영향 없음). 05번 외부 대관 섹션에도 `venue-spaces.html` 링크 버튼 있음 |
 | `reservation-change.html` | 예약 변경·취소 신청 페이지 (누구나 제출 가능, `changeRequests` 컬렉션에 저장) — 공간은 5층 소그룹실(505~511호)·아론홀·샤론홀 중 select로만 선택 가능. 관리자 처리 화면은 `index.html`의 "예약 변경·취소 신청" 페이지(`renderChangeRequests()`) 참고 |
 | `venue-spaces.html` | 외부 대관 가능 공간 소개 페이지 (로그인 불필요, 공개) — `spaces` 컬렉션을 실시간으로 불러와 용도별(01 세미나실: 아론홀·샤론홀 / 02 소그룹실: 5층, 정원 기준 소형 10~16인·중형 20인 이상 소제목 분리 / 그 외는 "기타 공간")로 그룹핑해 사진·정원·비품 태그를 카드로 표시(카드에는 실별 설명 없음). 아이엠홀(별도 사이트 예정)·지혜홀(숙박 전용)·이름에 "로비"가 들어간 공간은 목록에서 제외. 각 섹션(세미나실/소그룹실/아이엠홀) 제목 아래에는 실별이 아니라 구분당 하나씩만 작성하는 소개 문구가 표시됨 — 관리자 "콘텐츠 편집 > 공간 안내" 탭에서 편집(Firestore `siteContent/venueSpaces`: `seminarDesc`/`groupRoomDesc`/`imhallDesc`). 공간 자체(사진·정원·비품)는 여전히 "공간 관리" 페이지에서 편집. 마지막 "아이엠홀" 섹션은 목록에는 없지만 "아이엠센터 소개 > 층별 안내 > B1/B2층"에 등록된 사진을 캐러셀로 가져와 보여줌. 모든 공간 사진(카드·캐러셀)은 클릭하면 라이트박스로 확대 |
+| `home/` | **센터 공개 홈페이지** (`/home/`) — 아래 "센터 홈페이지(home/)" 참고 |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `functions/index.js`, `functions/lib/*.js` | Cloud Functions — 예약 승인 시 Resend로 이메일 발송 (아래 "예약 이메일 알림" 참고) |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
@@ -355,6 +356,16 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - 읽는 곳: `index.html` 비로그인(`loadPublicData`)·일반 사용자(`listenReservationsForUser` — 공개 사본 + 본인 예약 원본 병합), `cal.html`, `cal-public.html`, `weekly-calendar.html`(관리자 로그인 시 원본으로 전환해 담당자·연락처 표시), `event-checklist.html`. `portal.html`·`manager-checklist.html`은 원본을 먼저 시도하고 권한이 없으면 공개 사본 사용
 - 클라이언트는 `publicReservations`에 쓸 수 없음 (서버 함수 전용)
 - `changeRequests`(변경·취소 신청, 신청자 연락처 포함) 열람·처리는 관리자만
+
+## 센터 홈페이지 (home/)
+예약 시스템과 같은 Firebase 프로젝트·로그인·데이터를 쓰는 공개 홈페이지. 주소 `https://iamreservation.web.app/home/` (정식 도메인은 추후 연결).
+- `home/index.html` 뼈대·스타일, `home/home.js` 렌더링(섹션 템플릿·슬라이더 등), `home/content.js` 기본 문구·구성(`DEFAULT_CONTENT`)과 병합(`mergeContent`), `home/fb.js` Firebase 초기화·관리자 확인·이미지 업로드(긴 변 2400px JPEG로 줄여 Storage `site/...`에 저장)
+- 데이터: `siteContent/homepage`(문구·사진 URL·섹션 순서/숨김 `sections:[{id,hidden}]`) — 문서가 없거나 항목이 빠지면 `DEFAULT_CONTENT`로 채움. `programs`(공연·행사, `published==true`만 공개). 공지는 기존 `notices` 최신 글(고정 글 우선)
+- **편집 모드**(`home/editor.js`, `home/editor.css`): 푸터 '관리자' 또는 `?edit=1` → 관리자(주 관리자·`admins`) 로그인 시 하단 막대 표시. 글자는 `data-k="경로"` 요소를 바로 수정, 사진은 `data-img`, 링크는 `data-link`, 섹션은 ↑↓·숨기기. '게시하기' 전에는 방문자에게 반영 안 됨
+- 게시·되돌리기 때마다 직전 게시본을 `siteContentHistory`(doc:'homepage')에 보관 → `home/admin.html` '버전 기록'에서 복원
+- `home/admin.html`: 공연·행사 등록·수정·공개 전환·포스터 업로드(`site/programs/`), 버전 기록
+- 새 편집 항목을 추가할 때: `content.js`의 `DEFAULT_CONTENT`에 기본값 → `home.js` 템플릿에서 `t()/m()/href()/bg()`로 출력하면 편집 모드가 자동으로 붙음
+- 규칙: `siteContent` 쓰기·`siteContentHistory`·`programs` 쓰기는 관리자만. Storage `site/` 경로에 관리자 쓰기가 허용되어 있어야 사진 업로드 가능(Storage 규칙은 콘솔에서 관리 중 — 저장소에 없음)
 
 ## 저장공간 정리 (관리자 전용 페이지, index.html `go('storage-cleanup')`)
 - **오래된 사진·첨부파일 압축**: `spaces`(공간 사진)·`venue_requests`(큐시트) Storage 파일 중 6개월

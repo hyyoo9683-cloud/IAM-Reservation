@@ -1,0 +1,61 @@
+/* 아이엠센터 홈페이지 — 관리자 편집 모드 전용 스타일 (편집 모드를 열 때만 적용됨) */
+.editing [data-k]{outline:1px dashed rgba(242,183,5,.0);outline-offset:3px;border-radius:2px;cursor:text;transition:outline-color .15s,background .15s}
+.editing [data-k]:hover{outline-color:rgba(242,183,5,.9)}
+.editing [data-k]:focus{outline:2px solid #f2b705;background:rgba(242,183,5,.08)}
+.editing [data-k]:empty::before{content:"(비어 있음 — 클릭해서 입력)";opacity:.45;font-weight:400;font-size:.8em}
+.editing .edit-hint{display:block;margin-top:18px;font-size:13px;color:#8a6d00;background:#fff8dc;border:1px solid #f2d56b;padding:10px 14px;border-radius:6px}
+.editing .edit-hint a{text-decoration:underline}
+
+/* 섹션 조작 막대 */
+.editing section[data-sec]{position:relative;outline:1px dashed transparent;outline-offset:-1px}
+.editing section[data-sec]:hover{outline-color:rgba(242,183,5,.6)}
+.ed-sec{position:absolute;z-index:30;top:84px;left:12px;display:flex;align-items:center;gap:4px;background:#111;color:#fff;border-radius:999px;padding:4px 6px 4px 14px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.ed-sec-name{font-weight:700;margin-right:6px;white-space:nowrap}
+.ed-sec button{background:#2b2b2b;color:#fff;border:0;border-radius:999px;padding:5px 10px;font-size:12px;cursor:pointer}
+.ed-sec button:hover:not(:disabled){background:#f2b705;color:#111}
+.ed-sec button:disabled{opacity:.35;cursor:default}
+section[data-sec]:not(.hero) .ed-sec{top:88px;left:auto;position:sticky;margin:0 12px -36px auto;width:max-content}
+section[data-hidden="1"]{opacity:.35;filter:grayscale(1)}
+section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
+
+/* 사진·링크 칩 */
+.ed-img{position:absolute;z-index:8;top:12px;right:12px;display:flex;gap:6px}
+.hero .ed-img{top:90px;right:var(--pad)}
+.ed-chip{font:600 12px/1 "Pretendard Variable",Pretendard,sans-serif;background:#f2b705;color:#111;border:0;border-radius:999px;padding:8px 12px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap}
+.ed-chip.ghost{background:#fff}
+.ed-chip:hover{filter:brightness(1.05)}
+.ed-img.busy .ed-chip{background:#ddd;cursor:progress}
+.editing [data-link]{position:relative}
+.ed-link{position:absolute;z-index:9;top:-12px;right:-6px;padding:4px 8px;font-size:11px;opacity:0;pointer-events:none;transition:opacity .15s}
+.editing [data-link]:hover>.ed-link,.ed-link:focus{opacity:1;pointer-events:auto}
+.editing .sp>.ed-link{top:auto;bottom:70px;right:24px;opacity:1;pointer-events:auto}
+
+/* 편집 중 히어로: 슬라이드 정지·클릭 가능하게 */
+.editing .slide .ph{transform:none!important;transition:none!important}
+.editing .slide:not(.on){pointer-events:none}
+.cap-edit{position:absolute;z-index:6;top:140px;left:var(--pad);display:grid;gap:6px;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:10px 14px;border-radius:8px;max-width:min(520px,80vw)}
+.cap-edit label{display:flex;gap:8px;opacity:.9}
+.cap-edit [data-k]{font-weight:600}
+.editing .rv{opacity:1!important;transform:none!important}
+
+/* 하단 편집 도구 막대 */
+.ed-bar{position:fixed;z-index:100;left:50%;bottom:18px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center;background:#111;color:#fff;padding:8px 10px 8px 16px;border-radius:999px;box-shadow:0 10px 40px rgba(0,0,0,.35);font:500 13px/1 "Pretendard Variable",Pretendard,sans-serif;max-width:calc(100vw - 24px)}
+.ed-bar .ed-who{font-weight:700;color:#f2b705}
+.ed-bar .ed-status{opacity:.7;margin:0 6px;white-space:nowrap}
+.ed-bar .ed-status.dirty{opacity:1;color:#ffd75e}
+.ed-bar button,.ed-bar a{font:inherit;color:#fff;background:#2b2b2b;border:0;border-radius:999px;padding:9px 14px;cursor:pointer;white-space:nowrap}
+.ed-bar button:hover:not(:disabled),.ed-bar a:hover{background:#3a3a3a}
+.ed-bar button.primary{background:#f2b705;color:#111;font-weight:700}
+.ed-bar button.primary:hover:not(:disabled){background:#ffc928}
+.ed-bar button:disabled{opacity:.4;cursor:default}
+.ed-bar button.ghost{background:none;opacity:.7}
+.ed-bar.preview{background:#2a2410}
+.has-editor .quick{bottom:86px}
+.ed-toast{position:fixed;z-index:101;left:50%;bottom:84px;transform:translateX(-50%);background:#fff;color:#111;padding:12px 18px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.2);font:500 14px "Pretendard Variable",Pretendard,sans-serif;transition:opacity .5s}
+.ed-toast.out{opacity:0}
+@media (max-width:600px){
+  .ed-bar{border-radius:14px;bottom:10px;padding:8px}
+  .ed-bar .ed-who{display:none}
+  .ed-sec{top:72px}
+  .cap-edit{display:none}
+}
