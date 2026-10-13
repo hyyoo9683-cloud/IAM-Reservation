@@ -662,6 +662,9 @@ window.registerAsReservation = async (id) => {
   const btn = document.getElementById('btn-register-reservation');
   if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
   try {
+    // 주의: firestore.rules는 reservations 확정 생성을 진짜 관리자(주 관리자 이메일 또는
+    // admins 컬렉션 등록 계정)로만 제한함 — 이 페이지는 @suwoncca.org 계정이면 누구나 들어올
+    // 수 있지만, admins에 없는 계정으로 이 버튼을 누르면 Firestore가 permission-denied로 막음
     const base = {
       type: r.orgName || '외부 대관',
       managerName: r.managerName || '',
