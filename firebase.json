@@ -11,7 +11,8 @@
       "firestore.rules",
       "storage.rules",
       "**/node_modules/**",
-      "tests/**"
+      "tests/**",
+      "functions/**"
     ],
     "headers": [
       {
