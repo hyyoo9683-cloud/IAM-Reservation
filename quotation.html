@@ -624,12 +624,14 @@ window.printQuote = async () => {
     }
     // 관리비·미화비 — 룸을 하나도 선택하지 않았으면(다과비만 발행) 청구하지 않음
     // 관리비는 숙박비와 마찬가지로 박수만큼 청구(1박당 금액 × 박수) — 미화비는 박수와 무관하게 고정
+    // 날짜·공간도 룸 행과 동일하게 채워서(dateRange/venueDisplay) 세로 병합이 룸 행부터
+    // 다과비 행까지 끊기지 않고 이어지게 함
     const anyRoomChecked = vInfo.rooms.some(room => g(`jH-${room.id}`)?.checked);
     if (anyRoomChecked) {
       const adminFeeTotal = vInfo.adminFee * nights;
-      rows.push({ date:'', time:'', space:'', item:`${L.adminFee} ${L.nights(nights)}`, total: adminFeeTotal, remarks:L.adminFeeRemark(vInfo.adminFee) });
+      rows.push({ date: dateRange, time:'', space: venueDisplay, item:`${L.adminFee} ${L.nights(nights)}`, total: adminFeeTotal, remarks:L.adminFeeRemark(vInfo.adminFee) });
       subtotal += adminFeeTotal;
-      rows.push({ date:'', time:'', space:'', item:L.cleanFee, total: vInfo.cleanFee, remarks:L.cleanFeeNote });
+      rows.push({ date: dateRange, time:'', space: venueDisplay, item:L.cleanFee, total: vInfo.cleanFee, remarks:L.cleanFeeNote });
       subtotal += vInfo.cleanFee;
     }
     // 다과비
