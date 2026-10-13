@@ -274,6 +274,17 @@ recurGroup으로 다시 조회하면 날짜 필터 범위 밖(예: 시작 날짜
 - `allowedUsers` 컬렉션 — 외부 허용 계정
 - `curUser` (로그인 객체), `isAdmin` (관리자 여부) — 전역 변수
 
+### 서버 측 권한 (firestore.rules)
+화면의 권한 확인과 별개로 Firestore 규칙에서 동일하게 강제함. 새 기능 추가 시 규칙도 함께 수정할 것.
+- `isAdmin()` = 주 관리자 이메일 또는 `admins/{email}` 문서 존재
+- `isStaff()` = 관리자 또는 `@suwoncca.org` 계정 (공지·대관·견적·체크리스트)
+- `isMember()` = 구성원 또는 `allowedUsers/{email}` 문서 존재 (예약 신청)
+- 예약: 사용자는 본인 이메일(`userEmail`)로 '대기' 상태 신청, 본인 예약만 수정·취소·삭제(상태는 유지 또는 '취소'만). 승인·반려·타인 예약은 관리자만
+- `admins`, `allowedUsers`는 본인 문서만 `getDoc`으로 확인 가능 (목록 조회는 관리자) → 로그인 시 `getDocs` 대신 `getDoc` 사용
+- `siteContent`(홈페이지·FAQ 등) 쓰기는 관리자만
+- 규칙 테스트: `tests/` (`cd tests && npm install && npm test`, Java 필요). GitHub Actions `rules-test.yml`이 배포 브랜치 외 push·PR에서 자동 실행
+- 배포 시 공개 제외: `firebase.json`의 hosting.ignore (숨김 파일, CLAUDE.md, firestore.rules, tests 등)
+
 ## 셀프 예약 불가 공간 (아이엠홀·지혜홀)
 - `index.html`의 `SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀']` — 일반 사용자 예약 신청 칩(`buildRoomChips()`)에서 제외됨
 - 관리자 전용 예약 등록·수정 모달(`editChipsHtml()`)에는 모든 공간이 그대로 노출되므로, 관리자가 대관 신청·상담 이후 받은 예약을 수동으로 등록 가능

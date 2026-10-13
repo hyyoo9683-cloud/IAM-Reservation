@@ -1,0 +1,64 @@
+import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
+import { readFileSync } from 'fs';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+const env = await initializeTestEnvironment({ projectId:'demo-iam', firestore:{ rules: readFileSync(new URL('../firestore.rules', import.meta.url),'utf8'), host:'127.0.0.1', port:8085 }});
+const tok = e => ({ email:e, email_verified:true });
+const as = e => e ? env.authenticatedContext(e, tok(e)).firestore() : env.unauthenticatedContext().firestore();
+await env.withSecurityRulesDisabled(async c => {
+  const d=c.firestore();
+  await setDoc(doc(d,'admins','sub.admin@gmail.com'),{name:'sub'});
+  await setDoc(doc(d,'allowedUsers','ext@gmail.com'),{name:'ext'});
+  await setDoc(doc(d,'reservations','mine'),{userEmail:'Kim@suwoncca.org',status:'대기',room:'505호'});
+  await setDoc(doc(d,'reservations','conf'),{userEmail:'kim@suwoncca.org',status:'확정',room:'505호'});
+  await setDoc(doc(d,'reservations','other'),{userEmail:'lee@suwoncca.org',status:'대기'});
+  await setDoc(doc(d,'reservations','extres'),{userEmail:'ext@gmail.com',status:'대기'});
+  await setDoc(doc(d,'notices','n1'),{title:'t'});
+  await setDoc(doc(d,'siteContent','home'),{a:1});
+});
+const KIM='kim@suwoncca.org', ADMIN='hyyoo9683@gmail.com', SUB='sub.admin@gmail.com', RAND='hacker@gmail.com', EXT='ext@gmail.com';
+let pass=0, fail=0;
+const t = async (name, p, ok) => { try { await (ok?assertSucceeds(p):assertFails(p)); pass++; console.log('✅', name);} catch(e){ fail++; console.log('❌', name, e.message);} };
+// 예약
+await t('비로그인: 예약 읽기(공개 캘린더)', getDocs(collection(as(null),'reservations')), true);
+await t('외부인(아무 Gmail): 예약 생성 차단', addDoc(collection(as(RAND),'reservations'),{userEmail:RAND,status:'대기'}), false);
+await t('외부인: 남의 예약 수정 차단', updateDoc(doc(as(RAND),'reservations','mine'),{room:'X'}), false);
+await t('외부인: 남의 예약 삭제 차단', deleteDoc(doc(as(RAND),'reservations','mine')), false);
+await t('구성원: 본인 예약 신청(대기)', addDoc(collection(as(KIM),'reservations'),{userEmail:KIM,status:'대기'}), true);
+await t('구성원: 확정 상태로 신청 차단', addDoc(collection(as(KIM),'reservations'),{userEmail:KIM,status:'확정'}), false);
+await t('구성원: 남의 이메일로 신청 차단', addDoc(collection(as(KIM),'reservations'),{userEmail:'lee@suwoncca.org',status:'대기'}), false);
+await t('구성원: 본인 예약 수정 (대소문자 달라도)', updateDoc(doc(as(KIM),'reservations','mine'),{room:'506호'}), true);
+await t('구성원: 확정된 본인 예약 내용 수정', updateDoc(doc(as(KIM),'reservations','conf'),{start:'10:00'}), true);
+await t('구성원: 본인 예약 취소', updateDoc(doc(as(KIM),'reservations','mine'),{status:'취소'}), true);
+await t('구성원: 본인 예약 셀프 승인(확정) 차단', updateDoc(doc(as(KIM),'reservations','mine'),{status:'확정'}), false);
+await t('구성원: 신청자 이메일 바꾸기 차단', updateDoc(doc(as(KIM),'reservations','conf'),{userEmail:'lee@suwoncca.org'}), false);
+await t('구성원: 남의 예약 수정 차단', updateDoc(doc(as(KIM),'reservations','other'),{room:'X'}), false);
+await t('구성원: 본인 예약 삭제(시리즈 단축)', deleteDoc(doc(as(KIM),'reservations','conf')), true);
+await t('외부 허용 계정: 본인 예약 신청', addDoc(collection(as(EXT),'reservations'),{userEmail:EXT,status:'대기'}), true);
+await t('외부 허용 계정: 본인 예약 수정', updateDoc(doc(as(EXT),'reservations','extres'),{room:'507호'}), true);
+await t('주 관리자: 남의 예약 승인', updateDoc(doc(as(ADMIN),'reservations','other'),{status:'확정'}), true);
+await t('추가 관리자(admins): 예약 삭제', deleteDoc(doc(as(SUB),'reservations','other')), true);
+// 계정
+await t('외부인: 자기 자신을 허용 계정에 추가 차단', setDoc(doc(as(RAND),'allowedUsers',RAND),{}), false);
+await t('외부인: 자기 자신을 관리자로 추가 차단', setDoc(doc(as(RAND),'admins',RAND),{}), false);
+await t('외부인: 관리자 목록 조회 차단', getDocs(collection(as(RAND),'admins')), false);
+await t('로그인 사용자: 본인 관리자 여부 확인', getDoc(doc(as(RAND),'admins',RAND)), true);
+await t('외부 허용 계정: 본인 허용 여부 확인', getDoc(doc(as(EXT),'allowedUsers',EXT)), true);
+await t('관리자: 허용 계정 목록 조회', getDocs(collection(as(SUB),'allowedUsers')), true);
+await t('구성원: 본인 로그인 기록 작성', setDoc(doc(as(KIM),'loginUsers',KIM),{n:1}), true);
+await t('구성원: 남의 로그인 기록 작성 차단', setDoc(doc(as(KIM),'loginUsers','lee@suwoncca.org'),{n:1}), false);
+// 콘텐츠
+await t('비로그인: 공지·사이트콘텐츠 읽기', getDoc(doc(as(null),'siteContent','home')), true);
+await t('외부인: 공지 수정 차단', updateDoc(doc(as(RAND),'notices','n1'),{title:'hacked'}), false);
+await t('구성원: 공지 작성', setDoc(doc(as(KIM),'notices','n2'),{title:'x'}), true);
+await t('구성원(비관리자): 홈페이지 콘텐츠 수정 차단', setDoc(doc(as(KIM),'siteContent','home'),{a:2}), false);
+await t('관리자: 홈페이지 콘텐츠 수정', setDoc(doc(as(SUB),'siteContent','home'),{a:2}), true);
+await t('외부인: 공간 정보 수정 차단', setDoc(doc(as(RAND),'spaces','s1'),{}), false);
+// 공개 제출
+await t('비로그인: 대관 신청 제출', addDoc(collection(as(null),'venue_requests'),{a:1}), true);
+await t('비로그인: 퇴실 체크 제출', addDoc(collection(as(null),'checkouts'),{a:1}), true);
+await t('비로그인: 변경 신청 제출', addDoc(collection(as(null),'changeRequests'),{a:1}), true);
+await t('외부인: 대관 신청 열람 차단', getDocs(collection(as(RAND),'venue_requests')), false);
+await t('구성원: 대관 신청 열람', getDocs(collection(as(KIM),'venue_requests')), true);
+await t('외부인: 견적서 열람 차단', getDocs(collection(as(RAND),'quotations')), false);
+console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
+await env.cleanup(); process.exit(fail?1:0);

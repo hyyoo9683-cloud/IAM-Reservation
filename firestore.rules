@@ -2,78 +2,130 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 예약·공간·차단일은 누구나 읽기 가능 (공개 캘린더용), 쓰기는 로그인 필요
-    match /reservations/{doc} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    // ───────── 권한 판별 함수 ─────────
+    // 화면(브라우저)에서만 막던 도메인·관리자 확인을 서버 규칙에서도 동일하게 확인한다.
+    function signedIn() {
+      return request.auth != null && request.auth.token.email != null
+          && request.auth.token.email_verified == true;
     }
+    function myEmail() { return request.auth.token.email; }
+
+    // 관리자: 주 관리자 또는 admins 컬렉션에 등록된 계정 (index.html의 isAdmin과 동일)
+    function isAdmin() {
+      return signedIn() && (
+        myEmail() == 'hyyoo9683@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(myEmail()))
+      );
+    }
+    // 구성원: @suwoncca.org 계정 또는 관리자 (notice/venue/quotation 등 인트라넷 페이지 기준)
+    function isStaff() {
+      return isAdmin() || (signedIn() && myEmail().matches('.*@suwoncca[.]org$'));
+    }
+    // 예약 사용자: 구성원 + 외부 허용 계정(allowedUsers)
+    function isMember() {
+      return isStaff() || (signedIn() &&
+        exists(/databases/$(database)/documents/allowedUsers/$(myEmail())));
+    }
+    function sameEmail(a) { return a is string && a.lower() == myEmail().lower(); }
+
+    // ───────── 예약 ─────────
+    match /reservations/{doc} {
+      // 공개 캘린더용 읽기 (개인정보 분리는 다음 단계에서 처리)
+      allow read: if true;
+
+      // 관리자: 전체 관리
+      allow create, update, delete: if isAdmin();
+
+      // 사용자: 본인 이메일로, '대기' 상태로만 신청
+      allow create: if isMember()
+        && sameEmail(request.resource.data.get('userEmail', ''))
+        && request.resource.data.get('status', '대기') == '대기';
+
+      // 사용자: 본인 예약만 수정 — 신청자 변경 불가, 상태는 그대로 두거나 '취소'만 가능
+      allow update: if isMember()
+        && sameEmail(resource.data.get('userEmail', ''))
+        && request.resource.data.get('userEmail', '') == resource.data.get('userEmail', '')
+        && (request.resource.data.get('status', '') == resource.data.get('status', '')
+            || request.resource.data.get('status', '') == '취소');
+
+      // 사용자: 본인 예약 삭제 (정기 예약 기간 단축 시 사용)
+      allow delete: if isMember() && sameEmail(resource.data.get('userEmail', ''));
+    }
+
+    // ───────── 공개 읽기 + 관리자 쓰기 ─────────
     match /spaces/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
     match /blockedDates/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
-    // 공지사항: 누구나 읽기 가능, 쓰기는 로그인 필요
-    match /notices/{doc} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    // 사이트 콘텐츠(FAQ·센터 소개): 누구나 읽기 가능, 쓰기는 로그인 필요
+    // 사이트 콘텐츠(FAQ·센터 소개·홈페이지 문구): 누구나 읽기, 관리자만 수정
     match /siteContent/{doc} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
-    // 나머지는 로그인한 사용자만
-    match /allowedUsers/{doc} {
-      allow read, write: if request.auth != null;
-    }
-    // 관리자 목록: 주 관리자(hyyoo9683@gmail.com) 또는 이미 등록된 관리자만 추가/삭제 가능
-    match /admins/{email} {
+    // 공지사항: 누구나 읽기, 구성원(notice.html 작성 권한과 동일)만 쓰기
+    match /notices/{doc} {
       allow read: if true;
-      allow write: if request.auth != null &&
-        (request.auth.token.email == 'hyyoo9683@gmail.com' ||
-         exists(/databases/$(database)/documents/admins/$(request.auth.token.email)));
+      allow write: if isStaff();
     }
+
+    // ───────── 계정 관리 ─────────
+    // 관리자 목록: 본인 문서 확인만 허용, 목록 조회·추가·삭제는 관리자
+    match /admins/{email} {
+      allow get: if signedIn() && (email == myEmail() || isAdmin());
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+    // 외부 허용 계정: 본인 문서 확인만 허용, 목록·관리는 관리자
+    match /allowedUsers/{email} {
+      allow get: if signedIn() && (email == myEmail() || isAdmin());
+      allow list, write: if isAdmin();
+    }
+    // 로그인 기록: 본인 기록만 작성, 조회·관리는 관리자
+    match /loginUsers/{email} {
+      allow get, write: if isMember() && email == myEmail();
+      allow read, write: if isAdmin();
+    }
+
+    // ───────── 관리자 전용 ─────────
     match /adminNotes/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
+    match /system/{doc} {
+      allow read, write: if isAdmin();
+    }
+
+    // ───────── 구성원 전용 ─────────
     match /orgs/{doc} {
-      allow read, write: if request.auth != null;
+      allow read: if isMember();
+      allow write: if isAdmin();
     }
     match /quotations/{doc} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isStaff();
     }
+    match /eventChecklists/{doc} {
+      allow read, write: if isStaff();
+    }
+    match /managerChecklists/{doc} {
+      allow read, write: if isStaff();
+    }
+
+    // ───────── 누구나 제출, 구성원이 처리 ─────────
     match /venue_requests/{doc} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isStaff();
     }
-    // 퇴실 체크: 누구나 제출 가능, 조회·수정·삭제는 로그인 필요
     match /checkouts/{doc} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow read, update, delete: if isStaff();
     }
-    // 시스템 메타데이터 (저장공간 정리 마지막 실행 시각 등): 로그인한 사용자만
-    match /system/{doc} {
-      allow read, write: if request.auth != null;
-    }
-    // 예약 변경·취소 신청: 누구나 제출 가능, 조회·처리는 로그인 필요
     match /changeRequests/{doc} {
       allow create: if true;
-      allow read, update, delete: if request.auth != null;
-    }
-    // 예약 책임자(로그인 사용자) 목록: 로그인 시 자동 기록, 조회·수동 추가/삭제는 로그인 필요
-    match /loginUsers/{email} {
-      allow read, write: if request.auth != null;
-    }
-    // 행사 체크리스트 (인트라넷 전용): 로그인한 구성원만 조회·작성
-    match /eventChecklists/{doc} {
-      allow read, write: if request.auth != null;
-    }
-    // 담당자별 예약건 체크리스트 (인트라넷 전용): 로그인한 구성원만 조회·작성
-    match /managerChecklists/{doc} {
-      allow read, write: if request.auth != null;
+      allow read: if isMember();
+      allow update, delete: if isAdmin();
     }
   }
 }
