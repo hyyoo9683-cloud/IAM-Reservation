@@ -6,7 +6,7 @@
 - **라이브 사이트**: https://iamreservation.web.app/
 - **Firebase 프로젝트**: `iamreservation`
 - **GitHub 레포**: `hyyoo9683-cloud/IAM-Reservation`
-- **개발 브랜치**: `claude/space-reservation-system-N6xIM`
+- **개발·배포 브랜치**: `claude/merge-bundle-commits-5fgy0e` (push하면 바로 운영에 배포됨). 예전 `claude/space-reservation-system-N6xIM`은 더 이상 사용하지 않음
 
 ## 배포
 코드를 브랜치에 push하면 **GitHub Actions가 자동으로 Firebase Hosting + Firestore 규칙 + Cloud Functions에 배포**함 (30~40초 소요).
@@ -365,7 +365,7 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - 게시·되돌리기 때마다 직전 게시본을 `siteContentHistory`(doc:'homepage')에 보관 → `home/admin.html` '버전 기록'에서 복원
 - `home/admin.html`: 공연·행사 등록·수정·공개 전환·포스터 업로드(`site/programs/`), 버전 기록
 - 새 편집 항목을 추가할 때: `content.js`의 `DEFAULT_CONTENT`에 기본값 → `home.js` 템플릿에서 `t()/m()/href()/bg()`로 출력하면 편집 모드가 자동으로 붙음
-- 규칙: `siteContent` 쓰기·`siteContentHistory`·`programs` 쓰기는 관리자만. Storage `site/` 경로에 관리자 쓰기가 허용되어 있어야 사진 업로드 가능(Storage 규칙은 콘솔에서 관리 중 — 저장소에 없음)
+- 규칙: `siteContent` 쓰기·`siteContentHistory`·`programs` 쓰기는 관리자만. Storage `site/` 경로에 관리자 쓰기가 허용되어 있어야 사진 업로드 가능(Storage 규칙은 콘솔에서 관리 중 — 저장소에 없음). 2026-10-13 확인: 비로그인 상태로 bucket 전체 목록 조회가 가능함(읽기는 공개), `site/`에는 아직 업로드된 파일이 없음 — 쓰기 허용 여부는 콘솔 규칙에서 직접 확인 필요
 
 ## 저장공간 정리 (관리자 전용 페이지, index.html `go('storage-cleanup')`)
 - **오래된 사진·첨부파일 압축**: `spaces`(공간 사진)·`venue_requests`(큐시트) Storage 파일 중 6개월
