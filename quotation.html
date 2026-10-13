@@ -50,8 +50,8 @@ const VENUES = {
   [COMBO_VENUE]: { type: 'combo' },
   '지혜홀': {
     type: 'lodging',
-    adminFee: 50000,  // 기본 관리비 (고정)
-    cleanFee: 40000,  // 미화비 (고정)
+    adminFee: 50000,  // 기본 관리비 (1박당 금액 — 박수만큼 청구)
+    cleanFee: 40000,  // 미화비 (박수 무관 고정)
     extraPerPerson: 10000,
     rooms: [
       { id: 'r1', name: 'Room 1', desc: '3인실', base: 30000, max: 3 },
@@ -109,7 +109,7 @@ const STR = {
     nights: n => `${n}박`,
     roomRemark: (perNight, total, extra) =>
       `2인 기준 1박당 ${comma(perNight)}원<br>총 ${comma(total)}원${extra ? ` (추가 ${extra}인 포함)` : ''}`,
-    adminFee: '기본 관리비', adminFeeNote: '고정 (박수 무관)',
+    adminFee: '기본 관리비', adminFeeRemark: perNight => `1박당 ${comma(perNight)}원`,
     cleanFee: '미화비', cleanFeeNote: '고정',
     snackFee: '다과비', snackFeeNote: 'IAM 제공',
     validity: issueDate => issueDate.replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$1년 $2월 $3일'),
@@ -142,7 +142,7 @@ const STR = {
     nights: n => `${n} night${n>1?'s':''}`,
     roomRemark: (perNight, total, extra) =>
       `Based on 2 guests: KRW ${comma(perNight)}/night<br>Total KRW ${comma(total)}${extra ? ` (incl. ${extra} extra guest${extra>1?'s':''})` : ''}`,
-    adminFee: 'Management Fee', adminFeeNote: 'Fixed (regardless of nights)',
+    adminFee: 'Management Fee', adminFeeRemark: perNight => `KRW ${comma(perNight)}/night`,
     cleanFee: 'Cleaning Fee', cleanFeeNote: 'Fixed',
     snackFee: 'Refreshments', snackFeeNote: 'Provided by IAM',
     validity: issueDate => {
@@ -483,14 +483,15 @@ window.updateCalc = () => {
     el('jH-snack-amt-wrap').style.display = snackOn ? '' : 'none';
 
     // 룸을 하나도 선택하지 않으면 관리비·미화비는 청구하지 않음 (다과비만 발행하는 경우 대응)
+    // 관리비는 숙박비와 마찬가지로 박수만큼 청구(1박당 금액 × 박수) — 미화비는 박수와 무관하게 고정
     const anyRoomChecked = vInfo.rooms.some(room => el(`jH-${room.id}`)?.checked);
-    const adminFee = anyRoomChecked ? vInfo.adminFee : 0;
+    const adminFee = anyRoomChecked ? vInfo.adminFee * nights : 0;
     const cleanFee = anyRoomChecked ? vInfo.cleanFee : 0;
     el('row-admin-fee').style.display = anyRoomChecked ? '' : 'none';
     el('row-clean-fee').style.display = anyRoomChecked ? '' : 'none';
 
     subtotal = roomCost + adminFee + cleanFee + snackAmt;
-    el('c-admin-fee').textContent = comma(adminFee);
+    el('c-admin-fee').textContent = anyRoomChecked ? `${comma(vInfo.adminFee)}/박 × ${nights} = ${comma(adminFee)}` : comma(adminFee);
     el('c-clean-fee').textContent = comma(cleanFee);
   }
 
@@ -622,11 +623,15 @@ window.printQuote = async () => {
         remarks: L.roomRemark(perNight, roomTotal, extra) });
     }
     // 관리비·미화비 — 룸을 하나도 선택하지 않았으면(다과비만 발행) 청구하지 않음
+    // 관리비는 숙박비와 마찬가지로 박수만큼 청구(1박당 금액 × 박수) — 미화비는 박수와 무관하게 고정
+    // 날짜·공간도 룸 행과 동일하게 채워서(dateRange/venueDisplay) 세로 병합이 룸 행부터
+    // 다과비 행까지 끊기지 않고 이어지게 함
     const anyRoomChecked = vInfo.rooms.some(room => g(`jH-${room.id}`)?.checked);
     if (anyRoomChecked) {
-      rows.push({ date:'', time:'', space:'', item:L.adminFee, total: vInfo.adminFee, remarks:L.adminFeeNote });
-      subtotal += vInfo.adminFee;
-      rows.push({ date:'', time:'', space:'', item:L.cleanFee, total: vInfo.cleanFee, remarks:L.cleanFeeNote });
+      const adminFeeTotal = vInfo.adminFee * nights;
+      rows.push({ date: dateRange, time:'', space: venueDisplay, item:`${L.adminFee} ${L.nights(nights)}`, total: adminFeeTotal, remarks:L.adminFeeRemark(vInfo.adminFee) });
+      subtotal += adminFeeTotal;
+      rows.push({ date: dateRange, time:'', space: venueDisplay, item:L.cleanFee, total: vInfo.cleanFee, remarks:L.cleanFeeNote });
       subtotal += vInfo.cleanFee;
     }
     // 다과비
@@ -660,13 +665,22 @@ window.printQuote = async () => {
     for (let j = i+1; j < rows.length && rows[j].date === r.date; j++) span++;
     return span > 1 ? `<td rowspan="${span}">${r.date}</td>` : `<td>${r.date}</td>`;
   };
+  // 같은 공간이 연달아 나오면 위에서 한 번만 쓰고(세로 병합), 그 아래 행들은 공간 칸을 비움
+  const spaceCellHtml = (i) => {
+    const r = rows[i];
+    if (r.space && i > 0 && rows[i-1].space === r.space) return '';
+    if (!r.space) return `<td>${r.space || ''}</td>`;
+    let span = 1;
+    for (let j = i+1; j < rows.length && rows[j].space === r.space; j++) span++;
+    return span > 1 ? `<td rowspan="${span}">${r.space}</td>` : `<td>${r.space}</td>`;
+  };
 
   const buildRows = () => {
     if (vInfo.type === 'combo') {
       return rows.map((r, i) => {
         const s = Math.round(r.perDateCost/1.1), v = r.perDateCost - s;
         return `<tr>
-          ${dateCellHtml(i)}<td>${r.time}</td><td>${r.space}</td>
+          ${dateCellHtml(i)}<td>${r.time}</td>${spaceCellHtml(i)}
           <td class="left">${r.item}</td>
           <td class="num">${comma(s)}</td><td class="num">${comma(v)}</td>
           <td class="left sm">${r.remarks}</td>
@@ -678,7 +692,7 @@ window.printQuote = async () => {
         const s = r.total ? Math.round(r.total/1.1) : 0;
         const v = r.total ? r.total - s : 0;
         html += `<tr>
-          ${dateCellHtml(i)}<td>${r.time||''}</td><td>${r.space||''}</td>
+          ${dateCellHtml(i)}<td>${r.time||''}</td>${spaceCellHtml(i)}
           <td class="left">${r.item}</td>
           <td class="num">${r.total ? comma(s) : ''}</td>
           <td class="num">${r.total ? comma(v) : ''}</td>
@@ -1002,7 +1016,11 @@ function loadQuoteIntoForm(h) {
   quoteDates = (h.dates?.length)
     ? h.dates.map(d => ({...d}))
     : [{ date: h.date||'', timeStart:'', timeEnd:'' }];
-  document.getElementById('q-date').value = quoteDates[0]?.date || '';
+  // 지혜홀(숙박) 견적은 체크인 날짜(h.qDateIn)가 진짜 기준 — quoteDates는 콤보 견적용이라
+  // 지혜홀 저장분엔 과거에 남겨진 무관한 날짜가 들어있을 수 있음
+  document.getElementById('q-date').value = (resolvedVenue !== COMBO_VENUE && VENUES[resolvedVenue]?.type === 'lodging' && h.qDateIn)
+    ? h.qDateIn
+    : (quoteDates[0]?.date || '');
 
   // 분류 복원
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.quoteCategory || '신청')));
@@ -1020,7 +1038,10 @@ function loadQuoteIntoForm(h) {
     }
 
     // 지혜홀 전용 필드 복원
-    if (h.qDateIn)  { const el = document.getElementById('q-date-in');  if (el) el.value = h.qDateIn; }
+    // q-date-in뿐 아니라 숨은 필드 q-date도 같이 맞춰줘야 함 — 인쇄(printQuote)는 체크인
+    // 날짜를 q-date-in이 아니라 q-date에서 읽는데, q-date는 콤보 견적용 quoteDates[0].date로
+    // 초기화되는 경우가 있어 지혜홀 견적에서는 실제 체크인 날짜와 어긋날 수 있었음
+    if (h.qDateIn)  { const el = document.getElementById('q-date-in');  if (el) el.value = h.qDateIn; document.getElementById('q-date').value = h.qDateIn; }
     if (h.qNights)  { const el = document.getElementById('q-nights');   if (el) el.value = h.qNights; }
     if (h.qDateOut) { const el = document.getElementById('q-date-out'); if (el) el.value = h.qDateOut; }
     (h.qRooms || []).forEach(r => {

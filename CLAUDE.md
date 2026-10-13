@@ -56,6 +56,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 | `checkouts` | 퇴실 체크 기록 |
 | `allowedUsers` | 외부 허용 사용자 |
 | `eventChecklists` | 행사 체크리스트 (아론홀·샤론홀·아이엠홀 확정 예약은 `event-checklist.html` 접속 시 자동 생성, 문서 id `auto_<예약id>`, `reservationId`·`autoCreated` 필드로 구분) |
+| `loginUsers` | 로그인 이력(예약 책임자 관리). 문서 id=이메일, `name`(실제 로그인 계정 이름)·`firstLoginAt`·`lastLoginAt`·`loginCount` 등 — `trackLoginUser()`가 로그인마다 기록, 예약 목록·상세의 신청자 이메일/실명 표시에도 사용됨(아래 참고) |
 
 ## 예약 데이터 구조 (`reservations`)
 ```
@@ -160,6 +161,17 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 잘못된 승인 메일이 갈 수 있었음). 커뮤니티 내 동명이인이 거의 없다는 전제로, 이런 수기 등록
 예약은 이름 매칭만으로 해당 담당자의 "내 예약"에 잡히도록 함.
 
+## 예약 목록·상세의 신청자 이메일/실제 로그인 계정 표시
+담당자·청지기 이름은 신청자가 자유롭게 입력하는 텍스트라 실제 신청 계정과 다를 수 있음(대필
+신청 등) — 관리자가 이를 확인할 수 있도록 예약 목록(`renderList()`)의 담당자 칸 아래에 작은
+글씨로 신청자 이메일(`r.userEmail`)을 함께 표시하고(`managerCellHtml()`), 예약 상세
+(`openDetail()`)에는 "신청자 계정" 항목으로 이메일을 보여줌(`applicantAccountHtml()`, isAdmin
+전용). `loginUsers` 컬렉션(문서 id=이메일, `trackLoginUser()`가 로그인마다 기록)에서 해당
+이메일의 실제 로그인 계정 이름을 찾아(`findLoginUser()`) 담당자·청지기 이름과 다르면 주황색
+"⚠ 실제 로그인 계정 이름: OOO"로 강조 표시. `loginUsers`는 `loadData()`에서 관리자 로그인 시
+`loginUsersCache`로 실시간 구독됨(예약 목록 페이지에서만 재렌더링 트리거). `userEmail`이 빈
+예약(관리자 수기 등록·CSV 가져오기)은 "(로그인 계정 없음 — 관리자 등록/CSV)"로 표시.
+
 ## 예약 변경·취소 신청 관리 (index.html)
 "예약 변경·취소 신청" 페이지(`renderChangeRequests()`)는 왼쪽 목록(`#cr-list`, `.cr-row` — 공간·날짜·
 신청자·처리 상태만 간단히)과 오른쪽 상세(`#cr-detail`, `renderChangeReqDetail()` — 모임명·요청 내용·
@@ -182,6 +194,19 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 버튼이 노출됨 — `smsBulkContacts`(중복 tel 제거된 `[tel, name]` 배열)를 쉼표로 이어붙여
 클립보드에 복사(`copyAllSmsContacts()`), 문자 앱 수신자란에 붙여넣어 여러 명에게 한 번에 발송하기
 위함. 단건 문자(`openSmsModal`)·변경요청 문자(`openChangeSmsModal`)에서는 이 버튼이 숨겨짐.
+
+## 정기 예약 날짜 생성 규칙 (`generateAvailDates`)
+매주/격주/매달 회차 날짜는 **시작 날짜를 기준점으로 간격만큼(매주 7일·격주 14일) 앞으로
+진행**하며 생성됨(`generateAvailDatesCore()`) — 입력한 종료 날짜에 맞춰 간격을 조정하거나
+역산하지 않음. 종료 날짜가 그 간격에 정확히 맞아떨어지지 않아도(예: 격주 시작일 기준으로
+종료 날짜가 짝이 안 맞는 날) **종료 날짜 자체는 항상 예외적인 마지막 회차로 포함됨** —
+`generateAvailDates()`가 core 결과 끝에 종료 날짜가 없으면 그대로 덧붙임(마지막 회차만
+직전 회차와의 간격이 14일이 아닐 수 있음, 반복 규칙에 억지로 맞추기 위해 사용자가 지정한
+종료 날짜를 빼지 않음). 이 로직 하나로 신규 등록·시리즈 종료일 연장·CSV 가져오기·가용성
+검색 등 정기예약 날짜를 만드는 모든 경로에 동일하게 적용됨. 신청 폼(`checkAvail()`)과 관리자
+"+ 예약 추가" 모달(`checkEditAvail()`)의 정기 예약 미리보기에는 마지막 회차가 이런 예외
+회차인지 참고용으로 안내하는 문구(`recurMismatchNote`, `generateAvailDatesCore()`로 판별)를
+표시함.
 
 ## 정기 예약 (allSeries) 처리
 - `recurGroup` 필드로 같은 시리즈 예약들이 연결됨
