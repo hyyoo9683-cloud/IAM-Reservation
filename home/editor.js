@@ -173,7 +173,7 @@ function decorate() {
     chip.title = getPath(draft, path) || '';
     chip.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
-      const v = prompt('연결할 주소를 입력하세요.\n예) https://… , ../venue-spaces.html , #visit', getPath(draft, path) || '');
+      const v = prompt('연결할 주소를 입력하세요.\n예) https://… , https://iamreservation.web.app/venue-spaces.html , #visit', getPath(draft, path) || '');
       if (v === null) return;
       setPath(draft, path, v.trim());
       render(); updateStatus();

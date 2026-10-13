@@ -358,7 +358,10 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - `changeRequests`(변경·취소 신청, 신청자 연락처 포함) 열람·처리는 관리자만
 
 ## 센터 홈페이지 (home/)
-예약 시스템과 같은 Firebase 프로젝트·로그인·데이터를 쓰는 공개 홈페이지. 주소 `https://iamreservation.web.app/home/` (정식 도메인은 추후 연결).
+예약 시스템과 같은 Firebase 프로젝트·로그인·데이터를 쓰는 공개 홈페이지. 주소 `https://iamcenter.web.app/` (같은 Firebase 프로젝트의 별도 Hosting 사이트, `home/` 폴더만 배포) — 기존 `https://iamreservation.web.app/home/`에서도 그대로 열림.
+- Hosting 구성: `firebase.json`의 hosting 배열 — `main`(저장소 루트 → iamreservation 사이트), `home`(`home/` → iamcenter 사이트), 대상 연결은 `.firebaserc`의 `targets`. 배포 워크플로우가 예약 시스템을 먼저 배포한 뒤 iamcenter 사이트를 확인(없으면 `hosting:sites:create`로 생성)하고 `hosting:home`을 따로 배포함
+- 홈페이지에서 예약 시스템 페이지로 가는 링크는 `https://iamreservation.web.app/...` 전체 주소로 씀(별도 사이트에서는 `../index.html` 같은 상대 주소가 깨짐). 예전에 저장된 `../x`·`/x` 링크는 `home.js`의 `safeUrl()`이 자동으로 전체 주소로 바꿈
+- 새 주소에서 관리자 로그인(편집 모드)을 하려면 Firebase Authentication → 승인된 도메인에 `iamcenter.web.app`이 등록되어 있어야 함
 - `home/index.html` 뼈대·스타일, `home/home.js` 렌더링(섹션 템플릿·슬라이더 등), `home/content.js` 기본 문구·구성(`DEFAULT_CONTENT`)과 병합(`mergeContent`), `home/fb.js` Firebase 초기화·관리자 확인·이미지 업로드(긴 변 2400px JPEG로 줄여 Storage `site/...`에 저장)
 - 데이터: `siteContent/homepage`(문구·사진 URL·섹션 순서/숨김 `sections:[{id,hidden}]`) — 문서가 없거나 항목이 빠지면 `DEFAULT_CONTENT`로 채움. `programs`(공연·행사, `published==true`만 공개). 공지는 기존 `notices` 최신 글(고정 글 우선)
 - **편집 모드**(`home/editor.js`, `home/editor.css`): 푸터 '관리자' 또는 `?edit=1` → 관리자(주 관리자·`admins`) 로그인 시 하단 막대 표시. 글자는 `data-k="경로"` 요소를 바로 수정, 사진은 `data-img`, 링크는 `data-link`, 섹션은 ↑↓·숨기기. '게시하기' 전에는 방문자에게 반영 안 됨

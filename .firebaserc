@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "iamreservation"
+  },
+  "targets": {
+    "iamreservation": {
+      "hosting": {
+        "main": [
+          "iamreservation"
+        ],
+        "home": [
+          "iamcenter"
+        ]
+      }
+    }
   }
 }

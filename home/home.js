@@ -13,9 +13,13 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ml = s => esc(s).replace(/\n/g, '<br>');            // 여러 줄 문구
+// 홈페이지는 iamcenter.web.app(별도 사이트)에서도 열리므로, 예전에 저장된 '../x'·'/x' 같은
+// 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
+const MAIN_SITE = 'https://iamreservation.web.app/';
 const safeUrl = u => {
   const s = String(u || '').trim();
-  return /^(https?:|mailto:|tel:|#|\.\.?\/|\/)/i.test(s) ? s : '#';
+  if (!/^(https?:|mailto:|tel:|#|\.\.?\/|\/)/i.test(s)) return '#';
+  return s.replace(/^(\.\.\/)+|^\/(?!\/)/, MAIN_SITE);
 };
 const c = path => getPath(state.content, path);
 // CSS url('...') 안에 넣을 주소: 따옴표·괄호·공백을 인코딩해 속성/스타일 탈출을 막음
@@ -150,7 +154,7 @@ const SECTIONS = {
         ${ns.length ? ns.map(n => `<a href="${esc(safeUrl(c('notice.moreLink')))}"><span class="c">${esc(n.category || '공지')}</span><span class="ti">${esc(n.title)}</span><time>${esc(fmtDate(n.createdAt))}</time></a>`).join('')
           : '<p class="empty">등록된 공지가 없습니다.</p>'}
       </div>
-      ${state.editing ? '<p class="edit-hint">공지 목록은 인트라넷 <a href="../notice.html">공지사항 관리</a>에서 작성합니다.</p>' : ''}
+      ${state.editing ? '<p class="edit-hint">공지 목록은 인트라넷 <a href="https://iamreservation.web.app/notice.html">공지사항 관리</a>에서 작성합니다.</p>' : ''}
     </div>
     <aside class="rent rv">
       ${t('notice.rentEyebrow', 'p', 'eyebrow rent-eb')}
@@ -194,7 +198,7 @@ function footerHtml() {
     <div class="top">
       <div><div class="logo">I AM <small>CENTER</small></div>${m('footer.desc')}</div>
       <div><h4>MENU</h4><ul><li><a href="#whatson">공연·행사</a></li><li><a href="#about">아이엠센터</a></li><li><a href="#spaces">공간</a></li><li><a href="#notice">대관 안내</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="#visit">오시는 길</a></li><li><a href="../notices-public.html">공지사항</a></li><li><a href="../index.html">공간 예약</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="#visit">오시는 길</a></li><li><a href="https://iamreservation.web.app/notices-public.html">공지사항</a></li><li><a href="https://iamreservation.web.app/index.html">공간 예약</a></li></ul></div>
       <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>
     </div>
     <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>

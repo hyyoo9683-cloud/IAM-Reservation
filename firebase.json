@@ -1,35 +1,61 @@
 {
-  "hosting": {
-    "public": ".",
-    "ignore": [
-      "firebase.json",
-      ".firebaserc",
-      "**/.*",
-      "**/.*/**",
-      "README.md",
-      "CLAUDE.md",
-      "firestore.rules",
-      "storage.rules",
-      "**/node_modules/**",
-      "tests/**",
-      "functions/**"
-    ],
-    "headers": [
-      {
-        "source": "**/*.html",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          },
-          {
-            "key": "Pragma",
-            "value": "no-cache"
-          }
-        ]
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "target": "main",
+      "public": ".",
+      "ignore": [
+        "firebase.json",
+        ".firebaserc",
+        "**/.*",
+        "**/.*/**",
+        "README.md",
+        "CLAUDE.md",
+        "firestore.rules",
+        "storage.rules",
+        "**/node_modules/**",
+        "tests/**",
+        "functions/**"
+      ],
+      "headers": [
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "target": "home",
+      "public": "home",
+      "ignore": [
+        "**/.*",
+        "**/.*/**"
+      ],
+      "headers": [
+        {
+          "source": "**/*.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            },
+            {
+              "key": "Pragma",
+              "value": "no-cache"
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   },
@@ -47,8 +73,14 @@
     }
   ],
   "emulators": {
-    "functions": { "port": 5001 },
-    "firestore": { "port": 8080 },
-    "ui": { "enabled": true }
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    }
   }
 }

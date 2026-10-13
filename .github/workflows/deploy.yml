@@ -36,4 +36,16 @@ jobs:
       - name: Firebase Hosting + Firestore 규칙 + Functions 배포
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase deploy --only hosting,firestore:rules,functions --project iamreservation --force
+        run: firebase deploy --only hosting:main,firestore:rules,functions --project iamreservation --force
+
+      # 센터 홈페이지(home/)는 별도 사이트 iamcenter.web.app으로도 배포 — 예약 시스템 배포가 끝난 뒤
+      # 따로 실행해서, 이 단계가 실패해도 예약 시스템 배포에는 영향이 없게 함
+      - name: 센터 홈페이지 사이트(iamcenter) 확인 — 없으면 생성
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase hosting:sites:get iamcenter --project iamreservation || firebase hosting:sites:create iamcenter --project iamreservation
+
+      - name: 센터 홈페이지(iamcenter.web.app) 배포
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: firebase deploy --only hosting:home --project iamreservation
