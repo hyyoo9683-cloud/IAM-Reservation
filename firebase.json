@@ -29,6 +29,15 @@
               "value": "no-cache"
             }
           ]
+        },
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache"
+            }
+          ]
         }
       ]
     },
@@ -49,6 +58,15 @@
             },
             {
               "key": "Pragma",
+              "value": "no-cache"
+            }
+          ]
+        },
+        {
+          "source": "**/*.@(js|css)",
+          "headers": [
+            {
+              "key": "Cache-Control",
               "value": "no-cache"
             }
           ]
