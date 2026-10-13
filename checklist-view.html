@@ -180,6 +180,14 @@ const firebaseConfig = {
 };
 const ALLOWED_DOMAIN = "suwoncca.org";
 const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+// 인트라넷은 관리자 전용: 주 관리자 또는 Firestore admins 컬렉션에 등록된 계정만 입장
+// (firestore.rules의 isAdmin()과 동일한 기준)
+async function isAdminAccount(email) {
+  if (!email) return false;
+  if (ADMIN_EMAILS.includes(email)) return true;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch (_) { return false; }
+}
 const PHASES = [
   { key: 'before', label: '행사 전' },
   { key: 'after',  label: '행사 후' },
@@ -198,8 +206,8 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
   const domain  = user.email.split('@')[1];
-  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
-  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  const allowed = await isAdminAccount(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('관리자로 등록된 계정만 이용할 수 있습니다.'); return; }
   curUser = user;
   document.getElementById('loading-wrap').style.display = 'none';
   document.getElementById('login-wrap').style.display = 'none';

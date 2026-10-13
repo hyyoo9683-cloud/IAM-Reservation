@@ -18,14 +18,12 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(myEmail()))
       );
     }
-    // 구성원: @suwoncca.org 계정 또는 관리자 (notice/venue/quotation 등 인트라넷 페이지 기준)
-    function isStaff() {
-      return isAdmin() || (signedIn() && myEmail().matches('.*@suwoncca[.]org$'));
-    }
-    // 예약 사용자: 구성원 + 외부 허용 계정(allowedUsers)
+    // 예약 사용자: 관리자 + @suwoncca.org 계정 + 외부 허용 계정(allowedUsers)
+    // (인트라넷은 관리자 전용 — 일반 구성원은 예약 신청·내 예약만 사용)
     function isMember() {
-      return isStaff() || (signedIn() &&
-        exists(/databases/$(database)/documents/allowedUsers/$(myEmail())));
+      return isAdmin()
+        || (signedIn() && myEmail().matches('.*@suwoncca[.]org$'))
+        || (signedIn() && exists(/databases/$(database)/documents/allowedUsers/$(myEmail())));
     }
     function sameEmail(a) { return a is string && a.lower() == myEmail().lower(); }
 
@@ -80,10 +78,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    // 공지사항: 누구나 읽기, 구성원(notice.html 작성 권한과 동일)만 쓰기
+    // 공지사항: 누구나 읽기, 관리자만 쓰기
     match /notices/{doc} {
       allow read: if true;
-      allow write: if isStaff();
+      allow write: if isAdmin();
     }
 
     // ───────── 계정 관리 ─────────
@@ -112,29 +110,29 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
-    // ───────── 구성원 전용 ─────────
+    // ───────── 기관 분류(예약 신청 폼) / 인트라넷(관리자 전용) ─────────
     match /orgs/{doc} {
       allow read: if isMember();
       allow write: if isAdmin();
     }
     match /quotations/{doc} {
-      allow read, write: if isStaff();
+      allow read, write: if isAdmin();
     }
     match /eventChecklists/{doc} {
-      allow read, write: if isStaff();
+      allow read, write: if isAdmin();
     }
     match /managerChecklists/{doc} {
-      allow read, write: if isStaff();
+      allow read, write: if isAdmin();
     }
 
-    // ───────── 누구나 제출, 구성원이 처리 ─────────
+    // ───────── 누구나 제출, 관리자가 처리 ─────────
     match /venue_requests/{doc} {
       allow create: if true;
-      allow read, update, delete: if isStaff();
+      allow read, update, delete: if isAdmin();
     }
     match /checkouts/{doc} {
       allow create: if true;
-      allow read, update, delete: if isStaff();
+      allow read, update, delete: if isAdmin();
     }
     match /changeRequests/{doc} {
       allow create: if true;

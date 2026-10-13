@@ -3253,7 +3253,7 @@ async function loadData() {
     adminMemos = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     if (curPage === 'memo') renderMemo();
-  });
+  }, () => {});
 
   window.addMemo = async () => {
     const content = document.getElementById('memo-input').value.trim();

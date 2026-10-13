@@ -64,7 +64,8 @@ await t('구성원: 남의 로그인 기록 작성 차단', setDoc(doc(as(KIM),'
 // 콘텐츠
 await t('비로그인: 공지·사이트콘텐츠 읽기', getDoc(doc(as(null),'siteContent','home')), true);
 await t('외부인: 공지 수정 차단', updateDoc(doc(as(RAND),'notices','n1'),{title:'hacked'}), false);
-await t('구성원: 공지 작성', setDoc(doc(as(KIM),'notices','n2'),{title:'x'}), true);
+await t('구성원(비관리자): 공지 작성 차단', setDoc(doc(as(KIM),'notices','n2'),{title:'x'}), false);
+await t('관리자: 공지 작성', setDoc(doc(as(SUB),'notices','n2'),{title:'x'}), true);
 await t('구성원(비관리자): 홈페이지 콘텐츠 수정 차단', setDoc(doc(as(KIM),'siteContent','home'),{a:2}), false);
 await t('관리자: 홈페이지 콘텐츠 수정', setDoc(doc(as(SUB),'siteContent','home'),{a:2}), true);
 await t('외부인: 공간 정보 수정 차단', setDoc(doc(as(RAND),'spaces','s1'),{}), false);
@@ -73,7 +74,13 @@ await t('비로그인: 대관 신청 제출', addDoc(collection(as(null),'venue_
 await t('비로그인: 퇴실 체크 제출', addDoc(collection(as(null),'checkouts'),{a:1}), true);
 await t('비로그인: 변경 신청 제출', addDoc(collection(as(null),'changeRequests'),{a:1}), true);
 await t('외부인: 대관 신청 열람 차단', getDocs(collection(as(RAND),'venue_requests')), false);
-await t('구성원: 대관 신청 열람', getDocs(collection(as(KIM),'venue_requests')), true);
+await t('구성원(비관리자): 대관 신청 열람 차단', getDocs(collection(as(KIM),'venue_requests')), false);
+await t('관리자: 대관 신청 열람', getDocs(collection(as(SUB),'venue_requests')), true);
+await t('구성원(비관리자): 퇴실 기록 열람 차단', getDocs(collection(as(KIM),'checkouts')), false);
+await t('구성원(비관리자): 견적서 열람 차단', getDocs(collection(as(KIM),'quotations')), false);
+await t('구성원(비관리자): 행사 체크리스트 차단', getDocs(collection(as(KIM),'eventChecklists')), false);
+await t('관리자: 행사 체크리스트', getDocs(collection(as(SUB),'eventChecklists')), true);
+await t('구성원: 기관 분류 읽기(예약 신청 폼)', getDocs(collection(as(KIM),'orgs')), true);
 await t('외부인: 견적서 열람 차단', getDocs(collection(as(RAND),'quotations')), false);
 // 공개용 예약 사본
 await t('비로그인: 공개 사본 읽기', getDocs(collection(as(null),'publicReservations')), true);

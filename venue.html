@@ -11,7 +11,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+import { getFirestore, getDoc, collection, addDoc, updateDoc, deleteDoc, doc,
   getDocs, orderBy, query, where, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL }
@@ -27,6 +27,14 @@ const firebaseConfig = {
 };
 const ALLOWED_DOMAIN = "suwoncca.org";
 const ADMIN_EMAILS   = ["hyyoo9683@gmail.com"];
+
+// 인트라넷은 관리자 전용: 주 관리자 또는 Firestore admins 컬렉션에 등록된 계정만 입장
+// (firestore.rules의 isAdmin()과 동일한 기준)
+async function isAdminAccount(email) {
+  if (!email) return false;
+  if (ADMIN_EMAILS.includes(email)) return true;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch (_) { return false; }
+}
 
 // ── 공간별 장비 설정 ──────────────────────────────────────
 const CATERING_VENDORS = ['차폰팩토리', '조스테이블', '참방'];
@@ -106,8 +114,8 @@ setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
   const domain  = user.email.split('@')[1];
-  const allowed = domain === ALLOWED_DOMAIN || ADMIN_EMAILS.includes(user.email);
-  if (!allowed) { await signOut(auth); showLoginError('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  const allowed = await isAdminAccount(user.email);
+  if (!allowed) { await signOut(auth); showLoginError('관리자로 등록된 계정만 이용할 수 있습니다.'); return; }
   curUser = user;
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app-wrap').style.display   = 'flex';
@@ -662,9 +670,6 @@ window.registerAsReservation = async (id) => {
   const btn = document.getElementById('btn-register-reservation');
   if (btn) { btn.disabled = true; btn.textContent = '등록 중...'; }
   try {
-    // 주의: firestore.rules는 reservations 확정 생성을 진짜 관리자(주 관리자 이메일 또는
-    // admins 컬렉션 등록 계정)로만 제한함 — 이 페이지는 @suwoncca.org 계정이면 누구나 들어올
-    // 수 있지만, admins에 없는 계정으로 이 버튼을 누르면 Firestore가 permission-denied로 막음
     const base = {
       type: r.orgName || '외부 대관',
       managerName: r.managerName || '',

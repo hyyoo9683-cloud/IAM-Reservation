@@ -218,11 +218,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
-import { getFirestore, collection, getDocs, query, orderBy, doc, deleteDoc }
+import { getFirestore, getDoc, collection, getDocs, query, orderBy, doc, deleteDoc }
   from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const ALLOWED_DOMAIN = 'suwoncca.org';
 const ADMIN_EMAILS   = ['hyyoo9683@gmail.com'];
+
+// 인트라넷은 관리자 전용: 주 관리자 또는 Firestore admins 컬렉션에 등록된 계정만 입장
+// (firestore.rules의 isAdmin()과 동일한 기준)
+async function isAdminAccount(email) {
+  if (!email) return false;
+  if (ADMIN_EMAILS.includes(email)) return true;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch (_) { return false; }
+}
 
 // 구 폼(공간·모임명·특이사항 방식)과 신 폼(청지기 연락처·만족/불편 방식)의
 // 체크리스트 항목이 서로 달라 스키마별로 다른 라벨셋을 사용함
@@ -260,8 +268,8 @@ let curView = 'list';
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
   if (!user) { showLogin(); return; }
-  const ok = user.email.endsWith('@'+ALLOWED_DOMAIN) || ADMIN_EMAILS.includes(user.email);
-  if (!ok) { await signOut(auth); showLoginErr('아이엠센터 구성원만 이용할 수 있습니다.'); return; }
+  const ok = await isAdminAccount(user.email);
+  if (!ok) { await signOut(auth); showLoginErr('관리자로 등록된 계정만 이용할 수 있습니다.'); return; }
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app-wrap').style.display   = 'flex';
   await loadData();

@@ -44,9 +44,9 @@ onAuthStateChanged(auth, async user => {
   }
   const isAdmin = ADMIN_EMAILS.includes(email) || isFirestoreAdmin;
 
-  if (!isDomainUser && !isAdmin) {
+  if (!isAdmin) { // 인트라넷은 관리자(주 관리자·admins 등록 계정) 전용
     await signOut(auth);
-    showLoginError('이 서비스는 아이엠센터 구성원만 이용할 수 있습니다.');
+    showLoginError('관리자로 등록된 계정만 이용할 수 있습니다.');
     return;
   }
   document.getElementById('admin-section').style.display      = isAdmin ? '' : 'none';
