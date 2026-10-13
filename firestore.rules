@@ -52,6 +52,12 @@ service cloud.firestore {
       allow delete: if isMember() && sameEmail(resource.data.get('userEmail', ''));
     }
 
+    // 공개용 예약 사본: 개인정보 없는 필드만 담김 (Cloud Function만 기록)
+    match /publicReservations/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // ───────── 공개 읽기 + 관리자 쓰기 ─────────
     match /spaces/{doc} {
       allow read: if true;

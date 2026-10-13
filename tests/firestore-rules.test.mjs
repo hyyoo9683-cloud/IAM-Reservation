@@ -13,6 +13,7 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(d,'reservations','other'),{userEmail:'lee@suwoncca.org',status:'대기'});
   await setDoc(doc(d,'reservations','extres'),{userEmail:'ext@gmail.com',status:'대기'});
   await setDoc(doc(d,'notices','n1'),{title:'t'});
+  await setDoc(doc(d,'publicReservations','mine'),{room:'505호',status:'대기'});
   await setDoc(doc(d,'siteContent','home'),{a:1});
 });
 const KIM='kim@suwoncca.org', ADMIN='hyyoo9683@gmail.com', SUB='sub.admin@gmail.com', RAND='hacker@gmail.com', EXT='ext@gmail.com';
@@ -60,5 +61,11 @@ await t('비로그인: 변경 신청 제출', addDoc(collection(as(null),'change
 await t('외부인: 대관 신청 열람 차단', getDocs(collection(as(RAND),'venue_requests')), false);
 await t('구성원: 대관 신청 열람', getDocs(collection(as(KIM),'venue_requests')), true);
 await t('외부인: 견적서 열람 차단', getDocs(collection(as(RAND),'quotations')), false);
+// 공개용 예약 사본
+await t('비로그인: 공개 사본 읽기', getDocs(collection(as(null),'publicReservations')), true);
+await t('외부인: 공개 사본 쓰기 차단', setDoc(doc(as(RAND),'publicReservations','x'),{room:'X'}), false);
+await t('관리자도 공개 사본 직접 쓰기 차단(서버 함수 전용)', setDoc(doc(as(ADMIN),'publicReservations','x'),{room:'X'}), false);
+await t('관리자: 공개 사본 재생성 요청', setDoc(doc(as(SUB),'system','publicMirrorRequest'),{version:1}), true);
+await t('구성원: 공개 사본 재생성 요청 차단', setDoc(doc(as(KIM),'system','publicMirrorRequest'),{version:1}), false);
 console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
 await env.cleanup(); process.exit(fail?1:0);

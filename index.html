@@ -3068,6 +3068,7 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('nav-intranet-link').style.display = isAdmin ? 'flex' : 'none';
     // 전체 데이터 로드 (orgs, blockedDates, adminNotes 포함)
     await loadData();
+    if (isAdmin) ensurePublicMirror();
     // 로그인 페이지 진입 전 특정 페이지 요청 또는 딥링크 요청이 있었으면 이동
     // onAuthStateChanged는 같은 로그인 세션 중에도 여러 번 재발화할 수 있어(토큰 갱신 등),
     // 최초 1회만 자동 라우팅하도록 막아 이미 신청폼 등으로 이동한 뒤 다시 홈으로 튕기는 것을 방지
@@ -3087,6 +3088,24 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ── 로그인 사용자(예약 책임자) 추적: 로그인마다 이메일·타임스탬프 기록 ──
+// ── 공개용 예약 사본(publicReservations) 점검 ─────────────────────
+// Cloud Function이 예약이 바뀔 때마다 개인정보를 뺀 사본을 갱신한다.
+// 기존 예약 전체를 처음 복사하거나 사본 구조가 바뀐 경우(버전 증가)에만,
+// 관리자 로그인 시 system/publicMirrorRequest를 써서 서버에 전체 재생성을 요청한다.
+const PUBLIC_MIRROR_VERSION = 1; // functions/lib/publicReservation.js 와 같은 값 유지
+async function ensurePublicMirror() {
+  try {
+    const st = await getDoc(doc(db, 'system', 'publicMirror'));
+    const d = st.exists() ? st.data() : null;
+    if (d && d.state === 'running') return;
+    if (d && d.state === 'done' && (d.version || 0) >= PUBLIC_MIRROR_VERSION) return;
+    await setDoc(doc(db, 'system', 'publicMirrorRequest'), {
+      version: PUBLIC_MIRROR_VERSION, requestedAt: serverTimestamp(), by: curUser?.email || ''
+    });
+    console.info('[publicMirror] 공개용 예약 사본 전체 재생성을 요청했습니다');
+  } catch (e) { console.warn('[publicMirror] 점검 실패', e); }
+}
+
 async function trackLoginUser(user, isAdminUser) {
   try {
     const ref = doc(db, 'loginUsers', user.email);

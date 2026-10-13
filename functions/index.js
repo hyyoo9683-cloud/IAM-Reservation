@@ -1,11 +1,12 @@
-const { onDocumentUpdated } = require('firebase-functions/v2/firestore');
+const { onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const { renderReservationEmail } = require('./lib/templates');
 const { sendEmail } = require('./lib/resendClient');
 const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/emailLog');
+const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
 
 initializeApp();
 
@@ -104,3 +105,56 @@ exports.sendTestEmail = onCall(async (request) => {
     throw new HttpsError('internal', '이메일 발송에 실패했습니다: ' + (err.message || err));
   }
 });
+
+// ─────────────────────────────────────────────────────────────
+// 공개용 예약 사본 (publicReservations)
+// 원본 reservations에는 이름·연락처·이메일이 들어 있어 관리자·본인만 읽을 수 있게 하고,
+// 공개 캘린더·주간 현황 등은 개인정보를 뺀 이 사본을 읽는다. 문서 id는 원본과 동일.
+// ─────────────────────────────────────────────────────────────
+exports.mirrorPublicReservation = onDocumentWritten('reservations/{id}', async (event) => {
+  const ref = getFirestore().collection('publicReservations').doc(event.params.id);
+  const after = event.data && event.data.after;
+  if (!after || !after.exists) {
+    await ref.delete();
+    return;
+  }
+  await ref.set(toPublicReservation(after.data()));
+});
+
+// 전체 재생성: 관리자가 system/publicMirrorRequest 문서를 쓰면 실행됨
+// (index.html이 관리자 로그인 시 system/publicMirror 버전을 확인해 필요할 때만 자동 요청)
+exports.rebuildPublicReservations = onDocumentWritten(
+  { document: 'system/publicMirrorRequest', timeoutSeconds: 540, memory: '512MiB' },
+  async (event) => {
+    const after = event.data && event.data.after;
+    if (!after || !after.exists) return;
+    const db = getFirestore();
+    const statusRef = db.collection('system').doc('publicMirror');
+    await statusRef.set({ state: 'running', startedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+    const [src, pub] = await Promise.all([
+      db.collection('reservations').get(),
+      db.collection('publicReservations').select().get(),
+    ]);
+    const writer = db.bulkWriter();
+    const ids = new Set();
+    src.forEach((d) => {
+      ids.add(d.id);
+      writer.set(db.collection('publicReservations').doc(d.id), toPublicReservation(d.data()));
+    });
+    let removed = 0;
+    pub.forEach((d) => {
+      if (!ids.has(d.id)) { writer.delete(d.ref); removed++; }
+    });
+    await writer.close();
+
+    await statusRef.set({
+      state: 'done',
+      version: PUBLIC_MIRROR_VERSION,
+      count: ids.size,
+      removed,
+      finishedAt: FieldValue.serverTimestamp(),
+      requestedBy: (after.data() || {}).by || '',
+    }, { merge: true });
+  }
+);
