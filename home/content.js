@@ -28,7 +28,6 @@ export const DEFAULT_CONTENT = {
   whatson: {
     title: "What's On",
     sub: '아이엠센터에서 열리는 공연과 행사',
-    empty: '예정된 공연·행사가 곧 업데이트됩니다.',
   },
   about: {
     eyebrow: 'Why I AM Center',

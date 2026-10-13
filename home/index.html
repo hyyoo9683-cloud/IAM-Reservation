@@ -171,7 +171,9 @@ section{padding:clamp(80px,11vw,160px) 0}
 .rent{background:var(--soft);padding:clamp(32px,4vw,52px)}
 .rent h3{font-size:clamp(26px,2.6vw,38px);font-weight:800;letter-spacing:-.035em;line-height:1.15}
 .rent p{color:var(--mute);margin:16px 0 30px;font-size:15px}
-.rent .rent-eb{color:var(--mute);margin:0 0 18px}
+.rent .rent-eb{color:var(--mute);margin-bottom:18px}
+#about .eyebrow{opacity:.6;margin-bottom:28px}
+.amen a>span:first-child{font-size:inherit;color:inherit;font-weight:inherit}
 .rent ol{list-style:none;counter-reset:s;border-top:1px solid #d6d4d0;margin-bottom:32px}
 .rent li{counter-increment:s;display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #d6d4d0;font-size:15px;font-weight:500}
 .rent li::before{content:"0" counter(s);font-size:12px;font-weight:700;color:var(--mute);padding-top:3px;font-variant-numeric:tabular-nums}
@@ -264,7 +266,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 .edit-hint{display:none}
 
 .hero{padding:0}
-#notice{padding-top:clamp(40px,5vw,80px)}
+#notice{padding-top:0}
 </style>
 </head>
 <body class="booting">
@@ -277,10 +279,10 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
     <nav class="gnb" aria-label="주 메뉴">
       <a href="#whatson">공연·행사</a>
       <a href="#about">아이엠센터</a>
-      <a href="#spaces">공간</a>
+      <a href="#spaces">아이엠홀</a>
+      <a href="#spaces">세미나실</a>
       <a href="#notice">대관 안내</a>
       <a href="#visit">오시는 길</a>
-      <a href="https://iamreservation.web.app/index.html">공간 예약</a>
     </nav>
     <a href="#notice" class="hd-cta"><span>대관 문의</span></a>
     <button class="burger" id="burger" aria-label="메뉴 열기" aria-expanded="false"><i></i><i></i><i></i></button>
@@ -289,10 +291,10 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 <nav class="mnav" aria-label="모바일 메뉴">
   <a href="#whatson">공연·행사</a>
   <a href="#about">아이엠센터</a>
-  <a href="#spaces">공간</a>
+  <a href="#spaces">아이엠홀</a>
+  <a href="#spaces">세미나실</a>
   <a href="#notice">대관 안내</a>
   <a href="#visit">오시는 길</a>
-  <a href="https://iamreservation.web.app/index.html">공간 예약</a>
   <a href="#notice" class="mcta">대관 문의하기</a>
 </nav>
 

@@ -13,6 +13,8 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ml = s => esc(s).replace(/\n/g, '<br>');            // 여러 줄 문구
+// 센터 소개 큰 문구: “ ” 따옴표로 감싼 말은 굵게 (시안 v4의 <b>“통합”</b>) — 편집 때는 글자만 저장되므로 따옴표만 지키면 유지됨
+const mlQuoteBold = s => ml(s).replace(/“[^”<]*”/g, '<b>$&</b>');
 // 홈페이지는 iamcenter.web.app(별도 사이트)에서도 열리므로, 예전에 저장된 '../x'·'/x' 같은
 // 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
 const MAIN_SITE = 'https://iamreservation.web.app/';
@@ -39,6 +41,31 @@ const bg = (imgPath, gPath) => {
 const ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11 11 3M5 3h6v6"/></svg>';
 const CHEV_L = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 2 4 7l5 5"/></svg>';
 const CHEV_R = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 2 5 5-5 5"/></svg>';
+
+// 등록된 공연·행사가 없을 때 보여주는 예시 카드 (디자인 시안 v4 그대로) — 관리자 페이지에서
+// 공개 항목을 하나라도 등록하면 이 예시는 사라지고 실제 목록으로 바뀜
+const SAMPLE_TABS = ['공연', '예배·집회', '세미나·교육', '가족·어린이'];
+const SAMPLE_PROGRAMS = [
+  { c: '공연', k: 'CONCERT', t: '가을,<br>찬양의 밤', g: 'linear-gradient(160deg,#1d2b3a,#0a0f15)', st: '예매중', cat: '공연 · 아이엠홀', title: '가을, 찬양의 밤', date: '2026.11.07 (토) 19:30' },
+  { c: '가족·어린이', k: 'FAMILY', t: '어린이<br>뮤지컬<br>‘작은 등불’', g: 'linear-gradient(160deg,#c9a24a,#6e4f1c)', st: '예매중', cat: '가족·어린이 · 아이엠홀', title: '어린이 뮤지컬 ‘작은 등불’', date: '2026.11.14 – 11.15' },
+  { c: '세미나·교육', k: 'SEMINAR', t: '함께 일하는<br>공동체', g: 'linear-gradient(160deg,#d9d6cf,#9c978d)', dark: true, cat: '세미나·교육 · 아론홀', title: '통합 고용 세미나 ‘함께 일하는 공동체’', date: '2026.11.20 (금) 14:00' },
+  { c: '예배·집회', k: 'GATHERING', t: '연합<br>성탄 예배', g: 'linear-gradient(160deg,#3a1e1e,#120909)', cat: '예배·집회 · 아이엠홀', title: '연합 성탄 예배', date: '2026.12.24 (목) 20:00' },
+  { c: '공연', k: 'CLASSIC', t: '송년<br>클래식<br>콘서트', g: 'linear-gradient(160deg,#2c2c2c,#050505)', cat: '공연 · 아이엠홀', title: '송년 클래식 콘서트', date: '2026.12.27 (일) 17:00' },
+  { c: '세미나·교육', k: 'CLASS', t: '부모<br>아카데미', g: 'linear-gradient(160deg,#47584a,#1a221c)', cat: '세미나·교육 · 샤론홀', title: '부모 아카데미 (4주 과정)', date: '2027.01 매주 화 10:00' },
+];
+const sampleRail = () => `
+    <div class="tabs rv" role="group" aria-label="분류">
+      <button aria-pressed="true" data-f="all">전체</button>
+      ${SAMPLE_TABS.map(k => `<button aria-pressed="false" data-f="${k}">${k}</button>`).join('')}
+    </div>
+    <div class="rail rv">
+      ${SAMPLE_PROGRAMS.map(p => `
+      <a href="#whatson" class="card" data-c="${p.c}">
+        <div class="ph" style="--g:${p.g}"><div class="poster"${p.dark ? ' style="color:#111"' : ''}><span class="k">${p.k}</span><span class="t">${p.t}</span></div></div>
+        <div class="meta"><div class="cat">${p.st ? `<span class="st">${p.st}</span>` : ''}${p.cat}</div><h3>${p.title}</h3><p>${p.date}</p></div>
+      </a>`).join('')}
+    </div>
+    <p class="sample">※ 위 공연·행사는 레이아웃 확인용 <b>예시</b>입니다. 실제 운영 시 관리자 페이지에서 등록한 프로그램이 자동으로 표시됩니다.</p>`;
 
 // ── 섹션 템플릿 ────────────────────────────────────────────────
 const SECTIONS = {
@@ -92,7 +119,7 @@ const SECTIONS = {
           <p>${esc(p.dateText || fmtRange(p.startDate, p.endDate))}</p>
         </div>
       </a>`).join('')}
-    </div>` : `<p class="empty rv" data-k="whatson.empty">${esc(c('whatson.empty'))}</p>`}
+    </div>` : sampleRail()}
     ${state.editing ? `<p class="edit-hint">공연·행사 목록은 <a href="admin.html#programs">관리자 페이지 › 공연·행사</a>에서 등록·수정합니다.</p>` : ''}
   </div>
 </section>`;
@@ -104,7 +131,7 @@ const SECTIONS = {
 <section class="statement" id="about" data-sec="about">
   <div class="wrap">
     ${t('about.eyebrow', 'p', 'eyebrow rv')}
-    ${m('about.statement', 'p', 'big rv')}
+    <p class="big rv" data-k="about.statement" data-ml="1">${mlQuoteBold(c('about.statement'))}</p>
     <div class="stats">
       ${stats.map((s, i) => `
       <div class="stat rv">
@@ -197,8 +224,8 @@ function footerHtml() {
   <div class="wrap">
     <div class="top">
       <div><div class="logo">I AM <small>CENTER</small></div>${m('footer.desc')}</div>
-      <div><h4>MENU</h4><ul><li><a href="#whatson">공연·행사</a></li><li><a href="#about">아이엠센터</a></li><li><a href="#spaces">공간</a></li><li><a href="#notice">대관 안내</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="#visit">오시는 길</a></li><li><a href="#notice">공지사항</a></li><li><a href="https://iamreservation.web.app/index.html">공간 예약</a></li></ul></div>
+      <div><h4>MENU</h4><ul><li><a href="#whatson">공연·행사</a></li><li><a href="#about">아이엠센터</a></li><li><a href="#spaces">아이엠홀</a></li><li><a href="#spaces">세미나실</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="#notice">대관 안내</a></li><li><a href="#visit">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
       <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>
     </div>
     <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>
