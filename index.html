@@ -963,7 +963,6 @@ textarea { resize: vertical; min-height: 60px; }
       <button class="nav-btn nav-group-toggle" data-target="nav-group-status" onclick="toggleNavGroup(this)"><span class="icon">🗓</span>예약 현황 모음<span class="nav-caret">▸</span></button>
       <div class="nav-group" id="nav-group-status" style="display:none">
         <a href="weekly-calendar.html" class="nav-btn nav-sub" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🗓</span>전체 예약 현황</a>
-        <a href="weekly-manager.html?admin=1" class="nav-btn nav-sub" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🗓</span>예약현황(예약책임자별)</a>
         <a href="checkouts.html" class="nav-btn nav-sub" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🚪</span>퇴실 체크 이력</a>
       </div>
       <div class="nav-section">사용자 관리</div>
@@ -3143,12 +3142,52 @@ function loadPublicData() {
     renderSpaceChips();
     populateRoomFilter();
   }).catch(() => {});
-  onSnapshot(collection(db, 'reservations'), snap => {
+  // 비로그인: 개인정보가 빠진 공개 사본만 읽음 (원본 reservations는 관리자·본인만 읽기 가능)
+  if (window._pubResUnsub) window._pubResUnsub();
+  window._pubResUnsub = onSnapshot(collection(db, 'publicReservations'), snap => {
     reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderPubCal && renderPubCal();
-  });
+  }, err => console.warn('공개 예약 불러오기 실패', err));
   onSnapshot(collection(db, 'blockedDates'), snap => {
     window._blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+}
+
+// ── 로그인 사용자의 예약 데이터 구독 ─────────────────────────────
+// 관리자: 원본 reservations 전체.
+// 일반 사용자: 공개 사본(publicReservations, 이름·연락처 없음) 전체 + 본인 예약 원본.
+//   본인 예약 = 신청 이메일이 같거나, 담당자·청지기 이름이 로그인 계정 실명과 같은 예약
+//   (renderMyList의 기준과 동일, firestore.rules도 같은 조건으로 읽기를 허용)
+//   같은 id면 원본이 공개 사본을 덮어씀 → 충돌 확인·캘린더는 전체 일정 기준으로 그대로 동작.
+let _resUnsubs = [];
+function listenReservationsForUser() {
+  if (window._pubResUnsub) { window._pubResUnsub(); window._pubResUnsub = null; }
+  _resUnsubs.forEach(u => u()); _resUnsubs = [];
+  if (isAdmin) {
+    _resUnsubs.push(onSnapshot(collection(db, 'reservations'), snap => {
+      reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      refresh();
+    }));
+    return;
+  }
+  let pub = new Map();
+  const mine = {}; // 쿼리별 결과
+  const merge = () => {
+    const all = new Map(pub);
+    Object.values(mine).forEach(m => m.forEach((v, k) => all.set(k, v)));
+    reservations = [...all.values()];
+    refresh();
+  };
+  const toMap = snap => new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+  const warn = label => err => console.warn('예약 불러오기 실패(' + label + ')', err);
+  _resUnsubs.push(onSnapshot(collection(db, 'publicReservations'), snap => { pub = toMap(snap); merge(); }, warn('공개')));
+  const own = [['userEmail', curUser?.email]];
+  const myName = curUser?.displayName || '';
+  if (myName.trim()) own.push(['managerName', myName], ['stewardName', myName]);
+  own.forEach(([field, value]) => {
+    if (!value) return;
+    _resUnsubs.push(onSnapshot(query(collection(db, 'reservations'), where(field, '==', value)),
+      snap => { mine[field] = toMap(snap); merge(); }, warn(field)));
   });
 }
 
@@ -3158,10 +3197,7 @@ async function loadData() {
   spaces = window.spaces = spSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   if (spaces.length === 0) await seedDefaultSpaces();
 
-  onSnapshot(collection(db, 'reservations'), snap => {
-    reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    refresh();
-  });
+  listenReservationsForUser();
 
   onSnapshot(collection(db, 'changeRequests'), snap => {
     changeRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -6045,12 +6081,12 @@ window.openDetail = (id) => {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}${r.subOrg ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">${r.subOrg}</span>` : ''}</div></div>
       <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${r.room}</div></div>
-      ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>` : ''}
+      ${curUser && r.managerName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>` : ''}
       ${isAdmin ? `<div><div style="font-size:10px;color:var(--text3)">신청자 계정</div><div style="font-size:13px;margin-top:3px">${applicantAccountHtml(r)}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${r.date}</div></div>
-      ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${r.stewardName}</div></div>` : ''}
+      ${curUser && r.stewardName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${r.stewardName}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.room === '지혜홀' ? '숙박(전일)' : `${r.start} – ${r.end}`}</div></div>
-      ${curUser ? `<div><div style="font-size:10px;color:var(--text3)">실사용자 연락처</div><div style="font-size:13px;color:var(--blue);margin-top:3px">${r.stewardTel}</div></div>` : ''}
+      ${curUser && r.stewardTel !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자 연락처</div><div style="font-size:13px;color:var(--blue);margin-top:3px">${r.stewardTel}</div></div>` : ''}
       <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${r.people}명</div></div>
       <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${r.purpose}</div></div>
       ${reqTags.length ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 시설 요청</div><div class="space-amenity" style="margin-top:4px">${reqTags.map(t => `<span class="amenity-tag">${t}</span>`).join('')}</div></div>` : ''}

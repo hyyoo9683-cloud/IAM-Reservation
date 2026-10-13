@@ -1,9 +1,9 @@
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'fs';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where } from 'firebase/firestore';
 const env = await initializeTestEnvironment({ projectId:'demo-iam', firestore:{ rules: readFileSync(new URL('../firestore.rules', import.meta.url),'utf8'), host:'127.0.0.1', port:8085 }});
-const tok = e => ({ email:e, email_verified:true });
-const as = e => e ? env.authenticatedContext(e, tok(e)).firestore() : env.unauthenticatedContext().firestore();
+const tok = (e, name) => (name ? { email:e, email_verified:true, name } : { email:e, email_verified:true });
+const as = (e, name) => e ? env.authenticatedContext(e + (name ? '#' + name : ''), tok(e, name)).firestore() : env.unauthenticatedContext().firestore();
 await env.withSecurityRulesDisabled(async c => {
   const d=c.firestore();
   await setDoc(doc(d,'admins','sub.admin@gmail.com'),{name:'sub'});
@@ -13,6 +13,7 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(d,'reservations','other'),{userEmail:'lee@suwoncca.org',status:'대기'});
   await setDoc(doc(d,'reservations','extres'),{userEmail:'ext@gmail.com',status:'대기'});
   await setDoc(doc(d,'notices','n1'),{title:'t'});
+  await setDoc(doc(d,'reservations','byname'),{userEmail:'',managerName:'김철수',stewardName:'박영희',stewardTel:'010-1111-2222',status:'확정'});
   await setDoc(doc(d,'publicReservations','mine'),{room:'505호',status:'대기'});
   await setDoc(doc(d,'siteContent','home'),{a:1});
 });
@@ -20,7 +21,20 @@ const KIM='kim@suwoncca.org', ADMIN='hyyoo9683@gmail.com', SUB='sub.admin@gmail.
 let pass=0, fail=0;
 const t = async (name, p, ok) => { try { await (ok?assertSucceeds(p):assertFails(p)); pass++; console.log('✅', name);} catch(e){ fail++; console.log('❌', name, e.message);} };
 // 예약
-await t('비로그인: 예약 읽기(공개 캘린더)', getDocs(collection(as(null),'reservations')), true);
+await t('비로그인: 예약 원본 읽기 차단', getDocs(collection(as(null),'reservations')), false);
+await t('비로그인: 예약 원본 단건 읽기 차단', getDoc(doc(as(null),'reservations','mine')), false);
+await t('구성원: 예약 원본 전체 읽기 차단', getDocs(collection(as(KIM),'reservations')), false);
+await t('구성원: 본인 이메일 예약 조회', getDocs(query(collection(as(KIM),'reservations'), where('userEmail','==',KIM))), true);
+await t('구성원: 남의 이메일로 조회 차단', getDocs(query(collection(as(KIM),'reservations'), where('userEmail','==','lee@suwoncca.org'))), false);
+await t('구성원: 남의 예약 단건 읽기 차단', getDoc(doc(as(KIM),'reservations','other')), false);
+await t('구성원(실명 일치): 이름으로 등록된 본인 예약 조회', getDocs(query(collection(as('cs.kim@suwoncca.org','김철수'),'reservations'), where('managerName','==','김철수'))), true);
+await t('구성원(청지기 실명 일치): 조회', getDocs(query(collection(as('yh.park@suwoncca.org','박영희'),'reservations'), where('stewardName','==','박영희'))), true);
+await t('외부인(같은 이름의 Gmail): 이름 조회 차단', getDocs(query(collection(as(RAND,'김철수'),'reservations'), where('managerName','==','김철수'))), false);
+await t('구성원: 다른 사람 이름으로 조회 차단', getDocs(query(collection(as('cs.kim@suwoncca.org','김철수'),'reservations'), where('managerName','==','박영희'))), false);
+await t('관리자: 예약 원본 전체 읽기', getDocs(collection(as(SUB),'reservations')), true);
+await t('외부인: 변경 신청 열람 차단', getDocs(collection(as(RAND),'changeRequests')), false);
+await t('구성원(비관리자): 변경 신청 열람 차단', getDocs(collection(as(KIM),'changeRequests')), false);
+await t('관리자: 변경 신청 열람', getDocs(collection(as(SUB),'changeRequests')), true);
 await t('외부인(아무 Gmail): 예약 생성 차단', addDoc(collection(as(RAND),'reservations'),{userEmail:RAND,status:'대기'}), false);
 await t('외부인: 남의 예약 수정 차단', updateDoc(doc(as(RAND),'reservations','mine'),{room:'X'}), false);
 await t('외부인: 남의 예약 삭제 차단', deleteDoc(doc(as(RAND),'reservations','mine')), false);

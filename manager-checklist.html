@@ -266,7 +266,8 @@ window.doLogin = async () => {
 window.doLogout = async () => { await signOut(auth); location.href = 'portal.html'; };
 
 async function loadReservations() {
-  const snap = await getDocs(collection(db, 'reservations'));
+  // 관리자는 원본(이름·연락처 포함), 그 외 구성원은 권한이 없어 개인정보가 빠진 공개 사본을 읽음
+  const snap = await getDocs(collection(db, 'reservations')).catch(() => getDocs(collection(db, 'publicReservations')));
   reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   const today = new Date().toISOString().slice(0,10);
   reservations.sort((a, b) => {

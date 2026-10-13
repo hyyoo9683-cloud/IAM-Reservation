@@ -179,6 +179,7 @@
 
 <div class="header">
   <h1>📅 전체 예약 현황</h1>
+  <button type="button" id="admin-login-btn" onclick="toggleAdminLogin()" style="font-size:12px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer" title="관리자로 로그인하면 담당자·연락처가 보입니다">관리자 로그인</button>
   <span class="date-label" id="date-label"></span>
   <div class="nav-btns" id="nav-btns"></div>
   <label class="date-jump-wrap" for="date-jump">
@@ -209,6 +210,7 @@
 <script type="module">
 import { initializeApp }           from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot, doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
 const app = initializeApp({
   apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
@@ -219,6 +221,9 @@ const app = initializeApp({
   appId:             "1:634977833386:web:4add20f3b8cd5c80c67fc8"
 });
 const db = getFirestore(app);
+const auth = getAuth(app);
+const ADMIN_EMAILS = ['hyyoo9683@gmail.com'];
+let viewerIsAdmin = false; // 관리자 로그인 시에만 담당자·청지기·연락처 표시
 
 const FLOOR5_ROOMS = ['505호','506호','507호','508호','509호','510호','511호'];
 // 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀 → 로비
@@ -507,9 +512,10 @@ window.showDetail = (id) => {
     <div class="modal-row"><span class="k">공간</span><span class="v">${esc(r.room)}</span></div>
     <div class="modal-row"><span class="k">일시</span><span class="v">${esc(r.date)} ${esc(r.start)}–${esc(r.end)}</span></div>
     <div class="modal-row"><span class="k">기관</span><span class="v">${esc(r.type)}${r.subOrg ? ' · ' + esc(r.subOrg) : ''}</span></div>
+    ${viewerIsAdmin ? `
     <div class="modal-row"><span class="k">담당자</span><span class="v">${esc(r.managerName)}</span></div>
     <div class="modal-row"><span class="k">청지기</span><span class="v">${esc(r.stewardName)} ${esc(r.stewardTel)}</span></div>
-    ${r.userEmail ? `<div class="modal-row"><span class="k">신청 이메일</span><span class="v">${esc(r.userEmail)}</span></div>` : ''}
+    ${r.userEmail ? `<div class="modal-row"><span class="k">신청 이메일</span><span class="v">${esc(r.userEmail)}</span></div>` : ''}` : ''}
     <div class="modal-row"><span class="k">인원</span><span class="v">${esc(r.people)}명</span></div>
     ${iamRows}
     <div class="modal-row"><span class="k">상태</span><span class="v"><span class="status-badge status-${esc(r.status)}">${esc(r.status)}</span></span></div>
@@ -521,10 +527,39 @@ document.getElementById('modal-detail').addEventListener('click', e => {
   if (e.target.id === 'modal-detail') closeDetail();
 });
 
-onSnapshot(collection(db, 'reservations'), snap => {
-  reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  loaded.res = true; render();
+// 예약 데이터: 기본은 개인정보가 빠진 공개 사본, 관리자가 로그인하면 원본으로 전환
+let resUnsub = null;
+function listenReservations(col) {
+  if (resUnsub) resUnsub();
+  resUnsub = onSnapshot(collection(db, col), snap => {
+    reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    loaded.res = true; render();
+  }, err => console.warn('예약 불러오기 실패', err));
+}
+listenReservations('publicReservations');
+
+onAuthStateChanged(auth, async user => {
+  let admin = false;
+  if (user) {
+    admin = ADMIN_EMAILS.includes(user.email);
+    if (!admin) {
+      try { admin = (await getDoc(doc(db, 'admins', user.email))).exists(); } catch (_) {}
+    }
+  }
+  if (admin !== viewerIsAdmin) {
+    viewerIsAdmin = admin;
+    listenReservations(admin ? 'reservations' : 'publicReservations');
+  }
+  const btn = document.getElementById('admin-login-btn');
+  if (btn) btn.textContent = user ? (admin ? '관리자 로그아웃' : '로그아웃 (관리자 아님)') : '관리자 로그인';
 });
+window.toggleAdminLogin = async () => {
+  if (auth.currentUser) { await signOut(auth); return; }
+  try {
+    const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch (e) { if (e.code !== 'auth/popup-closed-by-user') alert('로그인에 실패했습니다.'); }
+};
 onSnapshot(collection(db, 'blockedDates'), snap => {
   blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   loaded.bd = true; render();

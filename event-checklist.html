@@ -300,7 +300,8 @@ async function syncReservationChecklists() {
   const todayStr = new Date().toISOString().slice(0, 10);
   try {
     const [resSnap, clSnap] = await Promise.all([
-      getDocs(collection(db, 'reservations')),
+      // 일정·공간·목적만 필요 → 개인정보가 빠진 공개 사본 사용
+      getDocs(collection(db, 'publicReservations')),
       getDocs(collection(db, 'eventChecklists')),
     ]);
     const existingIds = new Set(clSnap.docs.map(d => d.id));

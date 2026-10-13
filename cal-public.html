@@ -253,7 +253,7 @@ window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; re
 
 window.addEventListener('resize', () => render());
 
-onSnapshot(collection(db, 'reservations'), snap => {
+onSnapshot(collection(db, 'publicReservations'), snap => {
   reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   loaded.res = true; render();
 });

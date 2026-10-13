@@ -29,7 +29,6 @@
 | `checklist-view.html` | `event-checklist.html`의 체크리스트 단건 보기/체크 (대시보드 "이번 주 체크리스트"에서 연결, 로그인 필요) |
 | `manager-checklist.html` | 담당자별 개인 체크리스트(`managerChecklists` 컬렉션, 예약건마다 담당자 개인이 자유롭게 항목 작성) — `event-checklist.html`과는 별개 기능. 예약을 아론홀·샤론홀·아이엠홀·전체 탭으로 필터링해 선택 |
 | `weekly-calendar.html` | 전체 예약 현황 (일간: 5층 소그룹실/아론홀/샤론홀/아이엠홀/지혜홀/로비 분류 후 시간순 / 주간: 요일 카드를 좌(5층 제외 전체 목록)·우(5층 소그룹실 목록) 2컬럼(1:1 비율)으로 분할, 각 컬럼 자체 스크롤(내용 많아도 안 잘림), 클릭 시 상세). 관리자 "콘텐츠 편집 > 주간 캘린더"에 등록한 목적 키워드(`siteContent/weeklyCalendar.mainKeywords`, 예: 수요성경공부)가 포함된 예약은 5층 소그룹실이어도 "메인 행사"로 간주되어 일간·주간 모두에서 해당 목록 맨 위 정렬 + 녹색 배경으로 강조 표시됨(단, 칸 자체는 원래 공간 기준 그대로 유지 — 5층 소그룹실이면 계속 5층 소그룹실 칸에 표시). 일간 보기 상단에는 그날 확정 예약 인원(`people`) 합계로 "예상 이용객 약 N명"을 표시하고, 클릭하면 1시간 단위로 겹치는 예약 인원을 합산한 대략적인 동시간대 이용객 추정치를 막대 그래프로 볼 수 있음(실제 집계가 아닌 러프한 추정치). 주간 보기의 각 요일 카드에도 같은 방식의 요약이 개별적으로 표시됨(요일마다 따로 펼치고 접을 수 있음) |
-| `weekly-manager.html` | 예약현황(예약책임자별) — `?admin=1` 파라미터로 접속해야 관리자 전체 표/저장 노출. 파라미터 없이(공유용 링크) 접속 시 이름 검색 전에는 아무 예약도 안 보임 (본인 이름 검색 시에만 해당 예약 표시) |
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `guide.html` | 아이엠센터 이용 안내(예약 책임자·청지기 제도, 예약 방법, 아론홀·샤론홀 조건 등) — "예약 신청" 진입 시 거치는 동의 게이트 페이지(하단 체크박스 동의 후 `index.html?apply=1`로 이동, 로그인 안 되어 있으면 로그인 후 자동으로 신청 폼으로 이어짐). 직접 링크로도 공유 가능. 카카오톡 인앱 브라우저로 열면 페이지 진입 즉시 전체 화면 오버레이(`#kakao-overlay`)로 안내 내용 자체를 덮어서 Chrome/Safari로 나가기 전에는 아무것도 진행할 수 없게 막음(iOS는 자동 이동+실패 대비 수동 링크, Android는 "Chrome으로 열기" 버튼). 제목 바로 아래 접이식 안내(`<details class="first-time">`, 기본 닫힘)로 "예약이 처음이신가요?"를 두어 소속 외부 이용자를 `venue-spaces.html`로 안내(내부 이용자 평소 흐름에는 영향 없음). 05번 외부 대관 섹션에도 `venue-spaces.html` 링크 버튼 있음 |
 | `reservation-change.html` | 예약 변경·취소 신청 페이지 (누구나 제출 가능, `changeRequests` 컬렉션에 저장) — 공간은 5층 소그룹실(505~511호)·아론홀·샤론홀 중 select로만 선택 가능. 관리자 처리 화면은 `index.html`의 "예약 변경·취소 신청" 페이지(`renderChangeRequests()`) 참고 |
@@ -347,9 +346,15 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
   - 발신 주소는 `suwoncca.org` 서브도메인(예: `mail.suwoncca.org`) 인증 완료 후 `RESEND_FROM_EMAIL`로 교체
 - 아직 구현하지 않은 것: 예약 변경/취소 메일(3단계), 관리자·내부기관 주간 리포트(4·5단계), 관리자 화면(발송 로그 조회·재발송·수신자 관리), 정기예약 전체승인(`approveGroup`) 시 회차별로 개별 메일이 나가는 부분(시리즈 단위 묶음 발송 미구현), "+ 예약 추가"로 관리자가 직접 확정 상태 예약을 생성하는 경우(현재는 대상 아님)
 
-## 공개 페이지 개인정보 정책
-- 비로그인 상태의 공개 캘린더: 담당자/청지기 이름·연락처 숨김
-- `curUser` 가 null이면 상세 팝업에서도 개인정보 미표시
+## 공개 페이지 개인정보 정책 (예약 원본/공개 사본 분리)
+- 원본 `reservations`(이름·연락처·이메일·메모 포함)는 **관리자와 본인만 읽기 가능** (firestore.rules)
+  - 본인 = `userEmail`이 로그인 이메일과 같거나, `managerName`/`stewardName`이 로그인 계정 실명(`token.name`)과 같은 구성원 — `renderMyList()` 기준과 동일
+- 공개 화면은 **`publicReservations`**(같은 문서 id, 개인정보 없는 허용 필드만)를 읽음
+  - Cloud Function `mirrorPublicReservation`이 예약이 바뀔 때마다 자동 갱신. 복사 필드는 `functions/lib/publicReservation.js`의 `PUBLIC_FIELDS` (허용 목록 방식 — 새 필드를 공개 화면에 보여줄 때만 추가)
+  - 전체 재생성: 관리자 로그인 시 `ensurePublicMirror()`가 `system/publicMirror` 버전을 확인해 필요하면 `system/publicMirrorRequest`를 기록 → `rebuildPublicReservations` 실행. 사본 구조를 바꾸면 양쪽 `PUBLIC_MIRROR_VERSION`을 함께 올릴 것
+- 읽는 곳: `index.html` 비로그인(`loadPublicData`)·일반 사용자(`listenReservationsForUser` — 공개 사본 + 본인 예약 원본 병합), `cal.html`, `cal-public.html`, `weekly-calendar.html`(관리자 로그인 시 원본으로 전환해 담당자·연락처 표시), `event-checklist.html`. `portal.html`·`manager-checklist.html`은 원본을 먼저 시도하고 권한이 없으면 공개 사본 사용
+- 클라이언트는 `publicReservations`에 쓸 수 없음 (서버 함수 전용)
+- `changeRequests`(변경·취소 신청, 신청자 연락처 포함) 열람·처리는 관리자만
 
 ## 저장공간 정리 (관리자 전용 페이지, index.html `go('storage-cleanup')`)
 - **오래된 사진·첨부파일 압축**: `spaces`(공간 사진)·`venue_requests`(큐시트) Storage 파일 중 6개월
