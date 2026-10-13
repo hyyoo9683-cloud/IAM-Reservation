@@ -4,15 +4,27 @@
     "ignore": [
       "firebase.json",
       ".firebaserc",
-      ".git/**",
-      "README.md"
+      "**/.*",
+      "**/.*/**",
+      "README.md",
+      "CLAUDE.md",
+      "firestore.rules",
+      "storage.rules",
+      "**/node_modules/**",
+      "tests/**"
     ],
     "headers": [
       {
         "source": "**/*.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-          { "key": "Pragma", "value": "no-cache" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          },
+          {
+            "key": "Pragma",
+            "value": "no-cache"
+          }
         ]
       }
     ]

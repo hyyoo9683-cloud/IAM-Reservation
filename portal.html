@@ -11,7 +11,7 @@ import { initializeApp }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut,
   onAuthStateChanged, setPersistence, browserLocalPersistence }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, query, where, orderBy, limit }
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, orderBy, limit }
   from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -39,8 +39,7 @@ onAuthStateChanged(auth, async user => {
   let isFirestoreAdmin = false;
   if (!ADMIN_EMAILS.includes(email)) {
     try {
-      const adminSnap = await getDocs(collection(db, 'admins'));
-      isFirestoreAdmin = adminSnap.docs.some(d => d.id === email);
+      isFirestoreAdmin = (await getDoc(doc(db, 'admins', email))).exists();
     } catch (_) {}
   }
   const isAdmin = ADMIN_EMAILS.includes(email) || isFirestoreAdmin;

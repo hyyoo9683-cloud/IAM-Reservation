@@ -3030,8 +3030,8 @@ onAuthStateChanged(auth, async user => {
   let isFirestoreAdmin = false;
   if (!ADMIN_EMAILS.includes(email)) {
     try {
-      const adminSnap = await getDocs(collection(db, 'admins'));
-      isFirestoreAdmin = adminSnap.docs.some(d => d.id === email);
+      // 보안 규칙상 admins 컬렉션은 본인 문서만 조회 가능 → 목록 대신 본인 문서 존재 여부로 확인
+      isFirestoreAdmin = (await getDoc(doc(db, 'admins', email))).exists();
     } catch (_) {}
   }
   const isAdminUser = ADMIN_EMAILS.includes(email) || isFirestoreAdmin;
@@ -3040,8 +3040,7 @@ onAuthStateChanged(auth, async user => {
   let isExtAllowed = false;
   if (!isDomainUser && !isAdminUser) {
     try {
-      const snap = await getDocs(collection(db, 'allowedUsers'));
-      isExtAllowed = snap.docs.some(d => d.id === email);
+      isExtAllowed = (await getDoc(doc(db, 'allowedUsers', email))).exists();
     } catch (_) {}
   }
 
@@ -7425,10 +7424,15 @@ window.submitEdit = async () => {
         const totalAdded = startCanAdd.length + endCanAdd.length;
         if (totalAdded) {
           data.recurTotal = activeSeries.length + totalAdded;
+          // 관리자가 아닌 사용자가 본인 확정 예약 시리즈를 연장하는 경우, 추가되는 회차를
+          // 곧바로 확정 상태로 만들면 셀프 승인이 되어버리므로 항상 '대기'로 생성하고
+          // 관리자가 별도로 승인하게 함. userEmail도 원래 신청자 계정으로 유지(내 예약 조회용)
+          const addStatus = isAdmin ? (data.status || r.status || '확정') : '대기';
           for (const d of startCanAdd) {
             await addDoc(collection(db, 'reservations'), {
               ...data,
-              status: data.status || r.status || '확정',
+              userEmail: r.userEmail || cu.email || '',
+              status: addStatus,
               date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
               ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
               history: [{ time: nowStr(), msg: '시리즈 시작일 앞당김 추가' }]
@@ -7437,7 +7441,8 @@ window.submitEdit = async () => {
           for (const d of endCanAdd) {
             await addDoc(collection(db, 'reservations'), {
               ...data,
-              status: data.status || r.status || '확정',
+              userEmail: r.userEmail || cu.email || '',
+              status: addStatus,
               date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
               ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
               history: [{ time: nowStr(), msg: '시리즈 연장 추가' }]
