@@ -255,6 +255,18 @@ function posterGradient(i) {
   return `linear-gradient(160deg,${g[i % g.length]})`;
 }
 
+// ── 상단 메뉴의 세부 메뉴 (아이엠센터·세미나실) ───────────────────
+function renderNav() {
+  for (const key of ['center', 'seminar']) {
+    const items = c(`nav.${key}`) || [];
+    const links = items.map((it, i) => `<a ${href(`nav.${key}.${i}.link`)}>${t(`nav.${key}.${i}.label`)}</a>`).join('');
+    const dd = document.getElementById(`dd-${key}`);
+    if (dd) dd.innerHTML = items.length ? `<div class="dd-in">${links}</div>` : '';
+    const m = document.getElementById(`mdd-${key}`);
+    if (m) m.innerHTML = items.map((it, i) => `<a href="${esc(safeUrl(it.link))}">${esc(it.label)}</a>`).join('');
+  }
+}
+
 // ── 렌더링 ────────────────────────────────────────────────────
 export function render() {
   const main = document.getElementById('main');
@@ -267,6 +279,7 @@ export function render() {
     return html.replace(/(<section[^>]*?)>/, `$1 data-idx="${i}"${s.hidden ? ' data-hidden="1"' : ''}>`);
   }).join('');
   document.getElementById('footer-slot').innerHTML = footerHtml();
+  renderNav();
   document.body.classList.toggle('editing', state.editing);
   setupBehaviors();
   document.dispatchEvent(new CustomEvent('home:rendered'));
@@ -363,6 +376,7 @@ export function setupChrome() {
   document.addEventListener('home:rendered', onScroll);
   const burger = document.getElementById('burger');
   burger.addEventListener('click', () => { const o = document.body.classList.toggle('menu-open'); burger.setAttribute('aria-expanded', o); });
-  document.querySelectorAll('.mnav a').forEach(a => a.addEventListener('click', () => { document.body.classList.remove('menu-open'); burger.setAttribute('aria-expanded', 'false'); }));
+  // 모바일 메뉴: 세부 메뉴 링크는 나중에 그려지므로 위임 방식으로 닫기 처리
+  document.querySelector('.mnav').addEventListener('click', e => { if (e.target.closest('a')) { document.body.classList.remove('menu-open'); burger.setAttribute('aria-expanded', 'false'); } });
   document.getElementById('top').onclick = () => scrollTo({ top: 0, behavior: 'smooth' });
 }

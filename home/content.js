@@ -10,6 +10,18 @@ export const SECTION_LABELS = {
 export const DEFAULT_CONTENT = {
   schema: 1,
   sections: SECTION_IDS.map(id => ({ id, hidden: false })),
+  // 상단 메뉴의 세부 메뉴(드롭다운) — 편집 모드에서 이름·링크 수정 가능
+  nav: {
+    center: [
+      { label: '아이엠센터 소개', link: '#about' },
+      { label: '조직도', link: '#about' },
+      { label: '방문가이드', link: '#visit' },
+    ],
+    seminar: [
+      { label: '아론홀(2F)', link: 'https://iamreservation.web.app/venue-spaces.html' },
+      { label: '샤론홀(6F)', link: 'https://iamreservation.web.app/venue-spaces.html' },
+    ],
+  },
   hero: {
     eyebrow: 'Suwon · Gwanggyo — 복합문화공간',
     title1: 'THE GREAT',

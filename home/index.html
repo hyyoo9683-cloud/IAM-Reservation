@@ -50,9 +50,20 @@ img{display:block;max-width:100%}
 .logo{font-weight:800;font-size:22px;letter-spacing:-.02em;display:flex;align-items:baseline;gap:8px}
 .logo small{font-size:11px;font-weight:500;letter-spacing:.12em;opacity:.7}
 .gnb{display:flex;gap:36px;margin-left:auto;font-size:15px;font-weight:500}
-.gnb a{position:relative;padding:6px 0}
-.gnb a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:currentColor;transition:right .35s var(--ease)}
-.gnb a:hover::after{right:0}
+.gnb>a,.gnb .top{position:relative;padding:6px 0}
+.gnb>a::after,.gnb .top::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:currentColor;transition:right .35s var(--ease)}
+.gnb>a:hover::after,.gnb .has-dd:hover .top::after{right:0}
+/* 세부 메뉴(드롭다운): 마우스를 올리거나 키보드로 들어가면 아래로 펼쳐짐 */
+.has-dd{position:relative;display:flex;align-items:center}
+.dd{position:absolute;top:100%;left:50%;min-width:168px;padding-top:14px;transform:translate(-50%,6px);opacity:0;visibility:hidden;transition:opacity .2s,transform .25s var(--ease),visibility .2s}
+.dd-in{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.12);padding:6px 0}
+.dd a{display:block;padding:11px 20px;font-size:14px;font-weight:500;white-space:nowrap;text-align:center;transition:background .15s}
+.dd a:hover{background:var(--soft)}
+.dd a+a{border-top:1px solid var(--line)}
+.has-dd:hover .dd,.has-dd:focus-within .dd{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.mnav .msub{display:flex;flex-direction:column;padding:2px 0 10px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
+.mnav .msub:empty{display:none}
+.mnav .msub a{font-size:17px;font-weight:500;padding:7px 0;border:0;opacity:.75}
 .hd-cta{font-size:14px;font-weight:600;padding:10px 18px;border:1px solid currentColor;border-radius:999px;transition:background .25s,color .25s}
 .hd-cta:hover{background:currentColor}
 .hd-cta:hover span{color:var(--paper)}
@@ -287,9 +298,9 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
     <a href="./" class="logo" aria-label="아이엠센터 홈">I AM <small>CENTER</small></a>
     <nav class="gnb" aria-label="주 메뉴">
       <a href="#whatson">공연·행사</a>
-      <a href="#about">아이엠센터</a>
+      <div class="has-dd"><a href="#about" class="top">아이엠센터</a><div class="dd" id="dd-center"></div></div>
       <a href="#spaces">아이엠홀</a>
-      <a href="#spaces">세미나실</a>
+      <div class="has-dd"><a href="#spaces" class="top">세미나실</a><div class="dd" id="dd-seminar"></div></div>
       <a href="#notice">대관 안내</a>
       <a href="#visit">오시는 길</a>
     </nav>
@@ -300,8 +311,10 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 <nav class="mnav" aria-label="모바일 메뉴">
   <a href="#whatson">공연·행사</a>
   <a href="#about">아이엠센터</a>
+  <div class="msub" id="mdd-center"></div>
   <a href="#spaces">아이엠홀</a>
   <a href="#spaces">세미나실</a>
+  <div class="msub" id="mdd-seminar"></div>
   <a href="#notice">대관 안내</a>
   <a href="#visit">오시는 길</a>
   <a href="#notice" class="mcta">대관 문의하기</a>
