@@ -308,7 +308,7 @@ function footerHtml() {
 <footer class="ft">
   <div class="wrap">
     <div class="top">
-      <div><div class="logo">I AM <small>CENTER</small></div>${m('footer.desc')}</div>
+      <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}</div>
       <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./#spaces">아이엠홀</a></li><li><a href="./#spaces">세미나실</a></li></ul></div>
       <div><h4>INFO</h4><ul><li><a href="./#notice">대관 안내</a></li><li><a href="./?page=guide">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
       <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>

@@ -49,6 +49,8 @@ img{display:block;max-width:100%}
 .hd .wrap{display:flex;align-items:center;height:76px;gap:40px}
 .logo{font-weight:800;font-size:22px;letter-spacing:-.02em;display:flex;align-items:baseline;gap:8px}
 .logo small{font-size:11px;font-weight:500;letter-spacing:.12em;opacity:.7}
+/* I AM 로고(logo-iam.png를 모양 틀로 쓰고 글자색으로 칠함) — 히어로 위에서는 흰색, 스크롤 후·흰 배경에서는 검정, 푸터는 흰색 */
+.logo-mark{display:block;height:26px;aspect-ratio:720/167;background:currentColor;-webkit-mask:url(logo-iam.png) left center/contain no-repeat;mask:url(logo-iam.png) left center/contain no-repeat}
 .gnb{display:flex;gap:36px;margin-left:auto;font-size:15px;font-weight:500}
 .gnb>a,.gnb .top{position:relative;padding:6px 0}
 .gnb>a::after,.gnb .top::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1px;background:currentColor;transition:right .35s var(--ease)}
@@ -237,6 +239,7 @@ section{padding:clamp(80px,11vw,160px) 0}
 .ft{background:var(--ink);color:#fff;padding:72px 0 40px;font-size:14px}
 .ft .top{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:40px;padding-bottom:56px;border-bottom:1px solid rgba(255,255,255,.15)}
 .ft .logo{font-size:26px;margin-bottom:18px}
+.ft .logo-mark{height:34px}
 .ft p{opacity:.6;line-height:1.8}
 .admin-link{font:inherit;color:inherit;text-decoration:underline;cursor:pointer;opacity:.8}
 .ft h4{font-size:12px;letter-spacing:.16em;font-weight:600;opacity:.5;margin-bottom:16px}
@@ -282,6 +285,7 @@ section{padding:clamp(80px,11vw,160px) 0}
   .ft .top>div:first-child{grid-column:1/-1}
 }
 @media (max-width:600px){
+  .hd .logo-mark{height:22px}
   .hd .wrap{height:64px}
   .rail{grid-auto-columns:72%;gap:14px}
   .rail-ctl{display:none}
@@ -316,7 +320,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 <!-- 헤더 -->
 <header class="hd" id="hd">
   <div class="wrap">
-    <a href="./" class="logo" aria-label="아이엠센터 홈">I AM <small>CENTER</small></a>
+    <a href="./" class="logo" aria-label="아이엠센터 홈"><span class="logo-mark" role="img" aria-label="I AM"></span></a>
     <nav class="gnb" aria-label="주 메뉴">
       <a href="./#whatson">공연·행사</a>
       <div class="has-dd"><a href="./?page=about" class="top">아이엠센터</a><div class="dd" id="dd-center"></div></div>
