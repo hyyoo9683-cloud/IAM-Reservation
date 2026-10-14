@@ -212,10 +212,10 @@ const SECTIONS = {
       </dl>
     </div>
     ${c('visit.mapImg') ? `
-    <a ${href('visit.mapLink')} target="_blank" rel="noopener" class="ph map rv" data-img="visit.mapImg" ${bg('visit.mapImg')} aria-label="지도에서 보기"></a>` : `
+    <a ${href('visit.placeLink')} target="_blank" rel="noopener" class="ph map rv" data-img="visit.mapImg" ${bg('visit.mapImg')} aria-label="지도에서 보기"></a>` : `
     <div class="ph map gmap rv" data-img="visit.mapImg">
       <iframe src="https://www.google.com/maps?q=${encodeURIComponent(mapQuery(c('visit.address')))}&hl=ko&z=16&output=embed" title="아이엠센터 위치 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
-      <a ${href('visit.mapLink')} target="_blank" rel="noopener" class="map-open">큰 지도로 보기 ↗</a>
+      <a ${href('visit.placeLink')} target="_blank" rel="noopener" class="map-open"><span data-k="visit.placeLabel">${esc(c('visit.placeLabel'))}</span> ↗</a>
     </div>`}
   </div>
 </section>`;
