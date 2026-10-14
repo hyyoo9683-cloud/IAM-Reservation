@@ -1,6 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
+export const PAGE_IDS = ['about', 'org', 'guide', 'aaron', 'sharon'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -13,14 +14,51 @@ export const DEFAULT_CONTENT = {
   // 상단 메뉴의 세부 메뉴(드롭다운) — 편집 모드에서 이름·링크 수정 가능
   nav: {
     center: [
-      { label: '아이엠센터 소개', link: '#about' },
-      { label: '조직도', link: '#about' },
-      { label: '방문가이드', link: '#visit' },
+      { label: '아이엠센터 소개', link: './?page=about' },
+      { label: '조직도', link: './?page=org' },
+      { label: '방문가이드', link: './?page=guide' },
     ],
     seminar: [
-      { label: '아론홀(2F)', link: 'https://iamreservation.web.app/venue-spaces.html' },
-      { label: '샤론홀(6F)', link: 'https://iamreservation.web.app/venue-spaces.html' },
+      { label: '아론홀(2F)', link: './?page=aaron' },
+      { label: '샤론홀(6F)', link: './?page=sharon' },
     ],
+  },
+  // 세부 페이지(주소 ./?page=아이디) — 편집 모드에서 제목·소개·사진·본문 블록을 고칠 수 있음
+  // space: 공간 관리(spaces 컬렉션)의 이름 — 사진·정원·비품을 그곳에서 그대로 가져와 보여줌
+  pages: {
+    about: {
+      eyebrow: 'About I AM Center', title: '아이엠센터 소개',
+      lead: 'THE GREAT I AM 되신 예수님을 만나는 곳.\n공연장·세미나실·상업시설이 한 자리에서 “통합”의 가치로 이어집니다.',
+      img: '',
+      blocks: [
+        { h: '공간 구성', p: '760석 다목적 공연장 아이엠홀, 세미나실 아론홀(2F)·샤론홀(6F), 5층 소그룹실, 발달장애인과 비장애인이 함께 일하는 카페 조스테이블이 한 건물 안에 있습니다.' },
+        { h: '함께하는 시설', p: '여유앤미 · 차폰팩토리 · 반석한의원이 입점해 있습니다.' },
+      ],
+    },
+    org: {
+      eyebrow: 'Organization', title: '조직도',
+      lead: '아이엠센터를 섬기는 사람들을 소개합니다.',
+      img: '',
+      blocks: [],
+    },
+    guide: {
+      eyebrow: 'Visitor Guide', title: '방문가이드',
+      lead: '아이엠센터를 찾아오시는 길과 이용 안내입니다.',
+      img: '',
+      blocks: [
+        { h: '주차', p: '아이엠센터 주차장과 에덴 주차타워를 이용하실 수 있습니다.' },
+        { h: '편의 시설', p: '전 층 엘리베이터로 이동할 수 있으며, 장애인 화장실과 휠체어석을 갖추고 있습니다.' },
+        { h: '대중교통', p: '안내 예정입니다.' },
+      ],
+    },
+    aaron: {
+      eyebrow: 'Seminar Room · 2F', title: '아론홀', lead: '세미나 · 강의 · 소모임',
+      img: '', space: '아론홀', blocks: [],
+    },
+    sharon: {
+      eyebrow: 'Seminar Room · 6F', title: '샤론홀', lead: '세미나 · 워크숍 · 모임',
+      img: '', space: '샤론홀', blocks: [],
+    },
   },
   hero: {
     eyebrow: 'Suwon · Gwanggyo — 복합문화공간',

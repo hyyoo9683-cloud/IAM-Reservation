@@ -63,6 +63,25 @@ img{display:block;max-width:100%}
 .has-dd:hover .dd,.has-dd:focus-within .dd{opacity:1;visibility:visible;transform:translate(-50%,0)}
 .mnav .msub{display:flex;flex-direction:column;padding:2px 0 10px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
 .mnav .msub:empty{display:none}
+/* ---------- 세부 페이지 (./?page=…) ---------- */
+.page-hd{padding:calc(76px + clamp(56px,8vw,120px)) 0 clamp(40px,5vw,72px)}
+.page-hd .eyebrow{color:var(--mute);margin-bottom:18px}
+.page-hd h1{font-size:clamp(40px,6vw,88px);font-weight:800;letter-spacing:-.045em;line-height:1}
+.page-hd .lead{margin-top:24px;font-size:clamp(16px,1.4vw,19px);color:#444;max-width:760px;line-height:1.75}
+.page-img{aspect-ratio:21/9}
+.page-blocks{padding-top:clamp(56px,7vw,100px)}
+.blocks{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,4vw,56px) clamp(40px,6vw,96px)}
+.blk{border-top:2px solid var(--ink);padding-top:20px}
+.blk h3{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:12px}
+.blk p{color:#444;font-size:16px;line-height:1.85}
+.page-space{padding-top:0}
+.page-space .split{grid-template-columns:1.3fr 1fr;align-items:center}
+.space-main{aspect-ratio:4/3}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:clamp(40px,5vw,64px)}
+.gallery .ph{aspect-ratio:4/3;display:block}
+.page-org{padding-top:0}
+.org-box{border-top:2px solid var(--ink);padding-top:32px;text-align:center;min-height:120px;position:relative}
+.org-box img{margin:0 auto;max-width:100%;height:auto}
 .mnav .msub a{font-size:17px;font-weight:500;padding:7px 0;border:0;opacity:.75}
 .hd-cta{font-size:14px;font-weight:600;padding:10px 18px;border:1px solid currentColor;border-radius:999px;transition:background .25s,color .25s}
 .hd-cta:hover{background:currentColor}
@@ -251,6 +270,8 @@ section{padding:clamp(80px,11vw,160px) 0}
   .gnb,.hd-cta{display:none}
   .burger{display:block}
   .split,.visit .grid{grid-template-columns:1fr}
+  .blocks,.page-space .split{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr 1fr}
   .spaces{grid-template-columns:1fr 1fr}
   .sp-a{grid-column:1/-1;aspect-ratio:4/3}
   .sp-b,.sp-c,.sp-d,.sp-e{grid-column:span 1;aspect-ratio:3/4}
@@ -297,27 +318,25 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   <div class="wrap">
     <a href="./" class="logo" aria-label="아이엠센터 홈">I AM <small>CENTER</small></a>
     <nav class="gnb" aria-label="주 메뉴">
-      <a href="#whatson">공연·행사</a>
-      <div class="has-dd"><a href="#about" class="top">아이엠센터</a><div class="dd" id="dd-center"></div></div>
-      <a href="#spaces">아이엠홀</a>
-      <div class="has-dd"><a href="#spaces" class="top">세미나실</a><div class="dd" id="dd-seminar"></div></div>
-      <a href="#notice">대관 안내</a>
-      <a href="#visit">오시는 길</a>
+      <a href="./#whatson">공연·행사</a>
+      <div class="has-dd"><a href="./?page=about" class="top">아이엠센터</a><div class="dd" id="dd-center"></div></div>
+      <a href="./#spaces">아이엠홀</a>
+      <div class="has-dd"><a href="./#spaces" class="top">세미나실</a><div class="dd" id="dd-seminar"></div></div>
+      <a href="./#visit">오시는 길</a>
     </nav>
-    <a href="#notice" class="hd-cta"><span>대관 문의</span></a>
+    <a href="./#notice" class="hd-cta"><span>대관 문의</span></a>
     <button class="burger" id="burger" aria-label="메뉴 열기" aria-expanded="false"><i></i><i></i><i></i></button>
   </div>
 </header>
 <nav class="mnav" aria-label="모바일 메뉴">
-  <a href="#whatson">공연·행사</a>
-  <a href="#about">아이엠센터</a>
+  <a href="./#whatson">공연·행사</a>
+  <a href="./?page=about">아이엠센터</a>
   <div class="msub" id="mdd-center"></div>
-  <a href="#spaces">아이엠홀</a>
-  <a href="#spaces">세미나실</a>
+  <a href="./#spaces">아이엠홀</a>
+  <a href="./#spaces">세미나실</a>
   <div class="msub" id="mdd-seminar"></div>
-  <a href="#notice">대관 안내</a>
-  <a href="#visit">오시는 길</a>
-  <a href="#notice" class="mcta">대관 문의하기</a>
+  <a href="./#visit">오시는 길</a>
+  <a href="./#notice" class="mcta">대관 문의하기</a>
 </nav>
 
 

@@ -1,11 +1,14 @@
 // 아이엠센터 홈페이지 렌더링 — 콘텐츠(siteContent/homepage, 홈페이지 공지 포함) + 공연·행사(programs)
 import { db, doc, getDoc, getDocs, collection, query, where } from './fb.js';
-import { DEFAULT_CONTENT, mergeContent, getPath } from './content.js';
+import { DEFAULT_CONTENT, mergeContent, getPath, PAGE_IDS } from './content.js';
 
 export const state = {
   content: structuredClone(DEFAULT_CONTENT),
   programs: [],
   editing: false,      // 편집 모드 여부 (editor.js가 켬)
+  // 세부 페이지: 주소 ./?page=about 처럼 열면 메인 섹션 대신 그 페이지를 그림 (없거나 모르는 값이면 메인)
+  page: (p => (PAGE_IDS.includes(p) ? p : null))(new URLSearchParams(location.search).get('page')),
+  space: null,         // 공간 페이지(아론홀·샤론홀)일 때 spaces 컬렉션에서 가져온 문서
 };
 
 export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '가족·어린이', '전시', '기타'];
@@ -222,14 +225,92 @@ const SECTIONS = {
   },
 };
 
+// ── 세부 페이지 (메뉴 > 아이엠센터·세미나실의 세부 메뉴) ─────────────
+// 공통 구성: 머리(작은 제목·큰 제목·소개) → 페이지별 내용 → 본문 블록(제목+글, 편집 모드에서 추가·삭제)
+function pageHead(id) {
+  return `
+<section class="page-hd" data-sec="page">
+  <div class="wrap">
+    ${t(`pages.${id}.eyebrow`, 'p', 'eyebrow')}
+    ${t(`pages.${id}.title`, 'h1')}
+    ${m(`pages.${id}.lead`, 'p', 'lead')}
+  </div>
+</section>`;
+}
+function pageImg(id, tag) {
+  const has = c(`pages.${id}.img`);
+  if (!has && !state.editing) return '';
+  return `<div class="wrap"><div class="ph page-img" data-img="pages.${id}.img" ${bg(`pages.${id}.img`)}><span class="tag"><b>PHOTO</b> · ${esc(tag)}</span></div></div>`;
+}
+function pageBlocks(id) {
+  const path = `pages.${id}.blocks`;
+  const blocks = c(path) || [];
+  if (!blocks.length && !state.editing) return '';
+  return `
+<section class="page-blocks" data-sec="page">
+  <div class="wrap">
+    <div class="blocks">
+      ${blocks.map((b, i) => `
+      <div class="blk rv">
+        ${t(`${path}.${i}.h`, 'h3')}
+        ${m(`${path}.${i}.p`)}
+        ${state.editing ? `<button type="button" class="ed-chip ghost" data-block-del="${path}|${i}">이 블록 삭제</button>` : ''}
+      </div>`).join('')}
+    </div>
+    ${state.editing ? `<p class="edit-hint"><button type="button" class="ed-chip" data-block-add="${path}">+ 블록 추가</button> 제목과 글로 된 단락을 하나 더 넣습니다. 게시해야 방문자에게 보입니다.</p>` : ''}
+  </div>
+</section>`;
+}
+// 공간 페이지: 공간 관리(spaces)에 등록된 층·정원·비품·사진을 그대로 보여줌
+function spaceBody(id) {
+  const sp = state.space;
+  const photos = (sp?.photos || []).filter(Boolean);
+  const facts = [
+    ['위치', sp?.floor],
+    ['정원', sp?.cap ? `${sp.cap}명` : ''],
+    ['비품', (sp?.amenities || []).join(' · ')],
+  ].filter(([, v]) => v);
+  const main = c(`pages.${id}.img`) || photos[0] || '';
+  return `
+<section class="page-space" data-sec="page">
+  <div class="wrap split">
+    <div class="ph space-main rv" data-img="pages.${id}.img" ${main ? `style="--img:url('${cssUrl(main)}')" data-hasimg="1"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(c(`pages.${id}.title`))} 대표 사진</span></div>
+    <div class="rv">
+      ${facts.length ? `<dl class="info">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '<p class="empty">공간 정보를 불러오는 중이거나 아직 등록되지 않았습니다.</p>'}
+      <div class="btns" style="margin-top:32px">
+        <a ${href('notice.cta1Link')} class="btn"><span class="dot"></span><span data-k="notice.cta1">${esc(c('notice.cta1'))}</span> <span aria-hidden="true">→</span></a>
+        <a ${href('notice.cta2Link')} class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
+      </div>
+    </div>
+  </div>
+  ${photos.length > 1 ? `<div class="wrap"><div class="gallery">${photos.slice(0, 9).map(u => `<a class="ph rv" href="${esc(safeUrl(u))}" target="_blank" rel="noopener" style="--img:url('${cssUrl(u)}')" data-hasimg="1" aria-label="사진 크게 보기"></a>`).join('')}</div></div>` : ''}
+</section>`;
+}
+function orgBody() {
+  const img = c('pages.org.img');
+  return `
+<section class="page-org" data-sec="page">
+  <div class="wrap">
+    <div class="org-box rv" data-img="pages.org.img">${img ? `<img src="${esc(safeUrl(img))}" alt="아이엠센터 조직도">` : '<p class="empty">조직도를 준비 중입니다.</p>'}</div>
+  </div>
+</section>`;
+}
+const PAGES = {
+  about: () => pageHead('about') + pageImg('about', '아이엠센터 대표 사진 · 가로 21:9') + pageBlocks('about') + SECTIONS.about() + SECTIONS.spaces(),
+  org: () => pageHead('org') + orgBody() + pageBlocks('org'),
+  guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9') + pageBlocks('guide') + SECTIONS.visit(),
+  aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
+  sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
+};
+
 function footerHtml() {
   return `
 <footer class="ft">
   <div class="wrap">
     <div class="top">
       <div><div class="logo">I AM <small>CENTER</small></div>${m('footer.desc')}</div>
-      <div><h4>MENU</h4><ul><li><a href="#whatson">공연·행사</a></li><li><a href="#about">아이엠센터</a></li><li><a href="#spaces">아이엠홀</a></li><li><a href="#spaces">세미나실</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="#notice">대관 안내</a></li><li><a href="#visit">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
+      <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./#spaces">아이엠홀</a></li><li><a href="./#spaces">세미나실</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="./#notice">대관 안내</a></li><li><a href="./?page=guide">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
       <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>
     </div>
     <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>
@@ -271,7 +352,10 @@ function renderNav() {
 export function render() {
   const main = document.getElementById('main');
   const secs = state.content.sections || [];
-  main.innerHTML = secs.map((s, i) => {
+  if (state.page) {
+    main.innerHTML = PAGES[state.page]();
+    document.title = `${c(`pages.${state.page}.title`)} — 아이엠센터`;
+  } else main.innerHTML = secs.map((s, i) => {
     if (s.hidden && !state.editing) return '';
     const html = SECTIONS[s.id] ? SECTIONS[s.id]() : '';
     if (!state.editing) return html;
@@ -294,6 +378,14 @@ export async function loadAll() {
   ]);
   if (contentSnap.status === 'fulfilled' && contentSnap.value.exists()) {
     state.content = mergeContent(contentSnap.value.data());
+  }
+  // 공간 페이지면 공간 관리(spaces)의 해당 공간 문서도 가져옴 (사진·정원·비품)
+  const spaceName = state.page && c(`pages.${state.page}.space`);
+  if (spaceName) {
+    try {
+      const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
+      state.space = sn.docs[0] ? sn.docs[0].data() : null;
+    } catch (e) { console.warn('공간 정보 불러오기 실패', e); }
   }
   if (progSnap.status === 'fulfilled') {
     state.programs = progSnap.value.docs.map(d => ({ id: d.id, ...d.data() }))

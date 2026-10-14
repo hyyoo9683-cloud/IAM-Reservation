@@ -227,7 +227,23 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 5) 섹션 조작 막대
+  // 5) 세부 페이지 본문 블록 추가·삭제 (pages.<id>.blocks)
+  document.querySelectorAll('[data-block-add]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const path = b.dataset.blockAdd;
+    setPath(draft, path, [...(getPath(draft, path) || []), { h: '새 제목', p: '내용을 입력하세요.' }]);
+    render(); updateStatus();
+  }));
+  document.querySelectorAll('[data-block-del]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault();
+    const [path, i] = b.dataset.blockDel.split('|');
+    const arr = getPath(draft, path) || [];
+    if (!confirm(`이 블록을 삭제할까요?\n${arr[i]?.h || ''}`)) return;
+    arr.splice(Number(i), 1);
+    render(); updateStatus();
+  }));
+
+  // 6) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);

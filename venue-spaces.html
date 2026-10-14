@@ -169,7 +169,10 @@
     gap: 20px;
   }
 
+  .venue-card.hl { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
   .venue-card {
+    scroll-margin-top: 24px;
+    transition: box-shadow .3s, border-color .3s;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -459,7 +462,8 @@ function cardHtml(s) {
     ? `<div class="venue-img"><img src="${esc(photoUrl)}" alt="${esc(s.name)}" loading="lazy" onclick="openLightbox('${esc(photoUrl)}')"></div>`
     : `<div class="venue-img">사진 준비 중</div>`;
   const tags = (s.amenities || []).map(a => `<span class="venue-tag">${esc(a)}</span>`).join('');
-  return `<div class="venue-card">
+  // id="space-공간이름" — 홈페이지 메뉴 등에서 venue-spaces.html#space-아론홀 처럼 바로 그 카드로 이동할 때 사용
+  return `<div class="venue-card" id="space-${esc(s.name)}">
     ${img}
     <div class="venue-body">
       <p class="venue-name">${esc(s.name)}</p>
@@ -597,6 +601,18 @@ async function load() {
   sections.push(sectionHtml('아이엠홀', n++, null, vsDesc.imhallDesc, `${imCarouselHtml(imPhotos)}<p class="item-note">이용은 개별적으로 문의 부탁드립니다.</p>`));
 
   main.innerHTML = sections.join('');
+  focusHashCard();
+}
+
+// 주소 끝 #space-공간이름 이 있으면 (목록이 비동기로 그려진 뒤라 브라우저가 스스로 못 찾으므로) 그 카드로 스크롤 + 잠깐 강조
+function focusHashCard() {
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch (_) { return; }
+  const el = id && document.getElementById(id);
+  if (!el || !el.classList.contains('venue-card')) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.classList.add('hl');
+  setTimeout(() => el.classList.remove('hl'), 2400);
 }
 
 load();
