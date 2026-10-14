@@ -80,7 +80,7 @@ const SECTIONS = {
   </div>`).join('')}
   <div class="hero-copy"><div class="wrap">
     ${t('hero.eyebrow', 'p', 'eyebrow')}
-    <h1>${t('hero.title1')}<br><em>${t('hero.title2')}</em> ${t('hero.title3')}</h1>
+    <h1>${t('hero.title1', 'span', 'h1-pre')}<br><em>${t('hero.title2')}</em> ${t('hero.title3')}</h1>
     ${m('hero.lead', 'p', 'lead')}
   </div></div>
   <div class="hero-bar"><div class="wrap">
