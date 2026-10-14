@@ -13,6 +13,8 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ml = s => esc(s).replace(/\n/g, '<br>');            // 여러 줄 문구
 // 센터 소개 큰 문구: “ ” 따옴표로 감싼 말은 굵게 (시안 v4의 <b>“통합”</b>) — 편집 때는 글자만 저장되므로 따옴표만 지키면 유지됨
+// 지도 검색어: 주소에서 도로명+번지까지만(뒤에 붙은 건물 이름은 빼야 구글이 위치를 정확히 찾음)
+const mapQuery = a => { const s = String(a || '').trim(); const m = s.match(/^.*?\d+(?:-\d+)?(?=\s|$)/); return m ? m[0] : s; };
 const mlQuoteBold = s => ml(s).replace(/“[^”<]*”/g, '<b>$&</b>');
 // 홈페이지는 iamcenter.web.app(별도 사이트)에서도 열리므로, 예전에 저장된 '../x'·'/x' 같은
 // 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
@@ -209,9 +211,12 @@ const SECTIONS = {
         <dt>문의</dt>${t('visit.phone', 'dd')}
       </dl>
     </div>
-    <a ${href('visit.mapLink')} target="_blank" rel="noopener" class="ph map rv" data-img="visit.mapImg" ${bg('visit.mapImg')} aria-label="지도에서 보기">
-      ${c('visit.mapImg') ? '' : '<span class="pin"></span>'}<span class="tag"><b>지도 보기</b> · 클릭하면 카카오맵으로 이동</span>
-    </a>
+    ${c('visit.mapImg') ? `
+    <a ${href('visit.mapLink')} target="_blank" rel="noopener" class="ph map rv" data-img="visit.mapImg" ${bg('visit.mapImg')} aria-label="지도에서 보기"></a>` : `
+    <div class="ph map gmap rv" data-img="visit.mapImg">
+      <iframe src="https://www.google.com/maps?q=${encodeURIComponent(mapQuery(c('visit.address')))}&hl=ko&z=16&output=embed" title="아이엠센터 위치 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <a ${href('visit.mapLink')} target="_blank" rel="noopener" class="map-open">큰 지도로 보기 ↗</a>
+    </div>`}
   </div>
 </section>`;
   },

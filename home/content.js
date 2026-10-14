@@ -86,7 +86,8 @@ export const DEFAULT_CONTENT = {
     hours: '매일 08:00 – 22:00 (공휴일 제외)',
     parking: '아이엠센터 주차장 · 에덴 주차타워',
     phone: '대표 전화 안내 예정',
-    mapLink: 'https://map.kakao.com/?q=%EC%88%98%EC%9B%90%20%EC%95%84%EC%9D%B4%EC%97%A0%EC%84%BC%ED%84%B0',
+    // 지도: 사진(mapImg)이 없으면 주소로 구글 지도를 바로 보여줌 — 추후 카카오맵 API로 교체 예정
+    mapLink: 'https://www.google.com/maps/search/?api=1&query=%EA%B2%BD%EA%B8%B0%EB%8F%84%20%EC%88%98%EC%9B%90%EC%8B%9C%20%EC%98%81%ED%86%B5%EA%B5%AC%20%EC%9B%94%EB%93%9C%EC%BB%B5%EB%A1%9C%2076',
     mapImg: '',
   },
   footer: {
