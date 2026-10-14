@@ -36,6 +36,8 @@ img{display:block;max-width:100%}
 .ph::before{content:"";position:absolute;inset:0;background:var(--g,linear-gradient(135deg,#2a2a2a,#111))}
 .ph[data-hasimg]::before{background:var(--img) center/cover no-repeat}
 .ph[data-hasimg]::after,.ph[data-hasimg] .tag{display:none}
+/* Spaces 사진: 가장자리를 은은하게 어둡게(비네팅) — 실제 사진을 넣었을 때만, 원본 파일은 그대로 */
+.sp .ph[data-hasimg]::after{display:block;opacity:1;mix-blend-mode:normal;background:radial-gradient(ellipse 75% 75% at 50% 45%,transparent 45%,rgba(0,0,0,.28) 75%,rgba(0,0,0,.55) 100%)}
 .ph::after{content:"";position:absolute;inset:0;opacity:.18;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .ph .tag{position:absolute;z-index:2;left:16px;bottom:14px;font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.55);font-weight:500}
