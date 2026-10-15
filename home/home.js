@@ -355,7 +355,7 @@ function floorsHtml() {
     <div class="sec-hd rv"><h2>${t('pages.about.floorsTitle')}<span class="h2sub" data-k="pages.about.floorsSub">${esc(c('pages.about.floorsSub'))}</span></h2></div>
     <div class="bld rv">
       ${fl.map((f, i) => `
-      <div class="fl-row${f.rank < 0 ? ' under' : ''}${f.rank > 0 && fl[i + 1] && fl[i + 1].rank < 0 ? ' ground' : ''}">
+      <div class="fl-row">
         <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
         <div class="fl-t">${esc(f.mainTitle || '')}</div>
         <div class="fl-d"><p>${esc(floorSummary(f.body))}</p>${floorLinksHtml(f)}</div>
