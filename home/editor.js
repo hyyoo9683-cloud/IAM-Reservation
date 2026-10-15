@@ -2,7 +2,7 @@
 // · 글자: 클릭해서 바로 수정  · 사진: '사진 바꾸기'로 업로드  · 링크: '링크' 버튼으로 주소 변경
 // · 섹션: 순서 바꾸기 / 숨기기  · '게시하기'를 눌러야 방문자에게 반영 (이전 버전은 자동 보관)
 import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, isAdminAccount, uploadImage } from './fb.js';
-import { state, render, floorRank, defaultFloorBtns, allFloors } from './home.js';
+import { state, render, floorRank, defaultFloorBtns, allFloors, floorSummary } from './home.js';
 import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
 const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
@@ -65,10 +65,15 @@ function seedFloorBtns(content) {
   if (state.page !== 'about') return;
   const about = content.pages.about;
   if (!about.floorBtns || typeof about.floorBtns !== 'object' || Array.isArray(about.floorBtns)) about.floorBtns = {};
+  if (!about.floorText || typeof about.floorText !== 'object' || Array.isArray(about.floorText)) about.floorText = {};
   for (const f of allFloors(content)) {
     if (!f || !(f.name || f.mainTitle)) continue;
     const k = String(floorRank(f.name));
     if (!Array.isArray(about.floorBtns[k])) about.floorBtns[k] = defaultFloorBtns(f, about.floorLinks);
+    // 관리자 층별 안내에서 온 층의 글도 복사해 와서 고칠 수 있게 (홈페이지에서 추가한 층은 extraFloors에서 바로 편집)
+    if (f.ex == null && (!about.floorText[k] || typeof about.floorText[k] !== 'object')) {
+      about.floorText[k] = { name: String(f.name || '').trim().replace(/층$/, ''), mainTitle: f.mainTitle || '', desc: floorSummary(f.body) };
+    }
   }
 }
 

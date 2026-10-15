@@ -293,7 +293,7 @@ function aboutVision() {
 // 본문 블록: 텍스트 칸(type 'text': h 제목·p 글·align) / 사진 칸(type 'image': img·caption)
 // 편집 모드에서 '+ 텍스트'·'+ 사진'으로 추가, 블록마다 ↑↓·정렬·삭제 (editor.js)
 // 소개 페이지 층별 간략 안내: 층 · 공간 이름 · 소개 첫 문장 (내용은 예약 시스템 관리자에서 관리)
-function floorSummary(body) {
+export function floorSummary(body) {
   const txt = String(body || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
   const first = (txt.split(/\n/)[0] || '').split(/(?<=[.!?])\s+/)[0].trim();
   return first.length > 90 ? first.slice(0, 88) + '…' : first;
@@ -360,6 +360,23 @@ export function allFloors(content) {
     .filter(f => f && (f.name || f.mainTitle) && !ranks.has(floorRank(f.name)));
   return base.concat(extra);
 }
+// 층 한 줄의 글 칸: 홈페이지에서 손본 글(floorText[층], 홈페이지에서 추가한 층은 extraFloors)이 있으면 편집 가능한 글로,
+// 없으면 관리자 층별 안내 내용(층 이름·공간 이름·소개 첫 문장)을 그대로 — 마지막 칸(.fl-d)은 열어 둔 채로 돌려줌
+function floorCells(f) {
+  const ov = f.ex != null ? `pages.about.extraFloors.${f.ex}` : (c(`pages.about.floorText.${f.rank}`) ? `pages.about.floorText.${f.rank}` : '');
+  if (ov) {
+    const descKey = f.ex != null ? 'body' : 'desc';
+    const desc = c(`${ov}.${descKey}`);
+    return `
+        <div class="fl-n">${t(`${ov}.name`)}<small>F</small></div>
+        <div class="fl-t">${t(`${ov}.mainTitle`)}</div>
+        <div class="fl-d">${desc || state.editing ? rich(`${ov}.${descKey}`) : ''}`;
+  }
+  return `
+        <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
+        <div class="fl-t">${esc(f.mainTitle || '')}</div>
+        <div class="fl-d"><p>${esc(floorSummary(f.body))}</p>`;
+}
 function floorsHtml() {
   const fl = allFloors(state.content).map(f => ({ ...f, rank: floorRank(f.name) })).sort((a, b) => b.rank - a.rank);
   if (!fl.length && !state.editing) return '';
@@ -370,12 +387,10 @@ function floorsHtml() {
     <div class="bld rv">
       ${fl.map((f, i) => `
       <div class="fl-row">
-        <div class="fl-n">${f.ex != null ? `<span data-k="pages.about.extraFloors.${f.ex}.name">${esc(String(f.name || '').trim())}</span>` : esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
-        <div class="fl-t">${f.ex != null ? t(`pages.about.extraFloors.${f.ex}.mainTitle`) : esc(f.mainTitle || '')}</div>
-        <div class="fl-d">${f.ex != null ? (f.body || state.editing ? t(`pages.about.extraFloors.${f.ex}.body`, 'p') : '') : `<p>${esc(floorSummary(f.body))}</p>`}${floorLinksHtml(f)}</div>
+        ${floorCells(f)}${floorLinksHtml(f)}</div>
       </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
     </div>
-    ${state.editing ? '<p class="edit-hint">층 이름·소개 문장은 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있어요. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
+    ${state.editing ? '<p class="edit-hint">층 이름·공간 이름·소개 글은 눌러서 바로 고칠 수 있어요(굵게도 가능). 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있어요. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
   </div>
 </section>`;
 }
