@@ -336,7 +336,13 @@ function floorLinksHtml(f) {
   const editable = Array.isArray(own) && state.editing;
   const list = Array.isArray(own) ? own : defaultFloorBtns(f, c('pages.about.floorLinks'));
   const isIn = u => /^(\.\/|#)/.test(String(u || '').trim());
-  const btns = list.map((l, i) => {
+  // 화면 순서: 홈페이지 안 페이지 버튼(아론홀·샤론홀 등)은 저장 순서대로 맨 앞, 나머지 바깥 사이트는 이름 가나다순
+  // — 편집 경로는 원래 순번(i) 그대로
+  const btns = list.map((l, i) => [l, i]).sort((a, b) => {
+    const ia = isIn(a[0].link), ib = isIn(b[0].link);
+    if (ia !== ib) return ia ? -1 : 1;
+    return ia ? a[1] - b[1] : String(a[0].label || '').localeCompare(String(b[0].label || ''), 'ko');
+  }).map(([l, i]) => {
     const inner = isIn(l.link);
     const attrs = editable ? href(`${path}.${i}.link`) : `href="${esc(safeUrl(l.link))}"`;
     const label = editable ? t(`${path}.${i}.label`) : esc(l.label || '바로가기');
