@@ -70,3 +70,12 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
 .editing .list .row{grid-template-columns:72px 1fr auto auto}
 @media (max-width:600px){.editing .list .row{grid-template-columns:1fr auto auto}}
 .editing .btn[data-k]{border-radius:999px}
+
+/* 세부 페이지 본문 블록 조작 막대 */
+.blk-ctl{display:flex;gap:4px;justify-content:flex-end;margin-bottom:8px}
+.blk-ctl button{background:#111;color:#fff;border:0;border-radius:999px;padding:5px 11px;font-size:12px;cursor:pointer}
+.blk-ctl button:hover:not(:disabled){background:#f2b705;color:#111}
+.blk-ctl button:disabled{opacity:.3;cursor:default}
+.editing .blk{outline:1px dashed rgba(242,183,5,.5);outline-offset:10px}
+.blk-add .ed-chip{margin-right:4px}
+.editing [data-rich] b{background:rgba(242,183,5,.18)}

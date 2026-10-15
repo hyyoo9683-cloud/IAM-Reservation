@@ -18,6 +18,10 @@ const ml = s => esc(s).replace(/\n/g, '<br>');            // 여러 줄 문구
 // 센터 소개 큰 문구: “ ” 따옴표로 감싼 말은 굵게 (시안 v4의 <b>“통합”</b>) — 편집 때는 글자만 저장되므로 따옴표만 지키면 유지됨
 // 지도 검색어: 주소에서 도로명+번지까지만(뒤에 붙은 건물 이름은 빼야 구글이 위치를 정확히 찾음)
 const mapQuery = a => { const s = String(a || '').trim(); const m = s.match(/^.*?\d+(?:-\d+)?(?=\s|$)/); return m ? m[0] : s; };
+// **굵게** 표시: 방문자 화면에서는 굵은 글씨로, 편집 모드에서는 ** 표시를 그대로 보여 고칠 수 있게
+const mlStrong = s => ml(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+// 굵기 조절이 되는 여러 줄 글 (편집 모드에서 글자 선택 → 'B 굵게' 또는 Ctrl+B)
+const rich = (path, tag = 'p', cls = '') => `<${tag}${cls ? ` class="${cls}"` : ''} data-k="${path}" data-ml="1" data-rich="1">${mlStrong(c(path))}</${tag}>`;
 const mlQuoteBold = s => ml(s).replace(/“[^”<]*”/g, '<b>$&</b>');
 // 홈페이지는 iamcenter.web.app(별도 사이트)에서도 열리므로, 예전에 저장된 '../x'·'/x' 같은
 // 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
@@ -242,22 +246,48 @@ function pageImg(id, tag) {
   if (!has && !state.editing) return '';
   return `<div class="wrap"><div class="ph page-img" data-img="pages.${id}.img" ${bg(`pages.${id}.img`)}><span class="tag"><b>PHOTO</b> · ${esc(tag)}</span></div></div>`;
 }
+// 아이엠센터 소개: 대표 사진(항상 자리 표시) → ••• → 가운데 정렬 비전 문구
+function aboutVision() {
+  return `
+<section class="page-vision" data-sec="page">
+  <div class="wrap">
+    <div class="ph vision-img rv" data-img="pages.about.img" ${bg('pages.about.img', 'pages.about.g')}><span class="tag"><b>PHOTO</b> · 아이엠센터 건물 전경 · 가로 사진</span></div>
+    <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    ${rich('pages.about.vision', 'p', 'vision rv')}
+  </div>
+</section>`;
+}
+// 본문 블록: 텍스트 칸(type 'text': h 제목·p 글·align) / 사진 칸(type 'image': img·caption)
+// 편집 모드에서 '+ 텍스트'·'+ 사진'으로 추가, 블록마다 ↑↓·정렬·삭제 (editor.js)
 function pageBlocks(id) {
   const path = `pages.${id}.blocks`;
   const blocks = c(path) || [];
   if (!blocks.length && !state.editing) return '';
+  const ctl = (b, i) => state.editing ? `
+        <div class="blk-ctl">
+          <button type="button" data-blk="up" data-path="${path}" data-i="${i}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button type="button" data-blk="down" data-path="${path}" data-i="${i}" ${i === blocks.length - 1 ? 'disabled' : ''}>↓</button>
+          ${b.type === 'image' ? '' : `<button type="button" data-blk="align" data-path="${path}" data-i="${i}">${b.align === 'center' ? '왼쪽 정렬' : '가운데 정렬'}</button>`}
+          <button type="button" data-blk="del" data-path="${path}" data-i="${i}">삭제</button>
+        </div>` : '';
   return `
 <section class="page-blocks" data-sec="page">
   <div class="wrap">
     <div class="blocks">
-      ${blocks.map((b, i) => `
-      <div class="blk rv">
-        ${t(`${path}.${i}.h`, 'h3')}
-        ${m(`${path}.${i}.p`)}
-        ${state.editing ? `<button type="button" class="ed-chip ghost" data-block-del="${path}|${i}">이 블록 삭제</button>` : ''}
+      ${blocks.map((b, i) => b.type === 'image' ? `
+      <figure class="blk blk-img rv">${ctl(b, i)}
+        <div class="${b.img ? 'img-box' : 'ph img-ph'}" data-img="${path}.${i}.img">${b.img ? `<img src="${esc(safeUrl(b.img))}" alt="${esc(b.caption || '')}" loading="lazy">` : '<span class="tag"><b>PHOTO</b> · 사진을 올려 주세요</span>'}</div>
+        ${b.caption || state.editing ? t(`${path}.${i}.caption`, 'figcaption') : ''}
+      </figure>` : `
+      <div class="blk blk-text${b.align === 'center' ? ' center' : ''} rv">${ctl(b, i)}
+        ${b.h || state.editing ? t(`${path}.${i}.h`, 'h3') : ''}
+        ${rich(`${path}.${i}.p`)}
       </div>`).join('')}
     </div>
-    ${state.editing ? `<p class="edit-hint"><button type="button" class="ed-chip" data-block-add="${path}">+ 블록 추가</button> 제목과 글로 된 단락을 하나 더 넣습니다. 게시해야 방문자에게 보입니다.</p>` : ''}
+    ${state.editing ? `<p class="edit-hint blk-add">
+      <button type="button" class="ed-chip" data-blk-add="text" data-path="${path}">+ 텍스트</button>
+      <button type="button" class="ed-chip" data-blk-add="image" data-path="${path}">+ 사진</button>
+      칸을 맨 아래에 추가합니다. 글자를 선택하고 아래 막대의 <b>B 굵게</b>(또는 Ctrl+B)로 굵기를 바꿀 수 있어요. 게시해야 방문자에게 보입니다.</p>` : ''}
   </div>
 </section>`;
 }
@@ -296,7 +326,7 @@ function orgBody() {
 </section>`;
 }
 const PAGES = {
-  about: () => pageHead('about') + pageImg('about', '아이엠센터 대표 사진 · 가로 21:9') + pageBlocks('about') + SECTIONS.about() + SECTIONS.spaces(),
+  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + SECTIONS.about() + SECTIONS.spaces(),
   org: () => pageHead('org') + orgBody() + pageBlocks('org'),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9') + pageBlocks('guide') + SECTIONS.visit(),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),

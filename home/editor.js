@@ -76,13 +76,22 @@ function buildBar(signOut, auth) {
   bar.innerHTML = `
     <span class="ed-who" title="${esc(user.email)}">✎ 편집 모드</span>
     <span class="ed-status" id="ed-status">변경 없음</span>
+    <button type="button" data-a="bold" title="선택한 글자 굵게 / 굵게 풀기 (Ctrl+B) — 본문 글에서 사용"><b>B</b> 굵게</button>
     <button type="button" data-a="toggle">미리보기</button>
     <button type="button" data-a="discard">변경 취소</button>
     <button type="button" data-a="publish" class="primary">게시하기</button>
     <a href="admin.html" target="_blank" rel="noopener">관리자 페이지 ↗</a>
     <button type="button" data-a="logout" class="ghost">로그아웃</button>`;
   document.body.appendChild(bar);
+  // 'B 굵게'를 눌러도 글자 선택이 풀리지 않게
+  bar.querySelector('[data-a=bold]').addEventListener('mousedown', e => e.preventDefault());
   bar.addEventListener('click', async e => {
+    if (e.target.closest('[data-a]')?.dataset.a === 'bold') {
+      const el = document.activeElement;
+      if (!el || !el.matches('[data-rich]')) { toast('굵게는 본문 글(텍스트 칸·소개 글)에서 글자를 선택한 뒤 쓸 수 있어요.'); return; }
+      document.execCommand('bold');
+      return;
+    }
     const a = e.target.closest('[data-a]')?.dataset.a;
     if (a === 'toggle') setEditing(!state.editing);
     if (a === 'discard') {
@@ -150,6 +159,36 @@ async function publish() {
 }
 
 // ── 편집 가능한 요소 꾸미기 (렌더링될 때마다 실행) ───────────────
+// 굵기 조절 글: 화면의 굵은 글씨(<b>/<strong>/font-weight)를 **글자** 표시로 바꿔 저장
+function richToText(el) {
+  const segs = [];
+  const walk = (n, bold) => {
+    if (n.nodeType === 3) { segs.push([n.nodeValue.replace(/\u00a0/g, ' '), bold]); return; }
+    if (n.nodeType !== 1 || n.matches('.ed-chip, .ed-img, .ed-link')) return;
+    if (n.tagName === 'BR') { segs.push(['\n', false]); return; }
+    let b = bold;
+    if (n.tagName === 'B' || n.tagName === 'STRONG') b = true;
+    const fw = n.style && n.style.fontWeight;
+    if (fw) b = fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600;
+    const block = n.tagName === 'DIV' || n.tagName === 'P';
+    if (block && segs.length && !segs[segs.length - 1][0].endsWith('\n')) segs.push(['\n', false]);
+    n.childNodes.forEach(ch => walk(ch, b));
+  };
+  el.childNodes.forEach(ch => walk(ch, false));
+  let out = '', cur = false;
+  for (const [txt, b] of segs) {
+    if (!txt) continue;
+    for (const part of txt.split(/(\n)/)) {
+      if (!part) continue;
+      const want = part === '\n' ? false : b;
+      if (want !== cur) { out += '**'; cur = want; }
+      out += part;
+    }
+  }
+  if (cur) out += '**';
+  return out.replace(/\*\*\*\*/g, '').replace(/\*\*([ \t]*)\*\*/g, '$1').replace(/\n+$/, '');
+}
+
 function decorate() {
   if (!state.editing) return;
 
@@ -159,7 +198,9 @@ function decorate() {
     el.spellcheck = false;
     const path = el.dataset.k;
     const multi = el.dataset.ml === '1';
+    const isRich = el.dataset.rich === '1';
     el.addEventListener('input', () => {
+      if (isRich) { setPath(draft, path, richToText(el)); updateStatus(); return; }
       let v = el.innerText.replace(/ /g, ' ');
       if (!multi) v = v.replace(/\s*\n\s*/g, ' ');
       v = v.replace(/\n$/, '');
@@ -169,6 +210,8 @@ function decorate() {
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' && !multi) { e.preventDefault(); el.blur(); }
       if (e.key === 'Escape') el.blur();
+      // Ctrl+B: 본문 글에서만 굵게(브라우저 기본 동작), 그 밖의 글자에서는 막음
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b' && !isRich) e.preventDefault();
     });
     el.addEventListener('paste', e => {
       e.preventDefault();
@@ -227,19 +270,26 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 5) 세부 페이지 본문 블록 추가·삭제 (pages.<id>.blocks)
-  document.querySelectorAll('[data-block-add]').forEach(b => b.addEventListener('click', e => {
+  // 5) 세부 페이지 본문 블록: 텍스트·사진 칸 추가 / ↑↓ / 정렬 / 삭제 (pages.<id>.blocks)
+  document.querySelectorAll('[data-blk-add]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault();
-    const path = b.dataset.blockAdd;
-    setPath(draft, path, [...(getPath(draft, path) || []), { h: '새 제목', p: '내용을 입력하세요.' }]);
+    const path = b.dataset.path;
+    const item = b.dataset.blkAdd === 'image' ? { type: 'image', img: '', caption: '' } : { type: 'text', h: '', p: '내용을 입력하세요.', align: 'left' };
+    setPath(draft, path, [...(getPath(draft, path) || []), item]);
     render(); updateStatus();
   }));
-  document.querySelectorAll('[data-block-del]').forEach(b => b.addEventListener('click', e => {
-    e.preventDefault();
-    const [path, i] = b.dataset.blockDel.split('|');
-    const arr = getPath(draft, path) || [];
-    if (!confirm(`이 블록을 삭제할까요?\n${arr[i]?.h || ''}`)) return;
-    arr.splice(Number(i), 1);
+  document.querySelectorAll('[data-blk]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const arr = getPath(draft, b.dataset.path) || [];
+    const i = Number(b.dataset.i), act = b.dataset.blk;
+    if (act === 'up' && i > 0) [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+    else if (act === 'down' && i < arr.length - 1) [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
+    else if (act === 'align') arr[i].align = arr[i].align === 'center' ? 'left' : 'center';
+    else if (act === 'del') {
+      const label = arr[i]?.type === 'image' ? '사진 칸' : (arr[i]?.h || String(arr[i]?.p || '').slice(0, 20));
+      if (!confirm(`이 칸을 삭제할까요?\n${label}`)) return;
+      arr.splice(i, 1);
+    } else return;
     render(); updateStatus();
   }));
 
