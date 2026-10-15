@@ -373,7 +373,7 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - 새 주소에서 관리자 로그인(편집 모드)을 하려면 Firebase Authentication → 승인된 도메인에 `iamcenter.web.app`이 등록되어 있어야 함
 - `home/index.html` 뼈대·스타일, `home/home.js` 렌더링(섹션 템플릿·슬라이더 등), `home/content.js` 기본 문구·구성(`DEFAULT_CONTENT`)과 병합(`mergeContent`), `home/fb.js` Firebase 초기화·관리자 확인·이미지 업로드(긴 변 2400px JPEG로 줄여 Storage `site/...`에 저장)
 - 데이터: `siteContent/homepage`(문구·사진 URL·섹션 순서/숨김 `sections:[{id,hidden}]`) — 문서가 없거나 항목이 빠지면 `DEFAULT_CONTENT`로 채움. `programs`(공연·행사, `published==true`만 공개). 공지는 인트라넷 `notices`와 별개인 홈페이지 전용 공지(`siteContent/homepage`의 `notice.items: [{category,title,date}]`) — 편집 모드에서 글자 바로 수정, '+ 공지 추가'(맨 위에 오늘 날짜로 추가)·줄별 '삭제'로 관리
-- **편집 모드**(`home/editor.js`, `home/editor.css`): 푸터 '관리자' 또는 `?edit=1` → 관리자(주 관리자·`admins`) 로그인 시 하단 막대 표시. 글자는 `data-k="경로"` 요소를 바로 수정, 사진은 `data-img`, 링크는 `data-link`, 섹션은 ↑↓·숨기기. '게시하기' 전에는 방문자에게 반영 안 됨
+- **편집 모드**(`home/editor.js`, `home/editor.css`): 푸터 '관리자' 또는 `?edit=1` → 관리자(주 관리자·`admins`) 로그인 시 하단 막대 표시. 막대의 페이지 선택(`.ed-page`, `EDIT_PAGES`)으로 메인·세부 페이지를 오가며 편집(`?page=…&edit=1`로 이동, 게시 전 수정 내용은 sessionStorage `iamHomeDraft`에 담아 새 페이지에서 이어받음 — 그 사이 게시본이 바뀌었으면 버림). 편집은 저장된 내용을 다 불러온 뒤에 시작함(`openEditor()`가 `loaded`를 기다림 — 기본 문구로 편집·게시되는 사고 방지). 글자는 `data-k="경로"` 요소를 바로 수정, 사진은 `data-img`, 링크는 `data-link`, 섹션은 ↑↓·숨기기. '게시하기' 전에는 방문자에게 반영 안 됨
 - 게시·되돌리기 때마다 직전 게시본을 `siteContentHistory`(doc:'homepage')에 보관 → `home/admin.html` '버전 기록'에서 복원
 - `home/admin.html`: 공연·행사 등록·수정·공개 전환·포스터 업로드(`site/programs/`), 버전 기록
 - 새 편집 항목을 추가할 때: `content.js`의 `DEFAULT_CONTENT`에 기본값 → `home.js` 템플릿에서 `t()/m()/href()/bg()`로 출력하면 편집 모드가 자동으로 붙음

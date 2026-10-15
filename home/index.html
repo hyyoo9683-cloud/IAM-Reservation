@@ -449,6 +449,8 @@ if (!first) loaded.then(() => { if (!state.editing) render(); });
 async function openEditor() {
   document.getElementById('editor-css').media = 'all';
   const m = await import('./editor.js');
+  await loaded;   // 저장된 내용을 다 불러온 뒤에 편집 시작 (기본 문구로 편집·게시되는 일 방지)
+  if (!first) render();
   m.start();
 }
 document.addEventListener('click', e => { if (e.target.closest('#admin-link')) openEditor(); });

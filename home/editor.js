@@ -5,6 +5,9 @@ import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, 
 import { state, render } from './home.js';
 import { getPath, setPath, SECTION_LABELS } from './content.js';
 
+const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
+// 편집 막대의 페이지 이동 목록 ([page 값, 이름] — '' = 메인)
+const EDIT_PAGES = [['', '메인'], ['about', '아이엠센터 소개'], ['org', '조직도'], ['guide', '방문가이드'], ['aaron', '아론홀'], ['sharon', '샤론홀']];
 let draft = null;        // 편집 중인 내용
 let published = '';      // 마지막으로 게시된 내용(JSON) — 변경 여부 비교용
 let user = null;
@@ -40,6 +43,12 @@ export async function start() {
   }
   draft = clone(state.content);
   published = JSON.stringify(draft);
+  // 다른 페이지에서 옮겨 왔으면 게시 전 수정 내용을 이어받음 (그 사이 게시본이 바뀌었으면 버림)
+  try {
+    const kept = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
+    sessionStorage.removeItem(DRAFT_KEY);
+    if (kept && kept.published === published && kept.draft) draft = kept.draft;
+  } catch (_) { /* 저장소를 못 쓰면 그냥 새로 시작 */ }
   buildBar(signOut, auth);
   document.body.classList.add('has-editor');
   document.addEventListener('home:rendered', decorate);
@@ -76,6 +85,7 @@ function buildBar(signOut, auth) {
   bar.innerHTML = `
     <span class="ed-who" title="${esc(user.email)}">✎ 편집 모드</span>
     <span class="ed-status" id="ed-status">변경 없음</span>
+    <select class="ed-page" aria-label="편집할 페이지">${EDIT_PAGES.map(([id, name]) => `<option value="${id}"${(state.page || '') === id ? ' selected' : ''}>${name}</option>`).join('')}</select>
     <button type="button" data-a="bold" title="선택한 글자 굵게 / 굵게 풀기 (Ctrl+B) — 본문 글에서 사용"><b>B</b> 굵게</button>
     <button type="button" data-a="toggle">미리보기</button>
     <button type="button" data-a="discard">변경 취소</button>
@@ -83,6 +93,15 @@ function buildBar(signOut, auth) {
     <a href="admin.html" target="_blank" rel="noopener">관리자 페이지 ↗</a>
     <button type="button" data-a="logout" class="ghost">로그아웃</button>`;
   document.body.appendChild(bar);
+  // 다른 페이지 편집으로 이동 — 게시 전 수정 내용은 sessionStorage에 잠시 담아 새 페이지에서 이어받음
+  bar.querySelector('.ed-page').addEventListener('change', e => {
+    const id = e.target.value;
+    try { if (isDirty()) sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ published, draft })); } catch (_) {
+      if (isDirty() && !confirm('게시하지 않은 변경 내용이 사라집니다. 이동할까요?')) { e.target.value = state.page || ''; return; }
+    }
+    published = JSON.stringify(draft); // beforeunload 경고 방지
+    location.href = `${location.pathname}?${id ? `page=${id}&` : ''}edit=1`;
+  });
   // 'B 굵게'를 눌러도 글자 선택이 풀리지 않게
   bar.querySelector('[data-a=bold]').addEventListener('mousedown', e => e.preventDefault());
   bar.addEventListener('click', async e => {
