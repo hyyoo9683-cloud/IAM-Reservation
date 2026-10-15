@@ -198,10 +198,24 @@ section{padding:clamp(80px,11vw,160px) 0}
 .statement{background:var(--ink);color:#fff}
 .statement .big{font-size:clamp(28px,4vw,58px);font-weight:300;letter-spacing:-.035em;line-height:1.3;max-width:1100px}
 .statement .big b{font-weight:800}
-/* 소개 페이지 중심 가치(줄글) — 메인 WHY I AM CENTER와 같은 어두운 띠 */
-.values .big{margin-bottom:clamp(28px,3vw,44px)}
-.values .vtext{max-width:880px;font-size:clamp(16px,1.4vw,19px);line-height:1.95;color:rgba(255,255,255,.82)}
-.values .vtext b{color:#fff;font-weight:800}
+/* 소개 페이지 중심 가치 — 밝은 배경 + 세 개의 원(겹치는 다이어그램) */
+.values{background:var(--soft)}
+.values .eyebrow{color:var(--mute);margin-bottom:18px;text-align:center}
+.values .v-title{font-size:clamp(28px,3.6vw,48px);font-weight:800;letter-spacing:-.04em;line-height:1.15;text-align:center}
+.venn{position:relative;width:min(640px,100%);aspect-ratio:1/0.93;margin:clamp(40px,5vw,64px) auto}
+.vc{position:absolute;width:58%;aspect-ratio:1;border-radius:50%;mix-blend-mode:multiply;display:flex;padding:9%}
+.vc1{left:21%;top:0;background:rgba(242,183,5,.30);align-items:flex-start;justify-content:center}
+.vc2{left:0;bottom:0;background:rgba(98,128,160,.26);align-items:flex-end;justify-content:flex-start}
+.vc3{right:0;bottom:0;background:rgba(170,130,100,.26);align-items:flex-end;justify-content:flex-end}
+.vc-in{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;max-width:62%}
+.vc1 .vc-in{margin-top:6%}
+.vc2 .vc-in{margin:0 0 14% 4%}
+.vc3 .vc-in{margin:0 4% 14% 0}
+.vc strong{font-size:clamp(17px,2vw,24px);font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.vc span{font-size:clamp(12px,1.2vw,14px);color:#555;line-height:1.5}
+.v-center{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);font-size:clamp(14px,1.6vw,18px);font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.values .vtext{max-width:760px;margin:0 auto;text-align:center;font-size:clamp(16px,1.4vw,18px);line-height:1.95;color:#3a3a3a}
+.values .vtext b{color:var(--ink);font-weight:800}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);margin-top:clamp(60px,8vw,110px);border-top:1px solid rgba(255,255,255,.2)}
 .stat{padding:28px 28px 0 0}
 .stat+.stat{padding-left:28px;border-left:1px solid rgba(255,255,255,.2)}
@@ -244,7 +258,6 @@ section{padding:clamp(80px,11vw,160px) 0}
 .rent p{color:var(--mute);margin:16px 0 30px;font-size:15px}
 .rent .rent-eb{color:var(--mute);margin-bottom:18px}
 #about .eyebrow{opacity:.6;margin-bottom:28px}
-.values .eyebrow{opacity:.6;margin-bottom:28px}
 .amen a>span:first-child{font-size:inherit;color:inherit;font-weight:inherit}
 .rent ol{list-style:none;counter-reset:s;border-top:1px solid #d6d4d0;margin-bottom:32px}
 .rent li{counter-increment:s;display:flex;gap:16px;padding:14px 0;border-bottom:1px solid #d6d4d0;font-size:15px;font-weight:500}

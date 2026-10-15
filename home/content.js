@@ -35,6 +35,13 @@ export const DEFAULT_CONTENT = {
       // 중심 가치(줄글) — 메인의 WHY I AM CENTER(숫자) 대신 소개 페이지에 표시. 자세한 내용은 편집 모드에서 작성
       valuesEyebrow: 'Core Values', valuesTitle: '아이엠센터의 중심 가치',
       values: '아이엠센터가 소중히 여기는 중심 가치를 소개합니다.\n(자세한 내용은 준비 중입니다.)',
+      // 세 개의 원(벤 다이어그램) — 원마다 가치 이름(t)·짧은 설명(d), 가운데 겹치는 곳 문구(valuesCenter)
+      valuesCenter: 'I AM',
+      valueItems: [
+        { t: '가치 하나', d: '설명을 입력하세요' },
+        { t: '가치 둘', d: '설명을 입력하세요' },
+        { t: '가치 셋', d: '설명을 입력하세요' },
+      ],
       floorsTitle: 'Floors', floorsSub: '층별 안내',
       blocks: [],
     },

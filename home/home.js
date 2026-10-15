@@ -266,13 +266,19 @@ function floorSummary(body) {
   const first = (txt.split(/\n/)[0] || '').split(/(?<=[.!?])\s+/)[0].trim();
   return first.length > 90 ? first.slice(0, 88) + '…' : first;
 }
-// 소개 페이지 중심 가치: 어두운 띠 + 제목 + 굵기 조절 가능한 줄글
+// 소개 페이지 중심 가치: 밝은 배경 + 제목 + 세 개의 원이 겹치는 다이어그램 + 굵기 조절 줄글
 function valuesHtml() {
+  const items = (c('pages.about.valueItems') || []).slice(0, 3);
   return `
-<section class="statement values" data-sec="page">
+<section class="values" data-sec="page">
   <div class="wrap">
     ${t('pages.about.valuesEyebrow', 'p', 'eyebrow rv')}
-    ${t('pages.about.valuesTitle', 'p', 'big rv')}
+    ${t('pages.about.valuesTitle', 'h2', 'v-title rv')}
+    <div class="venn rv" role="img" aria-label="${esc(items.map(v => v.t).join(', '))}">
+      ${items.map((v, i) => `
+      <div class="vc vc${i + 1}"><div class="vc-in">${t(`pages.about.valueItems.${i}.t`, 'strong')}${t(`pages.about.valueItems.${i}.d`, 'span')}</div></div>`).join('')}
+      ${t('pages.about.valuesCenter', 'div', 'v-center')}
+    </div>
     ${rich('pages.about.values', 'p', 'vtext rv')}
   </div>
 </section>`;
