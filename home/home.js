@@ -298,7 +298,7 @@ export function floorSummary(body) {
   const first = (txt.split(/\n/)[0] || '').split(/(?<=[.!?])\s+/)[0].trim();
   return first.length > 90 ? first.slice(0, 88) + '…' : first;
 }
-// 소개 페이지 중심 가치: 밝은 배경 + 제목 + 세 개의 원이 겹치는 다이어그램 + 굵기 조절 줄글
+// 소개 페이지 중심 가치: 밝은 배경 + 제목 + 세 개의 원(가치 이름) → 그 아래 가치별 세부 설명(여러 줄·굵게) + 굵기 조절 줄글
 function valuesHtml() {
   const items = (c('pages.about.valueItems') || []).slice(0, 3);
   return `
@@ -308,8 +308,12 @@ function valuesHtml() {
     ${t('pages.about.valuesTitle', 'h2', 'v-title rv')}
     <div class="venn rv" role="img" aria-label="${esc(items.map(v => v.t).join(', '))}">
       ${items.map((v, i) => `
-      <div class="vc vc${i + 1}"><div class="vc-in">${t(`pages.about.valueItems.${i}.t`, 'strong')}${t(`pages.about.valueItems.${i}.d`, 'span')}</div></div>`).join('')}
+      <div class="vc vc${i + 1}"><div class="vc-in">${t(`pages.about.valueItems.${i}.t`, 'strong')}</div></div>`).join('')}
       ${t('pages.about.valuesCenter', 'div', 'v-center')}
+    </div>
+    <div class="v-details">
+      ${items.map((v, i) => `
+      <div class="vd rv">${t(`pages.about.valueItems.${i}.t`, 'h3')}${state.editing || v.d ? rich(`pages.about.valueItems.${i}.d`, 'p') : ''}</div>`).join('')}
     </div>
     ${rich('pages.about.values', 'p', 'vtext rv')}
   </div>

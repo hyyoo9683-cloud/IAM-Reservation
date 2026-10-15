@@ -244,6 +244,8 @@ function decorate() {
       if (!multi) v = v.replace(/\s*\n\s*/g, ' ');
       v = v.replace(/\n$/, '');
       setPath(draft, path, v);
+      // 같은 글이 화면 두 곳에 있으면(예: 중심 가치 원 + 아래 세부 설명 제목) 다른 쪽도 같이 바꿈
+      document.querySelectorAll('[data-k]').forEach(o => { if (o !== el && o.dataset.k === path && o.dataset.rich !== '1') o.textContent = v; });
       updateStatus();
     });
     el.addEventListener('keydown', e => {
