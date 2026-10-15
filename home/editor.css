@@ -94,3 +94,13 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
 
 /* 편집 막대: 편집할 페이지 고르기 */
 .ed-page{font:inherit;font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:#222;color:#fff;cursor:pointer}
+
+/* 푸터 유관기관 편집: 기관별 빼기 + 기관 추가 */
+.orgs-list li{position:relative}
+.org-del{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:22px;height:22px;border-radius:50%;border:0;background:#111;color:#fff;font-size:11px;cursor:pointer}
+.org-del:hover{background:#f2b705;color:#111}
+.editing .ft .orgs-list a,.editing .ft .orgs-list .o-na{padding-right:40px}
+.editing .ft .orgs-list{min-width:260px}
+.org-add-li{padding:8px 18px 6px;border-top:1px solid #eee}
+.orgs-list .ed-link{position:static;opacity:1;pointer-events:auto;margin-left:auto;box-shadow:none}
+.editing .orgs-list a{align-items:center}

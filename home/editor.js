@@ -334,7 +334,24 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 7) 섹션 조작 막대
+  // 7) 푸터 유관기관 추가·빼기 (footer.orgs — 화면에는 가나다순으로 정렬돼 보임)
+  document.querySelector('[data-org-add]')?.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const name = prompt('추가할 기관 이름을 입력하세요.');
+    if (!name || !name.trim()) return;
+    const link = prompt('기관 홈페이지 주소를 입력하세요. (모르면 비워 두고 나중에 🔗로 입력)', '');
+    draft.footer.orgs = [...(draft.footer.orgs || []), { label: name.trim(), link: normalizeLink(link || '') }];
+    render(); updateStatus();
+  });
+  document.querySelectorAll('[data-org-del]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const i = Number(b.dataset.orgDel), arr = draft.footer.orgs || [];
+    if (!confirm(`'${arr[i]?.label || ''}'을(를) 유관기관 목록에서 뺄까요?`)) return;
+    arr.splice(i, 1);
+    render(); updateStatus();
+  }));
+
+  // 8) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);

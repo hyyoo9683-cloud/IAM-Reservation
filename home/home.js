@@ -440,7 +440,7 @@ function footerHtml() {
           <button type="button" class="orgs-btn" aria-expanded="${state.editing}">유관기관 <span aria-hidden="true">▾</span></button>
           <ul class="orgs-list">${(c('footer.orgs') || []).map((o, i) => [o, i]).sort((a, b) => String(a[0].label || '').localeCompare(String(b[0].label || ''), 'ko')).map(([o, i]) => `<li>${o.link || state.editing
             ? `<a ${href(`footer.orgs.${i}.link`)} target="_blank" rel="noopener">${t(`footer.orgs.${i}.label`)} <span aria-hidden="true">↗</span></a>`
-            : `<span class="o-na">${esc(o.label)}</span>`}</li>`).join('')}</ul>
+            : `<span class="o-na">${esc(o.label)}</span>`}${state.editing ? `<button type="button" class="org-del" data-org-del="${i}" title="이 기관 빼기">✕</button>` : ''}</li>`).join('')}${state.editing ? '<li class="org-add-li"><button type="button" class="ed-chip" data-org-add>+ 기관 추가</button></li>' : ''}</ul>
         </div>
       </div>
     </div>
