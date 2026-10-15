@@ -161,6 +161,13 @@ export const DEFAULT_CONTENT = {
     desc: '경기도 수원시 영통구 월드컵로 76 아이엠센터\n매일 08:00 – 22:00 (공휴일 제외)',
     instagram: '#',
     youtube: '#',
+    // 푸터 '유관기관' 버튼을 누르면 펼쳐지는 목록 — 링크가 비어 있으면 이름만 보임(편집 모드에서 🔗로 주소 입력)
+    orgs: [
+      { label: '마더와이즈', link: '' },
+      { label: '원천침례교회', link: '' },
+      { label: '브솔복지재단', link: 'https://www.besor.kr/' },
+      { label: '중앙기독학교', link: '' },
+    ],
     bottom: '대표 전화 · 사업자등록번호 안내 예정',
   },
 };

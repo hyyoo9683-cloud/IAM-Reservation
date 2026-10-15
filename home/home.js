@@ -435,7 +435,14 @@ function footerHtml() {
       <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}</div>
       <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./#spaces">아이엠홀</a></li><li><a href="./#spaces">세미나실</a></li></ul></div>
       <div><h4>INFO</h4><ul><li><a href="./#notice">대관 안내</a></li><li><a href="./?page=guide">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
-      <div><h4>FOLLOW</h4><ul><li><a ${href('footer.instagram')} target="_blank" rel="noopener">Instagram</a></li><li><a ${href('footer.youtube')} target="_blank" rel="noopener">YouTube</a></li></ul></div>
+      <div><h4>RELATED</h4>
+        <div class="orgs${state.editing ? ' open' : ''}">
+          <button type="button" class="orgs-btn" aria-expanded="${state.editing}">유관기관 <span aria-hidden="true">▾</span></button>
+          <ul class="orgs-list">${(c('footer.orgs') || []).map((o, i) => `<li>${o.link || state.editing
+            ? `<a ${href(`footer.orgs.${i}.link`)} target="_blank" rel="noopener">${t(`footer.orgs.${i}.label`)} <span aria-hidden="true">↗</span></a>`
+            : `<span class="o-na">${esc(o.label)}</span>`}</li>`).join('')}</ul>
+        </div>
+      </div>
     </div>
     <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>
   </div>
@@ -568,6 +575,16 @@ function setupBehaviors() {
     }));
   } else {
     document.querySelector('.rail-ctl')?.remove();
+  }
+
+  // 푸터 '유관기관': 버튼을 누르면 목록이 위로 펼쳐짐, 바깥을 누르면 닫힘 (편집 중에는 항상 펼침)
+  const orgs = document.querySelector('.orgs');
+  if (orgs && !state.editing) {
+    const btn = orgs.querySelector('.orgs-btn');
+    btn.onclick = e => { e.stopPropagation(); const o = orgs.classList.toggle('open'); btn.setAttribute('aria-expanded', o); };
+    const close = e => { if (!orgs.contains(e.target)) { orgs.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); } };
+    document.addEventListener('click', close);
+    timers.push(() => document.removeEventListener('click', close));
   }
 
   // 사진 슬라이드(캐러셀): 좌우 버튼·점 표시, 손가락으로 넘기기는 스크롤 스냅
