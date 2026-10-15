@@ -47,6 +47,10 @@ export const DEFAULT_CONTENT = {
       // 아직 홈페이지에서 손대지 않은 층은 예약 시스템 관리자 '층별 안내'의 links를 보여주고, 편집 모드를 열면 그 링크를 복사해 와서 고칠 수 있음
       // floorLinks는 홈페이지 페이지로 가는 기본 버튼(아론홀·샤론홀) — 손대지 않은 층은 floorLinks + 관리자 links를 함께 보여줌
       floorBtns: {},
+      // 관리자 층별 안내에 없는 층을 홈페이지에서만 추가(층 번호 순서대로 함께 정렬) — 이름·공간 이름·설명은 편집 모드에서 수정
+      extraFloors: [
+        { name: 'B3–B5', mainTitle: '주차장', body: '' },
+      ],
       floorLinks: {
         '6': [{ label: '샤론홀', link: './?page=sharon' }],
         '2': [{ label: '아론홀', link: './?page=aaron' }],

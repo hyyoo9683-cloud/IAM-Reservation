@@ -351,9 +351,17 @@ function floorLinksHtml(f) {
   if (editable) btns.push(`<button type="button" class="ed-chip" data-fb-add="${key}">+ 버튼</button>`);
   return btns.length ? `<div class="fl-links">${btns.join('')}</div>` : '';
 }
+// 층 목록 = 관리자 층별 안내(siteContent/floors) + 홈페이지에서만 추가한 층(pages.about.extraFloors, 예: B3–B5 주차장)
+// — 같은 층 번호가 관리자 쪽에 이미 있으면 홈페이지 추가분은 숨김
+export function allFloors(content) {
+  const base = (state.floors || []).filter(f => f && (f.name || f.mainTitle));
+  const ranks = new Set(base.map(f => floorRank(f.name)));
+  const extra = (getPath(content, 'pages.about.extraFloors') || []).map((f, ex) => ({ ...f, ex }))
+    .filter(f => f && (f.name || f.mainTitle) && !ranks.has(floorRank(f.name)));
+  return base.concat(extra);
+}
 function floorsHtml() {
-  const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle))
-    .map(f => ({ ...f, rank: floorRank(f.name) })).sort((a, b) => b.rank - a.rank);
+  const fl = allFloors(state.content).map(f => ({ ...f, rank: floorRank(f.name) })).sort((a, b) => b.rank - a.rank);
   if (!fl.length && !state.editing) return '';
   return `
 <section class="page-floors" data-sec="page">
@@ -362,9 +370,9 @@ function floorsHtml() {
     <div class="bld rv">
       ${fl.map((f, i) => `
       <div class="fl-row">
-        <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
-        <div class="fl-t">${esc(f.mainTitle || '')}</div>
-        <div class="fl-d"><p>${esc(floorSummary(f.body))}</p>${floorLinksHtml(f)}</div>
+        <div class="fl-n">${f.ex != null ? `<span data-k="pages.about.extraFloors.${f.ex}.name">${esc(String(f.name || '').trim())}</span>` : esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
+        <div class="fl-t">${f.ex != null ? t(`pages.about.extraFloors.${f.ex}.mainTitle`) : esc(f.mainTitle || '')}</div>
+        <div class="fl-d">${f.ex != null ? (f.body || state.editing ? t(`pages.about.extraFloors.${f.ex}.body`, 'p') : '') : `<p>${esc(floorSummary(f.body))}</p>`}${floorLinksHtml(f)}</div>
       </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
     </div>
     ${state.editing ? '<p class="edit-hint">층 이름·소개 문장은 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있어요. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
