@@ -277,16 +277,25 @@ function valuesHtml() {
   </div>
 </section>`;
 }
+// 층 이름 → 정렬용 숫자 (B1/B2층 → -1, 5층 → 5) — 건물처럼 위층이 위로 오게
+function floorRank(name) {
+  const n = String(name || '').trim();
+  const b = n.match(/^B(\d+)/i);
+  if (b) return -Number(b[1]);
+  const m = n.match(/\d+/);
+  return m ? Number(m[0]) : 0;
+}
 function floorsHtml() {
-  const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle));
+  const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle))
+    .map(f => ({ ...f, rank: floorRank(f.name) })).sort((a, b) => b.rank - a.rank);
   if (!fl.length && !state.editing) return '';
   return `
 <section class="page-floors" data-sec="page">
   <div class="wrap">
     <div class="sec-hd rv"><h2>${t('pages.about.floorsTitle')}<span class="h2sub" data-k="pages.about.floorsSub">${esc(c('pages.about.floorsSub'))}</span></h2></div>
-    <div class="floors rv">
-      ${fl.map(f => `
-      <div class="floor">
+    <div class="bld rv">
+      ${fl.map((f, i) => `
+      <div class="fl-row${f.rank < 0 ? ' under' : ''}${f.rank > 0 && fl[i + 1] && fl[i + 1].rank < 0 ? ' ground' : ''}">
         <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
         <div class="fl-t">${esc(f.mainTitle || '')}</div>
         <p class="fl-d">${esc(floorSummary(f.body))}</p>

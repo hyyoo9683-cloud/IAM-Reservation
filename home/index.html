@@ -71,12 +71,22 @@ img{display:block;max-width:100%}
 .page-hd h1{font-size:clamp(40px,6vw,88px);font-weight:800;letter-spacing:-.045em;line-height:1}
 .page-hd .lead{margin-top:24px;font-size:clamp(16px,1.4vw,19px);color:#444;max-width:760px;line-height:1.75}
 .page-img{aspect-ratio:21/9}
-.floors{border-top:2px solid var(--ink)}
-.floor{display:grid;grid-template-columns:120px 220px 1fr;gap:20px;align-items:baseline;padding:26px 0;border-bottom:1px solid var(--line)}
-.fl-n{font-size:clamp(28px,2.6vw,38px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.bld{border:2px solid var(--ink);background:#fff}
+.fl-row{display:grid;grid-template-columns:132px 220px 1fr;border-top:1px solid var(--line);transition:background .2s}
+.fl-row:first-child{border-top:0}
+.fl-row:hover{background:#faf9f7}
+.fl-row>*{padding:24px 26px;margin:0}
+.fl-row>*+*{border-left:1px solid var(--line)}
+.fl-n{background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:clamp(26px,2.4vw,34px);font-weight:800;letter-spacing:-.04em;line-height:1;white-space:nowrap}
 .fl-n small{font-size:.45em;font-weight:700;margin-left:3px;color:var(--mute)}
-.fl-t{font-size:18px;font-weight:700;letter-spacing:-.02em}
-.fl-d{font-size:15px;color:#555;line-height:1.7}
+.fl-t{display:flex;align-items:center;font-size:18px;font-weight:700;letter-spacing:-.02em}
+.fl-d{display:flex;align-items:center;font-size:15px;color:#555;line-height:1.7}
+/* 지상·지하 경계는 굵은 선, 지하층은 어두운 층 표시 */
+.fl-row.ground{border-bottom:3px solid var(--ink)}
+.fl-row.ground+.fl-row{border-top:0}
+.fl-row.under{background:#f7f6f3}
+.fl-row.under .fl-n{background:var(--ink);color:#fff}
+.fl-row.under .fl-n small{color:rgba(255,255,255,.6)}
 .page-vision{padding-top:0}
 .vision-img{max-width:1100px;margin:0 auto;aspect-ratio:16/9;--g:linear-gradient(180deg,#9fb6c8 0%,#d7dde2 55%,#bdb6aa 100%)}
 .dots{display:flex;justify-content:center;gap:10px;margin:clamp(48px,6vw,80px) 0 clamp(28px,3vw,40px)}
@@ -300,9 +310,12 @@ section{padding:clamp(80px,11vw,160px) 0}
   .burger{display:block}
   .split,.visit .grid{grid-template-columns:1fr}
   .page-space .split{grid-template-columns:1fr}
-  .floor{grid-template-columns:92px 1fr;gap:6px 14px}
-  .fl-n{font-size:24px}
-  .floor .fl-d{grid-column:2}
+  .fl-row{grid-template-columns:88px 1fr}
+  .fl-n{grid-row:span 2;font-size:22px}
+  .fl-row>*{padding:16px 16px}
+  .fl-t{padding-bottom:4px}
+  .fl-d{padding-top:0;border-left:1px solid var(--line)}
+  .fl-d{font-size:14px}
   .gallery{grid-template-columns:1fr 1fr}
   .spaces{grid-template-columns:1fr 1fr}
   .sp-a{grid-column:1/-1;aspect-ratio:4/3}
