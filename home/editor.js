@@ -3,7 +3,7 @@
 // · 섹션: 순서 바꾸기 / 숨기기  · '게시하기'를 눌러야 방문자에게 반영 (이전 버전은 자동 보관)
 import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, isAdminAccount, uploadImage } from './fb.js';
 import { state, render } from './home.js';
-import { getPath, setPath, SECTION_LABELS } from './content.js';
+import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
 const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
 // 편집 막대의 페이지 이동 목록 ([page 값, 이름] — '' = 메인)
@@ -263,9 +263,9 @@ function decorate() {
     chip.title = getPath(draft, path) || '';
     chip.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
-      const v = prompt('연결할 주소를 입력하세요.\n예) https://… , https://iamreservation.web.app/venue-spaces.html , #visit', getPath(draft, path) || '');
+      const v = prompt('연결할 주소를 입력하세요.\n예) https://… , www.example.org , #visit', getPath(draft, path) || '');
       if (v === null) return;
-      setPath(draft, path, v.trim());
+      setPath(draft, path, normalizeLink(v));
       render(); updateStatus();
     });
     el.appendChild(chip);

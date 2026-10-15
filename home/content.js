@@ -210,3 +210,11 @@ export function setPath(obj, path, value) {
   }
   o[ks[ks.length - 1]] = value;
 }
+
+// 링크 주소 다듬기: 'www.example.org'처럼 https:// 없이 적은 주소는 https://를 붙여 줌
+// (편집 모드 링크 입력 + 이미 저장된 값 모두에 적용)
+export function normalizeLink(u) {
+  const s = String(u || '').trim();
+  if (/^(www\.|[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(:\d+)?([/?#]|$))/i.test(s) && !/^[a-z][a-z0-9+.-]*:/i.test(s)) return 'https://' + s;
+  return s;
+}

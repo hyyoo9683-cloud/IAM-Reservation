@@ -1,6 +1,6 @@
 // 아이엠센터 홈페이지 렌더링 — 콘텐츠(siteContent/homepage, 홈페이지 공지 포함) + 공연·행사(programs)
 import { db, doc, getDoc, getDocs, collection, query, where } from './fb.js';
-import { DEFAULT_CONTENT, mergeContent, getPath, PAGE_IDS } from './content.js';
+import { DEFAULT_CONTENT, mergeContent, getPath, PAGE_IDS, normalizeLink } from './content.js';
 
 export const state = {
   content: structuredClone(DEFAULT_CONTENT),
@@ -28,7 +28,7 @@ const mlQuoteBold = s => ml(s).replace(/“[^”<]*”/g, '<b>$&</b>');
 // 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
 const MAIN_SITE = 'https://iamreservation.web.app/';
 const safeUrl = u => {
-  const s = String(u || '').trim();
+  const s = normalizeLink(u);
   if (!/^(https?:|mailto:|tel:|#|\.\.?\/|\/)/i.test(s)) return '#';
   return s.replace(/^(\.\.\/)+|^\/(?!\/)/, MAIN_SITE);
 };
