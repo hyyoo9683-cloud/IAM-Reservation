@@ -43,6 +43,11 @@ export const DEFAULT_CONTENT = {
         { t: '가치 셋', d: '설명을 입력하세요' },
       ],
       floorsTitle: 'Floors', floorsSub: '층별 안내',
+      // 층별 안내에 홈페이지 페이지로 가는 버튼 추가(키 = 층 번호, 지하는 -1) — 사업장 외부 링크는 예약 시스템 관리자 층별 안내의 links를 그대로 씀
+      floorLinks: {
+        '6': [{ label: '샤론홀', link: './?page=sharon' }],
+        '2': [{ label: '아론홀', link: './?page=aaron' }],
+      },
       blocks: [],
     },
     org: {

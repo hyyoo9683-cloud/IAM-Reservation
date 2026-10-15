@@ -291,6 +291,16 @@ function floorRank(name) {
   const m = n.match(/\d+/);
   return m ? Number(m[0]) : 0;
 }
+// 층별 바로가기 버튼: 홈페이지 페이지(pages.about.floorLinks[층]) + 관리자 층별 안내에 등록된 사업장 링크(f.links)
+function floorLinksHtml(f) {
+  const key = String(f.rank);
+  const own = (c(`pages.about.floorLinks.${key}`) || []).map((l, i) =>
+    `<a ${href(`pages.about.floorLinks.${key}.${i}.link`)} class="fl-link in">${t(`pages.about.floorLinks.${key}.${i}.label`)} <span aria-hidden="true">→</span></a>`);
+  const ext = (f.links || []).filter(l => l && l.url).map(l =>
+    `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener" class="fl-link">${esc(l.label || '바로가기')} <span aria-hidden="true">↗</span></a>`);
+  const all = own.concat(ext);
+  return all.length ? `<div class="fl-links">${all.join('')}</div>` : '';
+}
 function floorsHtml() {
   const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle))
     .map(f => ({ ...f, rank: floorRank(f.name) })).sort((a, b) => b.rank - a.rank);
@@ -304,10 +314,10 @@ function floorsHtml() {
       <div class="fl-row${f.rank < 0 ? ' under' : ''}${f.rank > 0 && fl[i + 1] && fl[i + 1].rank < 0 ? ' ground' : ''}">
         <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
         <div class="fl-t">${esc(f.mainTitle || '')}</div>
-        <p class="fl-d">${esc(floorSummary(f.body))}</p>
+        <div class="fl-d"><p>${esc(floorSummary(f.body))}</p>${floorLinksHtml(f)}</div>
       </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
     </div>
-    ${state.editing ? '<p class="edit-hint">층별 내용은 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. (여기에는 층·공간 이름·소개 첫 문장만 간단히 보여요)</p>' : ''}
+    ${state.editing ? '<p class="edit-hint">층별 내용과 사업장 링크(↗)는 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. 홈페이지 페이지로 가는 버튼(→)은 여기서 이름·🔗링크를 고칠 수 있어요.</p>' : ''}
   </div>
 </section>`;
 }
