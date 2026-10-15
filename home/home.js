@@ -438,7 +438,7 @@ function footerHtml() {
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
           <button type="button" class="orgs-btn" aria-expanded="${state.editing}">유관기관 <span aria-hidden="true">▾</span></button>
-          <ul class="orgs-list">${(c('footer.orgs') || []).map((o, i) => `<li>${o.link || state.editing
+          <ul class="orgs-list">${(c('footer.orgs') || []).map((o, i) => [o, i]).sort((a, b) => String(a[0].label || '').localeCompare(String(b[0].label || ''), 'ko')).map(([o, i]) => `<li>${o.link || state.editing
             ? `<a ${href(`footer.orgs.${i}.link`)} target="_blank" rel="noopener">${t(`footer.orgs.${i}.label`)} <span aria-hidden="true">↗</span></a>`
             : `<span class="o-na">${esc(o.label)}</span>`}</li>`).join('')}</ul>
         </div>
