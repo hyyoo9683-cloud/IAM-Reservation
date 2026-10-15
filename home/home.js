@@ -266,6 +266,17 @@ function floorSummary(body) {
   const first = (txt.split(/\n/)[0] || '').split(/(?<=[.!?])\s+/)[0].trim();
   return first.length > 90 ? first.slice(0, 88) + '…' : first;
 }
+// 소개 페이지 중심 가치: 어두운 띠 + 제목 + 굵기 조절 가능한 줄글
+function valuesHtml() {
+  return `
+<section class="statement values" data-sec="page">
+  <div class="wrap">
+    ${t('pages.about.valuesEyebrow', 'p', 'eyebrow rv')}
+    ${t('pages.about.valuesTitle', 'p', 'big rv')}
+    ${rich('pages.about.values', 'p', 'vtext rv')}
+  </div>
+</section>`;
+}
 function floorsHtml() {
   const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle));
   if (!fl.length && !state.editing) return '';
@@ -352,7 +363,7 @@ function orgBody() {
 </section>`;
 }
 const PAGES = {
-  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + SECTIONS.about() + floorsHtml(),
+  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
   org: () => pageHead('org') + orgBody() + pageBlocks('org'),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9') + pageBlocks('guide') + SECTIONS.visit(),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
