@@ -247,12 +247,44 @@ function pageImg(id, tag) {
   if (!has && !state.editing) return '';
   return `<div class="wrap"><div class="ph page-img" data-img="pages.${id}.img" ${bg(`pages.${id}.img`)}><span class="tag"><b>PHOTO</b> · ${esc(tag)}</span></div></div>`;
 }
+// ── 사진 묶음: 1장이면 한 장, 2장 이상이면 넘겨 보는 슬라이드(캐러셀) ─────────
+// path = 사진 주소 배열 경로, legacyPath = 예전 한 장짜리 사진 경로(있으면 첫 장으로 취급)
+// fixed: 한 장일 때도 16:9로 꽉 채움(대표 사진용), ph: 사진이 없을 때 임시 배경(그라데이션)
+function photoSet(path, legacyPath, { fixed = false, ph = '' } = {}) {
+  let urls = (c(path) || []).filter(Boolean);
+  if (!urls.length && legacyPath && c(legacyPath)) urls = [c(legacyPath)];
+  const img = (u, cls = '') => `<img${cls ? ` class="${cls}"` : ''} src="${esc(safeUrl(u))}" alt="" loading="lazy">`;
+  let view = '';
+  if (!urls.length) {
+    if (state.editing || ph) view = `<div class="ph ps-ph"${ph ? ` style="--g:${esc(ph)}"` : ''}><span class="tag"><b>PHOTO</b> · 사진을 올려 주세요</span></div>`;
+  } else if (urls.length === 1) {
+    view = fixed ? `<div class="ps-fixed">${img(urls[0])}</div>` : img(urls[0], 'ps-one');
+  } else {
+    view = `<div class="car">
+      <div class="car-track">${urls.map(u => `<div class="car-slide">${img(u)}</div>`).join('')}</div>
+      <button type="button" class="car-prev" aria-label="이전 사진">${CHEV_L}</button>
+      <button type="button" class="car-next" aria-label="다음 사진">${CHEV_R}</button>
+      <div class="car-dots">${urls.map((_, i) => `<i${i ? '' : ' class="on"'}></i>`).join('')}</div>
+    </div>`;
+  }
+  const edit = state.editing ? `
+    <div class="ps-edit" data-ps-path="${path}" data-ps-legacy="${legacyPath || ''}">
+      ${urls.map((u, i) => `<div class="ps-th">${img(u)}<span>
+        <button type="button" data-ps="left" data-i="${i}" ${i === 0 ? 'disabled' : ''} title="앞으로">◀</button>
+        <button type="button" data-ps="right" data-i="${i}" ${i === urls.length - 1 ? 'disabled' : ''} title="뒤로">▶</button>
+        <button type="button" data-ps="del" data-i="${i}" title="이 사진 빼기">✕</button></span></div>`).join('')}
+      <div class="ed-img-add"><button type="button" class="ed-chip" data-ps-add>+ 사진 추가</button></div>
+      <span class="ps-note">1장은 한 장으로, 2장 이상은 넘겨 보는 슬라이드로 보여요</span>
+    </div>` : '';
+  return `<div class="pset${fixed ? ' fixed' : ''}">${view}${edit}</div>`;
+}
+
 // 아이엠센터 소개: 대표 사진(항상 자리 표시) → ••• → 가운데 정렬 비전 문구
 function aboutVision() {
   return `
 <section class="page-vision" data-sec="page">
   <div class="wrap">
-    <div class="ph vision-img rv" data-img="pages.about.img" ${bg('pages.about.img', 'pages.about.g')}><span class="tag"><b>PHOTO</b> · 아이엠센터 건물 전경 · 가로 사진</span></div>
+    <div class="vision-photo rv">${photoSet('pages.about.imgs', 'pages.about.img', { fixed: true, ph: 'linear-gradient(180deg,#9fb6c8 0%,#d7dde2 55%,#bdb6aa 100%)' })}</div>
     <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
     ${rich('pages.about.vision', 'p', 'vision rv')}
   </div>
@@ -338,7 +370,7 @@ function pageBlocks(id) {
     <div class="blocks">
       ${blocks.map((b, i) => b.type === 'image' ? `
       <figure class="blk blk-img rv">${ctl(b, i)}
-        <div class="${b.img ? 'img-box' : 'ph img-ph'}" data-img="${path}.${i}.img">${b.img ? `<img src="${esc(safeUrl(b.img))}" alt="${esc(b.caption || '')}" loading="lazy">` : '<span class="tag"><b>PHOTO</b> · 사진을 올려 주세요</span>'}</div>
+        ${photoSet(`${path}.${i}.imgs`, `${path}.${i}.img`)}
         ${b.caption || state.editing ? t(`${path}.${i}.caption`, 'figcaption') : ''}
       </figure>` : `
       <div class="blk blk-text${b.align === 'center' ? ' center' : ''} rv">${ctl(b, i)}
@@ -537,6 +569,18 @@ function setupBehaviors() {
   } else {
     document.querySelector('.rail-ctl')?.remove();
   }
+
+  // 사진 슬라이드(캐러셀): 좌우 버튼·점 표시, 손가락으로 넘기기는 스크롤 스냅
+  document.querySelectorAll('.car').forEach(car => {
+    const track = car.querySelector('.car-track'), dots = [...car.querySelectorAll('.car-dots i')];
+    const go = d => track.scrollBy({ left: d * track.clientWidth, behavior: 'smooth' });
+    car.querySelector('.car-prev').onclick = e => { e.preventDefault(); go(-1); };
+    car.querySelector('.car-next').onclick = e => { e.preventDefault(); go(1); };
+    track.addEventListener('scroll', () => {
+      const k = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      dots.forEach((d, i) => d.classList.toggle('on', i === k));
+    }, { passive: true });
+  });
 
   // 스크롤 등장 효과 (편집 중에는 바로 보이게)
   const els = document.querySelectorAll('.rv');

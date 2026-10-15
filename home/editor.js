@@ -293,7 +293,29 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 6) 섹션 조작 막대
+  // 6) 사진 묶음: 사진 추가(업로드) / ◀▶ 순서 / ✕ 빼기 — 예전 한 장짜리 사진은 첫 장으로 옮겨 담음
+  const psArr = box => {
+    const path = box.dataset.psPath, legacy = box.dataset.psLegacy;
+    let arr = getPath(draft, path);
+    if (!Array.isArray(arr)) arr = [];
+    if (!arr.length && legacy && getPath(draft, legacy)) { arr = [getPath(draft, legacy)]; setPath(draft, legacy, ''); }
+    setPath(draft, path, arr);
+    return { arr, path };
+  };
+  document.querySelectorAll('.ps-edit').forEach(box => box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const { arr, path } = psArr(box);
+    if (b.hasAttribute('data-ps-add')) { pickImage(`${path}.${arr.length}`, b.parentElement); return; }
+    const i = Number(b.dataset.i);
+    if (b.dataset.ps === 'left' && i > 0) [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+    else if (b.dataset.ps === 'right' && i < arr.length - 1) [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
+    else if (b.dataset.ps === 'del') { if (!confirm('이 사진을 뺄까요? (게시해야 방문자 화면에 반영돼요)')) return; arr.splice(i, 1); }
+    else return;
+    render(); updateStatus();
+  }));
+
+  // 7) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);
@@ -350,7 +372,7 @@ function pickImage(path, box) {
       console.error(e);
       alert('사진 업로드에 실패했습니다: ' + (e.message || e));
       box.classList.remove('busy');
-      box.querySelector('.ed-chip').textContent = '📷 사진 바꾸기';
+      box.querySelector('.ed-chip').textContent = box.classList.contains('ed-img-add') ? '+ 사진 추가' : '📷 사진 바꾸기';
     }
   };
   input.click();
