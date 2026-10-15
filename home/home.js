@@ -316,7 +316,7 @@ function valuesHtml() {
 </section>`;
 }
 // 층 이름 → 정렬용 숫자 (B1/B2층 → -1, 5층 → 5) — 건물처럼 위층이 위로 오게
-function floorRank(name) {
+export function floorRank(name) {
   const n = String(name || '').trim();
   const b = n.match(/^B(\d+)/i);
   if (b) return -Number(b[1]);
@@ -324,14 +324,26 @@ function floorRank(name) {
   return m ? Number(m[0]) : 0;
 }
 // 층별 바로가기 버튼: 홈페이지 페이지(pages.about.floorLinks[층]) + 관리자 층별 안내에 등록된 사업장 링크(f.links)
+// 손대지 않은 층의 기본 버튼: 홈페이지 페이지 버튼(floorLinks, 예: 아론홀·샤론홀) + 관리자 층별 안내의 사업장 링크
+export function defaultFloorBtns(f, floorLinks) {
+  const k = String(floorRank(f.name));
+  const own = Array.isArray(floorLinks?.[k]) ? floorLinks[k].filter(l => l && l.label).map(l => ({ label: l.label, link: l.link || '' })) : [];
+  return own.concat((f.links || []).filter(l => l && l.url).map(l => ({ label: l.label || '바로가기', link: l.url })));
+}
 function floorLinksHtml(f) {
-  const key = String(f.rank);
-  const own = (c(`pages.about.floorLinks.${key}`) || []).map((l, i) =>
-    `<a ${href(`pages.about.floorLinks.${key}.${i}.link`)} class="fl-link in">${t(`pages.about.floorLinks.${key}.${i}.label`)} <span aria-hidden="true">→</span></a>`);
-  const ext = (f.links || []).filter(l => l && l.url).map(l =>
-    `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener" class="fl-link">${esc(l.label || '바로가기')} <span aria-hidden="true">↗</span></a>`);
-  const all = own.concat(ext);
-  return all.length ? `<div class="fl-links">${all.join('')}</div>` : '';
+  const key = String(f.rank), path = `pages.about.floorBtns.${key}`;
+  const own = c(path);
+  const editable = Array.isArray(own) && state.editing;
+  const list = Array.isArray(own) ? own : defaultFloorBtns(f, c('pages.about.floorLinks'));
+  const isIn = u => /^(\.\/|#)/.test(String(u || '').trim());
+  const btns = list.map((l, i) => {
+    const inner = isIn(l.link);
+    const attrs = editable ? href(`${path}.${i}.link`) : `href="${esc(safeUrl(l.link))}"`;
+    const label = editable ? t(`${path}.${i}.label`) : esc(l.label || '바로가기');
+    return `<a ${attrs}${inner ? '' : ' target="_blank" rel="noopener"'} class="fl-link${inner ? ' in' : ''}">${label} <span aria-hidden="true">${inner ? '→' : '↗'}</span>${editable ? `<button type="button" class="fb-del" data-fb-del="${key}|${i}" title="이 버튼 빼기">✕</button>` : ''}</a>`;
+  });
+  if (editable) btns.push(`<button type="button" class="ed-chip" data-fb-add="${key}">+ 버튼</button>`);
+  return btns.length ? `<div class="fl-links">${btns.join('')}</div>` : '';
 }
 function floorsHtml() {
   const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle))
@@ -349,7 +361,7 @@ function floorsHtml() {
         <div class="fl-d"><p>${esc(floorSummary(f.body))}</p>${floorLinksHtml(f)}</div>
       </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
     </div>
-    ${state.editing ? '<p class="edit-hint">층별 내용과 사업장 링크(↗)는 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. 홈페이지 페이지로 가는 버튼(→)은 여기서 이름·🔗링크를 고칠 수 있어요.</p>' : ''}
+    ${state.editing ? '<p class="edit-hint">층 이름·소개 문장은 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있어요. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
   </div>
 </section>`;
 }

@@ -104,3 +104,8 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
 .org-add-li{padding:8px 18px 6px;border-top:1px solid #eee}
 .orgs-list .ed-link{position:static;opacity:1;pointer-events:auto;margin-left:auto;box-shadow:none}
 .editing .orgs-list a{align-items:center}
+
+/* 층별 바로가기 버튼 편집 */
+.editing .fl-link{position:relative;padding-right:30px}
+.fb-del{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:0;background:#f2b705;color:#111;font-size:10px;line-height:18px;cursor:pointer;padding:0}
+.fl-links .ed-link{top:-14px;right:20px}

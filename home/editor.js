@@ -2,7 +2,7 @@
 // · 글자: 클릭해서 바로 수정  · 사진: '사진 바꾸기'로 업로드  · 링크: '링크' 버튼으로 주소 변경
 // · 섹션: 순서 바꾸기 / 숨기기  · '게시하기'를 눌러야 방문자에게 반영 (이전 버전은 자동 보관)
 import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, isAdminAccount, uploadImage } from './fb.js';
-import { state, render } from './home.js';
+import { state, render, floorRank, defaultFloorBtns } from './home.js';
 import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
 const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
@@ -41,20 +41,35 @@ export async function start() {
     await signOut(auth);
     return;
   }
-  draft = clone(state.content);
-  published = JSON.stringify(draft);
+  const base = clone(state.content);
+  draft = clone(base);
   // 다른 페이지에서 옮겨 왔으면 게시 전 수정 내용을 이어받음 (그 사이 게시본이 바뀌었으면 버림)
   try {
     const kept = JSON.parse(sessionStorage.getItem(DRAFT_KEY) || 'null');
     sessionStorage.removeItem(DRAFT_KEY);
-    if (kept && kept.published === published && kept.draft) draft = kept.draft;
+    if (kept && kept.published === JSON.stringify(base) && kept.draft) draft = kept.draft;
   } catch (_) { /* 저장소를 못 쓰면 그냥 새로 시작 */ }
+  // 층별 바로가기: 홈페이지에서 아직 손대지 않은 층은 관리자 층별 안내의 링크를 복사해 와서 편집 가능하게
+  // (기준본에도 똑같이 넣어 두어, 손대지 않으면 '변경 없음'으로 보이게)
+  seedFloorBtns(draft); seedFloorBtns(base);
+  published = JSON.stringify(base);
   buildBar(signOut, auth);
   document.body.classList.add('has-editor');
   document.addEventListener('home:rendered', decorate);
   document.addEventListener('click', blockNavigation, true);
   addEventListener('beforeunload', e => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
   setEditing(true);
+}
+
+function seedFloorBtns(content) {
+  if (state.page !== 'about' || !state.floors?.length) return;
+  const about = content.pages.about;
+  if (!about.floorBtns || typeof about.floorBtns !== 'object' || Array.isArray(about.floorBtns)) about.floorBtns = {};
+  for (const f of state.floors) {
+    if (!f || !(f.name || f.mainTitle)) continue;
+    const k = String(floorRank(f.name));
+    if (!Array.isArray(about.floorBtns[k])) about.floorBtns[k] = defaultFloorBtns(f, about.floorLinks);
+  }
 }
 
 // 팝업이 막혔을 때 보여주는 '관리자 로그인' 버튼 — 로그인되면 사용자, 닫으면 null
@@ -351,7 +366,27 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 8) 섹션 조작 막대
+  // 8) 층별 바로가기 버튼 추가·빼기 (pages.about.floorBtns[층])
+  document.querySelectorAll('[data-fb-add]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const name = prompt('버튼 이름을 입력하세요. (예: 아론홀, 조스테이블)');
+    if (!name || !name.trim()) return;
+    const link = prompt('연결할 주소를 입력하세요.\n예) www.example.org , ./?page=aaron (홈페이지 안 페이지)', '');
+    const fb = draft.pages.about.floorBtns || (draft.pages.about.floorBtns = {});
+    const k = b.dataset.fbAdd;
+    fb[k] = [...(fb[k] || []), { label: name.trim(), link: normalizeLink(link || '') }];
+    render(); updateStatus();
+  }));
+  document.querySelectorAll('[data-fb-del]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const [k, i] = b.dataset.fbDel.split('|');
+    const arr = draft.pages.about.floorBtns?.[k] || [];
+    if (!confirm(`'${arr[i]?.label || ''}' 버튼을 뺄까요?`)) return;
+    arr.splice(Number(i), 1);
+    render(); updateStatus();
+  }));
+
+  // 9) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);
