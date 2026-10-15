@@ -9,6 +9,7 @@ export const state = {
   // 세부 페이지: 주소 ./?page=about 처럼 열면 메인 섹션 대신 그 페이지를 그림 (없거나 모르는 값이면 메인)
   page: (p => (PAGE_IDS.includes(p) ? p : null))(new URLSearchParams(location.search).get('page')),
   space: null,         // 공간 페이지(아론홀·샤론홀)일 때 spaces 컬렉션에서 가져온 문서
+  floors: [],         // 소개 페이지의 층별 안내 — 예약 시스템 관리자 '아이엠센터 소개 > 층별 안내'(siteContent/floors) 데이터
 };
 
 export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '가족·어린이', '전시', '기타'];
@@ -259,6 +260,31 @@ function aboutVision() {
 }
 // 본문 블록: 텍스트 칸(type 'text': h 제목·p 글·align) / 사진 칸(type 'image': img·caption)
 // 편집 모드에서 '+ 텍스트'·'+ 사진'으로 추가, 블록마다 ↑↓·정렬·삭제 (editor.js)
+// 소개 페이지 층별 간략 안내: 층 · 공간 이름 · 소개 첫 문장 (내용은 예약 시스템 관리자에서 관리)
+function floorSummary(body) {
+  const txt = String(body || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  const first = (txt.split(/\n/)[0] || '').split(/(?<=[.!?])\s+/)[0].trim();
+  return first.length > 90 ? first.slice(0, 88) + '…' : first;
+}
+function floorsHtml() {
+  const fl = (state.floors || []).filter(f => f && (f.name || f.mainTitle));
+  if (!fl.length && !state.editing) return '';
+  return `
+<section class="page-floors" data-sec="page">
+  <div class="wrap">
+    <div class="sec-hd rv"><h2>${t('pages.about.floorsTitle')}<span class="h2sub" data-k="pages.about.floorsSub">${esc(c('pages.about.floorsSub'))}</span></h2></div>
+    <div class="floors rv">
+      ${fl.map(f => `
+      <div class="floor">
+        <div class="fl-n">${esc(String(f.name || '').trim().replace(/층$/, ''))}<small>F</small></div>
+        <div class="fl-t">${esc(f.mainTitle || '')}</div>
+        <p class="fl-d">${esc(floorSummary(f.body))}</p>
+      </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
+    </div>
+    ${state.editing ? '<p class="edit-hint">층별 내용은 예약 시스템 관리자 › 아이엠센터 소개 › 층별 안내에서 수정합니다. (여기에는 층·공간 이름·소개 첫 문장만 간단히 보여요)</p>' : ''}
+  </div>
+</section>`;
+}
 function pageBlocks(id) {
   const path = `pages.${id}.blocks`;
   const blocks = c(path) || [];
@@ -326,7 +352,7 @@ function orgBody() {
 </section>`;
 }
 const PAGES = {
-  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + SECTIONS.about() + SECTIONS.spaces(),
+  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + SECTIONS.about() + floorsHtml(),
   org: () => pageHead('org') + orgBody() + pageBlocks('org'),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9') + pageBlocks('guide') + SECTIONS.visit(),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
@@ -416,6 +442,12 @@ export async function loadAll() {
       const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
       state.space = sn.docs[0] ? sn.docs[0].data() : null;
     } catch (e) { console.warn('공간 정보 불러오기 실패', e); }
+  }
+  if (state.page === 'about') {
+    try {
+      const fs = await getDoc(doc(db, 'siteContent', 'floors'));
+      state.floors = fs.exists() ? (fs.data().floors || []) : [];
+    } catch (e) { console.warn('층별 안내 불러오기 실패', e); }
   }
   if (progSnap.status === 'fulfilled') {
     state.programs = progSnap.value.docs.map(d => ({ id: d.id, ...d.data() }))

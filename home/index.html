@@ -71,6 +71,12 @@ img{display:block;max-width:100%}
 .page-hd h1{font-size:clamp(40px,6vw,88px);font-weight:800;letter-spacing:-.045em;line-height:1}
 .page-hd .lead{margin-top:24px;font-size:clamp(16px,1.4vw,19px);color:#444;max-width:760px;line-height:1.75}
 .page-img{aspect-ratio:21/9}
+.floors{border-top:2px solid var(--ink)}
+.floor{display:grid;grid-template-columns:120px 220px 1fr;gap:20px;align-items:baseline;padding:26px 0;border-bottom:1px solid var(--line)}
+.fl-n{font-size:clamp(28px,2.6vw,38px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.fl-n small{font-size:.45em;font-weight:700;margin-left:3px;color:var(--mute)}
+.fl-t{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.fl-d{font-size:15px;color:#555;line-height:1.7}
 .page-vision{padding-top:0}
 .vision-img{max-width:1100px;margin:0 auto;aspect-ratio:16/9;--g:linear-gradient(180deg,#9fb6c8 0%,#d7dde2 55%,#bdb6aa 100%)}
 .dots{display:flex;justify-content:center;gap:10px;margin:clamp(48px,6vw,80px) 0 clamp(28px,3vw,40px)}
@@ -289,6 +295,9 @@ section{padding:clamp(80px,11vw,160px) 0}
   .burger{display:block}
   .split,.visit .grid{grid-template-columns:1fr}
   .page-space .split{grid-template-columns:1fr}
+  .floor{grid-template-columns:92px 1fr;gap:6px 14px}
+  .fl-n{font-size:24px}
+  .floor .fl-d{grid-column:2}
   .gallery{grid-template-columns:1fr 1fr}
   .spaces{grid-template-columns:1fr 1fr}
   .sp-a{grid-column:1/-1;aspect-ratio:4/3}

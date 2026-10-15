@@ -32,6 +32,7 @@ export const DEFAULT_CONTENT = {
       img: '',
       // 비전 문구 — **이렇게** 감싼 부분은 굵게 표시 (편집 모드에서는 ** 표시가 그대로 보임)
       vision: '아이엠센터의 비전은 이곳에 머무는 존재들이\n**‘THE GREAT I AM’ 되신 예수님**을 만나고\n그분을 통해 **하나님 자녀의 정체성이 회복되는**\n**기적의 장소**가 되는 것 입니다.\n\n또한 작은 자 하나에게 베푸는 것이\n**‘THE GREAT I AM’ 되신 예수님**을 섬기는\n것임을 기억하는 공간이 되길 원합니다.',
+      floorsTitle: 'Floors', floorsSub: '층별 안내',
       blocks: [],
     },
     org: {
