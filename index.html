@@ -3552,6 +3552,12 @@ window.renderChangeRequests = () => {
 window.selectChangeReq = (id) => {
   selectedChangeReqId = id;
   renderChangeRequests();
+  // 모바일(목록/상세가 세로로 쌓이는 레이아웃)에서는 상세가 목록 아래에 그려져
+  // 화면 밖에 있으면 눌러도 반응이 없는 것처럼 보이므로 상세로 스크롤해 보여줌
+  if (window.innerWidth <= 760) {
+    const detailEl = document.getElementById('cr-detail');
+    if (detailEl) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 };
 
 window.renderChangeReqDetail = () => {
