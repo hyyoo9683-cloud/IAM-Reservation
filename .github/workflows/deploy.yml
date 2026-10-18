@@ -29,9 +29,11 @@ jobs:
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           RESEND_FROM_EMAIL: ${{ secrets.RESEND_FROM_EMAIL }}
+          ADMIN_NOTIFY_EMAIL: ${{ secrets.ADMIN_NOTIFY_EMAIL }}
         run: |
           echo "RESEND_API_KEY=${RESEND_API_KEY}" > .env
           if [ -n "$RESEND_FROM_EMAIL" ]; then echo "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}" >> .env; fi
+          if [ -n "$ADMIN_NOTIFY_EMAIL" ]; then echo "ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL}" >> .env; fi
 
       - name: Firebase Hosting + Firestore 규칙 + Functions 배포
         env:

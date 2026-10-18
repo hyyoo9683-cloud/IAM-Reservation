@@ -1,9 +1,10 @@
-const { onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentUpdated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const { renderReservationEmail } = require('./lib/templates');
+const { renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail } = require('./lib/adminNotify');
 const { sendEmail } = require('./lib/resendClient');
 const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/emailLog');
 const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
@@ -12,6 +13,9 @@ initializeApp();
 
 // index.html의 ADMIN_EMAILS와 동일 (클라이언트에도 공개된 값이라 그대로 복제해도 안전)
 const ADMIN_EMAILS = ['hyyoo9683@gmail.com'];
+// 새 신청 접수 알림(아래 onReservationCreated 등)을 받을 주소 — 필요하면 GitHub Secret
+// ADMIN_NOTIFY_EMAIL로 다른 주소를 지정할 수 있고, 지정하지 않으면 주 관리자 이메일로 감
+const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || ADMIN_EMAILS[0];
 
 async function isAdminEmail(email) {
   if (!email) return false;
@@ -56,6 +60,53 @@ async function sendReservationStatusEmail({ eventKey, type, reservation, reserva
     await markFailed(logRef, err);
   }
 }
+
+// 관리자에게 새 신청 접수(예약·변경취소·대관)를 알리는 공통 발송 로직.
+// eventKey가 claimEmailEvent로 멱등 처리되어 재시도로 인한 중복 발송은 자동으로 막힘.
+async function notifyAdmin({ eventKey, emailType, content }) {
+  const logRef = await claimEmailEvent(eventKey, {
+    reservationId: null, emailType, recipient: ADMIN_NOTIFY_EMAIL, recipientType: 'admin',
+  });
+  if (!logRef) return; // 동일 이벤트 재실행 — 이미 처리됨
+
+  try {
+    const result = await sendEmail({ to: ADMIN_NOTIFY_EMAIL, subject: content.subject, html: content.html, text: content.text });
+    await markSent(logRef, result && result.id);
+  } catch (err) {
+    console.error(`${emailType} 알림 메일 발송 실패:`, err.message || err);
+    await markFailed(logRef, err);
+  }
+}
+
+// 새 예약 신청('대기' 상태로 생성)이 들어오면 관리자에게 즉시 알림.
+// 관리자가 "+ 예약 추가"로 직접 등록한 건(보통 바로 '확정')은 신청이 아니라 제외.
+// 정기 예약처럼 한 번의 신청으로 회차마다 문서가 여러 개 생성되는 경우 회차 수만큼 알림이
+// 가는 것은 onReservationUpdated의 승인 메일과 같은 알려진 범위 제한(시리즈 단위 묶음 미구현).
+exports.onReservationCreated = onDocumentCreated('reservations/{id}', async (event) => {
+  const data = event.data.data();
+  if (data.status !== '대기') return;
+
+  const reservationId = event.params.id;
+  const eventKey = `reservation_${reservationId}_new_${event.id}`;
+  const content = renderNewReservationEmail(data);
+  await notifyAdmin({ eventKey, emailType: 'new_reservation', content });
+});
+
+// 예약 변경·취소 신청(reservation-change.html)이 접수되면 관리자에게 즉시 알림.
+exports.onChangeRequestCreated = onDocumentCreated('changeRequests/{id}', async (event) => {
+  const data = event.data.data();
+  const eventKey = `changereq_${event.params.id}_new_${event.id}`;
+  const content = renderChangeRequestEmail(data);
+  await notifyAdmin({ eventKey, emailType: 'new_change_request', content });
+});
+
+// 대관 신청(venue-apply.html)이 접수되면 관리자에게 즉시 알림.
+exports.onVenueRequestCreated = onDocumentCreated('venue_requests/{id}', async (event) => {
+  const data = event.data.data();
+  const eventKey = `venuereq_${event.params.id}_new_${event.id}`;
+  const content = renderVenueRequestEmail(data);
+  await notifyAdmin({ eventKey, emailType: 'new_venue_request', content });
+});
 
 // 예약 상태가 '확정'으로 바뀔 때(관리자 승인)만 예약 책임자에게 승인 이메일 발송.
 // - 상태 외 필드만 바뀐 경우, 이미 확정 상태인 문서가 다시 저장된 경우는 무시 (before.status === after.status)

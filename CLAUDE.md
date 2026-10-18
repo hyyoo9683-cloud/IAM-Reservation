@@ -342,10 +342,22 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
   - 필드: `eventKey, reservationId, emailType, recipient, recipientType, status(pending/sent/skipped/failed), createdAt, sentAt, failedAt, errorMessage, retryCount, providerMessageId`
   - Firestore 보안 규칙에 `emailLogs`가 없어 클라이언트는 읽기/쓰기 모두 기본 차단(default-deny) — Admin SDK(Cloud Functions)만 접근
   - 이메일 발송 실패는 `markFailed`로 로그만 남기고 예외를 던지지 않음 — 예약 승인(`updateDoc`) 자체는 이미 끝난 후에 실행되는 별도 트리거라 이메일 실패가 예약 처리에 영향을 주지 않음
-- 환경변수(`functions/.env`, 로컬 전용 — `.env.example` 참고): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`(선택), `APP_BASE_URL`(선택, 기본값 `https://iamreservation.web.app`)
+- 환경변수(`functions/.env`, 로컬 전용 — `.env.example` 참고): `RESEND_API_KEY`, `RESEND_FROM_EMAIL`(선택), `APP_BASE_URL`(선택, 기본값 `https://iamreservation.web.app`), `ADMIN_NOTIFY_EMAIL`(선택, 아래 관리자 알림 수신 주소)
   - GitHub Secret `RESEND_API_KEY`(필수) / `RESEND_FROM_EMAIL`(선택)에 저장 → 배포 워크플로우가 매 배포 시 `functions/.env`로 기록 후 배포
   - 발신 주소는 `suwoncca.org` 서브도메인(예: `mail.suwoncca.org`) 인증 완료 후 `RESEND_FROM_EMAIL`로 교체
-- 아직 구현하지 않은 것: 예약 변경/취소 메일(3단계), 관리자·내부기관 주간 리포트(4·5단계), 관리자 화면(발송 로그 조회·재발송·수신자 관리), 정기예약 전체승인(`approveGroup`) 시 회차별로 개별 메일이 나가는 부분(시리즈 단위 묶음 발송 미구현), "+ 예약 추가"로 관리자가 직접 확정 상태 예약을 생성하는 경우(현재는 대상 아님)
+- 아직 구현하지 않은 것: 예약 변경/취소 메일(사용자 대상, 3단계), 관리자·내부기관 주간 리포트(4·5단계), 관리자 화면(발송 로그 조회·재발송·수신자 관리), 정기예약 전체승인(`approveGroup`) 시 회차별로 개별 메일이 나가는 부분(시리즈 단위 묶음 발송 미구현), "+ 예약 추가"로 관리자가 직접 확정 상태 예약을 생성하는 경우(현재는 대상 아님)
+
+### 관리자 신규 신청 알림 (새 예약·변경취소·대관 신청)
+사용자가 예약·변경취소·대관을 신청하는 즉시 관리자에게 이메일로 알림. 위 승인 메일(사용자 대상)과
+반대 방향(관리자 대상) — 수신자·템플릿이 달라 `functions/lib/adminNotify.js`로 분리.
+- `onReservationCreated`(`reservations` onCreate): `status === '대기'`로 생성된 문서만 대상(셀프 예약 신청) —
+  관리자가 "+ 예약 추가"로 직접 등록한 건(보통 바로 `확정`)은 신청이 아니므로 제외
+- `onChangeRequestCreated`(`changeRequests` onCreate): `reservation-change.html` 제출 시
+- `onVenueRequestCreated`(`venue_requests` onCreate): `venue-apply.html` 제출 시
+- 수신 주소: `ADMIN_NOTIFY_EMAIL` 환경변수, 없으면 주 관리자 이메일(`ADMIN_EMAILS[0]`)로 감
+- `emailLogs`로 멱등 처리되는 것은 승인 메일과 동일(`eventKey` 접두사만 `reservation_..._new_`/`changereq_..._new_`/`venuereq_..._new_`로 구분)
+- 알려진 범위 제한: 정기 예약처럼 한 번의 신청으로 회차마다 문서가 여러 개 생성되면 회차 수만큼
+  알림이 감(시리즈 단위 묶음 미구현 — 위 승인 메일과 같은 제한)
 
 ## 공개 페이지 개인정보 정책 (예약 원본/공개 사본 분리)
 - 원본 `reservations`(이름·연락처·이메일·메모 포함)는 **관리자와 본인만 읽기 가능** (firestore.rules)
