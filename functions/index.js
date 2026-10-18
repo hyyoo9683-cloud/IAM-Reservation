@@ -4,10 +4,14 @@ const { initializeApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const { renderReservationEmail } = require('./lib/templates');
-const { renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail } = require('./lib/adminNotify');
+const {
+  renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
+  renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
+} = require('./lib/adminNotify');
 const { sendEmail } = require('./lib/resendClient');
 const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/emailLog');
 const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
+const { exchangeCodeForTokens, sendKakaoMemoToMe, getKakaoAuthStatus } = require('./lib/kakaoClient');
 
 initializeApp();
 
@@ -62,19 +66,35 @@ async function sendReservationStatusEmail({ eventKey, type, reservation, reserva
 }
 
 // 관리자에게 새 신청 접수(예약·변경취소·대관)를 알리는 공통 발송 로직.
-// eventKey가 claimEmailEvent로 멱등 처리되어 재시도로 인한 중복 발송은 자동으로 막힘.
-async function notifyAdmin({ eventKey, emailType, content }) {
+// 이메일·카카오톡 두 채널을 서로 독립적으로 시도 — 한쪽이 실패(예: 카카오 미연동)해도
+// 다른 쪽 발송에는 영향 없음. eventKey가 claimEmailEvent로 멱등 처리되어 재시도로 인한
+// 중복 발송은 자동으로 막힘(채널마다 별도 키를 써서 독립적으로 멱등 처리).
+async function notifyAdmin({ eventKey, emailType, content, kakaoText }) {
   const logRef = await claimEmailEvent(eventKey, {
     reservationId: null, emailType, recipient: ADMIN_NOTIFY_EMAIL, recipientType: 'admin',
   });
-  if (!logRef) return; // 동일 이벤트 재실행 — 이미 처리됨
+  if (logRef) {
+    try {
+      const result = await sendEmail({ to: ADMIN_NOTIFY_EMAIL, subject: content.subject, html: content.html, text: content.text });
+      await markSent(logRef, result && result.id);
+    } catch (err) {
+      console.error(`${emailType} 알림 메일 발송 실패:`, err.message || err);
+      await markFailed(logRef, err);
+    }
+  }
 
+  if (!kakaoText) return;
+  const kakaoLogRef = await claimEmailEvent(`${eventKey}_kakao`, {
+    reservationId: null, emailType: `${emailType}_kakao`, recipient: 'kakao:self', recipientType: 'admin',
+  });
+  if (!kakaoLogRef) return;
   try {
-    const result = await sendEmail({ to: ADMIN_NOTIFY_EMAIL, subject: content.subject, html: content.html, text: content.text });
-    await markSent(logRef, result && result.id);
+    await sendKakaoMemoToMe(kakaoText);
+    await markSent(kakaoLogRef, null);
   } catch (err) {
-    console.error(`${emailType} 알림 메일 발송 실패:`, err.message || err);
-    await markFailed(logRef, err);
+    // 카카오 미연동·토큰 만료 등으로 실패해도 로그만 남기고 조용히 넘어감 — 이메일은 이미 별도로 처리됨
+    console.error(`${emailType} 카카오 알림 발송 실패:`, err.message || err);
+    await markFailed(kakaoLogRef, err);
   }
 }
 
@@ -88,24 +108,61 @@ exports.onReservationCreated = onDocumentCreated('reservations/{id}', async (eve
 
   const reservationId = event.params.id;
   const eventKey = `reservation_${reservationId}_new_${event.id}`;
-  const content = renderNewReservationEmail(data);
-  await notifyAdmin({ eventKey, emailType: 'new_reservation', content });
+  await notifyAdmin({
+    eventKey, emailType: 'new_reservation',
+    content: renderNewReservationEmail(data), kakaoText: renderNewReservationKakaoText(data),
+  });
 });
 
 // 예약 변경·취소 신청(reservation-change.html)이 접수되면 관리자에게 즉시 알림.
 exports.onChangeRequestCreated = onDocumentCreated('changeRequests/{id}', async (event) => {
   const data = event.data.data();
   const eventKey = `changereq_${event.params.id}_new_${event.id}`;
-  const content = renderChangeRequestEmail(data);
-  await notifyAdmin({ eventKey, emailType: 'new_change_request', content });
+  await notifyAdmin({
+    eventKey, emailType: 'new_change_request',
+    content: renderChangeRequestEmail(data), kakaoText: renderChangeRequestKakaoText(data),
+  });
 });
 
 // 대관 신청(venue-apply.html)이 접수되면 관리자에게 즉시 알림.
 exports.onVenueRequestCreated = onDocumentCreated('venue_requests/{id}', async (event) => {
   const data = event.data.data();
   const eventKey = `venuereq_${event.params.id}_new_${event.id}`;
-  const content = renderVenueRequestEmail(data);
-  await notifyAdmin({ eventKey, emailType: 'new_venue_request', content });
+  await notifyAdmin({
+    eventKey, emailType: 'new_venue_request',
+    content: renderVenueRequestEmail(data), kakaoText: renderVenueRequestKakaoText(data),
+  });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 카카오톡 "나에게 보내기" 연동 (관리자 알림용)
+// ─────────────────────────────────────────────────────────────
+
+// kakao-auth-callback.html이 인가 코드를 받으면 호출 — 토큰으로 교환해 Firestore에 저장
+exports.exchangeKakaoAuthCode = onCall(async (request) => {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  const code = request.data && request.data.code;
+  if (!code) throw new HttpsError('invalid-argument', '인가 코드(code)가 없습니다.');
+
+  try {
+    await exchangeCodeForTokens(code);
+    return { ok: true };
+  } catch (err) {
+    console.error('카카오 인가 코드 교환 실패:', err.message || err);
+    throw new HttpsError('internal', '카카오 연동에 실패했습니다: ' + (err.message || err));
+  }
+});
+
+// kakao-auth.html이 연동 상태(연결 여부)를 표시할 때 호출
+exports.getKakaoAuthStatusCallable = onCall(async (request) => {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  return getKakaoAuthStatus();
 });
 
 // 예약 상태가 '확정'으로 바뀔 때(관리자 승인)만 예약 책임자에게 승인 이메일 발송.

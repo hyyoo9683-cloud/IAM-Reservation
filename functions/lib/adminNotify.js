@@ -1,6 +1,7 @@
 const { formatKoreanDate, formatTimeRange } = require('./format');
 
-// 관리자에게 새 신청 접수를 알리는 이메일 3종 (새 예약 신청·변경취소 신청·대관 신청).
+// 관리자에게 새 신청 접수를 알리는 알림 3종 (새 예약 신청·변경취소 신청·대관 신청) — 이메일 템플릿과
+// 카카오톡 "나에게 보내기"용 짧은 텍스트(최대 약 200자 제한)를 함께 둠.
 // 사용자에게 보내는 승인 메일(templates.js)과는 수신자·목적이 달라 별도 파일로 분리.
 
 const BASE_URL = process.env.APP_BASE_URL || 'https://iamreservation.web.app';
@@ -127,4 +128,26 @@ function renderVenueRequestEmail(r) {
   };
 }
 
-module.exports = { renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail };
+// 카카오톡 "나에게 보내기"용 — object_type: 'text' 템플릿은 길이 제한이 있어 짧게만 요약
+function renderNewReservationKakaoText(r) {
+  const manager = r.managerName || r.stewardName || '신청자';
+  const text = `[새 예약 신청]\n${r.room || ''} · ${formatKoreanDate(r.date)} ${formatTimeRange(r.start, r.end)}\n신청자: ${manager}`;
+  return { text, linkUrl: BASE_URL };
+}
+
+function renderChangeRequestKakaoText(r) {
+  const isCancel = r.requestType === '취소';
+  const text = `[예약 ${isCancel ? '취소' : '변경'} 신청]\n${r.room || ''} · ${formatKoreanDate(r.date)}\n신청자: ${r.requesterName || '-'}`;
+  return { text, linkUrl: BASE_URL };
+}
+
+function renderVenueRequestKakaoText(r) {
+  const spaceLabel = (r.spaces && r.spaces.length ? r.spaces : [r.space]).filter(Boolean).join(', ');
+  const text = `[대관 신청]\n${spaceLabel || '공간 미정'} · ${r.orgName || '-'}\n담당자: ${r.managerName || '-'}`;
+  return { text, linkUrl: `${BASE_URL}/venue.html` };
+}
+
+module.exports = {
+  renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
+  renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
+};
