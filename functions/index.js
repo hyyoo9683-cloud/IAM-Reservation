@@ -165,6 +165,26 @@ exports.getKakaoAuthStatusCallable = onCall(async (request) => {
   return getKakaoAuthStatus();
 });
 
+// kakao-auth.html의 "테스트 메일 보내기" — 실제 알림과 같은 경로(ADMIN_NOTIFY_EMAIL)로 보내 보고
+// 실패하면 Resend 오류 사유를 그대로 돌려줌 (API 키 누락·테스트 모드 수신자 제한 등 원인 파악용)
+exports.sendTestAdminEmail = onCall(async (request) => {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  const content = renderNewReservationEmail({
+    type: '테스트 기관', room: '505호', date: '2026-11-01', start: '10:00', end: '12:00',
+    purpose: '알림 메일 테스트', managerName: '테스트', stewardName: '테스트', stewardTel: '010-0000-0000',
+  });
+  try {
+    await sendEmail({ to: ADMIN_NOTIFY_EMAIL, subject: `[테스트] ${content.subject}`, html: content.html, text: content.text });
+    return { ok: true, to: ADMIN_NOTIFY_EMAIL };
+  } catch (err) {
+    console.error('관리자 테스트 메일 발송 실패:', err.message || err);
+    throw new HttpsError('internal', `${ADMIN_NOTIFY_EMAIL} 로 발송 실패: ${err.message || err}`);
+  }
+});
+
 // kakao-auth.html의 "테스트 메시지 보내기" — 실제 신청을 기다리지 않고 연동이 잘 됐는지 바로 확인
 exports.sendTestKakaoMessage = onCall(async (request) => {
   const callerEmail = request.auth && request.auth.token && request.auth.token.email;

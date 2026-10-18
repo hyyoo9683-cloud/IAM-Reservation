@@ -47,9 +47,9 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
   margin-top:10px;transition:background .15s;}
 .test-btn:hover{background:var(--bg2);}
 .test-btn:disabled{opacity:.6;cursor:default;}
-#test-result{margin-top:10px;font-size:12.5px;}
-#test-result .ok{color:var(--green);}
-#test-result .err{color:var(--red);}
+#test-result,#test-mail-result{margin-top:10px;font-size:12.5px;word-break:break-all;}
+#test-result .ok,#test-mail-result .ok{color:var(--green);}
+#test-result .err,#test-mail-result .err{color:var(--red);}
 .note{margin-top:16px;font-size:12px;color:var(--text3);line-height:1.6;}
 .back{display:inline-block;margin-top:20px;font-size:13px;color:var(--text2);text-decoration:none;}
 .back:hover{text-decoration:underline;}
@@ -83,6 +83,8 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
     <button class="kakao-btn" onclick="connectKakao()">카카오톡으로 연동하기</button>
     <button class="test-btn" id="test-btn" onclick="sendTest()" style="display:none">테스트 메시지 보내기</button>
     <div id="test-result"></div>
+    <button class="test-btn" id="test-mail-btn" onclick="sendTestMail()">테스트 메일 보내기</button>
+    <div id="test-mail-result"></div>
     <div class="note">
       연동을 다시 눌러도 기존 연결을 안전하게 덮어씁니다. 다른 카카오 계정으로 바꾸고 싶으면
       그냥 다시 연동하면 됩니다.
@@ -172,6 +174,23 @@ async function renderStatus() {
     statusEl.textContent = '상태 확인 실패 — ' + (e.message || e);
   }
 }
+
+window.sendTestMail = async () => {
+  const btn = document.getElementById('test-mail-btn');
+  const resultEl = document.getElementById('test-mail-result');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  resultEl.innerHTML = '';
+  try {
+    const sendMail = httpsCallable(fns, 'sendTestAdminEmail');
+    const { data } = await sendMail();
+    resultEl.innerHTML = `<span class="ok">✓ ${data.to} 로 발송했습니다. 메일함(스팸함 포함)을 확인해 주세요.</span>`;
+  } catch (e) {
+    console.error(e);
+    resultEl.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '테스트 메일 보내기';
+  }
+};
 
 window.sendTest = async () => {
   const btn = document.getElementById('test-btn');
