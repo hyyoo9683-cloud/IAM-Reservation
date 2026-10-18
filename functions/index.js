@@ -165,6 +165,24 @@ exports.getKakaoAuthStatusCallable = onCall(async (request) => {
   return getKakaoAuthStatus();
 });
 
+// kakao-auth.html의 "테스트 메시지 보내기" — 실제 신청을 기다리지 않고 연동이 잘 됐는지 바로 확인
+exports.sendTestKakaoMessage = onCall(async (request) => {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  try {
+    await sendKakaoMemoToMe({
+      text: '[테스트] 카카오톡 알림 연동이 정상적으로 완료되었습니다.',
+      linkUrl: 'https://iamreservation.web.app',
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error('카카오 테스트 메시지 발송 실패:', err.message || err);
+    throw new HttpsError('internal', '테스트 메시지 발송에 실패했습니다: ' + (err.message || err));
+  }
+});
+
 // 예약 상태가 '확정'으로 바뀔 때(관리자 승인)만 예약 책임자에게 승인 이메일 발송.
 // - 상태 외 필드만 바뀐 경우, 이미 확정 상태인 문서가 다시 저장된 경우는 무시 (before.status === after.status)
 // - CSV 가져오기·표 직접 입력처럼 문서가 "생성"부터 확정 상태인 경우는 대상에서 제외

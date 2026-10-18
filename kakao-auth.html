@@ -42,6 +42,14 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
   background:#FEE500;color:#191919;font-size:15px;font-weight:700;font-family:var(--font);
   display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;}
 .kakao-btn:hover{filter:brightness(.95);}
+.test-btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--border2);cursor:pointer;
+  background:var(--bg);color:var(--text2);font-size:13.5px;font-weight:700;font-family:var(--font);
+  margin-top:10px;transition:background .15s;}
+.test-btn:hover{background:var(--bg2);}
+.test-btn:disabled{opacity:.6;cursor:default;}
+#test-result{margin-top:10px;font-size:12.5px;}
+#test-result .ok{color:var(--green);}
+#test-result .err{color:var(--red);}
 .note{margin-top:16px;font-size:12px;color:var(--text3);line-height:1.6;}
 .back{display:inline-block;margin-top:20px;font-size:13px;color:var(--text2);text-decoration:none;}
 .back:hover{text-decoration:underline;}
@@ -73,6 +81,8 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
     <div class="sub">새 예약·변경취소·대관 신청이 들어오면 관리자 본인의 카카오톡으로 알림을 보냅니다.</div>
     <div id="status" class="status">확인 중…</div>
     <button class="kakao-btn" onclick="connectKakao()">카카오톡으로 연동하기</button>
+    <button class="test-btn" id="test-btn" onclick="sendTest()" style="display:none">테스트 메시지 보내기</button>
+    <div id="test-result"></div>
     <div class="note">
       연동을 다시 눌러도 기존 연결을 안전하게 덮어씁니다. 다른 카카오 계정으로 바꾸고 싶으면
       그냥 다시 연동하면 됩니다.
@@ -142,6 +152,7 @@ window.connectKakao = () => {
 
 async function renderStatus() {
   const statusEl = document.getElementById('status');
+  const testBtn = document.getElementById('test-btn');
   try {
     const getStatus = httpsCallable(fns, 'getKakaoAuthStatusCallable');
     const { data } = await getStatus();
@@ -149,9 +160,11 @@ async function renderStatus() {
       const when = data.connectedAt ? new Date(data.connectedAt).toLocaleString('ko-KR') : '';
       statusEl.className = 'status ok';
       statusEl.innerHTML = `<span class="dot"></span>연동됨${when ? ' · ' + when : ''}`;
+      testBtn.style.display = 'block';
     } else {
       statusEl.className = 'status no';
       statusEl.innerHTML = `<span class="dot"></span>아직 연동되지 않았습니다`;
+      testBtn.style.display = 'none';
     }
   } catch (e) {
     console.error(e);
@@ -159,6 +172,23 @@ async function renderStatus() {
     statusEl.textContent = '상태 확인 실패 — ' + (e.message || e);
   }
 }
+
+window.sendTest = async () => {
+  const btn = document.getElementById('test-btn');
+  const resultEl = document.getElementById('test-result');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  resultEl.innerHTML = '';
+  try {
+    const sendTestMsg = httpsCallable(fns, 'sendTestKakaoMessage');
+    await sendTestMsg();
+    resultEl.innerHTML = '<span class="ok">✓ 발송했습니다. 카카오톡을 확인해 주세요.</span>';
+  } catch (e) {
+    console.error(e);
+    resultEl.innerHTML = `<span class="err">✗ 발송 실패 — ${(e.message || e)}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '테스트 메시지 보내기';
+  }
+};
 
 setPersistence(auth, browserLocalPersistence).catch(console.error);
 onAuthStateChanged(auth, async user => {
