@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카카오톡 연동 처리 중 — IAM 인트라넷</title>
+<style>
+:root {
+  --blue:#185FA5;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --bg:#fff;--bg2:#F8FAFD;
+  --border2:#E8EFF7;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;
+  display:flex;align-items:center;justify-content:center;padding:20px;}
+.card{background:var(--bg);border:1px solid var(--border2);border-radius:16px;padding:36px 32px;
+  width:420px;max-width:100%;box-shadow:0 8px 28px rgba(24,95,165,.08);text-align:center;}
+.icon{font-size:40px;margin-bottom:14px;}
+h1{font-size:18px;font-weight:800;margin-bottom:8px;}
+.msg{font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:22px;}
+.box{padding:12px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:16px;}
+.box.ok{background:var(--green-lt);color:var(--green);}
+.box.err{background:var(--red-lt);color:var(--red);}
+a.back{display:inline-block;margin-top:4px;font-size:13.5px;color:var(--blue);text-decoration:none;font-weight:700;}
+a.back:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="icon" id="icon">⏳</div>
+  <h1 id="title">카카오톡 연동 처리 중…</h1>
+  <div class="msg" id="msg">잠시만 기다려 주세요.</div>
+  <div id="result"></div>
+  <a class="back" href="kakao-auth.html">← 연동 화면으로 돌아가기</a>
+</div>
+
+<script type="module">
+import { initializeApp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const fns  = getFunctions(app);
+
+function show(ok, title, msg) {
+  document.getElementById('icon').textContent = ok ? '✅' : '❌';
+  document.getElementById('title').textContent = title;
+  document.getElementById('msg').textContent = '';
+  document.getElementById('result').innerHTML = `<div class="box ${ok ? 'ok' : 'err'}">${msg}</div>`;
+}
+
+const qs = new URLSearchParams(location.search);
+const code = qs.get('code');
+const kakaoError = qs.get('error_description') || qs.get('error');
+
+if (kakaoError) {
+  show(false, '연동 실패', decodeURIComponent(kakaoError));
+} else if (!code) {
+  show(false, '잘못된 접근', '카카오 인가 코드가 없습니다. kakao-auth.html에서 다시 시도해 주세요.');
+} else {
+  setPersistence(auth, browserLocalPersistence).catch(console.error);
+  onAuthStateChanged(auth, async user => {
+    if (!user) {
+      show(false, '로그인이 필요합니다', 'kakao-auth.html에서 먼저 관리자로 로그인한 뒤 다시 연동해 주세요.');
+      return;
+    }
+    try {
+      const exchange = httpsCallable(fns, 'exchangeKakaoAuthCode');
+      await exchange({ code });
+      show(true, '연동 완료!', '이제 새 예약·변경취소·대관 신청이 들어오면 카카오톡으로 알림이 갑니다.');
+    } catch (e) {
+      console.error(e);
+      show(false, '연동 실패', e.message || String(e));
+    }
+  });
+}
+</script>
+</body>
+</html>
