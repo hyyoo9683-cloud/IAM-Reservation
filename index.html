@@ -2361,7 +2361,7 @@ textarea { resize: vertical; min-height: 60px; }
           <input type="checkbox" id="e-is-recur" onchange="toggleEditRecur()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
           <span style="font-size:13px;font-weight:600;color:var(--green)">정기 예약 (반복)</span>
         </label>
-        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin:0">
+        <label id="e-multi-label" style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin:0">
           <input type="checkbox" id="e-is-multi" onchange="toggleEditMulti()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
           <span style="font-size:13px;font-weight:600;color:var(--green)">비정기 예약 (날짜별 다른 일정)</span>
         </label>
@@ -6454,7 +6454,8 @@ window.checkEditAvail = () => {
 
   // 신규 정기 예약(반복) 등록 시 — 전체 회차에 대해 지정한 실이 가능한지 확인하고,
   // 충돌하는 회차만 다른 실로 재지정할 수 있게 함(회차마다 실이 달라야 하는 경우 대응)
-  const isNewRecur = !editId && !!document.getElementById('e-is-recur')?.checked;
+  // (기존 1회성 예약을 정기로 전환하는 경우도 같은 미리보기를 씀 — 지금 예약 자신은 충돌에서 제외)
+  const isNewRecur = !!document.getElementById('e-is-recur')?.checked && (!editId || !r?.recurGroup);
   if (isNewRecur) {
     const endDate = document.getElementById('e-end-date')?.value;
     const recurType = document.getElementById('e-recur')?.value || 'weekly';
@@ -6474,9 +6475,9 @@ window.checkEditAvail = () => {
     Object.keys(editRecurRoomOverrides).forEach(d => { if (!dates.includes(d)) delete editRecurRoomOverrides[d]; });
     const roomOptions = spaceSort(spaces).map(s => s.name);
     // 확정 예약과의 충돌(반드시 실 재지정 필요)과, 대기 중인 예약과의 충돌(경고만 표시)을 구분
-    const conflictDates = dates.filter(d => !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, true));
+    const conflictDates = dates.filter(d => !noConflict(editRecurRoomOverrides[d] || room, d, start, end, editId, true));
     const pendingConflictDates = dates.filter(d =>
-      !conflictDates.includes(d) && !noConflict(editRecurRoomOverrides[d] || room, d, start, end, null, false)
+      !conflictDates.includes(d) && !noConflict(editRecurRoomOverrides[d] || room, d, start, end, editId, false)
     );
     if (!conflictDates.length) {
       el.innerHTML = recurMismatchNote + `<div class="avail-ok">✓ ${room} 전체 ${dates.length}회 모두 사용 가능</div>` +
@@ -7276,10 +7277,19 @@ window.openEditModal = (id, prefill) => {
     }
     document.getElementById('edit-modal-title').textContent  = '예약 수정';
     document.getElementById('edit-submit-btn').textContent   = '수정 저장';
-    document.getElementById('e-recur-wrap').style.display = 'none';
-    // 기존 예약 수정 시에는 "정기 예약" 체크박스 자체가 안 보이므로(위에서 e-recur-wrap 숨김),
-    // 신규 등록 모달에서 넘어온 종료 날짜 입력칸이 남아있지 않도록 항상 함께 숨김
-    // (정기 시리즈 수정은 별도의 "전체 N회 수정" 영역/e-series-end-date를 사용함)
+    // 정기 예약 체크박스는 "1회성 예약을 정기 예약으로 전환"할 때만(관리자, recurGroup 없는 예약, 지혜홀 제외)
+    // 보여줌 — 이미 정기 시리즈인 예약은 아래 "전체 N회 수정" 영역을 사용하므로 그대로 숨김.
+    // 비정기(날짜별 다른 일정)는 신규 등록 전용이라 수정 모달에서는 항상 숨김
+    const canConvertRecur = isAdmin && !r.recurGroup && r.room !== '지혜홀';
+    document.getElementById('e-recur-wrap').style.display = canConvertRecur ? '' : 'none';
+    document.getElementById('e-multi-label').style.display = 'none';
+    document.getElementById('e-is-recur').checked = false;
+    document.getElementById('e-is-multi').checked = false;
+    document.getElementById('e-recur-opts').style.display = 'none';
+    document.getElementById('e-multi-wrap').style.display = 'none';
+    document.getElementById('e-end-date').value = '';
+    editRecurRoomOverrides = {};
+    // 종료 날짜 입력칸은 "정기 예약으로 전환"을 체크했을 때만 보임(toggleEditRecur)
     document.getElementById('e-end-date-wrap').style.display = 'none';
     document.getElementById('e-type').value         = r.type || '';
     syncSubOrgSelect('e-type', 'e-subtype-wrap', 'e-subtype', r.subOrg || '');
@@ -7337,6 +7347,7 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-recur-opts').style.display    = 'none';
     document.getElementById('e-end-date-wrap').style.display = 'none';
     document.getElementById('e-is-multi').checked = false;
+    document.getElementById('e-multi-label').style.display = 'flex';
     editMultiDates = []; renderEditMultiDates();
     editRecurRoomOverrides = {};
     document.getElementById('e-multi-wrap').style.display     = 'none';
@@ -7395,7 +7406,10 @@ window.submitEdit = async () => {
   // 전체 시리즈 수정 모드, 신규 정기 예약, 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
   const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
   const _isNewRecur = !editId && !!document.getElementById('e-is-recur')?.checked;
-  if (!isMulti && !_editAllSeries && !_isNewRecur && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
+  // 1회성 예약 → 정기 예약 전환(관리자 전용): 회차별 충돌 검사는 아래 전환 처리에서 수행
+  const _rEdit = editId ? reservations.find(x => x.id === editId) : null;
+  const _isConvert = !!_rEdit && isAdmin && !_rEdit.recurGroup && !isJihye && !!document.getElementById('e-is-recur')?.checked;
+  if (!isMulti && !_editAllSeries && !_isNewRecur && !_isConvert && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
     T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
   }
 
@@ -7603,6 +7617,44 @@ window.submitEdit = async () => {
           T(`정기 예약 ${toUpdate.length}건 전체 수정됐습니다`, '#3B6D11');
           closeModal('modal-edit');
         }
+      } else if (_isConvert) {
+        // 1회성 예약을 정기 예약으로 전환 — 지금 예약이 첫 회차가 되고, 나머지 회차는 새 문서로 추가.
+        // 신규 정기 등록과 같은 날짜 생성 규칙(generateAvailDates)·실 재지정(editRecurRoomOverrides)을 씀.
+        // 새로 추가되는 회차는 승인 메일 대상이 아님(문서가 '확정'으로 생성되므로 상태 변경 트리거 없음).
+        const endDate   = document.getElementById('e-end-date')?.value;
+        const recurType = document.getElementById('e-recur')?.value || 'weekly';
+        if (!endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+        if (endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
+        const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
+        const recurLabel = recurLabelMap[recurType];
+        const dates = generateAvailDates(date, endDate, recurType);
+        const items = dates.map(d => ({ date: d, room: editRecurRoomOverrides[d] || room }));
+
+        // 저장 직전에 회차별로 다시 한 번 확정 예약과의 충돌 확인 — 하나라도 걸리면 아무것도 바꾸지 않고 중단
+        const finalConflicts = items.filter(it => !noConflict(it.room, it.date, start, end, editId, true));
+        if (finalConflicts.length) {
+          T(`다음 날짜에 이미 확정된 예약이 있어 전환할 수 없습니다: ${finalConflicts.map(it => it.date).join(', ')}`, '#A32D2D');
+          return;
+        }
+
+        const recurGroup = `recur_${Date.now()}`;
+        const first = items[0];
+        await updateDoc(doc(db, 'reservations', editId), {
+          ...data, date: first.date, room: first.room,
+          recurGroup, recurType: recurLabel, recurTotal: items.length,
+          history: [...(r.history || []), { time: nowStr(), msg: `정기 예약으로 전환 (${recurLabel} 1/${items.length}회, 관리자)` }]
+        });
+        for (let i = 1; i < items.length; i++) {
+          await addDoc(collection(db, 'reservations'), {
+            ...data, date: items[i].date, room: items[i].room,
+            userEmail: r.userEmail || '',
+            status: data.status || r.status || '확정',
+            createdAt: serverTimestamp(),
+            recurGroup, recurType: recurLabel, recurTotal: items.length,
+            history: [{ time: nowStr(), msg: `정기 예약 전환으로 추가 (${recurLabel} ${i + 1}/${items.length}회)` }]
+          });
+        }
+        T(`정기 예약으로 전환됐습니다 (총 ${items.length}회)`, '#3B6D11');
       } else if (isJihye) {
         // 지혜홀은 체크인 날짜·박수(체크아웃 날짜)를 바꾸면 여러 회차(밤+체크아웃 당일)를 추가/삭제해야
         // 하므로 일반 단건 수정과 별도로 처리 — 기존 숙박 기간과 비교해 필요한 문서만 추가·삭제·수정.
