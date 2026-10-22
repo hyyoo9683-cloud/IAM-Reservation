@@ -7,11 +7,13 @@ const { renderReservationEmail } = require('./lib/templates');
 const {
   renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
   renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
+  renderNewReservationSmsText, renderChangeRequestSmsText, renderVenueRequestSmsText,
 } = require('./lib/adminNotify');
 const { sendEmail } = require('./lib/resendClient');
 const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/emailLog');
 const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
 const { exchangeCodeForTokens, sendKakaoMemoToMe, getKakaoAuthStatus } = require('./lib/kakaoClient');
+const { sendSms, isSmsConfigured, digits } = require('./lib/smsClient');
 
 initializeApp();
 
@@ -20,6 +22,8 @@ const ADMIN_EMAILS = ['hyyoo9683@gmail.com'];
 // 새 신청 접수 알림(아래 onReservationCreated 등)을 받을 주소 — 필요하면 GitHub Secret
 // ADMIN_NOTIFY_EMAIL로 다른 주소를 지정할 수 있고, 지정하지 않으면 주 관리자 이메일로 감
 const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || ADMIN_EMAILS[0];
+// 문자(SMS) 알림을 받을 관리자 휴대폰 번호 — 비워두면 문자 알림은 보내지 않음(알리고 설정도 함께 있어야 동작)
+const ADMIN_NOTIFY_PHONE = digits(process.env.ADMIN_NOTIFY_PHONE);
 
 async function isAdminEmail(email) {
   if (!email) return false;
@@ -69,7 +73,7 @@ async function sendReservationStatusEmail({ eventKey, type, reservation, reserva
 // 이메일·카카오톡 두 채널을 서로 독립적으로 시도 — 한쪽이 실패(예: 카카오 미연동)해도
 // 다른 쪽 발송에는 영향 없음. eventKey가 claimEmailEvent로 멱등 처리되어 재시도로 인한
 // 중복 발송은 자동으로 막힘(채널마다 별도 키를 써서 독립적으로 멱등 처리).
-async function notifyAdmin({ eventKey, emailType, content, kakaoText }) {
+async function notifyAdmin({ eventKey, emailType, content, kakaoText, smsText }) {
   const logRef = await claimEmailEvent(eventKey, {
     reservationId: null, emailType, recipient: ADMIN_NOTIFY_EMAIL, recipientType: 'admin',
   });
@@ -83,18 +87,36 @@ async function notifyAdmin({ eventKey, emailType, content, kakaoText }) {
     }
   }
 
-  if (!kakaoText) return;
-  const kakaoLogRef = await claimEmailEvent(`${eventKey}_kakao`, {
-    reservationId: null, emailType: `${emailType}_kakao`, recipient: 'kakao:self', recipientType: 'admin',
-  });
-  if (!kakaoLogRef) return;
-  try {
-    await sendKakaoMemoToMe(kakaoText);
-    await markSent(kakaoLogRef, null);
-  } catch (err) {
-    // 카카오 미연동·토큰 만료 등으로 실패해도 로그만 남기고 조용히 넘어감 — 이메일은 이미 별도로 처리됨
-    console.error(`${emailType} 카카오 알림 발송 실패:`, err.message || err);
-    await markFailed(kakaoLogRef, err);
+  if (kakaoText) {
+    const kakaoLogRef = await claimEmailEvent(`${eventKey}_kakao`, {
+      reservationId: null, emailType: `${emailType}_kakao`, recipient: 'kakao:self', recipientType: 'admin',
+    });
+    if (kakaoLogRef) {
+      try {
+        await sendKakaoMemoToMe(kakaoText);
+        await markSent(kakaoLogRef, null);
+      } catch (err) {
+        // 카카오 미연동·토큰 만료 등으로 실패해도 로그만 남기고 조용히 넘어감 — 다른 채널은 별도로 처리됨
+        console.error(`${emailType} 카카오 알림 발송 실패:`, err.message || err);
+        await markFailed(kakaoLogRef, err);
+      }
+    }
+  }
+
+  // 문자는 번호와 알리고 설정이 모두 있을 때만 시도(설정 전에 실패 기록이 쌓이지 않게)
+  if (smsText && ADMIN_NOTIFY_PHONE && isSmsConfigured()) {
+    const smsLogRef = await claimEmailEvent(`${eventKey}_sms`, {
+      reservationId: null, emailType: `${emailType}_sms`, recipient: 'sms:admin', recipientType: 'admin',
+    });
+    if (smsLogRef) {
+      try {
+        await sendSms({ to: ADMIN_NOTIFY_PHONE, text: smsText });
+        await markSent(smsLogRef, null);
+      } catch (err) {
+        console.error(`${emailType} 문자 알림 발송 실패:`, err.message || err);
+        await markFailed(smsLogRef, err);
+      }
+    }
   }
 }
 
@@ -111,6 +133,7 @@ exports.onReservationCreated = onDocumentCreated('reservations/{id}', async (eve
   await notifyAdmin({
     eventKey, emailType: 'new_reservation',
     content: renderNewReservationEmail(data), kakaoText: renderNewReservationKakaoText(data),
+    smsText: renderNewReservationSmsText(data),
   });
 });
 
@@ -121,6 +144,7 @@ exports.onChangeRequestCreated = onDocumentCreated('changeRequests/{id}', async 
   await notifyAdmin({
     eventKey, emailType: 'new_change_request',
     content: renderChangeRequestEmail(data), kakaoText: renderChangeRequestKakaoText(data),
+    smsText: renderChangeRequestSmsText(data),
   });
 });
 
@@ -131,6 +155,7 @@ exports.onVenueRequestCreated = onDocumentCreated('venue_requests/{id}', async (
   await notifyAdmin({
     eventKey, emailType: 'new_venue_request',
     content: renderVenueRequestEmail(data), kakaoText: renderVenueRequestKakaoText(data),
+    smsText: renderVenueRequestSmsText(data),
   });
 });
 
@@ -182,6 +207,24 @@ exports.sendTestAdminEmail = onCall(async (request) => {
   } catch (err) {
     console.error('관리자 테스트 메일 발송 실패:', err.message || err);
     throw new HttpsError('internal', `${ADMIN_NOTIFY_EMAIL} 로 발송 실패: ${err.message || err}`);
+  }
+});
+
+// kakao-auth.html의 "테스트 문자 보내기" — 알리고 키·발신번호·서버 IP 등록이 제대로 됐는지 바로 확인
+// (실제 문자 1건이 발송되어 요금이 부과됨. 실패하면 알리고 오류 사유를 그대로 돌려줌)
+exports.sendTestSmsMessage = onCall(async (request) => {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  if (!ADMIN_NOTIFY_PHONE) throw new HttpsError('failed-precondition', '수신 번호(ADMIN_NOTIFY_PHONE)가 설정되지 않았습니다.');
+  if (!isSmsConfigured()) throw new HttpsError('failed-precondition', '알리고 설정(ALIGO_KEY·ALIGO_USER_ID·ALIGO_SENDER)이 설정되지 않았습니다.');
+  try {
+    await sendSms({ to: ADMIN_NOTIFY_PHONE, text: '[아이엠센터] 문자 알림 테스트입니다.' });
+    return { ok: true, to: `${ADMIN_NOTIFY_PHONE.slice(0, 3)}-****-${ADMIN_NOTIFY_PHONE.slice(-4)}` };
+  } catch (err) {
+    console.error('테스트 문자 발송 실패:', err.message || err);
+    throw new HttpsError('internal', err.message || String(err));
   }
 });
 

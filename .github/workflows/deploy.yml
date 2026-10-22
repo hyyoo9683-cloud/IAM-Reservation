@@ -32,12 +32,20 @@ jobs:
           ADMIN_NOTIFY_EMAIL: ${{ secrets.ADMIN_NOTIFY_EMAIL }}
           KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
           KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+          ALIGO_KEY: ${{ secrets.ALIGO_KEY }}
+          ALIGO_USER_ID: ${{ secrets.ALIGO_USER_ID }}
+          ALIGO_SENDER: ${{ secrets.ALIGO_SENDER }}
+          ADMIN_NOTIFY_PHONE: ${{ secrets.ADMIN_NOTIFY_PHONE }}
         run: |
           echo "RESEND_API_KEY=${RESEND_API_KEY}" > .env
           if [ -n "$RESEND_FROM_EMAIL" ]; then echo "RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL}" >> .env; fi
           if [ -n "$ADMIN_NOTIFY_EMAIL" ]; then echo "ADMIN_NOTIFY_EMAIL=${ADMIN_NOTIFY_EMAIL}" >> .env; fi
           if [ -n "$KAKAO_REST_API_KEY" ]; then echo "KAKAO_REST_API_KEY=${KAKAO_REST_API_KEY}" >> .env; fi
           if [ -n "$KAKAO_CLIENT_SECRET" ]; then echo "KAKAO_CLIENT_SECRET=${KAKAO_CLIENT_SECRET}" >> .env; fi
+          if [ -n "$ALIGO_KEY" ]; then echo "ALIGO_KEY=${ALIGO_KEY}" >> .env; fi
+          if [ -n "$ALIGO_USER_ID" ]; then echo "ALIGO_USER_ID=${ALIGO_USER_ID}" >> .env; fi
+          if [ -n "$ALIGO_SENDER" ]; then echo "ALIGO_SENDER=${ALIGO_SENDER}" >> .env; fi
+          if [ -n "$ADMIN_NOTIFY_PHONE" ]; then echo "ADMIN_NOTIFY_PHONE=${ADMIN_NOTIFY_PHONE}" >> .env; fi
 
       - name: Firebase Hosting + Firestore 규칙 + Functions 배포
         env:

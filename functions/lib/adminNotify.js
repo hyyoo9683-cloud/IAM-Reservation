@@ -147,7 +147,32 @@ function renderVenueRequestKakaoText(r) {
   return { text, linkUrl: `${BASE_URL}/venue.html` };
 }
 
+// 문자(SMS)용 — 90바이트(한글 약 45자) 안쪽이면 단문이라 요금이 싸서 날짜·시간을 줄여서 씀
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+function shortDate(dateStr) {
+  const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return dateStr || '';
+  const dow = WEEKDAYS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+  return `${+m[2]}/${+m[3]}(${dow})`;
+}
+
+function renderNewReservationSmsText(r) {
+  const manager = r.managerName || r.stewardName || '신청자';
+  return `[아이엠센터] 새 예약신청\n${r.room || ''} ${shortDate(r.date)} ${r.start || ''}~${r.end || ''}\n${manager}`;
+}
+
+function renderChangeRequestSmsText(r) {
+  const kind = r.requestType === '취소' ? '취소' : '변경';
+  return `[아이엠센터] 예약${kind} 신청\n${r.room || ''} ${shortDate(r.date)}\n${r.requesterName || '-'}`;
+}
+
+function renderVenueRequestSmsText(r) {
+  const spaceLabel = (r.spaces && r.spaces.length ? r.spaces : [r.space]).filter(Boolean).join(',');
+  return `[아이엠센터] 대관 신청\n${spaceLabel || '공간 미정'} ${r.orgName || '-'}\n${r.managerName || '-'}`;
+}
+
 module.exports = {
   renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
   renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
+  renderNewReservationSmsText, renderChangeRequestSmsText, renderVenueRequestSmsText,
 };

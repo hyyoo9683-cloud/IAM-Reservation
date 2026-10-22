@@ -367,6 +367,14 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - `emailLogs`로 멱등 처리되는 것은 승인 메일과 동일(`eventKey` 접두사만 `reservation_..._new_`/`changereq_..._new_`/`venuereq_..._new_`로 구분)
 - 알려진 범위 제한: 정기 예약처럼 한 번의 신청으로 회차마다 문서가 여러 개 생성되면 회차 수만큼
   알림이 감(시리즈 단위 묶음 미구현 — 위 승인 메일과 같은 제한)
+- **알림 채널은 3개가 서로 독립**(`notifyAdmin()`): 이메일(Resend), 카카오톡 "나에게 보내기"(`lib/kakaoClient.js`,
+  `kakao-auth.html`에서 1회 연동 — 알림음 없음), 문자(알리고, `lib/smsClient.js`). 한 채널 실패가 다른 채널에 영향 없고,
+  채널마다 `emailLogs`에 `<eventKey>_kakao`/`_sms` 키로 따로 멱등 처리됨
+- **문자(SMS)**: `ALIGO_KEY`·`ALIGO_USER_ID`·`ALIGO_SENDER`(사전 등록한 발신번호)·`ADMIN_NOTIFY_PHONE`(받을 번호)
+  GitHub Secret이 **모두** 있을 때만 발송(없으면 조용히 건너뜀). 90바이트(한글 약 45자) 이하는 SMS, 넘으면 LMS(요금↑)로
+  자동 전환. 알리고는 **호출 서버 IP를 미리 등록**해야 해서 고정 IP가 없는 Cloud Functions에서는 인증 오류가 날 수 있음 —
+  `kakao-auth.html`의 "테스트 문자 보내기"(`sendTestSmsMessage`, 실제 1건 발송·요금 발생)로 확인하고, 막히면 고정 IP
+  (VPC 커넥터+Cloud NAT) 또는 IP 제한 없는 다른 문자 업체를 검토
 
 ## 공개 페이지 개인정보 정책 (예약 원본/공개 사본 분리)
 - 원본 `reservations`(이름·연락처·이메일·메모 포함)는 **관리자와 본인만 읽기 가능** (firestore.rules)
