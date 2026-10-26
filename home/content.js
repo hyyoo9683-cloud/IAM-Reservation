@@ -435,6 +435,7 @@ export const DEFAULT_CONTENT = {
     // 지도 버튼·지도 사진 클릭 시 이동: 네이버 플레이스(스마트플레이스 등록 페이지)
     placeLink: 'https://naver.me/x9VaOiSS',
     placeLabel: '네이버 지도로 보기',
+    kakaoPlaceLink: 'https://place.map.kakao.com/840019399', kakaoPlaceLabel: '카카오맵으로 보기',  // 비어 있으면 버튼 숨김
     mapImg: '',
   },
   footer: {
