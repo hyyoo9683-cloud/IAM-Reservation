@@ -1,5 +1,5 @@
 // 아이엠센터 홈페이지 렌더링 — 콘텐츠(siteContent/homepage, 홈페이지 공지 포함) + 공연·행사(programs)
-import { db, doc, getDoc, getDocs, collection, query, where } from './fb.js';
+import { db, doc, getDoc, getDocs, collection, query, where, addDoc, serverTimestamp, storageApi } from './fb.js';
 import { DEFAULT_CONTENT, mergeContent, getPath, PAGE_IDS, normalizeLink } from './content.js';
 
 export const state = {
@@ -18,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26e';
+const CSS_VER = '2026-10-26g';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -235,6 +235,7 @@ const SECTIONS = {
         <dt>운영 시간</dt>${t('visit.hours', 'dd')}
         <dt>주차</dt>${t('visit.parking', 'dd')}
         <dt>문의</dt>${t('visit.phone', 'dd')}
+        ${kakaoRow()}
       </dl>
     </div>
     ${c('visit.mapImg') ? `
@@ -545,7 +546,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { apply: 'Apply Online', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -566,13 +567,7 @@ function guideWay() {
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
     ${imgSlot(`${G}.way.mapImg`, '약도', 'rv')}
-    <div class="kakao-row rv">
-      <div class="kk-l">
-        <span class="kk-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg></span>
-        ${c(`${G}.way.kakaoLink`) || state.editing ? `<a ${href(`${G}.way.kakaoLink`)} target="_blank" rel="noopener">${t(`${G}.way.kakaoLabel`)}</a>` : t(`${G}.way.kakaoLabel`)}
-      </div>
-      ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
-    </div>
+    ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr rv">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
     ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
     <div class="tboxes">
       ${tr.map((b, bi) => `
@@ -613,6 +608,14 @@ function guideParking() {
     </div></div>
   </div>
 </section>`;
+}
+// Visit 표의 '카카오채널' 줄(문의 아래) — 이름·링크는 방문가이드 오시는 길 설정(pages.guide.way.kakaoLabel·kakaoLink),
+// 링크가 비어 있으면 푸터의 카카오채널 링크(footer.kakaoLink)를 씀
+function kakaoRow() {
+  const W = 'pages.guide.way';
+  const linkPath = c(`${W}.kakaoLink`) || state.editing ? `${W}.kakaoLink` : (c('footer.kakaoLink') ? 'footer.kakaoLink' : '');
+  const label = t(`${W}.kakaoLabel`);
+  return `<dt>카카오톡</dt><dd class="kk-dd"><span class="kk-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg></span>${linkPath ? `<a ${href(linkPath)} target="_blank" rel="noopener">${label}</a>` : label}</dd>`;
 }
 const STORE_G = ['linear-gradient(135deg,#3a332b,#15120f)', 'linear-gradient(135deg,#59616a,#1d2126)', 'linear-gradient(135deg,#6b5a47,#2a231c)', 'linear-gradient(135deg,#4a5248,#181c17)'];
 function guideAmenity() {
@@ -718,7 +721,7 @@ function rentContact(k) {
       <div class="rc-l">
         <p><span class="rc-ic" aria-hidden="true">✉</span>${filled(c(`${R}.email`)) ? `<a href="mailto:${esc(c(`${R}.email`))}">${t(`${R}.email`)}</a>` : t(`${R}.email`)}</p>
         <p><span class="rc-ic" aria-hidden="true">☎</span>${tel ? `<a href="tel:${esc(tel)}">${t(`${R}.tel`)}</a>` : t(`${R}.tel`)}</p>
-        ${c(`${R}.applyLink`) || state.editing ? `<a ${href(`${R}.applyLink`)} target="_blank" rel="noopener" class="btn"><span class="dot"></span><span data-k="${R}.applyText">${esc(c(`${R}.applyText`))}</span> <span aria-hidden="true">↗</span></a>` : ''}
+        ${c(`${R}.applyLink`) || state.editing ? `<a ${href(`${R}.applyLink`)}${/^https?:/i.test(safeUrl(c(`${R}.applyLink`))) ? ' target="_blank" rel="noopener"' : ''} class="btn"><span class="dot"></span><span data-k="${R}.applyText">${esc(c(`${R}.applyText`))}</span> <span aria-hidden="true">↗</span></a>` : ''}
       </div>
       ${shown.length || state.editing ? `
       <div class="rc-r">
@@ -784,6 +787,169 @@ function rentTerms(k) {
   </div>
 </section>`;
 }
+// ── 온라인 대관 신청(대관신청 > 온라인 신청 탭) ──────────────────────
+// 예약 시스템 venue-apply.html과 같은 필드로 venue_requests에 저장 → 인트라넷 '대관 신청 관리'(venue.html)에서 그대로 처리
+const APPLY_VENUES = {
+  '아론홀': { std: ['무선 마이크 2', 'TV', '스피커', '보면대', '마이크 스탠드 1'], paid: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '케이터링', '다과 별도 준비'] },
+  '샤론홀': { std: ['무선 마이크 2', '유선 마이크 2', 'TV 2대', '키보드'], paid: ['방송 촬영 (BMS)', '음향 지원 (BMS)', '미디어 지원 (BMS)', '케이터링', '다과 별도 준비'] },
+};
+const applyForm = { space: '아론홀', dates: [{ date: '', start: '', end: '' }], f: {}, paid: [], file: null, done: false, sending: false, err: '' };
+const TIME_OPTS = Array.from({ length: (22 - 9) * 2 + 1 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+const fv = k => esc(applyForm.f[k] || '');
+// 날짜를 고르면 그날 이미 확정된 예약 시간을 보여 줌(대관 일정과 같은 공개 사본)
+function applyDayHint(ds) {
+  if (!ds) return '';
+  if (isSunday(ds)) return '<span class="ap-hint warn">주일(일요일)은 대관하지 않아요. 다른 날짜를 골라 주세요.</span>';
+  const list = state.sched.res[ds.slice(0, 7)];
+  if (list === undefined) return '<span class="ap-hint">예약 현황 확인 중…</span>';
+  if (!list) return '';
+  const rs = list.filter(r => r.room === applyForm.space && r.date === ds).sort((a, b) => String(a.start).localeCompare(String(b.start)));
+  const bd = schedBlocked(ds);
+  if (bd) return `<span class="ap-hint warn">${bd.sunday ? '주일(일요일)은 대관하지 않아요. 다른 날짜를 골라 주세요.' : '이 날은 이용할 수 없어요.'}</span>`;
+  return rs.length ? `<span class="ap-hint">이미 예약된 시간: ${rs.map(r => `${esc(r.start)}–${esc(r.end)}`).join(', ')}</span>` : '<span class="ap-hint ok">이 날은 예약된 시간이 없어요.</span>';
+}
+function applyDates() {
+  return applyForm.dates.map((d, i) => `
+      <div class="ap-date">
+        <input type="date" data-ad="${i}|date" value="${esc(d.date)}" min="${todayStr()}" aria-label="날짜">
+        <select data-ad="${i}|start" aria-label="시작 시간"><option value="">시작</option>${TIME_OPTS.map(o => `<option${o === d.start ? ' selected' : ''}>${o}</option>`).join('')}</select>
+        <span class="ap-tilde">~</span>
+        <select data-ad="${i}|end" aria-label="끝나는 시간"><option value="">종료</option>${TIME_OPTS.map(o => `<option${o === d.end ? ' selected' : ''}>${o}</option>`).join('')}</select>
+        ${applyForm.dates.length > 1 ? `<button type="button" class="ap-x" data-ad-del="${i}" aria-label="이 날짜 빼기">✕</button>` : ''}
+        <div class="ap-hint-row" data-ad-hint="${i}">${applyDayHint(d.date)}</div>
+      </div>`).join('');
+}
+function applyPanel() {
+  const A = 'pages.rental.apply', V = APPLY_VENUES[applyForm.space];
+  if (applyForm.done && !state.editing) return `
+<section class="g-sec" data-sec="page"><div class="wrap narrow">
+  <div class="ap-done rv in">
+    <span class="ap-check" aria-hidden="true">✓</span>
+    ${t(`${A}.doneTitle`, 'h2')}
+    ${m(`${A}.doneText`)}
+    <div class="btns center"><a href="./" class="btn line">홈으로</a><a href="./?page=schedule&amp;tab=${applyForm.space === '샤론홀' ? 'sharon' : 'aaron'}" class="btn"><span class="dot"></span>대관 일정 보기 <span aria-hidden="true">→</span></a></div>
+  </div>
+</div></section>`;
+  const row = (title, en, body) => `<div class="kv rv"><div class="kv-h"><span class="kv-en">${en}</span><h3>${title}</h3></div><div>${body}</div></div>`;
+  return `
+<section class="g-sec ap" data-sec="page">
+  <div class="wrap narrow">
+    ${secHd(`${A}.en`, 'Application', `${A}.title`, '', 'sm')}
+    ${rich(`${A}.intro`, 'p', 'ap-intro rv')}
+    <form class="ap-form" novalidate>
+      ${row('공간 선택', 'Space', `
+        <div class="ap-spaces">${Object.keys(APPLY_VENUES).map(s => `<button type="button" class="ap-space" data-ap-space="${s}" aria-pressed="${s === applyForm.space}"><b>${s}</b><span>${s === '아론홀' ? '2F · 최대 50명' : '6F · 최대 140명'}</span></button>`).join('')}</div>
+        ${m(`${A}.hallNote`, 'p', 'ap-note')}`)}
+      ${row('신청 단체 정보', 'Applicant', `
+        <div class="ap-grid">
+          <label class="ap-f"><span>단체·기관명 <i>*</i></span><input data-af="org" value="${fv('org')}" autocomplete="organization"></label>
+          <label class="ap-f"><span>담당자 이름 <i>*</i></span><input data-af="mgr" value="${fv('mgr')}" placeholder="홍길동" autocomplete="name"></label>
+          <label class="ap-f"><span>연락처 <i>*</i></span><input data-af="tel" value="${fv('tel')}" placeholder="010-0000-0000" inputmode="tel" autocomplete="tel"></label>
+          <label class="ap-f"><span>이메일</span><input data-af="email" type="email" value="${fv('email')}" placeholder="example@email.com" autocomplete="email"></label>
+        </div>`)}
+      ${row('행사 정보', 'Event', `
+        <div class="ap-grid">
+          <label class="ap-f"><span>행사명</span><input data-af="name" value="${fv('name')}" placeholder="예: 세미나"></label>
+          <label class="ap-f"><span>예상 인원</span><input data-af="ppl" type="number" min="1" value="${fv('ppl')}" placeholder="0" inputmode="numeric"></label>
+        </div>
+        <div class="ap-f"><span>날짜 / 시간</span><div class="ap-dates">${applyDates()}</div>
+          <button type="button" class="ap-add" data-ad-add>+ 날짜 추가</button></div>
+        <label class="ap-f"><span>행사 내용 / 목적</span><textarea data-af="purpose" rows="4" placeholder="행사 목적, 프로그램 등">${fv('purpose')}</textarea></label>`)}
+      ${row('장비·서비스', 'Services', `
+        <div class="ap-f"><span>기본 제공 장비</span><div class="ap-tags">${V.std.map(e => `<span>${esc(e)}</span>`).join('')}</div></div>
+        <div class="ap-f"><span>추가 서비스 <em>유료 · 사전 협의 필요</em></span><div class="ap-checks">${V.paid.map(e => `<label class="ap-chk"><input type="checkbox" data-ap-paid value="${esc(e)}"${applyForm.paid.includes(e) ? ' checked' : ''}><span>${esc(e)}</span></label>`).join('')}</div></div>
+        <label class="ap-f"><span>기타 요청사항</span><textarea data-af="etc" rows="3" placeholder="추가 요청사항">${fv('etc')}</textarea></label>`)}
+      ${row('큐시트', 'Cue Sheet', `
+        <label class="ap-file"><input type="file" data-ap-file><span class="ap-file-btn">파일 선택</span><span class="ap-file-name">${applyForm.file ? esc(applyForm.file.name) : '선택 사항 · 방송·음향·진행 순서표 등'}</span></label>`)}
+      <p class="ap-err" role="alert"${applyForm.err ? '' : ' hidden'}>${esc(applyForm.err)}</p>
+      <div class="btns center"><button type="submit" class="btn ap-submit"${applyForm.sending ? ' disabled' : ''}><span class="dot"></span>${applyForm.sending ? '제출 중…' : '신청서 제출하기'} <span aria-hidden="true">→</span></button></div>
+    </form>
+  </div>
+</section>`;
+}
+function redrawApply() {
+  const panel = document.querySelector('.tab-panel[data-panel="apply"]');
+  if (!panel) return;
+  panel.innerHTML = applyPanel();
+  panel.querySelectorAll('.rv').forEach(el => el.classList.add('in'));
+  bindApply();
+}
+async function applyLoadHints() {
+  const months = [...new Set(applyForm.dates.map(d => d.date && d.date.slice(0, 7)).filter(Boolean))];
+  await Promise.all(months.map(loadSchedMonth));
+  applyForm.dates.forEach((d, i) => { const el = document.querySelector(`[data-ad-hint="${i}"]`); if (el) el.innerHTML = applyDayHint(d.date); });
+}
+async function submitApply() {
+  const f = applyForm.f, V = APPLY_VENUES[applyForm.space];
+  const need = [['org', '단체·기관명을'], ['mgr', '담당자 이름을'], ['tel', '연락처를']].find(([k]) => !String(f[k] || '').trim());
+  if (need) { applyForm.err = `${need[1]} 입력해 주세요.`; redrawApply(); document.querySelector('.ap-err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  const dates = applyForm.dates.filter(d => d.date).map(d => ({ date: d.date, timeStart: d.start || '', timeEnd: d.end || '' }));
+  if (!dates.length) { applyForm.err = '날짜를 하나 이상 골라 주세요.'; redrawApply(); return; }
+  const sun = dates.find(d => isSunday(d.date));
+  if (sun) { applyForm.err = `${sun.date}은 주일(일요일)이라 대관하지 않아요. 다른 날짜를 골라 주세요.`; redrawApply(); return; }
+  const bad = dates.find(d => d.timeStart && d.timeEnd && d.timeEnd <= d.timeStart);
+  if (bad) { applyForm.err = `${bad.date}의 끝나는 시간이 시작 시간보다 늦어야 해요.`; redrawApply(); return; }
+  const data = {
+    space: applyForm.space,
+    orgName: f.org.trim(), managerName: f.mgr.trim(), tel: f.tel.trim(), email: String(f.email || '').trim(),
+    eventName: String(f.name || '').trim(),
+    headcount: parseInt(f.ppl, 10) || 0,
+    eventDate: dates[0].date, eventDateEnd: dates.length > 1 ? dates[dates.length - 1].date : '', dates,
+    timeStart: dates[0].timeStart, timeEnd: dates[0].timeEnd,
+    dateIn: '', nights: 0, rooms: [],
+    purpose: String(f.purpose || '').trim(),
+    paidServices: applyForm.paid.filter(p => V.paid.includes(p)),
+    etcRequest: String(f.etc || '').trim(),
+    status: '접수', source: 'homepage', createdAt: serverTimestamp(),
+  };
+  applyForm.err = ''; applyForm.sending = true; redrawApply();
+  try {
+    if (applyForm.file) {
+      try {
+        const st = await storageApi();
+        const safe = applyForm.file.name.replace(/[^\w.\-가-힣 ]/g, '_');
+        const r = st.ref(st.storage, `venue_requests/cuesheet_${Date.now()}_${safe}`);
+        await st.uploadBytes(r, applyForm.file);
+        data.cueSheetUrl = await st.getDownloadURL(r);
+        data.cueSheetName = applyForm.file.name;
+      } catch (e) { console.error('큐시트 업로드 실패(신청서는 그대로 제출):', e); }
+    }
+    await addDoc(collection(db, 'venue_requests'), data);
+    applyForm.done = true;
+  } catch (e) {
+    console.error(e);
+    applyForm.err = '제출하지 못했어요. 잠시 후 다시 시도하거나 전화로 문의해 주세요.';
+  }
+  applyForm.sending = false; redrawApply();
+  document.querySelector('.tab-panel[data-panel="apply"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// 신청서 입력 연결(다시 그릴 때마다 새로 붙임) — 편집 모드에서는 글자 편집과 섞이지 않게 입력만 막음
+function bindApply() {
+  const form = document.querySelector('.ap-form');
+  if (!form) return;
+  if (state.editing) { form.querySelectorAll('input,select,textarea,button').forEach(el => { if (!el.closest('[data-k]')) el.disabled = true; }); return; }
+  form.addEventListener('submit', e => { e.preventDefault(); submitApply(); });
+  form.querySelectorAll('[data-af]').forEach(el => el.addEventListener('input', () => {
+    if (el.dataset.af === 'tel') { const v = el.value.replace(/\D/g, '').slice(0, 11); el.value = v.length <= 3 ? v : v.length <= 7 ? `${v.slice(0, 3)}-${v.slice(3)}` : `${v.slice(0, 3)}-${v.slice(3, v.length === 10 ? 6 : 7)}-${v.slice(v.length === 10 ? 6 : 7)}`; }
+    applyForm.f[el.dataset.af] = el.value;
+  }));
+  form.querySelectorAll('[data-ap-space]').forEach(b => b.addEventListener('click', () => { applyForm.space = b.dataset.apSpace; applyForm.paid = []; redrawApply(); applyLoadHints(); }));
+  form.querySelectorAll('[data-ap-paid]').forEach(c => c.addEventListener('change', () => { applyForm.paid = [...form.querySelectorAll('[data-ap-paid]:checked')].map(x => x.value); }));
+  form.querySelectorAll('[data-ad]').forEach(el => el.addEventListener('change', () => {
+    const [i, key] = el.dataset.ad.split('|'); applyForm.dates[i][key] = el.value;
+    if (key === 'date') applyLoadHints();
+  }));
+  form.querySelectorAll('[data-ad-del]').forEach(b => b.addEventListener('click', () => { applyForm.dates.splice(Number(b.dataset.adDel), 1); redrawApply(); applyLoadHints(); }));
+  form.querySelector('[data-ad-add]')?.addEventListener('click', () => {
+    const last = applyForm.dates[applyForm.dates.length - 1];
+    let next = '';
+    if (last?.date) { const d = new Date(last.date + 'T00:00:00'); d.setDate(d.getDate() + 1); next = ymd(d); }
+    applyForm.dates.push({ date: next, start: last?.start || '', end: last?.end || '' });
+    redrawApply(); applyLoadHints();
+  });
+  form.querySelector('[data-ap-file]')?.addEventListener('change', e => { applyForm.file = e.target.files[0] || null; form.querySelector('.ap-file-name').textContent = applyForm.file ? applyForm.file.name : '선택 사항 · 방송·음향·진행 순서표 등'; });
+}
+
 function rentPanel(k) {
   return `
 <section class="g-sec" data-sec="page">
@@ -823,6 +989,13 @@ async function loadSchedMonth(month) {
     catch (e) { S.blocked = []; }
   }
 }
+// 이용 불가한 날: 관리자 차단일(blockedDates) + 일요일(주일 — 세미나실은 월~토만 대관, 홈페이지 달력에만 적용)
+const isSunday = ds => new Date(ds + 'T00:00:00').getDay() === 0;
+function schedBlocked(ds) {
+  const bd = (state.sched.blocked || []).find(b => b.date === ds);
+  if (bd) return bd;
+  return isSunday(ds) ? { date: ds, reason: '주일', sunday: true } : null;
+}
 function schedRoom(k) { return c(`pages.${k}.space`) || (k === 'aaron' ? '아론홀' : '샤론홀'); }
 function schedCal(k) {
   const S = state.sched, room = schedRoom(k), month = S.month;
@@ -830,11 +1003,11 @@ function schedCal(k) {
   const [y, m] = month.split('-').map(Number);
   const today = todayStr();
   const dayRes = ds => (list || []).filter(r => r.room === room && r.date === ds).sort((a, b) => String(a.start).localeCompare(String(b.start)));
-  const blockedOf = ds => (S.blocked || []).find(b => b.date === ds);
+  const blockedOf = ds => schedBlocked(ds);
   const cells = gridDays(month).map(d => {
     const ds = ymd(d), rs = dayRes(ds), bd = blockedOf(ds);
     const cls = ['cal-d', d.getMonth() + 1 !== m ? 'other' : '', ds < today ? 'past' : '', ds === today ? 'today' : '', ds === S.sel ? 'sel' : '', bd ? 'blk' : '', rs.length ? 'has' : '', d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : ''].filter(Boolean).join(' ');
-    const chips = bd ? '<span class="cal-blk">이용 불가</span>'
+    const chips = bd ? `<span class="cal-blk">${bd.sunday ? '주일 · 이용 불가' : '이용 불가'}</span>`
       : rs.slice(0, 2).map(r => `<span class="cal-chip">${esc(r.start)}–${esc(r.end)}</span>`).join('') + (rs.length > 2 ? `<span class="cal-more">+${rs.length - 2}</span>` : '');
     return `<button type="button" class="${cls}" data-cal-date="${ds}" aria-label="${d.getMonth() + 1}월 ${d.getDate()}일 ${bd ? '이용 불가' : rs.length ? `예약 ${rs.length}건` : '예약 없음'}"><span class="dn">${d.getDate()}</span><span class="cal-chips">${chips}</span>${rs.length && !bd ? `<i class="cal-dot">${rs.length}</i>` : ''}</button>`;
   }).join('');
@@ -850,7 +1023,7 @@ function schedCal(k) {
         <strong>${y}. ${pad2(m)}</strong>
         <button type="button" class="cal-nav" data-cal-nav="1" aria-label="다음 달">${CHEV_R}</button>
         <button type="button" class="cal-today" data-cal-today>오늘</button>
-        <span class="cal-legend"><i class="lg-res"></i>예약 <i class="lg-blk"></i>이용 불가</span>
+        <span class="cal-legend"><i class="lg-res"></i>예약 <i class="lg-blk"></i>이용 불가(주일 포함)</span>
       </div>
       ${list === null ? '<p class="cal-err">일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>' : ''}
       <div class="cal-grid${list === undefined ? ' loading' : ''}">
@@ -859,7 +1032,7 @@ function schedCal(k) {
       </div>
       <div class="cal-day">
         <div class="cd-hd"><strong>${sd.getMonth() + 1}월 ${sd.getDate()}일 (${DOW_KO[sd.getDay()]})</strong><span>${esc(room)}</span></div>
-        ${bd ? `<p class="cd-blk">이 날은 이용할 수 없어요${bd.reason ? ` · ${esc(bd.reason)}` : ''}.</p>` : `
+        ${bd ? `<p class="cd-blk">${bd.sunday ? '주일(일요일)은 대관하지 않아요.' : `이 날은 이용할 수 없어요${bd.reason ? ` · ${esc(bd.reason)}` : ''}.`}</p>` : `
         <div class="cd-bar">${bar}</div>
         <div class="cd-ticks">${ticks}</div>
         ${rs.length ? `<ul class="cd-list">${rs.map(r => `<li><b>${esc(r.start)} – ${esc(r.end)}</b><span>예약됨</span></li>`).join('')}</ul>` : '<p class="cd-none">예약된 시간이 없어요.</p>'}`}
@@ -896,7 +1069,7 @@ const PAGES = {
   sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
   hall: () => pageHead('hall') + hallBody() + pageBlocks('hall'),
   schedule: () => pageHead('schedule') + scheduleBody() + pageBlocks('schedule'),
-  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar') }) + pageBlocks('rental'),
+  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar'), apply: applyPanel }) + pageBlocks('rental'),
 };
 
 // 푸터 INFO 링크: 주소가 있으면 링크, 없으면 이름만 흐리게(편집 모드에서는 🔗로 주소 입력)
@@ -1096,6 +1269,8 @@ function setupBehaviors() {
     const day = e.target.closest('[data-cal-date]');
     if (day) { S.sel = day.dataset.calDate; if (S.sel.slice(0, 7) !== S.month) gotoSchedMonth(S.sel.slice(0, 7)); else redrawSched(); }
   }));
+
+  bindApply();
 
   // 세부 페이지 탭(방문가이드·대관신청): 누르면 그 탭 내용만 보이고, 주소의 &tab=… 도 바꿔 둠(새로고침·공유 시 그 탭으로)
   document.querySelectorAll('.ptabs [data-tab]').forEach(b => b.addEventListener('click', () => {

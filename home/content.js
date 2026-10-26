@@ -228,12 +228,20 @@ export const DEFAULT_CONTENT = {
     rental: {
       eyebrow: 'Rental', title: '대관신청', lead: '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.',
       img: '', blocks: [],
-      tabs: { hall: '아이엠홀', seminar: '세미나실' },
+      tabs: { hall: '아이엠홀', seminar: '세미나실', apply: '온라인 신청' },
       stepsEn: 'Process', stepsTitle: '대관 절차',
       contactEn: 'Contact', contactTitle: '대관 문의',
       email: 'iamspace@suwoncca.org', tel: '070-7018-1439',
-      applyText: '온라인 신청하기', applyLink: 'https://iamreservation.web.app/venue-apply.html',
+      applyText: '온라인 신청하기', applyLink: './?page=rental&tab=apply',
       formsTitle: '양식 다운로드',
+      // 온라인 신청 탭(./?page=rental&tab=apply) — 예약 시스템 venue-apply.html과 같은 내용을 venue_requests에 저장(인트라넷 '대관 신청 관리'에서 처리)
+      apply: {
+        en: 'Application', title: '온라인 대관 신청',
+        intro: '외부 단체·기관의 세미나실(아론홀·샤론홀) 대관 신청서입니다.\n신청서를 보내 주시면 담당자가 확인 후 연락드립니다. **신청서 제출만으로 예약이 확정되지는 않습니다.**',
+        hallNote: '아이엠홀 대관은 공연 계획 등 협의가 필요해 전화·이메일로 먼저 문의해 주세요.',
+        doneTitle: '대관 신청이 접수되었습니다',
+        doneText: '신청해 주셔서 감사합니다.\n담당자가 내용을 확인한 뒤 연락드리겠습니다.',
+      },
       rulesHidden: true,
       hall: {
         steps: [
@@ -450,6 +458,7 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
   ['notice.cta2Link', 'https://iamreservation.web.app/cal-public.html'],
+  ['pages.rental.applyLink', 'https://iamreservation.web.app/venue-apply.html'],
   ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
   ['footer.bottom', '대표 전화 · 사업자등록번호 안내 예정'],
   ['pages.guide.blocks', [
