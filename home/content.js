@@ -39,9 +39,9 @@ export const DEFAULT_CONTENT = {
       // 세 개의 원(벤 다이어그램)에는 가치 이름(t), 그 아래에 가치별 세부 설명(d, 여러 줄·굵게 가능), 가운데 겹치는 곳 문구(valuesCenter)
       valuesCenter: 'I AM',
       valueItems: [
-        { t: '가치 하나', d: '세부 설명을 입력하세요' },
-        { t: '가치 둘', d: '세부 설명을 입력하세요' },
-        { t: '가치 셋', d: '세부 설명을 입력하세요' },
+        { t: '가치 하나', d: '세부 설명을 입력하십시오' },
+        { t: '가치 둘', d: '세부 설명을 입력하십시오' },
+        { t: '가치 셋', d: '세부 설명을 입력하십시오' },
       ],
       floorsTitle: 'Floors', floorsSub: '층별 안내',
       // 층별 바로가기 버튼(키 = 층 번호, 지하는 -1): [{label, link}] — 편집 모드에서 추가·수정·삭제.
@@ -72,7 +72,7 @@ export const DEFAULT_CONTENT = {
         mapImg: './map-route.svg',   // 약도(기본: 홈페이지 디자인으로 그린 home/map-route.svg — 편집 모드에서 다른 사진으로 바꿀 수 있음)
         kakaoLabel: '카카오채널 ‘아이엠센터’', kakaoLink: '',
         transportEn: 'Getting Here', transportTitle: '교통 안내',
-        qrImg: '', qrNote: 'QR 코드를 스캔하여 아이엠센터 카카오채널을 추가해 주세요.',
+        qrImg: '', qrNote: 'QR 코드를 스캔하여 아이엠센터 카카오채널을 추가해 주십시오.',
         // 교통 안내 상자: h 제목, rows[{label 구분(비워도 됨), tone 'blue'|'yellow'|'red'|'' 구분 글자색, text 내용(굵게 가능)}]
         transport: [
           { h: '지하철', rows: [
@@ -225,10 +225,10 @@ export const DEFAULT_CONTENT = {
       blocks: [],
     },
     schedule: {
-      eyebrow: 'Schedule', title: '대관 일정', lead: '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있어요.',
+      eyebrow: 'Schedule', title: '대관 일정', lead: '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.',
       blocks: [],
       tabs: { aaron: '아론홀', sharon: '샤론홀' },
-      note: '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주세요.',
+      note: '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주십시오.',
       ctaText: '대관 신청하기', ctaLink: './?page=rental&tab=seminar',
     },
     rental: {
@@ -244,7 +244,7 @@ export const DEFAULT_CONTENT = {
       apply: {
         en: 'Application', title: '온라인 대관 신청',
         intro: '외부 단체·기관의 세미나실(아론홀·샤론홀) 대관 신청서입니다.\n신청서를 보내 주시면 담당자가 확인 후 연락드립니다. **신청서 제출만으로 예약이 확정되지는 않습니다.**',
-        hallNote: '아이엠홀 대관은 공연 계획 등 협의가 필요해 전화·이메일로 먼저 문의해 주세요.',
+        hallNote: '아이엠홀 대관은 공연 계획 등 협의가 필요해 전화·이메일로 먼저 문의해 주십시오.',
         doneTitle: '대관 신청이 접수되었습니다',
         doneText: '신청해 주셔서 감사합니다.\n담당자가 내용을 확인한 뒤 연락드리겠습니다.',
       },
@@ -467,6 +467,14 @@ const LEGACY_DEFAULTS = [
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
   ['pages.guide.tabs.amenity', '편의시설'],
+  // 2026-10-26 안내 문구를 ‘-요’체에서 ‘-(니)다’체로 — 예전 기본 문구 그대로 게시된 경우 새 문구로
+  ['pages.about.valueItems.0.d', '세부 설명을 입력하세요'],
+  ['pages.about.valueItems.1.d', '세부 설명을 입력하세요'],
+  ['pages.about.valueItems.2.d', '세부 설명을 입력하세요'],
+  ['pages.guide.way.qrNote', 'QR 코드를 스캔하여 아이엠센터 카카오채널을 추가해 주세요.'],
+  ['pages.schedule.lead', '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있어요.'],
+  ['pages.schedule.note', '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주세요.'],
+  ['pages.rental.apply.hallNote', '아이엠홀 대관은 공연 계획 등 협의가 필요해 전화·이메일로 먼저 문의해 주세요.'],
   // 2026-10-26 아이엠센터 메뉴에 '공지사항' 추가 — 예전 기본 메뉴 그대로면 새 메뉴로
   ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '방문가이드', link: './?page=guide' }]],
   ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '조직도', link: './?page=org' }, { label: '방문가이드', link: './?page=guide' }]],

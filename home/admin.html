@@ -86,7 +86,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <div id="login" class="login" hidden>
   <h1>홈페이지 관리</h1>
-  <p>관리자 계정(주 관리자 또는 admins 등록 계정)으로 로그인하세요.</p>
+  <p>관리자 계정(주 관리자 또는 admins 등록 계정)으로 로그인하십시오.</p>
   <button class="btn primary" id="btn-login">Google 계정으로 로그인</button>
   <p id="login-err" style="color:var(--bad);margin-top:16px"></p>
 </div>
@@ -104,7 +104,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <!-- 공연·행사 -->
   <div class="wrap" id="tab-programs">
     <div class="hd-row">
-      <div><h2>공연·행사</h2><p class="sub" style="margin-bottom:0">홈페이지 What's On에 표시됩니다. '공개'로 둔 것 중 종료일이 지나지 않은 항목만 보여요.</p></div>
+      <div><h2>공연·행사</h2><p class="sub" style="margin-bottom:0">홈페이지 What's On에 표시됩니다. '공개'로 둔 것 중 종료일이 지나지 않은 항목만 보입니다.</p></div>
       <div class="row">
         <div class="seg" id="p-filter"><button aria-pressed="true" data-f="upcoming">진행·예정</button><button aria-pressed="false" data-f="past">지난 항목</button><button aria-pressed="false" data-f="all">전체</button></div>
         <button class="btn primary" id="btn-new">+ 새 공연·행사</button>
@@ -116,7 +116,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
   <!-- 버전 기록 -->
   <div class="wrap" id="tab-versions" hidden>
     <h2>버전 기록</h2>
-    <p class="sub">홈페이지를 새로 게시할 때마다 직전 버전이 여기에 보관됩니다. '이 버전으로 되돌리기'를 누르면 바로 방문자에게 반영돼요.</p>
+    <p class="sub">홈페이지를 새로 게시할 때마다 직전 버전이 여기에 보관됩니다. '이 버전으로 되돌리기'를 누르면 바로 방문자에게 반영됩니다.</p>
     <div class="vlist" id="vlist"></div>
   </div>
 </div>
@@ -134,7 +134,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
         <label>분류<select name="category"></select></label>
         <label>장소<input name="venue" list="venues" placeholder="아이엠홀"><datalist id="venues"><option>아이엠홀</option><option>아론홀</option><option>샤론홀</option><option>조스테이블</option></datalist></label>
         <label>시작일 *<input type="date" name="startDate" required></label>
-        <label>종료일 <span class="hint">하루 행사면 비워두세요</span><input type="date" name="endDate"></label>
+        <label>종료일 <span class="hint">하루 행사면 비워 두십시오</span><input type="date" name="endDate"></label>
         <label class="full">날짜 표시 문구 <span class="hint">비워두면 날짜로 자동 표시 · 예) 2026.11.07 (토) 19:30</span><input name="dateText" maxlength="60"></label>
         <label>상태 표시 <span class="hint">예) 예매중, 무료, 마감</span><input name="badge" maxlength="12" list="badges"><datalist id="badges"><option>예매중</option><option>무료</option><option>사전신청</option><option>마감</option></datalist></label>
         <label>정렬 순서 <span class="hint">작을수록 앞</span><input type="number" name="order" value="0" step="1"></label>
@@ -211,7 +211,7 @@ function renderPrograms() {
         <button class="btn" data-pub="${p.id}">${p.published ? '비공개로' : '공개하기'}</button>
         <button class="btn" data-edit="${p.id}">수정</button>
       </div>
-    </div>`).join('') : `<div class="empty">${filter === 'past' ? '지난 항목이 없습니다.' : '등록된 공연·행사가 없습니다. ‘+ 새 공연·행사’로 추가하세요.'}</div>`;
+    </div>`).join('') : `<div class="empty">${filter === 'past' ? '지난 항목이 없습니다.' : '등록된 공연·행사가 없습니다. ‘+ 새 공연·행사’로 추가하십시오.'}</div>`;
 }
 $('p-filter').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
@@ -289,7 +289,7 @@ form.addEventListener('submit', async e => {
   finally { $('btn-save').disabled = false; }
 });
 $('btn-del').onclick = async () => {
-  if (!editingId || !confirm('이 공연·행사를 삭제할까요? 되돌릴 수 없습니다.')) return;
+  if (!editingId || !confirm('이 공연·행사를 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
   await deleteDoc(doc(db, 'programs', editingId));
   $('dlg').close(); toast('삭제했습니다'); loadPrograms();
 };
@@ -320,7 +320,7 @@ async function loadVersions() {
 $('vlist').onclick = async e => {
   const id = e.target.closest('[data-restore]')?.dataset.restore; if (!id) return;
   const v = versions.find(x => x.id === id);
-  if (!confirm(`${fmt(v.publishedAt)} 게시본으로 되돌릴까요?\n현재 게시본은 버전 기록에 보관됩니다.`)) return;
+  if (!confirm(`${fmt(v.publishedAt)} 게시본으로 되돌리시겠습니까?\n현재 게시본은 버전 기록에 보관됩니다.`)) return;
   const ref = doc(db, 'siteContent', 'homepage');
   const cur = await getDoc(ref);
   if (cur.exists()) {

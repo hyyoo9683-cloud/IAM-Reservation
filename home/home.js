@@ -276,7 +276,7 @@ function photoSet(path, legacyPath, { fixed = false, ph = '', label = '' } = {})
   const img = (u, cls = '') => `<img${cls ? ` class="${cls}"` : ''} src="${esc(safeUrl(u))}" alt="" loading="lazy">`;
   let view = '';
   if (!urls.length) {
-    if (state.editing || ph) view = `<div class="ph ps-ph"${ph ? ` style="--g:${esc(ph)}"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(state.editing || !label ? '사진을 올려 주세요' : label)}</span></div>`;
+    if (state.editing || ph) view = `<div class="ph ps-ph"${ph ? ` style="--g:${esc(ph)}"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(state.editing || !label ? '사진을 올려 주십시오' : label)}</span></div>`;
   } else if (urls.length === 1) {
     view = fixed ? `<div class="ps-fixed">${img(urls[0])}</div>` : img(urls[0], 'ps-one');
   } else {
@@ -294,7 +294,7 @@ function photoSet(path, legacyPath, { fixed = false, ph = '', label = '' } = {})
         <button type="button" data-ps="right" data-i="${i}" ${i === urls.length - 1 ? 'disabled' : ''} title="뒤로">▶</button>
         <button type="button" data-ps="del" data-i="${i}" title="이 사진 빼기">✕</button></span></div>`).join('')}
       <div class="ed-img-add"><button type="button" class="ed-chip" data-ps-add>+ 사진 추가</button></div>
-      <span class="ps-note">1장은 한 장으로, 2장 이상은 넘겨 보는 슬라이드로 보여요</span>
+      <span class="ps-note">1장은 한 장으로, 2장 이상은 넘겨 보는 슬라이드로 보입니다</span>
     </div>` : '';
   return `<div class="pset${fixed ? ' fixed' : ''}">${view}${edit}</div>`;
 }
@@ -414,7 +414,7 @@ function floorsHtml() {
         ${floorCells(f)}${floorLinksHtml(f)}</div>
       </div>`).join('') || '<p class="empty">등록된 층별 안내가 없습니다.</p>'}
     </div>
-    ${state.editing ? '<p class="edit-hint">층 이름·공간 이름·소개 글은 눌러서 바로 고칠 수 있어요(굵게도 가능). 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있어요. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
+    ${state.editing ? '<p class="edit-hint">층 이름·공간 이름·소개 글은 눌러서 바로 고칠 수 있습니다(굵게도 가능). 층마다 바로가기 버튼은 여기서 “+ 버튼”으로 추가하고, 이름·🔗링크를 고치거나 ✕로 뺄 수 있습니다. (홈페이지 안 주소 ./?page=… 는 옅은 회색 버튼, 바깥 사이트는 테두리 버튼으로 새 창)</p>' : ''}
   </div>
 </section>`;
 }
@@ -446,7 +446,7 @@ function pageBlocks(id) {
     ${state.editing ? `<p class="edit-hint blk-add">
       <button type="button" class="ed-chip" data-blk-add="text" data-path="${path}">+ 텍스트</button>
       <button type="button" class="ed-chip" data-blk-add="image" data-path="${path}">+ 사진</button>
-      칸을 맨 아래에 추가합니다. 글자를 선택하고 아래 막대의 <b>B 굵게</b>(또는 Ctrl+B)로 굵기를 바꿀 수 있어요. 게시해야 방문자에게 보입니다.</p>` : ''}
+      칸을 맨 아래에 추가합니다. 글자를 선택하고 아래 막대의 <b>B 굵게</b>(또는 Ctrl+B)로 굵기를 바꿀 수 있습니다. 게시해야 방문자에게 보입니다.</p>` : ''}
   </div>
 </section>`;
 }
@@ -506,7 +506,7 @@ function imgSlot(path, label, cls = '', zoom = false) {
     ? `<object type="image/svg+xml" data="${esc(u)}" aria-label="${esc(label)}" style="display:block;width:100%;aspect-ratio:5/3;pointer-events:none"></object>`
     : `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">`;
   // zoom: 방문자가 누르면 원본을 새 창으로(휴대폰에서 약도 글씨 확대용)
-  return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? (zoom && !state.editing ? `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener" aria-label="${esc(label)} 크게 보기">${img}</a>` : img) : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
+  return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? (zoom && !state.editing ? `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener" aria-label="${esc(label)} 크게 보기">${img}</a>` : img) : `<span class="slot-ph">${esc(label)} 사진을 올려 주십시오</span>`}</div>`;
 }
 // 왼쪽 제목 칸: 영문 큰 제목(있으면) + 한글 제목
 const kvHead = (titlePath, enPath, enFb) => `<div class="kv-h">${enPath ? tf(enPath, enFb, 'span', 'kv-en') : ''}${t(titlePath, 'h3')}</div>`;
@@ -549,7 +549,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
       ${kvHead(titlePath, enPath, enFb)}
       <div>
         <ul class="tlist ${kind}">${show.map(([, i]) => `<li>${rich(`${listPath}.${i}`, 'span')}${arrCtl(listPath, i, list.length)}</li>`).join('')}</ul>
-        ${arrAdd(listPath, '내용을 입력하세요.')}
+        ${arrAdd(listPath, '내용을 입력하십시오.')}
       </div>
     </div>`;
 }
@@ -588,11 +588,11 @@ function guideWay() {
             ${rich(`${G}.way.transport.${bi}.rows.${ri}.text`, 'span', 't-txt')}
             ${arrCtl(`${G}.way.transport.${bi}.rows`, ri, (b.rows || []).length)}
           </div>`).join('')}
-          ${arrAdd(`${G}.way.transport.${bi}.rows`, { label: '', tone: '', text: '내용을 입력하세요.' })}
+          ${arrAdd(`${G}.way.transport.${bi}.rows`, { label: '', tone: '', text: '내용을 입력하십시오.' })}
         </div>
         ${arrCtl(`${G}.way.transport`, bi, tr.length)}
       </div>`).join('')}
-      ${arrAdd(`${G}.way.transport`, { h: '새 교통편', rows: [{ label: '', tone: '', text: '내용을 입력하세요.' }] }, '+ 교통편 상자 추가')}
+      ${arrAdd(`${G}.way.transport`, { h: '새 교통편', rows: [{ label: '', tone: '', text: '내용을 입력하십시오.' }] }, '+ 교통편 상자 추가')}
     </div>
   </div>
 </section>`;
@@ -646,7 +646,7 @@ function guideAmenity() {
           ${arrCtl(A, i, st.length)}
         </div>
       </div>`).join('')}
-      ${arrAdd(A, { name: '새 시설', img: '', label: '문의', contact: '', desc: '설명을 입력하세요.' }, '+ 시설 추가')}
+      ${arrAdd(A, { name: '새 시설', img: '', label: '문의', contact: '', desc: '설명을 입력하십시오.' }, '+ 시설 추가')}
     </div>
   </div>
 </section>
@@ -758,7 +758,7 @@ function rentHallFees() {
     <div class="remarks rv">
       ${t(`${P}.remarksTitle`, 'h4')}
       <ol>${rm.map((x, i) => `<li>${rich(`${P}.remarks.${i}`, 'span')}${arrCtl(`${P}.remarks`, i, rm.length)}</li>`).join('')}</ol>
-      ${arrAdd(`${P}.remarks`, '내용을 입력하세요.')}
+      ${arrAdd(`${P}.remarks`, '내용을 입력하십시오.')}
     </div>` : ''}`;
 }
 function rentSeminarFees() {
@@ -786,7 +786,7 @@ function rentTerms(k) {
   return `
 <section class="page-facts terms${hidden ? ' is-hidden' : ''}" data-sec="page" id="terms-${k}">
   <div class="wrap">
-    ${state.editing ? `<p class="terms-flag">대관 규약·취소 및 환불규정은 지금 <b>${hidden ? '방문자에게 숨김' : '방문자에게 보임'}</b> 상태예요. (두 탭 공통) <button type="button" class="ed-chip" data-flag="${R}.rulesHidden">${hidden ? '방문자에게 보이기' : '다시 숨기기'}</button></p>` : ''}
+    ${state.editing ? `<p class="terms-flag">대관 규약·취소 및 환불규정은 지금 <b>${hidden ? '방문자에게 숨김' : '방문자에게 보임'}</b> 상태입니다. (두 탭 공통) <button type="button" class="ed-chip" data-flag="${R}.rulesHidden">${hidden ? '방문자에게 보이기' : '다시 숨기기'}</button></p>` : ''}
     ${textList(`${R}.${k}.rulesTitle`, `${R}.${k}.rules`, 'dot', `${R}.${k}.rulesEn`, 'Terms')}
     ${textList(`${R}.${k}.refundTitle`, `${R}.${k}.refund`, 'dot', `${R}.${k}.refundEn`, 'Refund Policy')}
   </div>
@@ -804,14 +804,14 @@ const fv = k => esc(applyForm.f[k] || '');
 // 날짜를 고르면 그날 이미 확정된 예약 시간을 보여 줌(대관 일정과 같은 공개 사본)
 function applyDayHint(ds) {
   if (!ds) return '';
-  if (isSunday(ds)) return '<span class="ap-hint warn">주일(일요일)은 대관하지 않아요. 다른 날짜를 골라 주세요.</span>';
+  if (isSunday(ds)) return '<span class="ap-hint warn">주일(일요일)은 대관하지 않습니다. 다른 날짜를 골라 주십시오.</span>';
   const list = state.sched.res[ds.slice(0, 7)];
   if (list === undefined) return '<span class="ap-hint">예약 현황 확인 중…</span>';
   if (!list) return '';
   const rs = list.filter(r => r.room === applyForm.space && r.date === ds).sort((a, b) => String(a.start).localeCompare(String(b.start)));
   const bd = schedBlocked(ds);
-  if (bd) return `<span class="ap-hint warn">${bd.sunday ? '주일(일요일)은 대관하지 않아요. 다른 날짜를 골라 주세요.' : '이 날은 이용할 수 없어요.'}</span>`;
-  return rs.length ? `<span class="ap-hint">이미 예약된 시간: ${rs.map(r => `${esc(r.start)}–${esc(r.end)}`).join(', ')}</span>` : '<span class="ap-hint ok">이 날은 예약된 시간이 없어요.</span>';
+  if (bd) return `<span class="ap-hint warn">${bd.sunday ? '주일(일요일)은 대관하지 않습니다. 다른 날짜를 골라 주십시오.' : '이 날은 이용할 수 없습니다.'}</span>`;
+  return rs.length ? `<span class="ap-hint">이미 예약된 시간: ${rs.map(r => `${esc(r.start)}–${esc(r.end)}`).join(', ')}</span>` : '<span class="ap-hint ok">이 날은 예약된 시간이 없습니다.</span>';
 }
 function applyDates() {
   return applyForm.dates.map((d, i) => `
@@ -887,13 +887,13 @@ async function applyLoadHints() {
 async function submitApply() {
   const f = applyForm.f, V = APPLY_VENUES[applyForm.space];
   const need = [['org', '단체·기관명을'], ['mgr', '담당자 이름을'], ['tel', '연락처를']].find(([k]) => !String(f[k] || '').trim());
-  if (need) { applyForm.err = `${need[1]} 입력해 주세요.`; redrawApply(); document.querySelector('.ap-err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  if (need) { applyForm.err = `${need[1]} 입력해 주십시오.`; redrawApply(); document.querySelector('.ap-err')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   const dates = applyForm.dates.filter(d => d.date).map(d => ({ date: d.date, timeStart: d.start || '', timeEnd: d.end || '' }));
-  if (!dates.length) { applyForm.err = '날짜를 하나 이상 골라 주세요.'; redrawApply(); return; }
+  if (!dates.length) { applyForm.err = '날짜를 하나 이상 골라 주십시오.'; redrawApply(); return; }
   const sun = dates.find(d => isSunday(d.date));
-  if (sun) { applyForm.err = `${sun.date}은 주일(일요일)이라 대관하지 않아요. 다른 날짜를 골라 주세요.`; redrawApply(); return; }
+  if (sun) { applyForm.err = `${sun.date}은 주일(일요일)이라 대관하지 않습니다. 다른 날짜를 골라 주십시오.`; redrawApply(); return; }
   const bad = dates.find(d => d.timeStart && d.timeEnd && d.timeEnd <= d.timeStart);
-  if (bad) { applyForm.err = `${bad.date}의 끝나는 시간이 시작 시간보다 늦어야 해요.`; redrawApply(); return; }
+  if (bad) { applyForm.err = `${bad.date}의 끝나는 시간이 시작 시간보다 늦어야 합니다.`; redrawApply(); return; }
   const data = {
     space: applyForm.space,
     orgName: f.org.trim(), managerName: f.mgr.trim(), tel: f.tel.trim(), email: String(f.email || '').trim(),
@@ -923,7 +923,7 @@ async function submitApply() {
     applyForm.done = true;
   } catch (e) {
     console.error(e);
-    applyForm.err = '제출하지 못했어요. 잠시 후 다시 시도하거나 전화로 문의해 주세요.';
+    applyForm.err = '제출하지 못했습니다. 잠시 후 다시 시도하거나 전화로 문의해 주십시오.';
   }
   applyForm.sending = false; redrawApply();
   document.querySelector('.tab-panel[data-panel="apply"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1030,17 +1030,17 @@ function schedCal(k) {
         <button type="button" class="cal-today" data-cal-today>오늘</button>
         <span class="cal-legend"><i class="lg-res"></i>예약 <i class="lg-blk"></i>이용 불가(주일 포함)</span>
       </div>
-      ${list === null ? '<p class="cal-err">일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>' : ''}
+      ${list === null ? '<p class="cal-err">일정을 불러오지 못했습니다. 잠시 후 다시 시도해 주십시오.</p>' : ''}
       <div class="cal-grid${list === undefined ? ' loading' : ''}">
         ${DOW_KO.map((w, i) => `<span class="cal-w${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</span>`).join('')}
         ${cells}
       </div>
       <div class="cal-day">
         <div class="cd-hd"><strong>${sd.getMonth() + 1}월 ${sd.getDate()}일 (${DOW_KO[sd.getDay()]})</strong><span>${esc(room)}</span></div>
-        ${bd ? `<p class="cd-blk">${bd.sunday ? '주일(일요일)은 대관하지 않아요.' : `이 날은 이용할 수 없어요${bd.reason ? ` · ${esc(bd.reason)}` : ''}.`}</p>` : `
+        ${bd ? `<p class="cd-blk">${bd.sunday ? '주일(일요일)은 대관하지 않습니다.' : `이 날은 이용할 수 없습니다${bd.reason ? ` · ${esc(bd.reason)}` : ''}.`}</p>` : `
         <div class="cd-bar">${bar}</div>
         <div class="cd-ticks">${ticks}</div>
-        ${rs.length ? `<ul class="cd-list">${rs.map(r => `<li><b>${esc(r.start)} – ${esc(r.end)}</b><span>예약됨</span></li>`).join('')}</ul>` : '<p class="cd-none">예약된 시간이 없어요.</p>'}`}
+        ${rs.length ? `<ul class="cd-list">${rs.map(r => `<li><b>${esc(r.start)} – ${esc(r.end)}</b><span>예약됨</span></li>`).join('')}</ul>` : '<p class="cd-none">예약된 시간이 없습니다.</p>'}`}
       </div>
     </div>`;
 }

@@ -82,7 +82,7 @@ function askLoginClick(signIn) {
   return new Promise(resolve => {
     const box = document.createElement('div');
     box.className = 'ed-login';
-    box.innerHTML = `<p>편집 모드를 열려면 관리자 계정으로 로그인하세요.</p>
+    box.innerHTML = `<p>편집 모드를 열려면 관리자 계정으로 로그인하십시오.</p>
       <button type="button" class="primary" data-a="login">Google로 로그인</button>
       <button type="button" class="ghost" data-a="close">닫기</button>`;
     document.body.appendChild(box);
@@ -91,7 +91,7 @@ function askLoginClick(signIn) {
       if (a === 'close') { box.remove(); resolve(null); return; }
       try { const r = await signIn(); box.remove(); resolve(r.user); }
       catch (err) {
-        if (err.code === 'auth/popup-blocked') alert('브라우저가 로그인 팝업을 막았습니다. 주소창 오른쪽의 팝업 차단 표시에서 이 사이트의 팝업을 허용한 뒤 다시 눌러 주세요.');
+        if (err.code === 'auth/popup-blocked') alert('브라우저가 로그인 팝업을 막았습니다. 주소창 오른쪽의 팝업 차단 표시에서 이 사이트의 팝업을 허용한 뒤 다시 눌러 주십시오.');
         else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') alert('로그인에 실패했습니다: ' + (err.message || err));
       }
     });
@@ -117,7 +117,7 @@ function buildBar(signOut, auth) {
   bar.querySelector('.ed-page').addEventListener('change', e => {
     const id = e.target.value;
     try { if (isDirty()) sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ published, draft })); } catch (_) {
-      if (isDirty() && !confirm('게시하지 않은 변경 내용이 사라집니다. 이동할까요?')) { e.target.value = state.page || ''; return; }
+      if (isDirty() && !confirm('게시하지 않은 변경 내용이 사라집니다. 이동하시겠습니까?')) { e.target.value = state.page || ''; return; }
     }
     published = JSON.stringify(draft); // beforeunload 경고 방지
     location.href = `${location.pathname}?${id ? `page=${id}&` : ''}edit=1`;
@@ -127,20 +127,20 @@ function buildBar(signOut, auth) {
   bar.addEventListener('click', async e => {
     if (e.target.closest('[data-a]')?.dataset.a === 'bold') {
       const el = document.activeElement;
-      if (!el || !el.matches('[data-rich]')) { toast('굵게는 본문 글(텍스트 칸·소개 글)에서 글자를 선택한 뒤 쓸 수 있어요.'); return; }
+      if (!el || !el.matches('[data-rich]')) { toast('굵게는 본문 글(텍스트 칸·소개 글)에서 글자를 선택한 뒤 쓸 수 있습니다.'); return; }
       document.execCommand('bold');
       return;
     }
     const a = e.target.closest('[data-a]')?.dataset.a;
     if (a === 'toggle') setEditing(!state.editing);
     if (a === 'discard') {
-      if (!isDirty() || confirm('게시하지 않은 변경 내용을 모두 되돌릴까요?')) {
+      if (!isDirty() || confirm('게시하지 않은 변경 내용을 모두 되돌리시겠습니까?')) {
         draft = JSON.parse(published); state.content = draft; render(); updateStatus();
       }
     }
     if (a === 'publish') publish();
     if (a === 'logout') {
-      if (isDirty() && !confirm('게시하지 않은 변경 내용이 사라집니다. 로그아웃할까요?')) return;
+      if (isDirty() && !confirm('게시하지 않은 변경 내용이 사라집니다. 로그아웃하시겠습니까?')) return;
       published = JSON.stringify(draft); // beforeunload 경고 방지
       await signOut(auth); location.href = location.pathname;
     }
@@ -170,7 +170,7 @@ function updateStatus() {
 // ── 게시 ───────────────────────────────────────────────────────
 async function publish() {
   if (!isDirty()) return;
-  if (!confirm('지금 내용으로 홈페이지를 게시할까요?\n(현재 게시된 버전은 관리자 페이지 › 버전 기록에 보관됩니다)')) return;
+  if (!confirm('지금 내용으로 홈페이지를 게시하시겠습니까?\n(현재 게시된 버전은 관리자 페이지 › 버전 기록에 보관됩니다)')) return;
   const btn = bar.querySelector('[data-a="publish"]');
   btn.disabled = true; btn.textContent = '게시 중…';
   try {
@@ -285,7 +285,7 @@ function decorate() {
     chip.title = getPath(draft, path) || '';
     chip.addEventListener('click', e => {
       e.preventDefault(); e.stopPropagation();
-      const v = prompt('연결할 주소를 입력하세요.\n예) https://… , www.example.org , #visit', getPath(draft, path) || '');
+      const v = prompt('연결할 주소를 입력하십시오.\n예) https://… , www.example.org , #visit', getPath(draft, path) || '');
       if (v === null) return;
       setPath(draft, path, normalizeLink(v));
       render(); updateStatus();
@@ -306,7 +306,7 @@ function decorate() {
     e.preventDefault();
     const i = Number(b.dataset.noticeDel);
     const n = draft.notice.items[i];
-    if (!confirm(`이 공지를 삭제할까요?\n${n?.title || ''}`)) return;
+    if (!confirm(`이 공지를 삭제하시겠습니까?\n${n?.title || ''}`)) return;
     draft.notice.items.splice(i, 1);
     render(); updateStatus();
   }));
@@ -315,7 +315,7 @@ function decorate() {
   document.querySelectorAll('[data-blk-add]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault();
     const path = b.dataset.path;
-    const item = b.dataset.blkAdd === 'image' ? { type: 'image', img: '', caption: '' } : { type: 'text', h: '', p: '내용을 입력하세요.', align: 'left' };
+    const item = b.dataset.blkAdd === 'image' ? { type: 'image', img: '', caption: '' } : { type: 'text', h: '', p: '내용을 입력하십시오.', align: 'left' };
     setPath(draft, path, [...(getPath(draft, path) || []), item]);
     render(); updateStatus();
   }));
@@ -328,7 +328,7 @@ function decorate() {
     else if (act === 'align') arr[i].align = arr[i].align === 'center' ? 'left' : 'center';
     else if (act === 'del') {
       const label = arr[i]?.type === 'image' ? '사진 칸' : (arr[i]?.h || String(arr[i]?.p || '').slice(0, 20));
-      if (!confirm(`이 칸을 삭제할까요?\n${label}`)) return;
+      if (!confirm(`이 칸을 삭제하시겠습니까?\n${label}`)) return;
       arr.splice(i, 1);
     } else return;
     render(); updateStatus();
@@ -351,7 +351,7 @@ function decorate() {
     const i = Number(b.dataset.i);
     if (b.dataset.ps === 'left' && i > 0) [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
     else if (b.dataset.ps === 'right' && i < arr.length - 1) [arr[i + 1], arr[i]] = [arr[i], arr[i + 1]];
-    else if (b.dataset.ps === 'del') { if (!confirm('이 사진을 뺄까요? (게시해야 방문자 화면에 반영돼요)')) return; arr.splice(i, 1); }
+    else if (b.dataset.ps === 'del') { if (!confirm('이 사진을 빼시겠습니까? (게시해야 방문자 화면에 반영됩니다)')) return; arr.splice(i, 1); }
     else return;
     render(); updateStatus();
   }));
@@ -359,16 +359,16 @@ function decorate() {
   // 7) 푸터 유관기관 추가·빼기 (footer.orgs — 화면에는 가나다순으로 정렬돼 보임)
   document.querySelector('[data-org-add]')?.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
-    const name = prompt('추가할 기관 이름을 입력하세요.');
+    const name = prompt('추가할 기관 이름을 입력하십시오.');
     if (!name || !name.trim()) return;
-    const link = prompt('기관 홈페이지 주소를 입력하세요. (모르면 비워 두고 나중에 🔗로 입력)', '');
+    const link = prompt('기관 홈페이지 주소를 입력하십시오. (모르면 비워 두고 나중에 🔗로 입력)', '');
     draft.footer.orgs = [...(draft.footer.orgs || []), { label: name.trim(), link: normalizeLink(link || '') }];
     render(); updateStatus();
   });
   document.querySelectorAll('[data-org-del]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
     const i = Number(b.dataset.orgDel), arr = draft.footer.orgs || [];
-    if (!confirm(`'${arr[i]?.label || ''}'을(를) 유관기관 목록에서 뺄까요?`)) return;
+    if (!confirm(`'${arr[i]?.label || ''}'을(를) 유관기관 목록에서 빼시겠습니까?`)) return;
     arr.splice(i, 1);
     render(); updateStatus();
   }));
@@ -376,9 +376,9 @@ function decorate() {
   // 8) 층별 바로가기 버튼 추가·빼기 (pages.about.floorBtns[층])
   document.querySelectorAll('[data-fb-add]').forEach(b => b.addEventListener('click', e => {
     e.preventDefault(); e.stopPropagation();
-    const name = prompt('버튼 이름을 입력하세요. (예: 아론홀, 조스테이블)');
+    const name = prompt('버튼 이름을 입력하십시오. (예: 아론홀, 조스테이블)');
     if (!name || !name.trim()) return;
-    const link = prompt('연결할 주소를 입력하세요.\n예) www.example.org , ./?page=aaron (홈페이지 안 페이지)', '');
+    const link = prompt('연결할 주소를 입력하십시오.\n예) www.example.org , ./?page=aaron (홈페이지 안 페이지)', '');
     const fb = draft.pages.about.floorBtns || (draft.pages.about.floorBtns = {});
     const k = b.dataset.fbAdd;
     fb[k] = [...(fb[k] || []), { label: name.trim(), link: normalizeLink(link || '') }];
@@ -388,7 +388,7 @@ function decorate() {
     e.preventDefault(); e.stopPropagation();
     const [k, i] = b.dataset.fbDel.split('|');
     const arr = draft.pages.about.floorBtns?.[k] || [];
-    if (!confirm(`'${arr[i]?.label || ''}' 버튼을 뺄까요?`)) return;
+    if (!confirm(`'${arr[i]?.label || ''}' 버튼을 빼시겠습니까?`)) return;
     arr.splice(Number(i), 1);
     render(); updateStatus();
   }));
@@ -411,7 +411,7 @@ function decorate() {
     if (b.dataset.arrDel) {
       const it = arr[i];
       const label = typeof it === 'string' ? it : (it?.k || it?.t || it?.name || it?.label || it?.h || it?.g || '');
-      if (!confirm(`이 줄을 뺄까요?\n${String(label).replace(/\*\*/g, '').slice(0, 40)}`)) return;
+      if (!confirm(`이 줄을 빼시겠습니까?\n${String(label).replace(/\*\*/g, '').slice(0, 40)}`)) return;
       arr.splice(i, 1);
     } else {
       const j = i + Number(sd);
