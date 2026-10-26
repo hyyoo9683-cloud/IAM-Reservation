@@ -7,7 +7,7 @@ import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
 const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
 // 편집 막대의 페이지 이동 목록 ([page 값, 이름] — '' = 메인)
-const EDIT_PAGES = [['', '메인'], ['about', '아이엠센터 소개'], ['guide', '방문가이드'], ['schedule', '대관 일정'], ['aaron', '아론홀'], ['sharon', '샤론홀'], ['hall', '아이엠홀'], ['rental', '대관신청']];
+const EDIT_PAGES = [['', '메인'], ['about', '아이엠센터 소개'], ['guide', '방문가이드'], ['notice', '공지사항'], ['schedule', '대관 일정'], ['aaron', '아론홀'], ['sharon', '샤론홀'], ['hall', '아이엠홀'], ['rental', '대관신청']];
 let draft = null;        // 편집 중인 내용
 let published = '';      // 마지막으로 게시된 내용(JSON) — 변경 여부 비교용
 let user = null;

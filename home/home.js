@@ -18,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26g';
+const CSS_VER = '2026-10-26h';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -205,7 +205,7 @@ const SECTIONS = {
     <div class="rv">
       <div class="sec-hd"><h2>${t('notice.title')}<span class="h2sub" data-k="notice.sub">${esc(c('notice.sub'))}</span></h2></div>
       <div class="list">
-        ${items.length ? items.map((n, i) => `<div class="row">${t(`notice.items.${i}.category`, 'span', 'c')}${t(`notice.items.${i}.title`, 'span', 'ti')}${t(`notice.items.${i}.date`, 'time')}${state.editing ? `<button type="button" class="ed-chip ghost" data-notice-del="${i}">삭제</button>` : ''}</div>`).join('')
+        ${items.length ? (state.editing ? items : items.slice(0, NOTICE_MAIN)).map((n, i) => noticeRow(i)).join('')
           : '<p class="empty">등록된 공지가 없습니다.</p>'}
       </div>
       ${state.editing ? '<p class="edit-hint">공지는 글자를 눌러 바로 고치고, <button type="button" class="ed-chip" data-notice-add>+ 공지 추가</button> 로 맨 위에 새 공지를 넣습니다. 게시해야 방문자에게 보입니다.</p>' : ''}
@@ -1066,7 +1066,35 @@ async function gotoSchedMonth(month) {
   if (state.sched.month === month) redrawSched();
 }
 
+// ── 공지사항 ─────────────────────────────────────────────
+// 메인 Notice는 앞의 NOTICE_MAIN개만 보여주고, 줄을 누르면 공지사항 페이지(./?page=notice#n-번호)의 그 글로 이동
+const NOTICE_MAIN = 5;
+function noticeRow(i, tag = 'a') {
+  const P = `notice.items.${i}`;
+  const cells = `${t(`${P}.category`, 'span', 'c')}${t(`${P}.title`, 'span', 'ti')}${t(`${P}.date`, 'time')}`;
+  if (state.editing) return `<div class="row">${cells}<button type="button" class="ed-chip ghost" data-notice-del="${i}">삭제</button></div>`;
+  if (tag === 'a') return `<a class="row" href="./?page=notice#n-${i}">${cells}<span class="arw" aria-hidden="true">→</span></a>`;
+  return `<${tag} class="row">${cells}</${tag}>`;
+}
+function noticeBody() {
+  const items = c('notice.items') || [];
+  const list = items.map((n, i) => {
+    const P = `notice.items.${i}`;
+    if (state.editing) return `<div class="nitem" id="n-${i}">${noticeRow(i)}${rich(`${P}.body`, 'div', 'nb')}</div>`;
+    if (!String(n?.body || '').trim()) return `<div class="nitem" id="n-${i}">${noticeRow(i, 'div')}</div>`;
+    return `<details class="nitem" id="n-${i}">${noticeRow(i, 'summary')}${rich(`${P}.body`, 'div', 'nb')}</details>`;
+  }).join('');
+  return `
+<section class="nlist-sec" data-sec="page">
+  <div class="wrap">
+    <div class="list nlist">${list || '<div class="row"><span class="ti" style="grid-column:1/-1;color:var(--mute)">등록된 공지가 없습니다.</span></div>'}</div>
+    ${state.editing ? '<p class="edit-hint">제목·분류·날짜를 눌러 고치고, 아래 칸에 본문을 적으면 방문자는 제목을 눌러 펼쳐 봅니다(본문이 없으면 제목만). <button type="button" class="ed-chip" data-notice-add>+ 공지 추가</button></p>' : ''}
+  </div>
+</section>`;
+}
+
 const PAGES = {
+  notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
   about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
@@ -1169,6 +1197,7 @@ function scrollToHash() {
   const el = sel ? [...document.querySelectorAll(sel)].find(e => !e.closest('[hidden]')) : document.getElementById(id);
   if (!el) return;
   hashDone = true;
+  if (el.tagName === 'DETAILS') el.open = true;
   requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
 }
 

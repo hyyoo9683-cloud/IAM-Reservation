@@ -1,7 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
-export const PAGE_IDS = ['about', 'guide', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
+export const PAGE_IDS = ['about', 'guide', 'notice', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -16,6 +16,7 @@ export const DEFAULT_CONTENT = {
     center: [
       { label: '아이엠센터 소개', link: './?page=about' },
       { label: '방문가이드', link: './?page=guide' },
+      { label: '공지사항', link: './?page=notice' },
     ],
     seminar: [
       { label: '아론홀(2F)', link: './?page=aaron' },
@@ -218,6 +219,11 @@ export const DEFAULT_CONTENT = {
     // 대관 규약·환불 규정은 확정 전이라 rulesHidden: true(방문자에게 숨김) — 편집 모드에서 ‘방문자에게 보이기’로 켬
     // 대관 일정 페이지(./?page=schedule) — 아론홀·샤론홀 탭, 월간 달력은 예약 시스템의 공개 사본(publicReservations, 확정만)·차단일(blockedDates)을 읽어 그림
     // 개인정보 보호를 위해 시간만 보여주고 행사명·단체명은 보여주지 않음(예약 시스템 공개 캘린더와 같은 기준)
+    // 공지사항 페이지(./?page=notice) — 메인 Notice와 같은 notice.items를 모두 보여줌, 본문(body)이 있는 공지는 눌러서 펼침
+    notice: {
+      eyebrow: 'Notice', title: '공지사항', lead: '아이엠센터의 대관·이용 소식을 알려 드립니다.',
+      blocks: [],
+    },
     schedule: {
       eyebrow: 'Schedule', title: '대관 일정', lead: '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있어요.',
       blocks: [],
@@ -405,10 +411,11 @@ export const DEFAULT_CONTENT = {
     title: 'Notice',
     sub: '대관 및 이용 안내',
     // 홈페이지 전용 공지 — 인트라넷 notices와 별개, 편집 모드에서 추가·수정·삭제 (최신 글을 위에)
+    // body: 공지사항 페이지에서 펼쳐 보는 본문(선택, 굵게 가능) — 메인에는 앞의 NOTICE_MAIN개만, 누르면 공지사항 페이지의 그 글로
     items: [
-      { category: '대관', title: '아이엠홀 하반기 대관 일정 안내', date: '2026.09.08' },
-      { category: '이용', title: '아론홀·샤론홀 이용 규정 안내', date: '2026.08.27' },
-      { category: '안내', title: '아이엠센터 주차 안내 업데이트', date: '2026.07.30' },
+      { category: '대관', title: '아이엠홀 하반기 대관 일정 안내', date: '2026.09.08', body: '' },
+      { category: '이용', title: '아론홀·샤론홀 이용 규정 안내', date: '2026.08.27', body: '' },
+      { category: '안내', title: '아이엠센터 주차 안내 업데이트', date: '2026.07.30', body: '' },
     ],
     rentEyebrow: 'Rental',
     rentTitle: '공간이\n필요하신가요?',
@@ -458,6 +465,9 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
+  // 2026-10-26 아이엠센터 메뉴에 '공지사항' 추가 — 예전 기본 메뉴 그대로면 새 메뉴로
+  ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '방문가이드', link: './?page=guide' }]],
+  ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '조직도', link: './?page=org' }, { label: '방문가이드', link: './?page=guide' }]],
   ['notice.cta2Link', 'https://iamreservation.web.app/cal-public.html'],
   ['pages.rental.applyLink', 'https://iamreservation.web.app/venue-apply.html'],
   ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
