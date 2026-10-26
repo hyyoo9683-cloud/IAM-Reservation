@@ -554,7 +554,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { apply: 'Apply Online', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { apply: 'Apply Online', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities · Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -629,11 +629,8 @@ const STORE_G = ['linear-gradient(135deg,#3a332b,#15120f)', 'linear-gradient(135
 function guideAmenity() {
   const A = `${G}.amenity.stores`;
   const st = c(A) || [];
-  // 층별 안내는 ‘아이엠센터 소개’와 같은 데이터·같은 표를 그대로 보여줌(여기서는 읽기 전용 — 고치는 곳은 소개 페이지)
-  const ed = state.editing;
-  state.editing = false;
-  const floors = floorsHtml().replace(/ data-(k|link|ml|rich)="[^"]*"/g, '');
-  state.editing = ed;
+  // 층별 안내(2026-10-26 소개 페이지에서 이 탭으로 옮김) — 데이터는 그대로 pages.about.floor*에 두고 여기서 편집
+  const floors = floorsHtml();
   return `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
@@ -653,7 +650,7 @@ function guideAmenity() {
     </div>
   </div>
 </section>
-${floors ? DOTS + floors + (ed ? '<div class="wrap"><p class="edit-hint">층별 안내는 ‘아이엠센터 소개’ 페이지와 같은 내용이에요. 고치려면 편집 막대에서 ‘아이엠센터 소개’로 이동해 고칩니다.</p></div>' : '') : ''}`;
+${floors ? DOTS + floors : ''}`;
 }
 function guideWheel() {
   return `
@@ -1098,7 +1095,7 @@ function noticeBody() {
 
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
-  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
+  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml(),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
@@ -1268,7 +1265,7 @@ export async function loadAll() {
     S.month = S.month || S.sel.slice(0, 7);
     await loadSchedMonth(S.month);
   }
-  if (state.page === 'about' || state.page === 'guide') {
+  if (state.page === 'guide') {
     try {
       const fs = await getDoc(doc(db, 'siteContent', 'floors'));
       state.floors = fs.exists() ? (fs.data().floors || []) : [];

@@ -62,7 +62,7 @@ export async function start() {
 }
 
 function seedFloorBtns(content) {
-  if (state.page !== 'about') return;
+  if (state.page !== 'guide') return;   // 층별 안내는 방문가이드 > 편의시설/층별안내 탭에 있음
   const about = content.pages.about;
   if (!about.floorBtns || typeof about.floorBtns !== 'object' || Array.isArray(about.floorBtns)) about.floorBtns = {};
   if (!about.floorText || typeof about.floorText !== 'object' || Array.isArray(about.floorText)) about.floorText = {};

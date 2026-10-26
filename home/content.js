@@ -67,7 +67,7 @@ export const DEFAULT_CONTENT = {
       // 예전 임시 블록(주차·편의 시설·대중교통)은 아래 탭 내용으로 옮김 — 손대지 않은 예전 기본값은 LEGACY_DEFAULTS가 비움
       blocks: [],
       // 탭 4개(오시는 길·주차안내·편의시설·휠체어 이용안내) — 주소 ./?page=guide&tab=parking 처럼 바로 열 수 있음
-      tabs: { way: '오시는 길', parking: '주차안내', amenity: '편의시설', wheel: '휠체어 이용안내' },
+      tabs: { way: '오시는 길', parking: '주차안내', amenity: '편의시설/층별안내', wheel: '휠체어 이용안내' },
       way: {
         mapImg: './map-route.svg',   // 약도(기본: 홈페이지 디자인으로 그린 home/map-route.svg — 편집 모드에서 다른 사진으로 바꿀 수 있음)
         kakaoLabel: '카카오채널 ‘아이엠센터’', kakaoLink: '',
@@ -466,6 +466,7 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
+  ['pages.guide.tabs.amenity', '편의시설'],
   // 2026-10-26 아이엠센터 메뉴에 '공지사항' 추가 — 예전 기본 메뉴 그대로면 새 메뉴로
   ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '방문가이드', link: './?page=guide' }]],
   ['nav.center', [{ label: '아이엠센터 소개', link: './?page=about' }, { label: '조직도', link: './?page=org' }, { label: '방문가이드', link: './?page=guide' }]],
