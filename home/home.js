@@ -18,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26j';
+const CSS_VER = '2026-10-26k';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -154,10 +154,7 @@ const SECTIONS = {
     ${c('about.intro') || state.editing ? `
     <div class="st-intro rv">
       ${m('about.intro')}
-      <div class="btns">
-        <a ${href('about.cta1Link')} class="btn" data-k="about.cta1">${esc(c('about.cta1'))}</a>
-        <a ${href('about.cta2Link')} class="btn line" data-k="about.cta2">${esc(c('about.cta2'))}</a>
-      </div>
+      ${ctaBtns([['about.cta1', 'btn'], ['about.cta2', 'btn line']])}
     </div>` : ''}
     <div class="stats">
       ${stats.map((s, i) => `
@@ -215,10 +212,7 @@ const SECTIONS = {
       ${m('notice.rentTitle', 'h3')}
       ${m('notice.rentDesc', 'p')}
       <ol>${steps.map((s, i) => `<li data-k="notice.steps.${i}">${esc(s)}</li>`).join('')}</ol>
-      <div class="btns">
-        <a ${href('notice.cta1Link')} class="btn"><span class="dot"></span><span data-k="notice.cta1">${esc(c('notice.cta1'))}</span> <span aria-hidden="true">→</span></a>
-        <a ${href('notice.cta2Link')} class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
-      </div>
+      ${ctaBtns([['notice.cta1', 'btn', true], ['notice.cta2', 'btn line']])}
     </aside>
   </div>
 </section>`;
@@ -251,6 +245,19 @@ const SECTIONS = {
 </section>`;
   },
 };
+
+// 버튼 묶음(글자 경로 p, 링크는 p+'Link') — 글자를 지운 버튼은 방문자에게 숨김(편집 모드에서는 흐린 점선으로 남아 다시 쓸 수 있음)
+function ctaBtns(list) {
+  const shown = list.filter(([p]) => filled(c(p)) || state.editing);
+  if (!shown.length) return '';
+  const anyEmpty = state.editing && list.some(([p]) => !filled(c(p)));
+  return `<div class="btns">${shown.map(([p, cls, deco]) => {
+    const e = filled(c(p)) ? '' : ' btn-empty';
+    return deco
+      ? `<a ${href(`${p}Link`)} class="${cls}${e}"><span class="dot"></span><span data-k="${p}">${esc(c(p))}</span> <span aria-hidden="true">→</span></a>`
+      : `<a ${href(`${p}Link`)} class="${cls}${e}" data-k="${p}">${esc(c(p))}</a>`;
+  }).join('')}</div>${anyEmpty ? '<p class="edit-hint">글자를 모두 지운 버튼(흐린 점선)은 방문자에게 보이지 않습니다. 다시 쓰면 나타납니다.</p>' : ''}`;
+}
 
 // ── 세부 페이지 (메뉴 > 아이엠센터·세미나실의 세부 메뉴) ─────────────
 // 공통 구성: 머리(작은 제목·큰 제목·소개) → 페이지별 내용 → 본문 블록(제목+글, 편집 모드에서 추가·삭제)
