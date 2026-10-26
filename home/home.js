@@ -17,7 +17,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26b';
+const CSS_VER = '2026-10-26c';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -522,7 +522,8 @@ function kvTable(titlePath, rowsPath, enPath = '', enFb = '') {
         const lines = String(r.v).split('\n').map(x => x.trim()).filter(Boolean);
         if (lines.length < 2) return `<div class="fact"><span class="fact-k">${esc(r.k)}</span><strong class="fact-v">${mlStrong(r.v)}</strong></div>`;
         return `<div class="fact"><span class="fact-k">${esc(r.k)}</span><ul class="fact-items">${lines.map(l => {
-          const mm = l.match(/^(.+?)\s+(\d.*)$/);
+          // 이름과 수량 나누기: 'TV 62인치 2대 (…)' → TV 62인치 / 2대 (…), 단위(개·대·석·명 등) 앞 숫자를 우선
+          const mm = l.match(/^(.+?)\s+(\d[\d,]*\s*(?:개|대|석|명|EA|ea|set|SET)(?![가-힣]).*)$/) || l.match(/^(.+?)\s+(\d.*)$/);
           return mm ? `<li><b>${mlStrong(mm[1])}</b><span>${mlStrong(mm[2])}</span></li>` : `<li><b>${mlStrong(l)}</b></li>`;
         }).join('')}</ul></div>`;
       }).join('')}</div>

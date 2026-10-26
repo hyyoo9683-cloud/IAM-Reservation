@@ -20,7 +20,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-10-26b";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-10-26c";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -563,10 +563,11 @@ section{padding:clamp(80px,11vw,160px) 0}
 .fact{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:baseline;padding:24px 0;border-bottom:1px solid var(--line)}
 .fact-k{font-size:14px;font-weight:600;color:var(--mute)}
 .fact-v{font-size:clamp(19px,1.9vw,24px);font-weight:800;letter-spacing:-.03em;line-height:1.35}
-.fact-items{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.fact-items li{display:flex;flex-direction:column;gap:3px;background:#fff;padding:14px 16px}
-.fact-items b{font-size:16px;font-weight:800;letter-spacing:-.02em}
-.fact-items span{font-size:13.5px;color:#555;line-height:1.5}
+.fact-items{list-style:none;display:grid;grid-template-columns:1fr 1fr;column-gap:40px}
+.fact-items li{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:9px 0;border-bottom:1px dashed #dcd9d3}
+.fact-items li:nth-last-child(-n+2):nth-child(odd),.fact-items li:last-child{border-bottom:0}
+.fact-items b{font-size:15.5px;font-weight:700;letter-spacing:-.02em}
+.fact-items span{font-size:14px;color:#555;line-height:1.5;text-align:right}
 .ptabs-wrap{padding-top:clamp(24px,3vw,40px)}
 .kv-tbl dt{padding-left:0}
 .kv-tbl dd{padding-right:0}
@@ -629,7 +630,9 @@ section{padding:clamp(80px,11vw,160px) 0}
 @media (max-width:600px){
   .ptabs{grid-template-columns:repeat(2,1fr)}
   .fact{grid-template-columns:1fr;gap:8px;padding:20px 0}
-  .fact-items{grid-template-columns:1fr 1fr}
+  .fact-items{grid-template-columns:1fr}
+  .fact-items li:nth-last-child(-n+2):nth-child(odd){border-bottom:1px dashed #dcd9d3}
+  .fact-items li:last-child{border-bottom:0}
   .ptabs button,.ptabs button[aria-selected="true"]{font-size:15px;padding:12px 4px;min-height:68px}
   .ptabs button:nth-child(odd){border-left:0}
   .ptabs button:nth-child(n+3){border-top:1px solid var(--ink)}
