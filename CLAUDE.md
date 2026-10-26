@@ -204,6 +204,12 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 클립보드에 복사(`copyAllSmsContacts()`), 문자 앱 수신자란에 붙여넣어 여러 명에게 한 번에 발송하기
 위함. 단건 문자(`openSmsModal`)·변경요청 문자(`openChangeSmsModal`)에서는 이 버튼이 숨겨짐.
 
+**5층 소그룹실 탕비실 안내 자동 첨부**: 확정·변경 안내 문자/카카오(`renderSmsBody()`, `renderBulkSmsBody()`,
+`openChangeSmsModal()`) 맨 끝(푸터 뒤)에 5층 소그룹실(`/^5\d{2}호$/` — 505~511호) 예약일 때만
+"예약 이용 시 5층 탕비실도 이용 가능합니다." + 구글 드라이브 탕비실 이용 링크가 붙음(`PANTRY_NOTICE`/
+`pantryNoticeFor(rooms)`). 정기 시리즈·일괄 선택은 포함된 공간 중 하나라도 5층 소그룹실이면 붙고, **취소 안내에는
+붙이지 않음**. 링크를 바꿀 땐 `PANTRY_NOTICE` 한 곳만 수정.
+
 ## 정기 예약 날짜 생성 규칙 (`generateAvailDates`)
 매주/격주/매달 회차 날짜는 **시작 날짜를 기준점으로 간격만큼(매주 7일·격주 14일) 앞으로
 진행**하며 생성됨(`generateAvailDatesCore()`) — 입력한 종료 날짜에 맞춰 간격을 조정하거나

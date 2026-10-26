@@ -3649,6 +3649,7 @@ ${bodyMsg}
 일시: ${ilsi}
 모임명: ${meetingName}`;
 
+  const pantry = isCancel ? '' : pantryNoticeFor([r.newRoom || r.room]);
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
@@ -3657,12 +3658,12 @@ ${bodyMsg}
 바로 소통이 가능합니다.
 http://pf.kakao.com/_Yvxaeb
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = '📨 문자 작성';
   } else {
     text = `${baseBody}
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = '💬 카카오 메시지 작성';
   }
   document.getElementById('sms-body').value = text;
@@ -6515,6 +6516,11 @@ const MSG_FOOTER = `[THE GREAT I AM
 IAM center]
 담당자 070.7018.1439`;
 
+// 5층 소그룹실(505~511호) 예약 안내 문자·카카오 맨 끝에 붙이는 탕비실 이용 안내 (취소 안내에는 붙이지 않음)
+const PANTRY_NOTICE = `예약 이용 시 5층 탕비실도 이용 가능합니다.
+https://drive.google.com/file/d/1eYZIVeZ-IuEYxzQ5MR0IguhKiLtfT7XQ/view?usp=drive_link`;
+const pantryNoticeFor = (rooms) => (rooms || []).some(rm => /^5\d{2}호$/.test(rm || '')) ? `\n\n${PANTRY_NOTICE}` : '';
+
 // checkout.html/checkouts.html의 CHK_LABELS 키와 동일 (퇴실 체크 완료 항목 판별용)
 const CHECKOUT_KEYS = ['trash', 'furniture', 'equipment', 'power', 'nodamage'];
 
@@ -7082,6 +7088,7 @@ window.renderSmsBody = () => {
 일시: ${ilsi}
 모임명: ${purpose}`;
 
+  const pantry = pantryNoticeFor((r.recurGroup && seriesMode) ? reservations.filter(x => x.recurGroup === r.recurGroup).map(x => x.room) : [r.room]);
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
@@ -7090,12 +7097,12 @@ window.renderSmsBody = () => {
 바로 소통이 가능합니다.
 http://pf.kakao.com/_Yvxaeb
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = '📨 문자 작성';
   } else {
     text = `${baseBody}
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = '💬 카카오 메시지 작성';
   }
   document.getElementById('sms-body').value = text;
@@ -7161,6 +7168,7 @@ ${isChange ? '신청하신 IAM센터 예약 일정이 아래와 같이 변경되
 
 ${list}`;
 
+  const pantry = pantryNoticeFor(entries.map(e => e.room));
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
@@ -7169,12 +7177,12 @@ ${list}`;
 바로 소통이 가능합니다.
 http://pf.kakao.com/_Yvxaeb
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = `📨 문자 작성 (${entries.length}건)`;
   } else {
     text = `${baseBody}
 
-${MSG_FOOTER}`;
+${MSG_FOOTER}${pantry}`;
     document.getElementById('sms-modal-title').textContent = `💬 카카오 메시지 작성 (${entries.length}건)`;
   }
   document.getElementById('sms-body').value = text;
