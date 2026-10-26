@@ -15,6 +15,14 @@ export const state = {
 
 export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '가족·어린이', '전시', '기타'];
 
+// 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
+// index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
+const CSS_VER = '2026-10-26b';
+try {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
+  if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
+} catch (_) { /* 저장소를 못 쓰는 브라우저는 그냥 진행 */ }
+
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ml = s => esc(s).replace(/\n/g, '<br>');            // 여러 줄 문구
 // 센터 소개 큰 문구: “ ” 따옴표로 감싼 말은 굵게 (시안 v4의 <b>“통합”</b>) — 편집 때는 글자만 저장되므로 따옴표만 지키면 유지됨
