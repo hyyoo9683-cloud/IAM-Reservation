@@ -17,7 +17,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26c';
+const CSS_VER = '2026-10-26d';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -794,18 +794,8 @@ function rentPanel(k) {
 </section>${rentTerms(k)}`;
 }
 
-function orgBody() {
-  const img = c('pages.org.img');
-  return `
-<section class="page-org" data-sec="page">
-  <div class="wrap">
-    <div class="org-box rv" data-img="pages.org.img">${img ? `<img src="${esc(safeUrl(img))}" alt="아이엠센터 조직도">` : '<p class="empty">조직도를 준비 중입니다.</p>'}</div>
-  </div>
-</section>`;
-}
 const PAGES = {
   about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
-  org: () => pageHead('org') + orgBody() + pageBlocks('org'),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
@@ -824,8 +814,8 @@ function footerHtml() {
       <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}
         <p class="ft-ct">대표 전화 ${t('footer.tel')}${c('footer.bizNo') || state.editing ? `<br>사업자등록번호 ${t('footer.bizNo')}` : ''}</p>
         ${c('footer.kakaoLink') || state.editing ? `<a ${href('footer.kakaoLink')} target="_blank" rel="noopener" class="ft-kakao" aria-label="카카오채널"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg><span>카카오채널</span></a>` : ''}</div>
-      <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li><li><a href="./?page=rental">대관신청</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="./">홈페이지</a></li><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
+      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li><li><a href="./?page=rental">대관신청</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
           <button type="button" class="orgs-btn" aria-expanded="${state.editing}">유관기관 <span aria-hidden="true">▾</span></button>

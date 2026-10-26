@@ -1,7 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
-export const PAGE_IDS = ['about', 'org', 'guide', 'aaron', 'sharon', 'hall', 'rental'];
+export const PAGE_IDS = ['about', 'guide', 'aaron', 'sharon', 'hall', 'rental'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -15,7 +15,6 @@ export const DEFAULT_CONTENT = {
   nav: {
     center: [
       { label: '아이엠센터 소개', link: './?page=about' },
-      { label: '조직도', link: './?page=org' },
       { label: '방문가이드', link: './?page=guide' },
     ],
     seminar: [
@@ -57,12 +56,6 @@ export const DEFAULT_CONTENT = {
         '6': [{ label: '샤론홀', link: './?page=sharon' }],
         '2': [{ label: '아론홀', link: './?page=aaron' }],
       },
-      blocks: [],
-    },
-    org: {
-      eyebrow: 'Organization', title: '조직도',
-      lead: '아이엠센터를 섬기는 사람들을 소개합니다.',
-      img: '',
       blocks: [],
     },
     guide: {
@@ -489,6 +482,8 @@ export function mergeContent(saved) {
   for (const [path, old] of LEGACY_DEFAULTS) {
     if (same(getPath(out, path), old)) setPath(out, path, structuredClone(getPath(DEFAULT_CONTENT, path)));
   }
+  // 조직도 페이지는 2026-10 삭제 — 예전에 게시된 메뉴에 남은 조직도 링크는 빼고 보여줌(다음 게시 때 저장본에서도 빠짐)
+  if (Array.isArray(out.nav?.center)) out.nav.center = out.nav.center.filter(x => !/[?&]page=org\b/.test(String(x?.link || '')));
   // 섹션 목록: 저장 순서 유지 + 새로 생긴 섹션은 끝에 추가 + 없어진 섹션 제거
   const seen = new Set();
   out.sections = (out.sections || []).filter(s => SECTION_IDS.includes(s.id) && !seen.has(s.id) && seen.add(s.id));

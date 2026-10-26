@@ -20,7 +20,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-10-26c";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-10-26d";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -127,9 +127,6 @@ img{display:block;max-width:100%}
 .space-main{aspect-ratio:4/3}
 .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:clamp(40px,5vw,64px)}
 .gallery .ph{aspect-ratio:4/3;display:block}
-.page-org{padding-top:0}
-.org-box{border-top:2px solid var(--ink);padding-top:32px;text-align:center;min-height:120px;position:relative}
-.org-box img{margin:0 auto;max-width:100%;height:auto}
 .mnav .msub a{font-size:17px;font-weight:500;padding:7px 0;border:0;opacity:.75}
 .hd-cta{font-size:14px;font-weight:600;padding:10px 18px;border:1px solid currentColor;border-radius:999px;transition:background .25s,color .25s}
 .hd-cta:hover{background:currentColor}
@@ -660,7 +657,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   <div class="wrap">
     <a href="./" class="logo" aria-label="아이엠센터 홈"><span class="logo-mark" role="img" aria-label="I AM"></span></a>
     <nav class="gnb" aria-label="주 메뉴">
-      <a href="./#whatson">공연·행사</a>
+      <a href="./">홈</a>
       <div class="has-dd"><a href="./?page=about" class="top">아이엠센터</a><div class="dd" id="dd-center"></div></div>
       <a href="./?page=hall">아이엠홀</a>
       <div class="has-dd"><a href="./#spaces" class="top">세미나실</a><div class="dd" id="dd-seminar"></div></div>
@@ -670,7 +667,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   </div>
 </header>
 <nav class="mnav" aria-label="모바일 메뉴">
-  <a href="./#whatson">공연·행사</a>
+  <a href="./">홈</a>
   <a href="./?page=about">아이엠센터</a>
   <div class="msub" id="mdd-center"></div>
   <a href="./?page=hall">아이엠홀</a>
