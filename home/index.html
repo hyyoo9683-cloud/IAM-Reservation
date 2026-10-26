@@ -20,7 +20,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-10-26d";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-10-26e";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -639,6 +639,60 @@ section{padding:clamp(80px,11vw,160px) 0}
   .kv-tbl{grid-template-columns:96px 1fr}
   .tbox{grid-template-columns:1fr;padding:22px 0}
   .r-contact{padding:36px 22px}
+}
+
+/* ==========================================================
+   대관 일정(./?page=schedule) — 월간 달력 + 선택한 날의 시간표
+   ========================================================== */
+.cal-hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-bottom:18px}
+.cal-hd strong{font-size:clamp(24px,2.6vw,34px);font-weight:800;letter-spacing:-.03em;min-width:120px;text-align:center}
+.cal-nav{width:40px;height:40px;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;transition:border-color .2s}
+.cal-nav:hover{border-color:var(--ink)}
+.cal-today{margin-left:6px;font-size:13px;font-weight:600;border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+.cal-today:hover{border-color:var(--ink)}
+.cal-legend{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mute)}
+.cal-legend i{display:inline-block;width:10px;height:10px;margin-left:8px}
+.lg-res{background:var(--ink)}.lg-blk{background:repeating-linear-gradient(45deg,#cfccc5 0 2px,transparent 2px 5px);border:1px solid #cfccc5}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:2px solid var(--ink);border-left:1px solid var(--line)}
+.cal-grid.loading .cal-d{opacity:.45}
+.cal-w{padding:10px 0;text-align:center;font-size:12px;font-weight:700;color:var(--mute);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.cal-w.sun,.cal-d.sun .dn{color:#c0392b}.cal-w.sat,.cal-d.sat .dn{color:#2f5d9a}
+.cal-d{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:4px;min-height:96px;padding:8px;text-align:left;border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--paper);transition:background .15s}
+.cal-d:hover{background:var(--soft)}
+.cal-d .dn{font-size:14px;font-weight:700}
+.cal-d.other{background:#fbfaf8}.cal-d.other .dn{opacity:.35}
+.cal-d.past .cal-chips{opacity:.5}
+.cal-d.today .dn{display:inline-grid;place-items:center;width:26px;height:26px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--accent);color:var(--ink)}
+.cal-d.sel{box-shadow:inset 0 0 0 2px var(--ink);z-index:1}
+.cal-d.blk{background:repeating-linear-gradient(45deg,#f1efea 0 6px,#fbfaf8 6px 12px)}
+.cal-chips{display:flex;flex-direction:column;gap:3px}
+.cal-chip{font-size:11.5px;font-weight:600;background:var(--ink);color:#fff;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-more{font-size:11px;color:var(--mute);font-weight:600}
+.cal-blk{font-size:11px;color:var(--mute);font-weight:600}
+.cal-dot{display:none}
+.cal-err{padding:14px 0;color:#b3473f;font-size:14px}
+.cal-day{margin-top:clamp(28px,4vw,44px);border-top:2px solid var(--ink);padding-top:22px}
+.cd-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
+.cd-hd strong{font-size:clamp(20px,2vw,26px);font-weight:800;letter-spacing:-.03em}
+.cd-hd span{font-size:14px;color:var(--mute)}
+.cd-bar{position:relative;height:30px;background:var(--soft);border:1px solid var(--line)}
+.cd-bar i{position:absolute;top:0;bottom:0;background:var(--ink)}
+.cd-ticks{position:relative;height:22px;margin-top:6px}
+.cd-ticks span{position:absolute;transform:translateX(-50%);font-size:11.5px;color:var(--mute)}
+.cd-ticks span:first-child{transform:none}.cd-ticks span:last-child{transform:translateX(-100%)}
+.cd-list{list-style:none;margin-top:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));column-gap:32px}
+.cd-list li{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px dashed #dcd9d3;font-size:15px}
+.cd-list span{color:var(--mute);font-size:13.5px}
+.cd-none,.cd-blk{margin-top:16px;font-size:15px;color:#555}
+.sched-foot{padding-top:0}
+.sched-foot .btns{margin-top:28px}
+@media (max-width:760px){
+  .cal-d{min-height:58px;padding:6px 4px;align-items:center;text-align:center}
+  .cal-chips{display:none}
+  .cal-dot{display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--ink);color:#fff;font-size:10.5px;font-style:normal;font-weight:700;margin:0 auto}
+  .cal-d.past .cal-dot{opacity:.5}
+  .cal-legend{width:100%;margin-left:0}
+  .cal-hd strong{min-width:0}
 }
 
 /* 첫 화면: 데이터 불러오는 동안 잠깐 숨김 (깜빡임 방지) */

@@ -1,7 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
-export const PAGE_IDS = ['about', 'guide', 'aaron', 'sharon', 'hall', 'rental'];
+export const PAGE_IDS = ['about', 'guide', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -20,6 +20,7 @@ export const DEFAULT_CONTENT = {
     seminar: [
       { label: '아론홀(2F)', link: './?page=aaron' },
       { label: '샤론홀(6F)', link: './?page=sharon' },
+      { label: '대관 일정', link: './?page=schedule' },
     ],
   },
   // 세부 페이지(주소 ./?page=아이디) — 편집 모드에서 제목·소개·사진·본문 블록을 고칠 수 있음
@@ -215,6 +216,15 @@ export const DEFAULT_CONTENT = {
     },
     // 대관신청 페이지(./?page=rental) — 탭 2개(아이엠홀·세미나실), ./?page=rental&tab=seminar 로 바로 열기
     // 대관 규약·환불 규정은 확정 전이라 rulesHidden: true(방문자에게 숨김) — 편집 모드에서 ‘방문자에게 보이기’로 켬
+    // 대관 일정 페이지(./?page=schedule) — 아론홀·샤론홀 탭, 월간 달력은 예약 시스템의 공개 사본(publicReservations, 확정만)·차단일(blockedDates)을 읽어 그림
+    // 개인정보 보호를 위해 시간만 보여주고 행사명·단체명은 보여주지 않음(예약 시스템 공개 캘린더와 같은 기준)
+    schedule: {
+      eyebrow: 'Schedule', title: '대관 일정', lead: '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있어요.',
+      blocks: [],
+      tabs: { aaron: '아론홀', sharon: '샤론홀' },
+      note: '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주세요.',
+      ctaText: '대관 신청하기', ctaLink: './?page=rental&tab=seminar',
+    },
     rental: {
       eyebrow: 'Rental', title: '대관신청', lead: '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.',
       img: '', blocks: [],
@@ -397,7 +407,7 @@ export const DEFAULT_CONTENT = {
     rentDesc: '아이엠홀 · 아론홀 · 샤론홀 대관 절차와 일정을 친절히 안내해 드립니다.',
     steps: ['일정·공간 확인', '대관 신청서 접수', '상담 및 승인', '계약 및 이용'],
     cta1: '대관 문의하기', cta1Link: 'https://iamreservation.web.app/venue-spaces.html',
-    cta2: '대관 일정 보기', cta2Link: 'https://iamreservation.web.app/cal-public.html',
+    cta2: '대관 일정 보기', cta2Link: './?page=schedule',
   },
   visit: {
     title: 'Visit',
@@ -439,6 +449,8 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.desc', '760석 · 공연 · 예배 · 컨퍼런스'],
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
+  ['notice.cta2Link', 'https://iamreservation.web.app/cal-public.html'],
+  ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
   ['footer.bottom', '대표 전화 · 사업자등록번호 안내 예정'],
   ['pages.guide.blocks', [
     { h: '주차', p: '아이엠센터 주차장과 에덴 주차타워를 이용하실 수 있습니다.' },

@@ -10,6 +10,7 @@ export const state = {
   page: (p => (PAGE_IDS.includes(p) ? p : null))(new URLSearchParams(location.search).get('page')),
   tab: new URLSearchParams(location.search).get('tab') || '',   // 탭이 있는 세부 페이지(방문가이드·대관신청)에서 열린 탭
   space: null,         // 공간 페이지(아론홀·샤론홀)일 때 spaces 컬렉션에서 가져온 문서
+  sched: { month: '', sel: '', res: {}, blocked: null, loading: false },   // 대관 일정 페이지 — 보고 있는 달·선택한 날·달별 예약(캐시)·차단일
   floors: [],         // 소개 페이지의 층별 안내 — 예약 시스템 관리자 '아이엠센터 소개 > 층별 안내'(siteContent/floors) 데이터
 };
 
@@ -17,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26d';
+const CSS_VER = '2026-10-26e';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -460,7 +461,7 @@ function spaceBody(id) {
       ${c(`pages.${id}.intro`) || state.editing ? rich(`pages.${id}.intro`, 'p', 'sp-intro') : ''}
       <div class="btns" style="margin-top:32px">
         <a ${href(`pages.${id}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="pages.${id}.ctaText">${esc(c(`pages.${id}.ctaText`))}</span> <span aria-hidden="true">→</span></a>
-        <a ${href('notice.cta2Link')} class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
+        <a href="./?page=schedule&amp;tab=${id}" class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
       </div>
     </div>
   </div>
@@ -544,7 +545,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -794,6 +795,99 @@ function rentPanel(k) {
 </section>${rentTerms(k)}`;
 }
 
+// ── 대관 일정(아론홀·샤론홀) ─────────────────────────────────────
+const pad2 = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const todayStr = () => ymd(new Date());
+const DOW_KO = ['일', '월', '화', '수', '목', '금', '토'];
+const SCHED_OPEN = 9, SCHED_CLOSE = 22;   // 하루 이용 시간(타임라인 범위)
+const hm = s => { const [h, m] = String(s || '0:0').split(':').map(Number); return h + (m || 0) / 60; };
+// 달력 칸 범위: 그 달 1일이 있는 주의 일요일 ~ 6주
+function gridDays(month) {
+  const [y, m] = month.split('-').map(Number);
+  const first = new Date(y, m - 1, 1);
+  const start = new Date(y, m - 1, 1 - first.getDay());
+  return Array.from({ length: 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+}
+// 그 달 달력 범위의 확정 예약을 공개 사본에서 읽음(날짜 범위만으로 조회하고 공간은 화면에서 거름 — 별도 색인 없이 동작)
+async function loadSchedMonth(month) {
+  const S = state.sched;
+  if (S.res[month]) return;
+  const days = gridDays(month);
+  try {
+    const qs = await getDocs(query(collection(db, 'publicReservations'), where('date', '>=', ymd(days[0])), where('date', '<=', ymd(days[41]))));
+    S.res[month] = qs.docs.map(d => d.data()).filter(r => r.status === '확정');
+  } catch (e) { console.warn('대관 일정 불러오기 실패', e); S.res[month] = null; }
+  if (!S.blocked) {
+    try { S.blocked = (await getDocs(collection(db, 'blockedDates'))).docs.map(d => d.data()); }
+    catch (e) { S.blocked = []; }
+  }
+}
+function schedRoom(k) { return c(`pages.${k}.space`) || (k === 'aaron' ? '아론홀' : '샤론홀'); }
+function schedCal(k) {
+  const S = state.sched, room = schedRoom(k), month = S.month;
+  const list = S.res[month];
+  const [y, m] = month.split('-').map(Number);
+  const today = todayStr();
+  const dayRes = ds => (list || []).filter(r => r.room === room && r.date === ds).sort((a, b) => String(a.start).localeCompare(String(b.start)));
+  const blockedOf = ds => (S.blocked || []).find(b => b.date === ds);
+  const cells = gridDays(month).map(d => {
+    const ds = ymd(d), rs = dayRes(ds), bd = blockedOf(ds);
+    const cls = ['cal-d', d.getMonth() + 1 !== m ? 'other' : '', ds < today ? 'past' : '', ds === today ? 'today' : '', ds === S.sel ? 'sel' : '', bd ? 'blk' : '', rs.length ? 'has' : '', d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : ''].filter(Boolean).join(' ');
+    const chips = bd ? '<span class="cal-blk">이용 불가</span>'
+      : rs.slice(0, 2).map(r => `<span class="cal-chip">${esc(r.start)}–${esc(r.end)}</span>`).join('') + (rs.length > 2 ? `<span class="cal-more">+${rs.length - 2}</span>` : '');
+    return `<button type="button" class="${cls}" data-cal-date="${ds}" aria-label="${d.getMonth() + 1}월 ${d.getDate()}일 ${bd ? '이용 불가' : rs.length ? `예약 ${rs.length}건` : '예약 없음'}"><span class="dn">${d.getDate()}</span><span class="cal-chips">${chips}</span>${rs.length && !bd ? `<i class="cal-dot">${rs.length}</i>` : ''}</button>`;
+  }).join('');
+  // 선택한 날: 예약 시간 목록 + 09~22시 타임라인
+  const sel = S.sel, sd = new Date(sel + 'T00:00:00'), rs = dayRes(sel), bd = blockedOf(sel);
+  const span = SCHED_CLOSE - SCHED_OPEN;
+  const bar = rs.map(r => { const a = Math.max(hm(r.start), SCHED_OPEN), b = Math.min(hm(r.end), SCHED_CLOSE); return b > a ? `<i style="left:${((a - SCHED_OPEN) / span * 100).toFixed(2)}%;width:${((b - a) / span * 100).toFixed(2)}%"></i>` : ''; }).join('');
+  const ticks = Array.from({ length: span / 3 + 1 }, (_, i) => SCHED_OPEN + i * 3).map(h => `<span style="left:${((h - SCHED_OPEN) / span * 100).toFixed(2)}%">${pad2(h)}:00</span>`).join('');
+  return `
+    <div class="cal-wrap">
+      <div class="cal-hd">
+        <button type="button" class="cal-nav" data-cal-nav="-1" aria-label="이전 달">${CHEV_L}</button>
+        <strong>${y}. ${pad2(m)}</strong>
+        <button type="button" class="cal-nav" data-cal-nav="1" aria-label="다음 달">${CHEV_R}</button>
+        <button type="button" class="cal-today" data-cal-today>오늘</button>
+        <span class="cal-legend"><i class="lg-res"></i>예약 <i class="lg-blk"></i>이용 불가</span>
+      </div>
+      ${list === null ? '<p class="cal-err">일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</p>' : ''}
+      <div class="cal-grid${list === undefined ? ' loading' : ''}">
+        ${DOW_KO.map((w, i) => `<span class="cal-w${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${w}</span>`).join('')}
+        ${cells}
+      </div>
+      <div class="cal-day">
+        <div class="cd-hd"><strong>${sd.getMonth() + 1}월 ${sd.getDate()}일 (${DOW_KO[sd.getDay()]})</strong><span>${esc(room)}</span></div>
+        ${bd ? `<p class="cd-blk">이 날은 이용할 수 없어요${bd.reason ? ` · ${esc(bd.reason)}` : ''}.</p>` : `
+        <div class="cd-bar">${bar}</div>
+        <div class="cd-ticks">${ticks}</div>
+        ${rs.length ? `<ul class="cd-list">${rs.map(r => `<li><b>${esc(r.start)} – ${esc(r.end)}</b><span>예약됨</span></li>`).join('')}</ul>` : '<p class="cd-none">예약된 시간이 없어요.</p>'}`}
+      </div>
+    </div>`;
+}
+function scheduleBody() {
+  const P = 'pages.schedule';
+  return tabbed('schedule', { aaron: () => `<section class="g-sec" data-sec="page"><div class="wrap narrow"><div class="sched" data-sched="aaron">${schedCal('aaron')}</div></div></section>`,
+    sharon: () => `<section class="g-sec" data-sec="page"><div class="wrap narrow"><div class="sched" data-sched="sharon">${schedCal('sharon')}</div></div></section>` }) + `
+<section class="g-sec sched-foot" data-sec="page">
+  <div class="wrap narrow">
+    ${m(`${P}.note`, 'p', 'hall-note')}
+    <div class="btns center"><a ${href(`${P}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="${P}.ctaText">${esc(c(`${P}.ctaText`))}</span> <span aria-hidden="true">→</span></a></div>
+  </div>
+</section>`;
+}
+// 달력만 다시 그림(달 이동·날짜 선택 — 페이지 전체를 다시 그리지 않음)
+function redrawSched() {
+  document.querySelectorAll('[data-sched]').forEach(el => { el.innerHTML = schedCal(el.dataset.sched); });
+}
+async function gotoSchedMonth(month) {
+  state.sched.month = month;
+  redrawSched();
+  await loadSchedMonth(month);
+  if (state.sched.month === month) redrawSched();
+}
+
 const PAGES = {
   about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
@@ -801,6 +895,7 @@ const PAGES = {
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
   sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
   hall: () => pageHead('hall') + hallBody() + pageBlocks('hall'),
+  schedule: () => pageHead('schedule') + scheduleBody() + pageBlocks('schedule'),
   rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar') }) + pageBlocks('rental'),
 };
 
@@ -917,6 +1012,12 @@ export async function loadAll() {
       state.space = sn.docs[0] ? sn.docs[0].data() : null;
     } catch (e) { console.warn('공간 정보 불러오기 실패', e); }
   }
+  if (state.page === 'schedule') {
+    const S = state.sched;
+    S.sel = S.sel || todayStr();
+    S.month = S.month || S.sel.slice(0, 7);
+    await loadSchedMonth(S.month);
+  }
   if (state.page === 'about' || state.page === 'guide') {
     try {
       const fs = await getDoc(doc(db, 'siteContent', 'floors'));
@@ -985,6 +1086,16 @@ function setupBehaviors() {
     document.addEventListener('click', close);
     timers.push(() => document.removeEventListener('click', close));
   }
+
+  // 대관 일정 달력: 이전·다음 달, 오늘, 날짜 누르기 (달력 안의 버튼은 다시 그려지므로 바깥에서 한 번에 받음)
+  document.querySelectorAll('[data-sched]').forEach(box => box.addEventListener('click', e => {
+    const S = state.sched;
+    const nav = e.target.closest('[data-cal-nav]');
+    if (nav) { const [y, mo] = S.month.split('-').map(Number); const d = new Date(y, mo - 1 + Number(nav.dataset.calNav), 1); gotoSchedMonth(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}`); return; }
+    if (e.target.closest('[data-cal-today]')) { S.sel = todayStr(); gotoSchedMonth(S.sel.slice(0, 7)); return; }
+    const day = e.target.closest('[data-cal-date]');
+    if (day) { S.sel = day.dataset.calDate; if (S.sel.slice(0, 7) !== S.month) gotoSchedMonth(S.sel.slice(0, 7)); else redrawSched(); }
+  }));
 
   // 세부 페이지 탭(방문가이드·대관신청): 누르면 그 탭 내용만 보이고, 주소의 &tab=… 도 바꿔 둠(새로고침·공유 시 그 탭으로)
   document.querySelectorAll('.ptabs [data-tab]').forEach(b => b.addEventListener('click', () => {
