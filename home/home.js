@@ -8,6 +8,7 @@ export const state = {
   editing: false,      // 편집 모드 여부 (editor.js가 켬)
   // 세부 페이지: 주소 ./?page=about 처럼 열면 메인 섹션 대신 그 페이지를 그림 (없거나 모르는 값이면 메인)
   page: (p => (PAGE_IDS.includes(p) ? p : null))(new URLSearchParams(location.search).get('page')),
+  tab: new URLSearchParams(location.search).get('tab') || '',   // 탭이 있는 세부 페이지(방문가이드·대관신청)에서 열린 탭
   space: null,         // 공간 페이지(아론홀·샤론홀)일 때 spaces 컬렉션에서 가져온 문서
   floors: [],         // 소개 페이지의 층별 안내 — 예약 시스템 관리자 '아이엠센터 소개 > 층별 안내'(siteContent/floors) 데이터
 };
@@ -141,6 +142,14 @@ const SECTIONS = {
   <div class="wrap">
     ${t('about.eyebrow', 'p', 'eyebrow rv')}
     <p class="big rv" data-k="about.statement" data-ml="1">${mlQuoteBold(c('about.statement'))}</p>
+    ${c('about.intro') || state.editing ? `
+    <div class="st-intro rv">
+      ${m('about.intro')}
+      <div class="btns">
+        <a ${href('about.cta1Link')} class="btn" data-k="about.cta1">${esc(c('about.cta1'))}</a>
+        <a ${href('about.cta2Link')} class="btn line" data-k="about.cta2">${esc(c('about.cta2'))}</a>
+      </div>
+    </div>` : ''}
     <div class="stats">
       ${stats.map((s, i) => `
       <div class="stat rv">
@@ -430,31 +439,306 @@ function pageBlocks(id) {
   </div>
 </section>`;
 }
-// 공간 페이지: 공간 관리(spaces)에 등록된 층·정원·비품·사진을 그대로 보여줌
+// 공간 페이지: 사진은 공간 관리(spaces)에서, 소개·시설 안내 표·이용 안내는 홈페이지 전용 내용(pages.<id>)으로 보여줌
+// (정원·비품은 공간 관리 데이터 대신 홈페이지의 ‘시설 안내’ 표를 씀 — 편집 모드에서 고침)
 function spaceBody(id) {
   const sp = state.space;
   const photos = (sp?.photos || []).filter(Boolean);
-  const facts = [
-    ['위치', sp?.floor],
-    ['정원', sp?.cap ? `${sp.cap}명` : ''],
-    ['비품', (sp?.amenities || []).join(' · ')],
-  ].filter(([, v]) => v);
   const main = c(`pages.${id}.img`) || photos[0] || '';
   return `
 <section class="page-space" data-sec="page">
   <div class="wrap split">
     <div class="ph space-main rv" data-img="pages.${id}.img" ${main ? `style="--img:url('${cssUrl(main)}')" data-hasimg="1"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(c(`pages.${id}.title`))} 대표 사진</span></div>
     <div class="rv">
-      ${facts.length ? `<dl class="info">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : '<p class="empty">공간 정보를 불러오는 중이거나 아직 등록되지 않았습니다.</p>'}
+      ${c(`pages.${id}.headline`) || state.editing ? rich(`pages.${id}.headline`, 'h2', 'sp-head') : ''}
+      ${c(`pages.${id}.intro`) || state.editing ? rich(`pages.${id}.intro`, 'p', 'sp-intro') : ''}
       <div class="btns" style="margin-top:32px">
-        <a ${href('notice.cta1Link')} class="btn"><span class="dot"></span><span data-k="notice.cta1">${esc(c('notice.cta1'))}</span> <span aria-hidden="true">→</span></a>
+        <a ${href(`pages.${id}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="pages.${id}.ctaText">${esc(c(`pages.${id}.ctaText`))}</span> <span aria-hidden="true">→</span></a>
         <a ${href('notice.cta2Link')} class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
       </div>
     </div>
   </div>
   ${photos.length > 1 ? `<div class="wrap"><div class="gallery">${photos.slice(0, 9).map(u => `<a class="ph rv" href="${esc(safeUrl(u))}" target="_blank" rel="noopener" style="--img:url('${cssUrl(u)}')" data-hasimg="1" aria-label="사진 크게 보기"></a>`).join('')}</div></div>` : ''}
+</section>
+<section class="page-facts" data-sec="page">
+  <div class="wrap">
+    ${kvTable(`pages.${id}.factsTitle`, `pages.${id}.facts`)}
+    ${textList(`pages.${id}.usageTitle`, `pages.${id}.usage`, 'dot')}
+  </div>
 </section>`;
 }
+
+// ── 세부 페이지 공통 부품 ──────────────────────────────────────
+// 값이 들어 있는지(공백만 있으면 빈 값)
+const filled = v => String(v ?? '').trim() !== '';
+// 편집 모드의 목록 조작 버튼: ↑ ↓ ✕ (editor.js의 data-arr-*가 동작 연결)
+const arrCtl = (path, i, len) => state.editing ? `<span class="arr-ctl">
+  <button type="button" data-arr-mv="${path}|${i}|-1" ${i === 0 ? 'disabled' : ''} title="위로">↑</button>
+  <button type="button" data-arr-mv="${path}|${i}|1" ${i === len - 1 ? 'disabled' : ''} title="아래로">↓</button>
+  <button type="button" data-arr-del="${path}|${i}" title="이 줄 빼기">✕</button></span>` : '';
+// 편집 모드의 '+ 추가' 버튼 — tpl은 새로 넣을 기본 내용
+const arrAdd = (path, tpl, label = '+ 줄 추가') => state.editing ? `<button type="button" class="ed-chip arr-add" data-arr-add="${path}" data-tpl="${esc(JSON.stringify(tpl))}">${label}</button>` : '';
+// 사진 한 장 칸: 방문자에게는 사진이 있을 때만, 편집 모드에서는 빈 자리도 보여서 '사진 바꾸기'로 올릴 수 있음
+function imgSlot(path, label, cls = '') {
+  const u = c(path);
+  if (!u && !state.editing) return '';
+  return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">` : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
+}
+// 제목(왼쪽) + 이름·값 표(오른쪽) — 값이 빈 줄은 방문자 화면에서 숨김
+function kvTable(titlePath, rowsPath) {
+  const rows = c(rowsPath) || [];
+  const show = rows.map((r, i) => [r, i]).filter(([r]) => state.editing || filled(r.v));
+  if (!show.length) return '';
+  return `
+    <div class="kv rv">
+      ${t(titlePath, 'h3', 'kv-h')}
+      <div>
+        <dl class="info kv-tbl">${show.map(([r, i]) => `<dt>${t(`${rowsPath}.${i}.k`)}</dt><dd>${m(`${rowsPath}.${i}.v`, 'span')}${arrCtl(rowsPath, i, rows.length)}</dd>`).join('')}</dl>
+        ${arrAdd(rowsPath, { k: '항목', v: '' })}
+      </div>
+    </div>`;
+}
+// 제목(왼쪽) + 글 목록(오른쪽, 굵게 가능) — kind 'dot'(•) / 'dash'(-) / 'num'(1. 2. …)
+function textList(titlePath, listPath, kind = 'dot') {
+  const list = c(listPath) || [];
+  const show = list.map((v, i) => [v, i]).filter(([v]) => state.editing || filled(v));
+  if (!show.length) return '';
+  return `
+    <div class="kv rv">
+      ${t(titlePath, 'h3', 'kv-h')}
+      <div>
+        <ul class="tlist ${kind}">${show.map(([, i]) => `<li>${rich(`${listPath}.${i}`, 'span')}${arrCtl(listPath, i, list.length)}</li>`).join('')}</ul>
+        ${arrAdd(listPath, '내용을 입력하세요.')}
+      </div>
+    </div>`;
+}
+// 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
+function tabbed(id, panels) {
+  const keys = Object.keys(panels);
+  const cur = keys.includes(state.tab) ? state.tab : keys[0];
+  return `
+<div class="ptabs-wrap"><div class="wrap">
+  <div class="ptabs" role="tablist">${keys.map(k => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === cur}">${t(`pages.${id}.tabs.${k}`)}</button>`).join('')}</div>
+</div></div>
+${keys.map(k => `<div class="tab-panel" data-panel="${k}"${k === cur ? '' : ' hidden'}>${panels[k]()}</div>`).join('')}`;
+}
+const DOTS = '<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>';
+
+// ── 방문가이드: 오시는 길 / 주차안내 / 편의시설 / 휠체어 이용안내 ──
+const G = 'pages.guide';
+function guideWay() {
+  const tr = c(`${G}.way.transport`) || [];
+  return SECTIONS.visit() + `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow">
+    ${imgSlot(`${G}.way.mapImg`, '약도', 'rv')}
+    <div class="kakao-row rv">
+      <div class="kk-l">
+        <span class="kk-ic" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg></span>
+        ${c(`${G}.way.kakaoLink`) || state.editing ? `<a ${href(`${G}.way.kakaoLink`)} target="_blank" rel="noopener">${t(`${G}.way.kakaoLabel`)}</a>` : t(`${G}.way.kakaoLabel`)}
+      </div>
+      ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
+    </div>
+    ${DOTS}
+    <div class="tboxes">
+      ${tr.map((b, bi) => `
+      <div class="tbox rv">
+        ${t(`${G}.way.transport.${bi}.h`, 'h3')}
+        <div class="t-rows">
+          ${(b.rows || []).map((r, ri) => `
+          <div class="t-row${filled(r.label) || state.editing ? '' : ' nolabel'}">
+            ${filled(r.label) || state.editing ? t(`${G}.way.transport.${bi}.rows.${ri}.label`, 'span', `t-lab ${esc(r.tone || '')}`) : ''}
+            ${rich(`${G}.way.transport.${bi}.rows.${ri}.text`, 'span', 't-txt')}
+            ${arrCtl(`${G}.way.transport.${bi}.rows`, ri, (b.rows || []).length)}
+          </div>`).join('')}
+          ${arrAdd(`${G}.way.transport.${bi}.rows`, { label: '', tone: '', text: '내용을 입력하세요.' })}
+        </div>
+        ${arrCtl(`${G}.way.transport`, bi, tr.length)}
+      </div>`).join('')}
+      ${arrAdd(`${G}.way.transport`, { h: '새 교통편', rows: [{ label: '', tone: '', text: '내용을 입력하세요.' }] }, '+ 교통편 상자 추가')}
+    </div>
+  </div>
+</section>`;
+}
+function guideParking() {
+  const P = `${G}.parking`;
+  const fees = c(`${P}.fees`) || [];
+  return `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow">
+    ${imgSlot(`${P}.mapImg`, '주차 지도', 'rv')}
+    <div class="nbox rv">${textList(`${P}.noticeTitle`, `${P}.notice`, 'dash')}</div>
+    ${t(`${P}.feeTitle`, 'h3', 'g-h rv')}
+    <div class="tbl-scroll rv">
+      <table class="ptable">
+        <thead><tr><th scope="col"></th><th scope="col">${t(`${P}.cols.a`)}</th><th scope="col">${t(`${P}.cols.b`)}</th></tr></thead>
+        <tbody>${fees.map((f, i) => `<tr><th scope="row">${t(`${P}.fees.${i}.k`)}${arrCtl(`${P}.fees`, i, fees.length)}</th><td>${m(`${P}.fees.${i}.a`, 'span')}</td><td>${m(`${P}.fees.${i}.b`, 'span')}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+    ${arrAdd(`${P}.fees`, { k: '항목', a: '', b: '' })}
+  </div>
+</section>`;
+}
+function guideAmenity() {
+  const A = `${G}.amenity.stores`;
+  const st = c(A) || [];
+  // 층별 안내는 ‘아이엠센터 소개’와 같은 데이터·같은 표를 그대로 보여줌(여기서는 읽기 전용 — 고치는 곳은 소개 페이지)
+  const ed = state.editing;
+  state.editing = false;
+  const floors = floorsHtml().replace(/ data-(k|link|ml|rich)="[^"]*"/g, '');
+  state.editing = ed;
+  return `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow">
+    <div class="stores">
+      ${st.map((s, i) => `
+      <div class="store rv${c(`${A}.${i}.img`) || state.editing ? '' : ' noimg'}">
+        ${imgSlot(`${A}.${i}.img`, s.name || '편의시설', 'store-img')}
+        <div class="store-txt">
+          ${t(`${A}.${i}.name`, 'h3')}
+          ${m(`${A}.${i}.desc`)}
+          ${filled(s.contact) || state.editing ? `<p class="store-ct">${t(`${A}.${i}.label`)} : ${t(`${A}.${i}.contact`)}</p>` : ''}
+          ${arrCtl(A, i, st.length)}
+        </div>
+      </div>`).join('')}
+      ${arrAdd(A, { name: '새 시설', img: '', label: '문의', contact: '', desc: '설명을 입력하세요.' }, '+ 시설 추가')}
+    </div>
+  </div>
+</section>
+${floors ? DOTS + floors + (ed ? '<div class="wrap"><p class="edit-hint">층별 안내는 ‘아이엠센터 소개’ 페이지와 같은 내용이에요. 고치려면 편집 막대에서 ‘아이엠센터 소개’로 이동해 고칩니다.</p></div>' : '') : ''}`;
+}
+function guideWheel() {
+  return `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow center">
+    ${imgSlot(`${G}.wheel.img`, '장애인 주차구역', 'rv')}
+    ${rich(`${G}.wheel.text`, 'p', 'g-txt rv')}
+  </div>
+</section>`;
+}
+
+// ── 아이엠홀 ─────────────────────────────────────────────────
+function hallBody() {
+  const H = 'pages.hall';
+  const specs = c(`${H}.specs`) || [];
+  return `
+<section class="page-vision" data-sec="page">
+  <div class="wrap">
+    ${(c(`${H}.imgs`) || []).filter(Boolean).length || state.editing ? `<div class="vision-photo rv">${photoSet(`${H}.imgs`, '', { fixed: true })}</div>${DOTS}` : ''}
+    ${rich(`${H}.headline`, 'h2', 'hall-head rv')}
+    ${rich(`${H}.intro`, 'p', 'vision rv')}
+  </div>
+</section>
+<section class="page-facts" data-sec="page">
+  <div class="wrap">
+    ${c(`${H}.seatImg`) || state.editing ? `<div class="kv rv">${t(`${H}.seatTitle`, 'h3', 'kv-h')}<div>${imgSlot(`${H}.seatImg`, '좌석배치도', 'plan')}</div></div>` : ''}
+    ${specs.map((sp, i) => kvTable(`${H}.specs.${i}.h`, `${H}.specs.${i}.rows`)).join('')}
+    ${imgSlot(`${H}.stageImg`, '무대 도면', 'plan rv')}
+    ${c(`${H}.note`) || state.editing ? m(`${H}.note`, 'p', 'hall-note rv') : ''}
+    <div class="btns center rv"><a ${href(`${H}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="${H}.ctaText">${esc(c(`${H}.ctaText`))}</span> <span aria-hidden="true">→</span></a></div>
+  </div>
+</section>`;
+}
+
+// ── 대관신청: 아이엠홀 / 세미나실 ───────────────────────────────
+const R = 'pages.rental';
+function rentSteps(k) {
+  const P = `${R}.${k}.steps`, st = c(P) || [];
+  return `
+    <div class="kv rv">
+      ${t(`${R}.stepsTitle`, 'h3', 'kv-h')}
+      <div>
+        <ol class="steps">${st.map((x, i) => `<li><span class="st-n">${i + 1}</span>${t(`${P}.${i}.t`, 'strong')}${m(`${P}.${i}.d`, 'span')}${arrCtl(P, i, st.length)}</li>`).join('')}</ol>
+        ${arrAdd(P, { t: '단계 이름', d: '설명' }, '+ 단계 추가')}
+      </div>
+    </div>`;
+}
+function rentContact(k) {
+  const F = `${R}.${k}.forms`, forms = c(F) || [];
+  const shown = forms.map((f, i) => [f, i]).filter(([f]) => state.editing || filled(f.link));
+  const tel = String(c(`${R}.tel`) || '').replace(/[^\d+]/g, '');
+  return `
+    <div class="r-contact rv">
+      <div class="rc-l">
+        <p><span class="rc-ic" aria-hidden="true">✉</span>${filled(c(`${R}.email`)) ? `<a href="mailto:${esc(c(`${R}.email`))}">${t(`${R}.email`)}</a>` : t(`${R}.email`)}</p>
+        <p><span class="rc-ic" aria-hidden="true">☎</span>${tel ? `<a href="tel:${esc(tel)}">${t(`${R}.tel`)}</a>` : t(`${R}.tel`)}</p>
+        ${c(`${R}.applyLink`) || state.editing ? `<a ${href(`${R}.applyLink`)} target="_blank" rel="noopener" class="btn"><span class="dot"></span><span data-k="${R}.applyText">${esc(c(`${R}.applyText`))}</span> <span aria-hidden="true">↗</span></a>` : ''}
+      </div>
+      ${shown.length || state.editing ? `
+      <div class="rc-r">
+        ${t(`${R}.formsTitle`, 'p', 'rc-cap')}
+        ${shown.map(([f, i]) => `<span class="rc-form"><a ${href(`${F}.${i}.link`)} target="_blank" rel="noopener" class="btn line sm" data-k="${F}.${i}.label">${esc(f.label)}</a>${arrCtl(F, i, forms.length)}</span>`).join('')}
+        ${arrAdd(F, { label: '양식 이름', link: '' }, '+ 양식 추가')}
+      </div>` : ''}
+    </div>`;
+}
+// 금액 칸: 비어 있으면 방문자에게 ‘별도 문의’
+const fee = path => (filled(c(path)) || state.editing ? m(path, 'span') : '<span class="ask">별도 문의</span>');
+function rentHallFees() {
+  const P = `${R}.hall`, F = `${P}.fees`, rows = c(F) || [];
+  // 같은 구분(g)이 이어지는 줄은 한 칸으로 합침(편집 중에는 줄마다 따로 보여 고칠 수 있게)
+  const span = i => { if (state.editing) return 1; if (i > 0 && rows[i - 1].g === rows[i].g) return 0; let n = 1; while (rows[i + n] && rows[i + n].g === rows[i].g) n++; return n; };
+  const rm = c(`${P}.remarks`) || [];
+  const notes = c(`${P}.notes`) || [];
+  return `
+    <div class="fee-hd rv">${t(`${P}.feeTitle`, 'h3', 'g-h')}${c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : ''}</div>
+    <div class="tbl-scroll rv">
+      <table class="ptable fee">
+        <thead><tr><th scope="col" colspan="2">구분</th><th scope="col">${t(`${P}.cols.r`)}</th><th scope="col">${t(`${P}.cols.p`)}</th></tr></thead>
+        <tbody>${rows.map((r, i) => { const n = span(i); return `<tr>${n ? `<th scope="rowgroup" class="grp"${n > 1 ? ` rowspan="${n}"` : ''}>${t(`${F}.${i}.g`)}</th>` : ''}<th scope="row">${t(`${F}.${i}.k`)}${arrCtl(F, i, rows.length)}</th>${r.one ? `<td colspan="2">${fee(`${F}.${i}.p`)}</td>` : `<td>${fee(`${F}.${i}.r`)}</td><td>${fee(`${F}.${i}.p`)}</td>`}</tr>`; }).join('')}</tbody>
+      </table>
+    </div>
+    ${arrAdd(F, { g: '기타 시설', k: '항목', one: true, p: '' })}
+    ${notes.length || state.editing ? `<ul class="fee-notes rv">${notes.map((x, i) => `<li>${m(`${P}.notes.${i}`, 'span')}${arrCtl(`${P}.notes`, i, notes.length)}</li>`).join('')}</ul>${arrAdd(`${P}.notes`, '*안내 문구')}` : ''}
+    ${rm.length || state.editing ? `
+    <div class="remarks rv">
+      ${t(`${P}.remarksTitle`, 'h4')}
+      <ol>${rm.map((x, i) => `<li>${rich(`${P}.remarks.${i}`, 'span')}${arrCtl(`${P}.remarks`, i, rm.length)}</li>`).join('')}</ol>
+      ${arrAdd(`${P}.remarks`, '내용을 입력하세요.')}
+    </div>` : ''}`;
+}
+function rentSeminarFees() {
+  const P = `${R}.seminar`, cards = c(`${P}.cards`) || [];
+  const notes = c(`${P}.notes`) || [];
+  return `
+    <div class="fee-hd rv">${t(`${P}.feeTitle`, 'h3', 'g-h')}${c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : ''}</div>
+    <div class="fcards">
+      ${cards.map((cd, ci) => { const rows = cd.rows || []; const Q = `${P}.cards.${ci}.rows`; return `
+      <div class="fcard rv">
+        ${t(`${P}.cards.${ci}.name`, 'h4')}
+        <table class="ptable">
+          <thead><tr><th scope="col">${t(`${P}.cols.k`)}</th><th scope="col">${t(`${P}.cols.time`)}</th><th scope="col">${t(`${P}.cols.fee`)}</th></tr></thead>
+          <tbody>${rows.map((r, i) => `<tr><th scope="row">${t(`${Q}.${i}.k`)}${arrCtl(Q, i, rows.length)}</th><td>${t(`${Q}.${i}.time`)}</td><td>${fee(`${Q}.${i}.fee`)}</td></tr>`).join('')}</tbody>
+        </table>
+        ${arrAdd(Q, { k: '구분', time: '', fee: '' })}
+      </div>`; }).join('')}
+    </div>
+    ${notes.length || state.editing ? `<ul class="fee-notes rv">${notes.map((x, i) => `<li>${m(`${P}.notes.${i}`, 'span')}${arrCtl(`${P}.notes`, i, notes.length)}</li>`).join('')}</ul>${arrAdd(`${P}.notes`, '* 안내 문구')}` : ''}`;
+}
+// 대관 규약·환불 규정: 확정 전에는 숨김(rulesHidden) — 편집 모드에서는 늘 보이고 ‘보이기/숨기기’로 전환
+function rentTerms(k) {
+  const hidden = c(`${R}.rulesHidden`) !== false;
+  if (hidden && !state.editing) return '';
+  return `
+<section class="page-facts terms${hidden ? ' is-hidden' : ''}" data-sec="page" id="terms-${k}">
+  <div class="wrap">
+    ${state.editing ? `<p class="terms-flag">대관 규약·취소 및 환불규정은 지금 <b>${hidden ? '방문자에게 숨김' : '방문자에게 보임'}</b> 상태예요. (두 탭 공통) <button type="button" class="ed-chip" data-flag="${R}.rulesHidden">${hidden ? '방문자에게 보이기' : '다시 숨기기'}</button></p>` : ''}
+    ${textList(`${R}.${k}.rulesTitle`, `${R}.${k}.rules`, 'dot')}
+    ${textList(`${R}.${k}.refundTitle`, `${R}.${k}.refund`, 'dot')}
+  </div>
+</section>`;
+}
+function rentPanel(k) {
+  return `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow">
+    ${rentSteps(k)}
+    ${rentContact(k)}
+    ${k === 'hall' ? rentHallFees() : rentSeminarFees()}
+  </div>
+</section>${rentTerms(k)}`;
+}
+
 function orgBody() {
   const img = c('pages.org.img');
   return `
@@ -467,19 +751,26 @@ function orgBody() {
 const PAGES = {
   about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml() + floorsHtml(),
   org: () => pageHead('org') + orgBody() + pageBlocks('org'),
-  guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9') + pageBlocks('guide') + SECTIONS.visit(),
+  guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
+    + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
   sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
+  hall: () => pageHead('hall') + hallBody() + pageBlocks('hall'),
+  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar') }) + pageBlocks('rental'),
 };
 
+// 푸터 INFO 링크: 주소가 있으면 링크, 없으면 이름만 흐리게(편집 모드에서는 🔗로 주소 입력)
+const ftLink = (path, label) => (c(path) || state.editing ? `<li><a ${href(path)}>${esc(label)}</a></li>` : `<li><span class="o-na">${esc(label)}</span></li>`);
 function footerHtml() {
   return `
 <footer class="ft">
   <div class="wrap">
     <div class="top">
-      <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}</div>
-      <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./#spaces">아이엠홀</a></li><li><a href="./#spaces">세미나실</a></li></ul></div>
-      <div><h4>INFO</h4><ul><li><a href="./#notice">대관 안내</a></li><li><a href="./?page=guide">오시는 길</a></li><li><a href="#">개인정보처리방침</a></li></ul></div>
+      <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}
+        <p class="ft-ct">대표 전화 ${t('footer.tel')}${c('footer.bizNo') || state.editing ? `<br>사업자등록번호 ${t('footer.bizNo')}` : ''}</p>
+        ${c('footer.kakaoLink') || state.editing ? `<a ${href('footer.kakaoLink')} target="_blank" rel="noopener" class="ft-kakao" aria-label="카카오채널"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg><span>카카오채널</span></a>` : ''}</div>
+      <div><h4>MENU</h4><ul><li><a href="./#whatson">공연·행사</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li><li><a href="./?page=rental">대관신청</a></li></ul></div>
+      <div><h4>INFO</h4><ul><li><a href="./">홈페이지</a></li><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
           <button type="button" class="orgs-btn" aria-expanded="${state.editing}">유관기관 <span aria-hidden="true">▾</span></button>
@@ -489,7 +780,7 @@ function footerHtml() {
         </div>
       </div>
     </div>
-    <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${t('footer.bottom')} · <button type="button" class="admin-link" id="admin-link">관리자</button></span></div>
+    <div class="bot"><span>© ${new Date().getFullYear()} I AM CENTER. All rights reserved.</span><span>${c('footer.bottom') || state.editing ? `${t('footer.bottom')} · ` : ''}<button type="button" class="admin-link" id="admin-link">관리자</button></span></div>
   </div>
 </footer>`;
 }
@@ -522,6 +813,12 @@ function renderNav() {
     const m = document.getElementById(`mdd-${key}`);
     if (m) m.innerHTML = items.map((it, i) => `<a href="${esc(safeUrl(it.link))}">${esc(it.label)}</a>`).join('');
   }
+  // 오른쪽 아래 퀵바: 전화·카카오 버튼을 푸터의 대표 전화·카카오채널 링크로 연결
+  const tel = String(c('footer.tel') || '').replace(/[^\d+]/g, '');
+  const qt = document.querySelector('#quick [data-tip="전화 문의"]');
+  if (qt && tel) qt.href = `tel:${tel}`;
+  const qk = document.querySelector('#quick .kakao');
+  if (qk && c('footer.kakaoLink')) { qk.href = safeUrl(c('footer.kakaoLink')); qk.target = '_blank'; qk.rel = 'noopener'; }
 }
 
 // ── 렌더링 ────────────────────────────────────────────────────
@@ -543,6 +840,18 @@ export function render() {
   document.body.classList.toggle('editing', state.editing);
   setupBehaviors();
   document.dispatchEvent(new CustomEvent('home:rendered'));
+  scrollToHash();
+}
+// 세부 페이지를 ./?page=rental#contact 처럼 열었을 때: 내용을 그린 뒤 그 위치로 한 번 이동(보이는 탭 안에서 찾음)
+let hashDone = false;
+function scrollToHash() {
+  if (hashDone || !state.page || !location.hash) return;
+  const id = decodeURIComponent(location.hash.slice(1));
+  const sel = { contact: '.r-contact', terms: '.terms' }[id];
+  const el = sel ? [...document.querySelectorAll(sel)].find(e => !e.closest('[hidden]')) : document.getElementById(id);
+  if (!el) return;
+  hashDone = true;
+  requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
 }
 
 // ── 데이터 불러오기 ───────────────────────────────────────────
@@ -563,7 +872,7 @@ export async function loadAll() {
       state.space = sn.docs[0] ? sn.docs[0].data() : null;
     } catch (e) { console.warn('공간 정보 불러오기 실패', e); }
   }
-  if (state.page === 'about') {
+  if (state.page === 'about' || state.page === 'guide') {
     try {
       const fs = await getDoc(doc(db, 'siteContent', 'floors'));
       state.floors = fs.exists() ? (fs.data().floors || []) : [];
@@ -631,6 +940,17 @@ function setupBehaviors() {
     document.addEventListener('click', close);
     timers.push(() => document.removeEventListener('click', close));
   }
+
+  // 세부 페이지 탭(방문가이드·대관신청): 누르면 그 탭 내용만 보이고, 주소의 &tab=… 도 바꿔 둠(새로고침·공유 시 그 탭으로)
+  document.querySelectorAll('.ptabs [data-tab]').forEach(b => b.addEventListener('click', () => {
+    const k = b.dataset.tab;
+    state.tab = k;
+    document.querySelectorAll('.ptabs [data-tab]').forEach(x => x.setAttribute('aria-selected', x === b));
+    document.querySelectorAll('.tab-panel').forEach(p => { p.hidden = p.dataset.panel !== k; });
+    document.querySelectorAll('.tab-panel:not([hidden]) .rv').forEach(el => el.classList.add('in'));
+    const q = new URLSearchParams(location.search); q.set('tab', k);
+    history.replaceState(null, '', `${location.pathname}?${q}`);
+  }));
 
   // 사진 슬라이드(캐러셀): 좌우 버튼·점 표시, 손가락으로 넘기기는 스크롤 스냅
   document.querySelectorAll('.car').forEach(car => {

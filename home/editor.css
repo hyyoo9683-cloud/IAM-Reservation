@@ -109,3 +109,15 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
 .editing .fl-link{position:relative;padding-right:30px}
 .fb-del{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:0;background:#f2b705;color:#111;font-size:10px;line-height:18px;cursor:pointer;padding:0}
 .fl-links .ed-link{top:-14px;right:20px}
+/* 세부 페이지 목록 조작(↑ ↓ ✕)·추가 버튼·숨김 섹션 */
+.arr-ctl{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}
+.arr-ctl button{font:600 11px/1 "Pretendard Variable",Pretendard,sans-serif;background:#fff;border:1px solid #e0c35a;color:#7a5f00;border-radius:4px;padding:3px 6px;cursor:pointer}
+.arr-ctl button:disabled{opacity:.35;cursor:default}
+.tbox>.arr-ctl,.store-txt>.arr-ctl{position:absolute;top:10px;right:10px;margin:0}
+.ed-chip.arr-add{margin-top:12px;box-shadow:none}
+.terms-flag{font-size:13px;color:#8a6d00;background:#fff8dc;border:1px solid #f2d56b;padding:10px 14px;border-radius:6px}
+.terms-flag .ed-chip{margin-left:8px;box-shadow:none}
+.editing .terms.is-hidden .kv{opacity:.55}
+.editing .img-slot{min-height:80px}
+.editing .img-slot .ed-img{position:absolute;top:10px;right:10px;z-index:3}
+.editing .ptabs [data-k]{cursor:text}

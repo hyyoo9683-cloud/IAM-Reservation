@@ -7,7 +7,7 @@ import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
 const DRAFT_KEY = 'iamHomeDraft';   // 편집 중 페이지를 옮길 때 게시 전 내용을 잠시 보관
 // 편집 막대의 페이지 이동 목록 ([page 값, 이름] — '' = 메인)
-const EDIT_PAGES = [['', '메인'], ['about', '아이엠센터 소개'], ['org', '조직도'], ['guide', '방문가이드'], ['aaron', '아론홀'], ['sharon', '샤론홀']];
+const EDIT_PAGES = [['', '메인'], ['about', '아이엠센터 소개'], ['org', '조직도'], ['guide', '방문가이드'], ['aaron', '아론홀'], ['sharon', '샤론홀'], ['hall', '아이엠홀'], ['rental', '대관신청']];
 let draft = null;        // 편집 중인 내용
 let published = '';      // 마지막으로 게시된 내용(JSON) — 변경 여부 비교용
 let user = null;
@@ -393,7 +393,42 @@ function decorate() {
     render(); updateStatus();
   }));
 
-  // 9) 섹션 조작 막대
+  // 9) 세부 페이지의 목록(표 줄·안내 문구·교통편·편의시설 등): + 추가 / ↑↓ / ✕ 빼기
+  document.querySelectorAll('[data-arr-add]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const path = b.dataset.arrAdd;
+    let item = '';
+    try { item = JSON.parse(b.dataset.tpl || '""'); } catch (_) { /* 기본값 없이 빈 칸 */ }
+    setPath(draft, path, [...(getPath(draft, path) || []), item]);
+    render(); updateStatus();
+  }));
+  document.querySelectorAll('[data-arr-mv], [data-arr-del]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const [path, si, sd] = (b.dataset.arrMv || b.dataset.arrDel).split('|');
+    const arr = getPath(draft, path);
+    const i = Number(si);
+    if (!Array.isArray(arr) || !(i in arr)) return;
+    if (b.dataset.arrDel) {
+      const it = arr[i];
+      const label = typeof it === 'string' ? it : (it?.k || it?.t || it?.name || it?.label || it?.h || it?.g || '');
+      if (!confirm(`이 줄을 뺄까요?\n${String(label).replace(/\*\*/g, '').slice(0, 40)}`)) return;
+      arr.splice(i, 1);
+    } else {
+      const j = i + Number(sd);
+      if (j < 0 || j >= arr.length) return;
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    render(); updateStatus();
+  }));
+  // 10) 켜고 끄는 값(예: 대관 규약·환불 규정 숨김) — data-flag="경로"
+  document.querySelectorAll('[data-flag]').forEach(b => b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    const path = b.dataset.flag;
+    setPath(draft, path, getPath(draft, path) === false);
+    render(); updateStatus();
+  }));
+
+  // 11) 섹션 조작 막대
   const secs = draft.sections;
   document.querySelectorAll('section[data-sec]').forEach(sec => {
     const idx = Number(sec.dataset.idx);
