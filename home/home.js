@@ -18,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26i';
+const CSS_VER = '2026-10-26j';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -241,7 +241,7 @@ const SECTIONS = {
     ${c('visit.mapImg') ? `
     <a ${href('visit.placeLink')} target="_blank" rel="noopener" class="ph map rv" data-img="visit.mapImg" ${bg('visit.mapImg')} aria-label="지도에서 보기"></a>` : `
     <div class="ph map gmap rv" data-img="visit.mapImg">
-      <iframe src="https://www.google.com/maps?q=${encodeURIComponent(mapQuery(c('visit.address')))}&hl=ko&z=16&output=embed" title="아이엠센터 위치 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      <div class="kmap" data-kmap="${esc(mapQuery(c('visit.address')))}" role="img" aria-label="아이엠센터 위치 지도"></div>
       <div class="map-opens">
         <a ${href('visit.placeLink')} target="_blank" rel="noopener" class="map-open"><span data-k="visit.placeLabel">${esc(c('visit.placeLabel'))}</span> ↗</a>
         ${c('visit.kakaoPlaceLink') || state.editing ? `<a ${href('visit.kakaoPlaceLink')} target="_blank" rel="noopener" class="map-open"><span data-k="visit.kakaoPlaceLabel">${esc(c('visit.kakaoPlaceLabel'))}</span> ↗</a>` : ''}
@@ -1171,6 +1171,46 @@ function renderNav() {
 }
 
 // ── 렌더링 ────────────────────────────────────────────────────
+// ── 카카오맵(Visit 지도) ─────────────────────────────────────
+// JavaScript 키는 카카오 개발자 콘솔에 등록한 도메인(iamcenter·iamreservation.web.app)에서만 작동하는 공개용 키
+// 주소(visit.address의 도로명+번지)로 위치를 찾아 파란 표시를 띄움 — SDK·주소 찾기에 실패하면 예전처럼 구글 지도로 대신 보여줌
+const KAKAO_JS_KEY = '0599841bc2d93939571eeb0678b5da5f';
+let kakaoSdk = null;
+function loadKakaoSdk() {
+  kakaoSdk ??= new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false&libraries=services`;
+    s.onerror = () => fail(new Error('kakao sdk'));
+    s.onload = () => (window.kakao?.maps ? kakao.maps.load(() => ok(kakao)) : fail(new Error('kakao sdk')));
+    document.head.appendChild(s);
+    setTimeout(() => fail(new Error('kakao timeout')), 8000);
+  });
+  return kakaoSdk;
+}
+const kakaoPos = {};   // 주소 → 좌표(다시 그릴 때 또 찾지 않게)
+function googleMapInto(el, q) {
+  el.outerHTML = `<iframe src="https://www.google.com/maps?q=${encodeURIComponent(q)}&hl=ko&z=16&output=embed" title="아이엠센터 위치 지도" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>`;
+}
+function mountKakaoMaps() {
+  document.querySelectorAll('[data-kmap]').forEach(async el => {
+    const q = el.dataset.kmap;
+    try {
+      const kakao = await loadKakaoSdk();
+      const pos = kakaoPos[q] ??= await new Promise((ok, fail) => new kakao.maps.services.Geocoder().addressSearch(q, (r, st) =>
+        st === kakao.maps.services.Status.OK ? ok(new kakao.maps.LatLng(r[0].y, r[0].x)) : fail(new Error('geocode'))));
+      if (!el.isConnected) return;
+      const map = new kakao.maps.Map(el, { center: pos, level: 3, scrollwheel: false });
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+      const link = safeUrl(c('visit.kakaoPlaceLink') || c('visit.placeLink'));
+      new kakao.maps.CustomOverlay({ map, position: pos, yAnchor: 1,
+        content: `<a class="kpin" href="${esc(link)}" target="_blank" rel="noopener"><span>아이엠센터</span></a>` });
+      window.addEventListener('resize', () => map.relayout(), { once: true });
+    } catch (e) {
+      if (el.isConnected) googleMapInto(el, q);
+    }
+  });
+}
+
 export function render() {
   const main = document.getElementById('main');
   const secs = state.content.sections || [];
@@ -1308,6 +1348,7 @@ function setupBehaviors() {
   }));
 
   bindApply();
+  mountKakaoMaps();
 
   // 세부 페이지 탭(방문가이드·대관신청): 누르면 그 탭 내용만 보이고, 주소의 &tab=… 도 바꿔 둠(새로고침·공유 시 그 탭으로)
   document.querySelectorAll('.ptabs [data-tab]').forEach(b => b.addEventListener('click', () => {
