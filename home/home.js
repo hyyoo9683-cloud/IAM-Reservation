@@ -498,7 +498,10 @@ const phBox = (label, cls = '', g = '') => `<div class="ph ${cls}"${g ? ` style=
 function imgSlot(path, label, cls = '', zoom = false) {
   const u = c(path);
   if (!u && !state.editing) return '';
-  const img = `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">`;
+  // 홈페이지에 있는 SVG 그림(기본 약도 map-route.svg)은 <object>로 넣어야 그림 안에서 홈페이지 글꼴(Pretendard)을 불러올 수 있음(<img>는 바깥 글꼴을 못 씀)
+  const img = /^\.\/[^/]+\.svg$/i.test(u)
+    ? `<object type="image/svg+xml" data="${esc(u)}" aria-label="${esc(label)}" style="display:block;width:100%;aspect-ratio:5/3;pointer-events:none"></object>`
+    : `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">`;
   // zoom: 방문자가 누르면 원본을 새 창으로(휴대폰에서 약도 글씨 확대용)
   return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? (zoom && !state.editing ? `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener" aria-label="${esc(label)} 크게 보기">${img}</a>` : img) : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
 }

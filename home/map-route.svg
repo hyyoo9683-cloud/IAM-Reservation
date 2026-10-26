@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1200" viewBox="0 0 2000 1200" font-family="'Pretendard Variable',Pretendard,'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif">
+<defs><style>@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css");</style></defs>
 <title>아이엠센터 오시는 길 약도</title><rect width="2000" height="1200" fill="#f4f3f1"/>
 <rect x="0" y="357" width="2000" height="95" rx="47" fill="#dedbd5"/>
 <rect x="0" y="797" width="2000" height="93" rx="46" fill="#dedbd5"/>
 <rect x="183" y="452" width="96" height="748" rx="0" fill="#dedbd5"/>
 <rect x="206" y="290" width="49" height="67" rx="0" fill="#dedbd5"/>
-<rect x="1505" y="0" width="95" height="1015" rx="47" fill="#dedbd5"/>
+<rect x="1505" y="0" width="95" height="890" rx="47" fill="#dedbd5"/>
 <rect x="572" y="25" width="48" height="332" rx="0" fill="#dedbd5"/>
 <rect x="620" y="70" width="28" height="48" rx="0" fill="#dedbd5"/>
 <rect x="1033" y="290" width="48" height="67" rx="0" fill="#dedbd5"/>
 <rect x="1033" y="452" width="48" height="48" rx="0" fill="#dedbd5"/>
 <rect x="369" y="452" width="48" height="133" rx="0" fill="#dedbd5"/>
 <rect x="279" y="585" width="262" height="48" rx="0" fill="#dedbd5"/>
-<rect x="1535" y="890" width="35" height="125" rx="0" fill="#dedbd5"/>
 <rect x="194.0" y="452" width="7.0" height="30" rx="0" fill="#ffffff"/>
 <rect x="207.0" y="452" width="7.0" height="30" rx="0" fill="#ffffff"/>
 <rect x="220.0" y="452" width="7.0" height="30" rx="0" fill="#ffffff"/>
@@ -81,14 +81,10 @@
 <text x="1791.0" y="644" font-size="34" font-weight="500" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">광교레이크시티</text>
 <rect x="302" y="917" width="360" height="158" rx="0" fill="#ffffff" stroke="#e3e3e3" stroke-width="2"/>
 <text x="482.0" y="996" font-size="34" font-weight="500" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">남부경찰서</text>
-<rect x="1397" y="898" width="120" height="118" rx="0" fill="#ffffff" stroke="#e3e3e3" stroke-width="2"/>
-<text x="1457.0" y="957" font-size="28" font-weight="500" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">한샘</text>
-<rect x="1588" y="898" width="119" height="118" rx="0" fill="#ffffff" stroke="#e3e3e3" stroke-width="2"/>
-<text x="1647.5" y="957" font-size="28" font-weight="500" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">시몬스</text>
-<rect x="648" y="28" width="263" height="262" rx="0" fill="#0d0d0d"/>
+<rect x="648" y="28" width="263" height="262" rx="0" fill="#1f4f9c"/>
 <text x="779.5" y="140" font-size="44" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">아이엠센터</text>
 <text x="779.5" y="192" font-size="18" font-weight="600" fill="#ffffff" text-anchor="middle" dominant-baseline="middle" letter-spacing=".18em">I AM CENTER</text>
-<circle cx="779.5" cy="240" r="7" fill="#e2a400"/>
+<circle cx="779.5" cy="240" r="7" fill="#ffffff"/>
 <text x="95" y="405" font-size="34" font-weight="700" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">월드컵로</text>
 <text x="1905" y="405" font-size="34" font-weight="700" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">월드컵로</text>
 <text x="95" y="844" font-size="34" font-weight="700" fill="#555" text-anchor="middle" dominant-baseline="middle" letter-spacing="-.02em">중부대로</text>
