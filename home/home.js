@@ -495,10 +495,12 @@ function secHd(enPath, enFb, subPath, extra = '', cls = '') {
 // 사진 자리(아직 사진이 없을 때) — 메인 화면처럼 그라데이션 + PHOTO 표시
 const phBox = (label, cls = '', g = '') => `<div class="ph ${cls}"${g ? ` style="--g:${esc(g)}"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(label)}</span></div>`;
 // 사진 한 장 칸: 방문자에게는 사진이 있을 때만, 편집 모드에서는 빈 자리도 보여서 '사진 바꾸기'로 올릴 수 있음
-function imgSlot(path, label, cls = '') {
+function imgSlot(path, label, cls = '', zoom = false) {
   const u = c(path);
   if (!u && !state.editing) return '';
-  return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">` : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
+  const img = `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">`;
+  // zoom: 방문자가 누르면 원본을 새 창으로(휴대폰에서 약도 글씨 확대용)
+  return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? (zoom && !state.editing ? `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener" aria-label="${esc(label)} 크게 보기">${img}</a>` : img) : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
 }
 // 왼쪽 제목 칸: 영문 큰 제목(있으면) + 한글 제목
 const kvHead = (titlePath, enPath, enFb) => `<div class="kv-h">${enPath ? tf(enPath, enFb, 'span', 'kv-en') : ''}${t(titlePath, 'h3')}</div>`;
@@ -566,7 +568,7 @@ function guideWay() {
   return SECTIONS.visit() + `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
-    ${imgSlot(`${G}.way.mapImg`, '약도', 'rv')}
+    ${imgSlot(`${G}.way.mapImg`, '약도', 'rv', true)}
     ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr rv">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
     ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
     <div class="tboxes">

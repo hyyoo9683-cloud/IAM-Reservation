@@ -68,7 +68,7 @@ export const DEFAULT_CONTENT = {
       // 탭 4개(오시는 길·주차안내·편의시설·휠체어 이용안내) — 주소 ./?page=guide&tab=parking 처럼 바로 열 수 있음
       tabs: { way: '오시는 길', parking: '주차안내', amenity: '편의시설', wheel: '휠체어 이용안내' },
       way: {
-        mapImg: '',   // 약도 사진(비어 있으면 방문자 화면에서 숨김)
+        mapImg: './map-route.svg',   // 약도(기본: 홈페이지 디자인으로 그린 home/map-route.svg — 편집 모드에서 다른 사진으로 바꿀 수 있음)
         kakaoLabel: '카카오채널 ‘아이엠센터’', kakaoLink: '',
         transportEn: 'Getting Here', transportTitle: '교통 안내',
         qrImg: '', qrNote: 'QR 코드를 스캔하여 아이엠센터 카카오채널을 추가해 주세요.',
@@ -457,6 +457,7 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.desc', '760석 · 공연 · 예배 · 컨퍼런스'],
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
+  ['pages.guide.way.mapImg', ''],
   ['notice.cta2Link', 'https://iamreservation.web.app/cal-public.html'],
   ['pages.rental.applyLink', 'https://iamreservation.web.app/venue-apply.html'],
   ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
