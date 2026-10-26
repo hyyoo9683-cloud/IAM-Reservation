@@ -497,13 +497,27 @@ function kvTable(titlePath, rowsPath, enPath = '', enFb = '') {
   const rows = c(rowsPath) || [];
   const show = rows.map((r, i) => [r, i]).filter(([r]) => state.editing || filled(r.v));
   if (!show.length) return '';
-  return `
+  // 편집 모드: 고치기 쉬운 이름·값 표 그대로
+  if (state.editing) return `
     <div class="kv rv">
       ${kvHead(titlePath, enPath, enFb)}
       <div>
         <dl class="info kv-tbl">${show.map(([r, i]) => `<dt>${t(`${rowsPath}.${i}.k`)}</dt><dd>${m(`${rowsPath}.${i}.v`, 'span')}${arrCtl(rowsPath, i, rows.length)}</dd>`).join('')}</dl>
         ${arrAdd(rowsPath, { k: '항목', v: '' })}
       </div>
+    </div>`;
+  // 방문자 화면: 값은 굵은 제목처럼, 여러 줄 값(부속시설 등)은 항목 칸으로(이름 굵게 + 수량)
+  return `
+    <div class="kv rv">
+      ${kvHead(titlePath, enPath, enFb)}
+      <div class="facts">${show.map(([r]) => {
+        const lines = String(r.v).split('\n').map(x => x.trim()).filter(Boolean);
+        if (lines.length < 2) return `<div class="fact"><span class="fact-k">${esc(r.k)}</span><strong class="fact-v">${mlStrong(r.v)}</strong></div>`;
+        return `<div class="fact"><span class="fact-k">${esc(r.k)}</span><ul class="fact-items">${lines.map(l => {
+          const mm = l.match(/^(.+?)\s+(\d.*)$/);
+          return mm ? `<li><b>${mlStrong(mm[1])}</b><span>${mlStrong(mm[2])}</span></li>` : `<li><b>${mlStrong(l)}</b></li>`;
+        }).join('')}</ul></div>`;
+      }).join('')}</div>
     </div>`;
 }
 // 제목(왼쪽) + 글 목록(오른쪽, 굵게 가능) — kind 'dot'(•) / 'dash'(-) / 'num'(1. 2. …)
@@ -520,13 +534,15 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
       </div>
     </div>`;
 }
+// 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
+const TAB_EN = { way: 'Directions', parking: 'Parking', amenity: 'Amenities', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
   const cur = keys.includes(state.tab) ? state.tab : keys[0];
   return `
 <div class="ptabs-wrap"><div class="wrap">
-  <div class="ptabs" role="tablist">${keys.map(k => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === cur}">${t(`pages.${id}.tabs.${k}`)}</button>`).join('')}</div>
+  <div class="ptabs" role="tablist" style="--n:${keys.length}">${keys.map(k => `<button type="button" role="tab" data-tab="${k}" aria-selected="${k === cur}">${tf(`pages.${id}.tabsEn.${k}`, TAB_EN[k] || '', 'span', 'pt-en')}${t(`pages.${id}.tabs.${k}`, 'span', 'pt-ko')}</button>`).join('')}</div>
 </div></div>
 ${keys.map(k => `<div class="tab-panel" data-panel="${k}"${k === cur ? '' : ' hidden'}>${panels[k]()}</div>`).join('')}`;
 }
