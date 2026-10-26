@@ -252,20 +252,18 @@ function pageHead(id) {
 </section>`;
 }
 function pageImg(id, tag) {
-  const has = c(`pages.${id}.img`);
-  if (!has && !state.editing) return '';
   return `<div class="wrap"><div class="ph page-img" data-img="pages.${id}.img" ${bg(`pages.${id}.img`)}><span class="tag"><b>PHOTO</b> · ${esc(tag)}</span></div></div>`;
 }
 // ── 사진 묶음: 1장이면 한 장, 2장 이상이면 넘겨 보는 슬라이드(캐러셀) ─────────
 // path = 사진 주소 배열 경로, legacyPath = 예전 한 장짜리 사진 경로(있으면 첫 장으로 취급)
 // fixed: 한 장일 때도 16:9로 꽉 채움(대표 사진용), ph: 사진이 없을 때 임시 배경(그라데이션)
-function photoSet(path, legacyPath, { fixed = false, ph = '' } = {}) {
+function photoSet(path, legacyPath, { fixed = false, ph = '', label = '' } = {}) {
   let urls = (c(path) || []).filter(Boolean);
   if (!urls.length && legacyPath && c(legacyPath)) urls = [c(legacyPath)];
   const img = (u, cls = '') => `<img${cls ? ` class="${cls}"` : ''} src="${esc(safeUrl(u))}" alt="" loading="lazy">`;
   let view = '';
   if (!urls.length) {
-    if (state.editing || ph) view = `<div class="ph ps-ph"${ph ? ` style="--g:${esc(ph)}"` : ''}><span class="tag"><b>PHOTO</b> · 사진을 올려 주세요</span></div>`;
+    if (state.editing || ph) view = `<div class="ph ps-ph"${ph ? ` style="--g:${esc(ph)}"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(state.editing || !label ? '사진을 올려 주세요' : label)}</span></div>`;
   } else if (urls.length === 1) {
     view = fixed ? `<div class="ps-fixed">${img(urls[0])}</div>` : img(urls[0], 'ps-one');
   } else {
@@ -293,7 +291,7 @@ function aboutVision() {
   return `
 <section class="page-vision" data-sec="page">
   <div class="wrap">
-    <div class="vision-photo rv">${photoSet('pages.about.imgs', 'pages.about.img', { fixed: true, ph: 'linear-gradient(180deg,#9fb6c8 0%,#d7dde2 55%,#bdb6aa 100%)' })}</div>
+    <div class="vision-photo rv">${photoSet('pages.about.imgs', 'pages.about.img', { fixed: true, ph: 'linear-gradient(180deg,#9fb6c8 0%,#d7dde2 55%,#bdb6aa 100%)', label: '아이엠센터 전경 · 가로 16:9' })}</div>
     <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
     ${rich('pages.about.vision', 'p', 'vision rv')}
   </div>
@@ -462,8 +460,8 @@ function spaceBody(id) {
 </section>
 <section class="page-facts" data-sec="page">
   <div class="wrap">
-    ${kvTable(`pages.${id}.factsTitle`, `pages.${id}.facts`)}
-    ${textList(`pages.${id}.usageTitle`, `pages.${id}.usage`, 'dot')}
+    ${kvTable(`pages.${id}.factsTitle`, `pages.${id}.facts`, `pages.${id}.factsEn`, 'Facilities')}
+    ${textList(`pages.${id}.usageTitle`, `pages.${id}.usage`, 'dot', `pages.${id}.usageEn`, 'Guidelines')}
   </div>
 </section>`;
 }
@@ -478,20 +476,30 @@ const arrCtl = (path, i, len) => state.editing ? `<span class="arr-ctl">
   <button type="button" data-arr-del="${path}|${i}" title="이 줄 빼기">✕</button></span>` : '';
 // 편집 모드의 '+ 추가' 버튼 — tpl은 새로 넣을 기본 내용
 const arrAdd = (path, tpl, label = '+ 줄 추가') => state.editing ? `<button type="button" class="ed-chip arr-add" data-arr-add="${path}" data-tpl="${esc(JSON.stringify(tpl))}">${label}</button>` : '';
+// 섹션 제목: 메인 화면(What's On·Spaces·Visit)과 같은 큰 영문 제목 + 한글 부제
+// enPath에 값이 없으면 fb(기본 영문)를 보여줌 — 편집 모드에서 고치면 enPath에 저장
+const tf = (path, fb, tag = 'span', cls = '') => `<${tag}${cls ? ` class="${cls}"` : ''} data-k="${path}">${esc(filled(c(path)) ? c(path) : fb)}</${tag}>`;
+function secHd(enPath, enFb, subPath, extra = '', cls = '') {
+  return `<div class="sec-hd${cls ? ` ${cls}` : ''} rv"><h2>${tf(enPath, enFb)}<span class="h2sub" data-k="${subPath}">${esc(c(subPath))}</span></h2>${extra}</div>`;
+}
+// 사진 자리(아직 사진이 없을 때) — 메인 화면처럼 그라데이션 + PHOTO 표시
+const phBox = (label, cls = '', g = '') => `<div class="ph ${cls}"${g ? ` style="--g:${esc(g)}"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(label)}</span></div>`;
 // 사진 한 장 칸: 방문자에게는 사진이 있을 때만, 편집 모드에서는 빈 자리도 보여서 '사진 바꾸기'로 올릴 수 있음
 function imgSlot(path, label, cls = '') {
   const u = c(path);
   if (!u && !state.editing) return '';
   return `<div class="img-slot${cls ? ` ${cls}` : ''}${u ? '' : ' empty'}" data-img="${path}">${u ? `<img src="${esc(safeUrl(u))}" alt="${esc(label)}" loading="lazy">` : `<span class="slot-ph">${esc(label)} 사진을 올려 주세요</span>`}</div>`;
 }
+// 왼쪽 제목 칸: 영문 큰 제목(있으면) + 한글 제목
+const kvHead = (titlePath, enPath, enFb) => `<div class="kv-h">${enPath ? tf(enPath, enFb, 'span', 'kv-en') : ''}${t(titlePath, 'h3')}</div>`;
 // 제목(왼쪽) + 이름·값 표(오른쪽) — 값이 빈 줄은 방문자 화면에서 숨김
-function kvTable(titlePath, rowsPath) {
+function kvTable(titlePath, rowsPath, enPath = '', enFb = '') {
   const rows = c(rowsPath) || [];
   const show = rows.map((r, i) => [r, i]).filter(([r]) => state.editing || filled(r.v));
   if (!show.length) return '';
   return `
     <div class="kv rv">
-      ${t(titlePath, 'h3', 'kv-h')}
+      ${kvHead(titlePath, enPath, enFb)}
       <div>
         <dl class="info kv-tbl">${show.map(([r, i]) => `<dt>${t(`${rowsPath}.${i}.k`)}</dt><dd>${m(`${rowsPath}.${i}.v`, 'span')}${arrCtl(rowsPath, i, rows.length)}</dd>`).join('')}</dl>
         ${arrAdd(rowsPath, { k: '항목', v: '' })}
@@ -499,13 +507,13 @@ function kvTable(titlePath, rowsPath) {
     </div>`;
 }
 // 제목(왼쪽) + 글 목록(오른쪽, 굵게 가능) — kind 'dot'(•) / 'dash'(-) / 'num'(1. 2. …)
-function textList(titlePath, listPath, kind = 'dot') {
+function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
   const list = c(listPath) || [];
   const show = list.map((v, i) => [v, i]).filter(([v]) => state.editing || filled(v));
   if (!show.length) return '';
   return `
     <div class="kv rv">
-      ${t(titlePath, 'h3', 'kv-h')}
+      ${kvHead(titlePath, enPath, enFb)}
       <div>
         <ul class="tlist ${kind}">${show.map(([, i]) => `<li>${rich(`${listPath}.${i}`, 'span')}${arrCtl(listPath, i, list.length)}</li>`).join('')}</ul>
         ${arrAdd(listPath, '내용을 입력하세요.')}
@@ -539,7 +547,7 @@ function guideWay() {
       </div>
       ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
     </div>
-    ${DOTS}
+    ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
     <div class="tboxes">
       ${tr.map((b, bi) => `
       <div class="tbox rv">
@@ -567,18 +575,20 @@ function guideParking() {
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
     ${imgSlot(`${P}.mapImg`, '주차 지도', 'rv')}
-    <div class="nbox rv">${textList(`${P}.noticeTitle`, `${P}.notice`, 'dash')}</div>
-    ${t(`${P}.feeTitle`, 'h3', 'g-h rv')}
-    <div class="tbl-scroll rv">
+    <div class="nbox rv">${textList(`${P}.noticeTitle`, `${P}.notice`, 'dash', `${P}.noticeEn`, 'Parking')}</div>
+    <div class="kv rv">${kvHead(`${P}.feeTitle`, `${P}.feeEn`, 'Fees')}<div>
+    <div class="tbl-scroll">
       <table class="ptable">
         <thead><tr><th scope="col"></th><th scope="col">${t(`${P}.cols.a`)}</th><th scope="col">${t(`${P}.cols.b`)}</th></tr></thead>
         <tbody>${fees.map((f, i) => `<tr><th scope="row">${t(`${P}.fees.${i}.k`)}${arrCtl(`${P}.fees`, i, fees.length)}</th><td>${m(`${P}.fees.${i}.a`, 'span')}</td><td>${m(`${P}.fees.${i}.b`, 'span')}</td></tr>`).join('')}</tbody>
       </table>
     </div>
     ${arrAdd(`${P}.fees`, { k: '항목', a: '', b: '' })}
+    </div></div>
   </div>
 </section>`;
 }
+const STORE_G = ['linear-gradient(135deg,#3a332b,#15120f)', 'linear-gradient(135deg,#59616a,#1d2126)', 'linear-gradient(135deg,#6b5a47,#2a231c)', 'linear-gradient(135deg,#4a5248,#181c17)'];
 function guideAmenity() {
   const A = `${G}.amenity.stores`;
   const st = c(A) || [];
@@ -590,10 +600,11 @@ function guideAmenity() {
   return `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
+    ${secHd(`${G}.amenity.en`, 'Amenities', `${G}.amenity.title`, '', 'sm')}
     <div class="stores">
       ${st.map((s, i) => `
-      <div class="store rv${c(`${A}.${i}.img`) || state.editing ? '' : ' noimg'}">
-        ${imgSlot(`${A}.${i}.img`, s.name || '편의시설', 'store-img')}
+      <div class="store rv">
+        ${c(`${A}.${i}.img`) || state.editing ? imgSlot(`${A}.${i}.img`, s.name || '편의시설', 'store-img') : phBox(s.name || '편의시설', 'store-img store-ph', STORE_G[i % STORE_G.length])}
         <div class="store-txt">
           ${t(`${A}.${i}.name`, 'h3')}
           ${m(`${A}.${i}.desc`)}
@@ -610,7 +621,8 @@ ${floors ? DOTS + floors + (ed ? '<div class="wrap"><p class="edit-hint">층별 
 function guideWheel() {
   return `
 <section class="g-sec" data-sec="page">
-  <div class="wrap narrow center">
+  <div class="wrap narrow">
+    ${secHd(`${G}.wheel.en`, 'Accessibility', `${G}.wheel.title`, '', 'sm')}
     ${imgSlot(`${G}.wheel.img`, '장애인 주차구역', 'rv')}
     ${rich(`${G}.wheel.text`, 'p', 'g-txt rv')}
   </div>
@@ -624,18 +636,39 @@ function hallBody() {
   return `
 <section class="page-vision" data-sec="page">
   <div class="wrap">
-    ${(c(`${H}.imgs`) || []).filter(Boolean).length || state.editing ? `<div class="vision-photo rv">${photoSet(`${H}.imgs`, '', { fixed: true })}</div>${DOTS}` : ''}
+    <div class="vision-photo rv">${photoSet(`${H}.imgs`, '', { fixed: true, ph: 'radial-gradient(ellipse 60% 70% at 50% 35%,#6a5238 0%,#2a2019 45%,#0d0d0d 100%)', label: '아이엠홀 객석·무대 · 가로 16:9' })}</div>
+    ${DOTS}
     ${rich(`${H}.headline`, 'h2', 'hall-head rv')}
     ${rich(`${H}.intro`, 'p', 'vision rv')}
   </div>
 </section>
+${hallStats()}
 <section class="page-facts" data-sec="page">
   <div class="wrap">
-    ${c(`${H}.seatImg`) || state.editing ? `<div class="kv rv">${t(`${H}.seatTitle`, 'h3', 'kv-h')}<div>${imgSlot(`${H}.seatImg`, '좌석배치도', 'plan')}</div></div>` : ''}
-    ${specs.map((sp, i) => kvTable(`${H}.specs.${i}.h`, `${H}.specs.${i}.rows`)).join('')}
-    ${imgSlot(`${H}.stageImg`, '무대 도면', 'plan rv')}
+    ${c(`${H}.seatImg`) || state.editing ? `<div class="kv rv">${kvHead(`${H}.seatTitle`, `${H}.seatEn`, 'Seating')}<div>${imgSlot(`${H}.seatImg`, '좌석배치도', 'plan')}</div></div>` : ''}
+    ${specs.map((sp, i) => kvTable(`${H}.specs.${i}.h`, `${H}.specs.${i}.rows`, `${H}.specs.${i}.en`, ['Facilities', 'Stage'][i] || '')).join('')}
+    ${c(`${H}.stageImg`) || state.editing ? `<div class="kv rv">${kvHead(`${H}.stageTitle`, `${H}.stageEn`, 'Stage Plan')}<div>${imgSlot(`${H}.stageImg`, '무대 도면', 'plan')}</div></div>` : ''}
     ${c(`${H}.note`) || state.editing ? m(`${H}.note`, 'p', 'hall-note rv') : ''}
     <div class="btns center rv"><a ${href(`${H}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="${H}.ctaText">${esc(c(`${H}.ctaText`))}</span> <span aria-hidden="true">→</span></a></div>
+  </div>
+</section>`;
+}
+
+// 아이엠홀 숫자 띠: 메인 'WHY I AM CENTER'의 숫자 칸과 같은 모양(어두운 배경)
+function hallStats() {
+  const P = 'pages.hall.stats', st = c(P) || [];
+  if (!st.length && !state.editing) return '';
+  return `
+<section class="statement hall-stats" data-sec="page">
+  <div class="wrap">
+    <div class="stats">
+      ${st.map((s, i) => `
+      <div class="stat rv">
+        <div class="n">${t(`${P}.${i}.n`)}<small data-k="${P}.${i}.unit">${esc(s.unit)}</small></div>
+        ${t(`${P}.${i}.title`, 'h3')}
+        ${t(`${P}.${i}.desc`, 'p')}
+      </div>`).join('')}
+    </div>
   </div>
 </section>`;
 }
@@ -645,13 +678,9 @@ const R = 'pages.rental';
 function rentSteps(k) {
   const P = `${R}.${k}.steps`, st = c(P) || [];
   return `
-    <div class="kv rv">
-      ${t(`${R}.stepsTitle`, 'h3', 'kv-h')}
-      <div>
-        <ol class="steps">${st.map((x, i) => `<li><span class="st-n">${i + 1}</span>${t(`${P}.${i}.t`, 'strong')}${m(`${P}.${i}.d`, 'span')}${arrCtl(P, i, st.length)}</li>`).join('')}</ol>
-        ${arrAdd(P, { t: '단계 이름', d: '설명' }, '+ 단계 추가')}
-      </div>
-    </div>`;
+    ${secHd(`${R}.stepsEn`, 'Process', `${R}.stepsTitle`, '', 'sm')}
+    <ol class="steps rv" style="--n:${st.length > 4 ? 3 : Math.max(st.length, 1)}">${st.map((x, i) => `<li><span class="st-n">${String(i + 1).padStart(2, '0')}</span>${t(`${P}.${i}.t`, 'strong')}${m(`${P}.${i}.d`, 'span', 'st-d')}${arrCtl(P, i, st.length)}</li>`).join('')}</ol>
+    ${arrAdd(P, { t: '단계 이름', d: '설명' }, '+ 단계 추가')}`;
 }
 function rentContact(k) {
   const F = `${R}.${k}.forms`, forms = c(F) || [];
@@ -659,6 +688,7 @@ function rentContact(k) {
   const tel = String(c(`${R}.tel`) || '').replace(/[^\d+]/g, '');
   return `
     <div class="r-contact rv">
+      <div class="rc-hd"><h2>${tf(`${R}.contactEn`, 'Contact')}<span class="h2sub" data-k="${R}.contactTitle">${esc(c(`${R}.contactTitle`) || '대관 문의')}</span></h2></div>
       <div class="rc-l">
         <p><span class="rc-ic" aria-hidden="true">✉</span>${filled(c(`${R}.email`)) ? `<a href="mailto:${esc(c(`${R}.email`))}">${t(`${R}.email`)}</a>` : t(`${R}.email`)}</p>
         <p><span class="rc-ic" aria-hidden="true">☎</span>${tel ? `<a href="tel:${esc(tel)}">${t(`${R}.tel`)}</a>` : t(`${R}.tel`)}</p>
@@ -681,7 +711,7 @@ function rentHallFees() {
   const rm = c(`${P}.remarks`) || [];
   const notes = c(`${P}.notes`) || [];
   return `
-    <div class="fee-hd rv">${t(`${P}.feeTitle`, 'h3', 'g-h')}${c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : ''}</div>
+    ${secHd(`${P}.feeEn`, 'Fees', `${P}.feeTitle`, c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : '', 'sm fee-hd')}
     <div class="tbl-scroll rv">
       <table class="ptable fee">
         <thead><tr><th scope="col" colspan="2">구분</th><th scope="col">${t(`${P}.cols.r`)}</th><th scope="col">${t(`${P}.cols.p`)}</th></tr></thead>
@@ -701,7 +731,7 @@ function rentSeminarFees() {
   const P = `${R}.seminar`, cards = c(`${P}.cards`) || [];
   const notes = c(`${P}.notes`) || [];
   return `
-    <div class="fee-hd rv">${t(`${P}.feeTitle`, 'h3', 'g-h')}${c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : ''}</div>
+    ${secHd(`${P}.feeEn`, 'Fees', `${P}.feeTitle`, c(`${P}.feeUnit`) || state.editing ? t(`${P}.feeUnit`, 'span', 'unit') : '', 'sm fee-hd')}
     <div class="fcards">
       ${cards.map((cd, ci) => { const rows = cd.rows || []; const Q = `${P}.cards.${ci}.rows`; return `
       <div class="fcard rv">
@@ -723,8 +753,8 @@ function rentTerms(k) {
 <section class="page-facts terms${hidden ? ' is-hidden' : ''}" data-sec="page" id="terms-${k}">
   <div class="wrap">
     ${state.editing ? `<p class="terms-flag">대관 규약·취소 및 환불규정은 지금 <b>${hidden ? '방문자에게 숨김' : '방문자에게 보임'}</b> 상태예요. (두 탭 공통) <button type="button" class="ed-chip" data-flag="${R}.rulesHidden">${hidden ? '방문자에게 보이기' : '다시 숨기기'}</button></p>` : ''}
-    ${textList(`${R}.${k}.rulesTitle`, `${R}.${k}.rules`, 'dot')}
-    ${textList(`${R}.${k}.refundTitle`, `${R}.${k}.refund`, 'dot')}
+    ${textList(`${R}.${k}.rulesTitle`, `${R}.${k}.rules`, 'dot', `${R}.${k}.rulesEn`, 'Terms')}
+    ${textList(`${R}.${k}.refundTitle`, `${R}.${k}.refund`, 'dot', `${R}.${k}.refundEn`, 'Refund Policy')}
   </div>
 </section>`;
 }

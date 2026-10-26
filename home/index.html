@@ -543,6 +543,85 @@ section{padding:clamp(80px,11vw,160px) 0}
   .fcard .ptable th,.fcard .ptable td{padding:12px 8px}
 }
 
+/* ==========================================================
+   세부 페이지(아이엠홀·대관신청·방문가이드·아론홀·샤론홀)를 메인 디자인에 맞춤
+   — 큰 영문 제목 + 한글 부제, 2px 검정 윗줄 + 1px 회색 줄, 각진 모서리, 사진 자리는 그라데이션
+   ========================================================== */
+.sec-hd.sm{margin-bottom:clamp(24px,3vw,40px)}
+.sec-hd.sm h2{font-size:clamp(30px,3.6vw,52px)}
+.sec-hd .unit{font-size:13px;color:var(--mute);white-space:nowrap}
+.g-sec .wrap.narrow>*+.sec-hd,.g-sec .wrap.narrow>*+.kv,.g-sec .wrap.narrow>.kv+*{margin-top:clamp(64px,8vw,112px)}
+/* 왼쪽 제목 칸: 영문 큰 제목 + 한글 작은 제목 */
+.kv{grid-template-columns:minmax(200px,300px) 1fr;gap:clamp(24px,5vw,80px)}
+.kv-h{padding-top:0}
+.kv-h .kv-en{display:block;font-size:clamp(28px,3vw,42px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.kv-h h3{margin-top:12px;font-size:15px;font-weight:500;color:var(--mute);letter-spacing:0}
+.kv-tbl{background:none!important;grid-template-columns:180px 1fr}
+.ptabs-wrap{padding-top:clamp(24px,3vw,40px)}
+.kv-tbl dt{padding-left:0}
+.kv-tbl dd{padding-right:0}
+.page-facts .wrap{max-width:var(--max);gap:clamp(64px,8vw,112px)}
+/* 탭: 글씨 크기는 같게, 선택된 탭만 검정 굵은 밑줄 */
+.ptabs{gap:0;max-width:none}
+.ptabs button{padding:18px 6px;border-bottom:1px solid var(--line);color:var(--mute);font-size:16px;font-weight:600;letter-spacing:-.01em}
+.ptabs button[aria-selected="true"]{font-size:16px;font-weight:800;border-bottom:2px solid var(--ink);color:var(--ink)}
+/* 아이엠홀 숫자 띠 */
+.hall-stats .stats{margin-top:0}
+/* 대관 절차: 가로 단계 카드 */
+.steps{display:grid;grid-template-columns:repeat(var(--n,4),1fr);border-top:2px solid var(--ink)}
+.steps li{display:flex;flex-direction:column;gap:10px;padding:24px 22px 28px 0;border-bottom:1px solid var(--line);align-items:flex-start}
+.steps li+li{padding-left:22px;border-left:1px solid var(--line)}
+.steps[style*="--n:3"] li:nth-child(3n+1){padding-left:0;border-left:0}
+.st-n{align-self:flex-start;width:auto;height:auto;border-radius:0;background:none;color:var(--ink);font-size:clamp(30px,3vw,40px);font-weight:300;letter-spacing:-.03em;line-height:1;display:block;margin-bottom:8px}
+.steps strong{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.steps .st-d{font-size:14px;color:#555;line-height:1.7}
+/* 대관 문의: 어두운 띠(메인 센터 소개와 같은 톤) */
+.r-contact{display:grid;grid-template-columns:minmax(200px,300px) 1fr auto;gap:clamp(24px,5vw,80px);align-items:center;background:var(--ink);color:#fff;padding:clamp(40px,5vw,64px) clamp(28px,4vw,56px);margin-top:clamp(64px,8vw,112px)}
+.rc-hd h2{font-size:clamp(28px,3vw,42px);font-weight:800;letter-spacing:-.04em;line-height:1}
+.rc-hd .h2sub{display:block;margin-top:12px;font-size:15px;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.6)}
+.rc-l p{font-size:clamp(17px,1.6vw,21px);font-weight:600;margin-bottom:8px}
+.rc-ic{color:rgba(255,255,255,.55)}
+.r-contact .btn{background:#fff;color:var(--ink)}
+.r-contact .btn.line{background:none;color:#fff;border-color:rgba(255,255,255,.55)}
+.rc-cap{color:rgba(255,255,255,.55)}
+/* 표: 세로줄 없이 가로줄만, 머리줄은 회색 작은 글씨 */
+.ptable{font-size:15px}
+.ptable th+th,.ptable th+td,.ptable td+td{border-left:0}
+.ptable thead th{background:none;color:var(--mute);font-size:13px;font-weight:600;padding:14px 16px}
+.ptable tbody th{text-align:left;color:var(--ink)}
+.ptable .grp{background:none;font-weight:800;vertical-align:top;border-right:1px solid var(--line)}
+.ptable td{color:#333}
+.fee-notes{margin-top:20px}
+.remarks{margin-top:clamp(32px,4vw,48px);background:var(--soft);padding:clamp(28px,3vw,40px)}
+.remarks h4{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-bottom:16px}
+.fcards{gap:clamp(24px,4vw,56px)}
+.fcard{background:none;border:0;border-radius:0;padding:0}
+.fcard h4{font-size:clamp(20px,2vw,26px);letter-spacing:-.03em;margin-bottom:16px}
+/* 교통 안내: 상자 대신 줄로 구분 */
+.tboxes{gap:0;border-top:2px solid var(--ink)}
+.tbox{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:28px 0;grid-template-columns:minmax(120px,200px) 1fr}
+.tbox h3{font-size:18px}
+.kakao-row{margin-top:clamp(40px,5vw,64px)}
+/* 편의시설: 사진(또는 사진 자리)과 글이 좌우로 번갈아 */
+.store .store-ph{aspect-ratio:3/2}
+.store-txt h3{font-size:clamp(24px,2.4vw,34px)}
+.nbox{margin-bottom:0}
+@media (max-width:900px){
+  .kv{grid-template-columns:1fr;gap:20px}
+  .r-contact{grid-template-columns:1fr}
+  .steps{grid-template-columns:repeat(3,1fr)}
+  .steps li:nth-child(3n+1){padding-left:0;border-left:0}
+}
+@media (max-width:600px){
+  .ptabs button,.ptabs button[aria-selected="true"]{font-size:15px;padding:14px 4px}
+  .steps{grid-template-columns:1fr 1fr}
+  .steps li,.steps li+li,.steps li:nth-child(3n+1){padding:20px 14px 22px 0;border-left:0}
+  .steps li:nth-child(even){padding-left:14px;border-left:1px solid var(--line)}
+  .kv-tbl{grid-template-columns:96px 1fr}
+  .tbox{grid-template-columns:1fr;padding:22px 0}
+  .r-contact{padding:36px 22px}
+}
+
 /* 첫 화면: 데이터 불러오는 동안 잠깐 숨김 (깜빡임 방지) */
 body.booting #main,body.booting #footer-slot{visibility:hidden}
 .edit-hint{display:none}

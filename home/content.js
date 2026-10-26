@@ -76,6 +76,7 @@ export const DEFAULT_CONTENT = {
       way: {
         mapImg: '',   // 약도 사진(비어 있으면 방문자 화면에서 숨김)
         kakaoLabel: '카카오채널 ‘아이엠센터’', kakaoLink: '',
+        transportEn: 'Getting Here', transportTitle: '교통 안내',
         qrImg: '', qrNote: 'QR 코드를 스캔하여 아이엠센터 카카오채널을 추가해 주세요.',
         // 교통 안내 상자: h 제목, rows[{label 구분(비워도 됨), tone 'blue'|'yellow'|'red'|'' 구분 글자색, text 내용(굵게 가능)}]
         transport: [
@@ -95,13 +96,13 @@ export const DEFAULT_CONTENT = {
       },
       parking: {
         mapImg: '',   // 주차 지도 사진
-        noticeTitle: '주차안내',
+        noticeEn: 'Parking', noticeTitle: '주차안내',
         notice: [
           '주차장이 협소하여 상시 만차되오니,\n가급적 대중교통을 이용해 주시기 바랍니다.',
           '**아이엠센터 건물 지하 주차장**과 **에덴 주차타워**를 이용할 수 있습니다.',
           '**학교 건물 내 지하주차장은 이용 불가**합니다.',
         ],
-        feeTitle: '주차 요금',
+        feeEn: 'Fees', feeTitle: '주차 요금',
         cols: { a: '아이엠센터 지하주차장', b: '에덴 주차타워' },
         fees: [
           { k: '기본 요금', a: '평일 기본 30분 무료\n토·일 기본 3시간 무료\n*매장 2곳 이용 시 합산 가능, 최대 4시간 무료', b: '평일·일요일 기본 3시간 무료\n토요일 기본 8시간 무료' },
@@ -110,6 +111,7 @@ export const DEFAULT_CONTENT = {
         ],
       },
       amenity: {
+        en: 'Amenities', title: '편의시설',
         // 입점 시설: 사진·이름·설명·연락(label 문의/예약 + contact 번호 — 번호가 비어 있으면 그 줄은 숨김)
         stores: [
           { name: '이마트24', img: '', label: '문의', contact: '',
@@ -125,6 +127,7 @@ export const DEFAULT_CONTENT = {
         ],
       },
       wheel: {
+        en: 'Accessibility', title: '휠체어 이용안내',
         img: '',   // 장애인 주차구역 사진
         text: '아이엠센터 지하에 장애인 전용주차구역이 배정되어 있습니다.',
       },
@@ -137,13 +140,13 @@ export const DEFAULT_CONTENT = {
       headline: '케이터링이 가능한 **소규모 세미나실**',
       intro: '아이엠센터 2층에 자리한 아론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.',
       ctaText: '대관하기', ctaLink: './?page=rental&tab=seminar',
-      factsTitle: '시설 안내',
+      factsEn: 'Facilities', factsTitle: '시설 안내',
       facts: [
         { k: '면적', v: '174.5㎡' },
         { k: '수용 인원', v: '최소 15명 ~ 최대 50명' },
         { k: '부속시설', v: '의자 48개\n책상 8개\n미니 단상 1대\n무선마이크 2대\n마이크 스탠드 1개\n스피커 2대\nTV 1대 (위치 고정, HDMI 선 제공)' },
       ],
-      usageTitle: '이용 안내',
+      usageEn: 'Guidelines', usageTitle: '이용 안내',
       usage: [
         '**09:00 ~ 22:00 (월~토) · 일요일은 이용 불가**',
         '기본 부속시설 세팅은 관리자에 의해 제공되며,\n이후 장비 조작 및 변경은 사전 협의 없이 불가합니다.',
@@ -159,13 +162,13 @@ export const DEFAULT_CONTENT = {
       headline: '**소규모 세미나실**',
       intro: '아이엠센터 6층에 자리한 샤론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.\n단, 카펫이 설치된 공간으로 홀 내부에는 생수를 제외한 음식·음료 반입이 제한됩니다.',
       ctaText: '대관하기', ctaLink: './?page=rental&tab=seminar',
-      factsTitle: '시설 안내',
+      factsEn: 'Facilities', factsTitle: '시설 안내',
       facts: [
         { k: '면적', v: '' },
         { k: '수용 인원', v: '최소 50명 ~ 최대 140명' },
         { k: '부속시설', v: '의자 80개 (60개 추가 가능)\n라이프타임 원형 테이블 10개\n미니 단상 1대\n무선마이크 2대, 유선마이크 2대\n마이크 스탠드 1개\n보면대 6개\n스피커 2대\nTV 62인치 2대 (위치 고정, HDMI 선 제공)\n키보드 (모델명: YAMAHA CK88)' },
       ],
-      usageTitle: '이용 안내',
+      usageEn: 'Guidelines', usageTitle: '이용 안내',
       usage: [
         '**09:00 ~ 22:00 (월~토) · 일요일은 이용 불가**',
         '샤론홀은 카펫이 설치된 공간으로,\n**생수를 제외한 모든 음식 및 음료 반입이 제한**됩니다.',
@@ -184,16 +187,24 @@ export const DEFAULT_CONTENT = {
       imgs: [], blocks: [],
       headline: '다양한 장르의 공연을 아우르는 **785석 규모의 전문 공연장**',
       intro: '세미나부터 오케스트라, 뮤지컬, 연극, 무용, 콘서트까지 다양한 장르의\n공연과 행사를 선보일 수 있는 785석 규모의 다목적 공연장입니다.\n\n지하 2층은 평면형 객석, 지하 1층은 계단식 객석으로 구성되어 있으며,\n지하 1층에는 휠체어석이 구비되어 있어\n관객의 편안하고 안전한 관람을 지원합니다.',
-      seatTitle: '좌석안내', seatImg: '',
+      // 숫자 띠(어두운 배경) — 메인 'WHY I AM CENTER'의 숫자 칸과 같은 모양
+      stats: [
+        { n: '785', unit: '석', title: '총 객석', desc: '일반 747 · 휠체어 12 · Z석 26' },
+        { n: '1,014', unit: 'm²', title: '홀 면적', desc: '객석 면적 922m²' },
+        { n: '91.67', unit: 'm²', title: '무대 면적', desc: 'LED 앞 제외 · 무대 높이 0.6m' },
+        { n: '8.5', unit: 'm', title: '천정 높이', desc: '백스테이지 천정 높이 2.2m' },
+      ],
+      seatEn: 'Seating', seatTitle: '좌석안내', seatImg: '',
+      stageEn: 'Stage Plan', stageTitle: '무대 도면',
       specs: [
-        { h: '시설 안내', rows: [
+        { en: 'Facilities', h: '시설 안내', rows: [
           { k: '일반 객석 수', v: '747석' },
           { k: '휠체어석 수', v: '12석' },
           { k: 'Z석 수', v: '26석' },
           { k: '홀 면적', v: '1,014m²' },
           { k: '객석 면적', v: '922m²' },
         ] },
-        { h: '무대 안내', rows: [
+        { en: 'Stage', h: '무대 안내', rows: [
           { k: '무대 면적', v: '91.67m² (LED 앞 제외)' },
           { k: '무대 높이', v: '0.6m' },
           { k: '천정 높이', v: '8.5m' },
@@ -212,7 +223,8 @@ export const DEFAULT_CONTENT = {
       eyebrow: 'Rental', title: '대관신청', lead: '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.',
       img: '', blocks: [],
       tabs: { hall: '아이엠홀', seminar: '세미나실' },
-      stepsTitle: '대관 절차',
+      stepsEn: 'Process', stepsTitle: '대관 절차',
+      contactEn: 'Contact', contactTitle: '대관 문의',
       email: 'iamspace@suwoncca.org', tel: '070-7018-1439',
       applyText: '온라인 신청하기', applyLink: 'https://iamreservation.web.app/venue-apply.html',
       formsTitle: '양식 다운로드',
@@ -228,7 +240,7 @@ export const DEFAULT_CONTENT = {
         ],
         // 양식 파일 버튼 — 링크가 비어 있으면 방문자 화면에서 숨김(편집 모드 🔗로 파일 주소 입력)
         forms: [{ label: '예약신청서 양식', link: '' }, { label: '공연계획서 양식', link: '' }],
-        feeTitle: '대관료', feeUnit: '(단위: 원 / 부가세 별도)',
+        feeEn: 'Fees', feeTitle: '대관료', feeUnit: '(단위: 원 / 부가세 별도)',
         cols: { r: '리허설', p: '공연' },
         // g 구분(같은 구분이 이어지면 한 칸으로 합쳐 보임), k 항목, r 리허설, p 공연 — one: true면 리허설·공연을 한 칸으로
         // 금액이 비어 있으면 방문자 화면에 ‘별도 문의’로 표시
@@ -258,7 +270,7 @@ export const DEFAULT_CONTENT = {
           '*사용 인원 250명 이상부터 예약 가능합니다. (스태프 및 관객 포함)',
           '*추가 대기 장소 및 음식물 섭취 공간이 필요하신 경우 세미나실(2F, 6F)을 예약하실 수 있습니다.',
         ],
-        rulesTitle: '대관 규약',
+        rulesEn: 'Terms', rulesTitle: '대관 규약',
         rules: [
           '예약은 계약금(이용료의 30%) 입금 시 확정됩니다.',
           '잔금은 이용일 30일 전까지 납부해 주시기 바랍니다.',
@@ -266,7 +278,7 @@ export const DEFAULT_CONTENT = {
           '평일 17:00 이후 또는 주말 · 공휴일 이용 시\n운영 인력 배치에 따라 추가 비용이 발생할 수 있습니다.',
           '추가 비용이 필요한 경우 예약 확정 전 사전 안내 및 협의 후 진행됩니다.',
         ],
-        refundTitle: '취소 및 환불규정',
+        refundEn: 'Refund Policy', refundTitle: '취소 및 환불규정',
         refund: [
           '이용일 30일 이전 취소: 50% 환불',
           '이용일 30일 전 ~ 당일 취소: 환불 불가',
@@ -281,7 +293,7 @@ export const DEFAULT_CONTENT = {
           { t: '행사 진행', d: '사용자 준수사항 확인' },
         ],
         forms: [{ label: '예약신청서 양식', link: '' }],
-        feeTitle: '대관료', feeUnit: '',
+        feeEn: 'Fees', feeTitle: '대관료', feeUnit: '',
         cols: { k: '구분', time: '기본시간', fee: '사용료' },
         cards: [
           { name: '아론홀(2F)', rows: [
@@ -300,7 +312,7 @@ export const DEFAULT_CONTENT = {
           '* 이용 시간은 입실부터 퇴실까지 전체 기준으로 산정',
           '* 초과 시간이 1시간 미만인 경우에도 1시간 추가로 요금을 적용',
         ],
-        rulesTitle: '대관 규약',
+        rulesEn: 'Terms', rulesTitle: '대관 규약',
         rules: [
           '예약은 계약금(이용료의 30%) 입금 시 확정됩니다.',
           '잔금은 이용일 7일 전까지 납부해 주시기 바랍니다.',
@@ -308,7 +320,7 @@ export const DEFAULT_CONTENT = {
           '평일 17:00 이후 또는 주말 · 공휴일 이용 시\n운영 인력 배치에 따라 추가 비용이 발생할 수 있습니다.',
           '추가 비용이 필요한 경우 예약 확정 전 사전 안내 및 협의 후 진행됩니다.',
         ],
-        refundTitle: '취소 및 환불규정',
+        refundEn: 'Refund Policy', refundTitle: '취소 및 환불규정',
         refund: [
           '이용일 15일 이전 취소: 100% 환불',
           '이용일 7일 ~ 14일 전 취소: 50% 환불',
