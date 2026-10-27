@@ -207,7 +207,7 @@ TV·마이크 필요, 탕비실 이용 체크된 것만 모아서 날짜와 함�
 **공간별 추가 안내 자동 첨부**: 확정·변경 안내 문자/카카오(`renderSmsBody()`, `renderBulkSmsBody()`,
 `openChangeSmsModal()`) 맨 끝(푸터 뒤)에 예약 공간에 따라 안내가 붙음(`MSG_ROOM_NOTICES`/`roomNoticesFor(rooms)`):
 5층 소그룹실(`/^5\d{2}호$/` — 505~511호)이면 "예약 이용 시 5층 탕비실도 이용 가능합니다." + 탕비실 이용 링크
-(`PANTRY_NOTICE`, https://m.site.naver.com/2jvWE), 샤론홀이면 이용 안내 링크만(`SHARON_NOTICE`,
+(`PANTRY_NOTICE`, https://m.site.naver.com/2jvWE), 샤론홀이면 "샤론홀 내 장비 이용 방법을 안내드립니다" + 링크(`SHARON_NOTICE`,
 https://m.site.naver.com/2jCxh). 정기 시리즈·일괄 선택은 포함된 공간에 해당하는 안내를 모두 붙이고(공간이 섞이면 여러 개),
 **취소 안내에는 붙이지 않음**. 안내를 바꾸거나 다른 공간을 추가할 땐 `MSG_ROOM_NOTICES` 한 곳만 수정.
 

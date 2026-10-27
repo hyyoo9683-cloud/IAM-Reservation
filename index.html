@@ -6520,7 +6520,8 @@ IAM center]
 // - 5층 소그룹실(505~511호): 탕비실 이용 안내 / 샤론홀: 이용 안내 링크. 여러 공간이 섞이면 해당하는 안내를 모두 붙임
 const PANTRY_NOTICE = `예약 이용 시 5층 탕비실도 이용 가능합니다.
 https://m.site.naver.com/2jvWE`;
-const SHARON_NOTICE = `https://m.site.naver.com/2jCxh`;
+const SHARON_NOTICE = `샤론홀 내 장비 이용 방법을 안내드립니다
+https://m.site.naver.com/2jCxh`;
 const MSG_ROOM_NOTICES = [
   { match: rm => /^5\d{2}호$/.test(rm || ''), text: PANTRY_NOTICE },
   { match: rm => String(rm || '').includes('샤론홀'), text: SHARON_NOTICE },
