@@ -196,8 +196,9 @@ function timeDiffHours(start, end) {
   const [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number);
   return Math.max(0, ((eh*60+em) - (sh*60+sm)) / 60);
 }
-// 시간 요금은 30분 단위로 쪼개 청구하지 않고, 1시간 미만이어도 항상 1시간으로 올림해서 청구
-function billableHours(h) { return h > 0 ? Math.ceil(h) : 0; }
+// 시간 요금은 꽉 찬 1시간 단위로만 청구 — 30분처럼 1시간이 안 되는 나머지는 요금에 넣지 않음(내림)
+// (예: 1시간 30분 → 1시간, 30분 → 0시간). 세미나실 추가 시간·5층 소그룹실 시간당 요금이 모두 이 함수를 거침
+function billableHours(h) { return h > 0 ? Math.floor(h) : 0; }
 
 // 5층 소그룹실: 방마다 한 줄(버튼 + 그 방만의 시작~종료 시간) — 페이지 로드 시 한 번만 그림
 function renderSgRooms() {
