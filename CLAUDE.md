@@ -23,7 +23,7 @@
 | `notice.html` | 공지사항 관리 (로그인 필요) |
 | `notices-public.html` | 공지사항 공개 페이지 |
 | `portal.html` | 인트라넷 포털 |
-| `quotation.html` | 견적서 발급 — `?ref=venue_requests문서ID`로 열리면(venue.html에서 연결) 저장 시 그 값을 `quotations.refRequestId`로 함께 기록. `?id=견적서문서ID`로 열리면 발행 이력에서 그 견적서를 자동으로 불러와 보여줌(venue.html의 "견적서 보기" 링크가 이 방식 사용) |
+| `quotation.html` | 견적서·청구서 발급 — 맨 위 "문서 종류"(견적서/청구서, `docType`: `quote`|`invoice`, 없으면 견적서) 선택에 따라 제목·"아래와 같이 견적/청구합니다"·최종 금액 라벨만 바뀌고(`INVOICE_STR`/`getStr()`) 입력·계산·저장 구조는 동일(같은 `quotations` 컬렉션, 발행 이력에 "청구서" 배지). 시간 요금은 꽉 찬 1시간 단위만 청구(`billableHours`, 내림). `?ref=venue_requests문서ID`로 열리면(venue.html에서 연결) 저장 시 그 값을 `quotations.refRequestId`로 함께 기록. `?id=견적서문서ID`로 열리면 발행 이력에서 그 견적서를 자동으로 불러와 보여줌(venue.html의 "견적서 보기" 링크가 이 방식 사용) |
 | `venue.html` | 대관 신청 관리 (아론홀·샤론홀·아이엠홀·지혜홀 대상) — 공간 칩을 여러 개 함께 선택 가능(`selectedSpaces` 배열, 신청 문서에 `spaces` 필드로 저장, `space`는 대표/첫 번째 공간으로 하위 호환 유지). 지혜홀(숙박)은 날짜 모델이 달라 항상 단독 선택으로 강제됨. 신청 목록을 불러올 때 `quotations`도 함께 읽어 신청 건별 가장 최근 견적서를 매칭(`quotesByRef`). 카드에 "📄 견적 ○○○원 보기" 표시, 상세 패널 버튼도 이미 견적서가 있으면 "📄 견적서 보기"(quotation.html?id=...)로 바뀜 — 재발행이 필요하면 "+ 새 견적서"로 별도 작성(같은 신청에 여러 견적서가 쌓일 수 있고, 그중 issuedAt 기준 가장 최근 것만 카드에 연결됨). 신청 상태가 "승인"이면 상세 화면에 "📅 예약으로 등록" 버튼이 뜨며(`registerAsReservation()`), 누르면 신청서 내용을 바탕으로 실제 `reservations` 문서를 확정 상태로 생성함(공간이 여러 곳이면 공간마다 별도로 생성) — 자동 트리거가 아니라 관리자가 직접 눌러야 하는 수동 버튼(상태를 "승인"으로 바꾼다고 자동 생성되지 않음, 중복 생성 방지를 관리자가 통제하도록 의도적으로 설계). 상세 화면 "🗑 삭제"로 신청서 자체 삭제 가능(`deleteRequest()`, 이미 발행된 견적서·등록된 예약은 삭제되지 않고 남음). 아래 "대관 신청 → 예약 등록 연동" 참고 |
 | `event-checklist.html` | 행사 준비 체크리스트(공통 항목, `eventChecklists` 컬렉션) 작성·관리 (로그인 필요, 아론홀·샤론홀·아이엠홀 확정 예약은 자동 생성) |
 | `checklist-view.html` | `event-checklist.html`의 체크리스트 단건 보기/체크 (대시보드 "이번 주 체크리스트"에서 연결, 로그인 필요) |
