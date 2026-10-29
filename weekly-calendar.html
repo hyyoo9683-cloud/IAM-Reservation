@@ -74,6 +74,23 @@
   .occ-week-detail { display: none; padding: 8px 16px; border-top: 1px solid var(--border2); }
   .occ-week-detail.open { display: block; }
 
+  /* 하루 일정 문자 형식 보기 (관리자) */
+  .daytext-bar {
+    margin: 12px 14px 0; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--blue);
+    font-weight: 700; cursor: pointer; display: none; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .daytext-bar:hover { background: var(--blue-lt); }
+  .daytext-opts { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; color: var(--text2); }
+  .daytext-opts label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+  .daytext-area { width: 100%; height: 320px; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+                  font-family: inherit; font-size: 13.5px; line-height: 1.6; color: var(--text); resize: vertical; }
+  .daytext-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .daytext-copy { background: var(--blue); color: #fff; border: none; border-radius: 8px; padding: 9px 16px;
+                  font-size: 14px; font-weight: 700; cursor: pointer; }
+  .daytext-msg { font-size: 12.5px; color: var(--green); font-weight: 600; }
+  .modal.wide { max-width: 520px; }
+
   .cat { margin: 14px 14px 0; background: var(--bg2); border-radius: 12px; overflow: hidden;
          box-shadow: 0 1px 4px rgba(24,95,165,.06); }
   .cat-hd { padding: 11px 16px; font-size: 13px; font-weight: 700; color: var(--blue);
@@ -156,6 +173,7 @@
     .date-jump-wrap { font-size: 15px; padding: 8px 16px; }
     .date-jump-label { font-size: 15px; }
     .vt-btn { font-size: 15px; padding: 11px 14px; }
+    .daytext-bar { max-width: 732px; margin-left: auto; margin-right: auto; }
     .blocked-banner, .cat { max-width: 760px; margin-left: auto; margin-right: auto; }
     .blocked-banner { font-size: 14px; }
     .cat-hd { font-size: 16px; padding: 13px 20px; }
@@ -198,12 +216,32 @@
   <span class="oc-arrow">▾</span>
 </div>
 <div class="occupancy-detail" id="occupancy-detail"></div>
+<div class="daytext-bar" id="daytext-bar" onclick="openDayText()">
+  <span id="daytext-summary"></span>
+  <span>›</span>
+</div>
 <div id="body"><div class="loading">불러오는 중…</div></div>
 
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
     <button class="modal-close" onclick="closeDetail()">×</button>
     <div id="detail-content"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal-daytext">
+  <div class="modal wide">
+    <button class="modal-close" onclick="closeDayText()">×</button>
+    <div class="modal-title" id="daytext-title">하루 일정</div>
+    <div class="daytext-opts">
+      <label><input type="checkbox" id="dt-purpose" onchange="renderDayText()"> 모임명 포함</label>
+      <label><input type="checkbox" id="dt-tel" onchange="renderDayText()"> 청지기 연락처 포함</label>
+    </div>
+    <textarea class="daytext-area" id="daytext-area" readonly></textarea>
+    <div class="daytext-actions">
+      <button class="daytext-copy" onclick="copyDayText()">📋 복사</button>
+      <span class="daytext-msg" id="daytext-msg"></span>
+    </div>
   </div>
 </div>
 
@@ -395,6 +433,69 @@ window.toggleWeekOccupancy = (i) => {
   if (detail) detail.classList.toggle('open');
 };
 
+// ── 하루 일정 문자 형식 (관리자 전용 — 청지기 정보는 원본 예약에만 있음) ──
+// 예약 문자(index.html의 roomToSmsName)와 같은 방식으로 505호 → I-505 로 표기
+const smsRoomName = (room) => { const m = String(room || '').match(/^(\d+)호$/); return m ? `I-${m[1]}` : room; };
+let dayTextDate = '';
+function dayTextItems(ds) {
+  // 공간 분류 순서(5층 소그룹실 → 아론홀 → …)대로, 같은 분류 안에서는 시간순
+  const catIdx = (room) => {
+    const i = CATS.findIndex(c => c.match ? c.match(room) : c.rooms.includes(room));
+    return i === -1 ? 99 : i;
+  };
+  return reservations
+    .filter(r => r.date === ds && r.status === '확정')
+    .sort((a, b) => catIdx(a.room) - catIdx(b.room) || dispStart(a).localeCompare(dispStart(b)) || roomRank(a.room) - roomRank(b.room));
+}
+function updateDayTextBar(ds) {
+  const bar = document.getElementById('daytext-bar');
+  if (!bar) return;
+  dayTextDate = ds;
+  const n = viewerIsAdmin ? dayTextItems(ds).length : 0;
+  bar.style.display = (mode === 'day' && viewerIsAdmin) ? 'flex' : 'none';
+  document.getElementById('daytext-summary').textContent = n
+    ? `📋 이 날 일정 문자 형식으로 보기 (${n}건 · 장소·시간·청지기)`
+    : '📋 이 날 일정 문자 형식으로 보기 (예약 없음)';
+}
+window.openDayText = () => {
+  if (!viewerIsAdmin) return;
+  renderDayText();
+  document.getElementById('modal-daytext').classList.add('open');
+};
+window.closeDayText = () => document.getElementById('modal-daytext').classList.remove('open');
+document.getElementById('modal-daytext').addEventListener('click', e => {
+  if (e.target.id === 'modal-daytext') closeDayText();
+});
+window.renderDayText = () => {
+  const ds = dayTextDate || toDateStr(curDate());
+  const d = new Date(ds + 'T00:00:00');
+  const head = `${d.getMonth()+1}.${d.getDate()}(${DOWS[d.getDay()]})`;
+  const withPurpose = document.getElementById('dt-purpose').checked;
+  const withTel     = document.getElementById('dt-tel').checked;
+  const items = dayTextItems(ds);
+  const blocks = items.map(r => {
+    const lines = [
+      `장소: ${smsRoomName(r.room)}`,
+      `시간: ${dispStart(r)}-${dispEnd(r)}`,
+      `청지기: ${(r.stewardName || '-')}${withTel && r.stewardTel ? ' ' + r.stewardTel : ''}`,
+    ];
+    if (withPurpose) lines.push(`모임명: ${r.purpose || '-'}`);
+    return lines.join('\n');
+  });
+  document.getElementById('daytext-title').textContent = `${head} 예약 일정 (${items.length}건)`;
+  document.getElementById('daytext-area').value = items.length
+    ? `[${head} 예약 일정]\n\n${blocks.join('\n\n')}`
+    : `[${head} 예약 일정]\n\n확정된 예약이 없습니다.`;
+  document.getElementById('daytext-msg').textContent = '';
+};
+window.copyDayText = async () => {
+  const ta = document.getElementById('daytext-area');
+  const msg = document.getElementById('daytext-msg');
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch (_) { ta.select(); document.execCommand('copy'); }
+  msg.textContent = '복사되었습니다';
+};
+
 function renderDay() {
   const d     = curDate();
   const ds    = toDateStr(d);
@@ -411,6 +512,7 @@ function renderDay() {
     : '';
 
   renderOccupancy(ds);
+  updateDayTextBar(ds);
 
   const html = CATS.map(cat => {
     const inCat = cat.match ? cat.match : (room) => cat.rooms.includes(room);
@@ -444,6 +546,7 @@ function renderWeek() {
   // 일간 보기 전용 상단 요약 바는 숨기고, 주간 보기는 요일 카드마다 자체 요약을 따로 표시
   document.getElementById('occupancy-bar').style.display = 'none';
   document.getElementById('occupancy-detail').classList.remove('open');
+  const dtBar = document.getElementById('daytext-bar'); if (dtBar) dtBar.style.display = 'none';
 
   const html = Array.from({ length: 7 }, (_, i) => {
     const d  = new Date(start); d.setDate(d.getDate() + i);
