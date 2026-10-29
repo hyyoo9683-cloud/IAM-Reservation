@@ -234,6 +234,7 @@
     <button class="modal-close" onclick="closeDayText()">×</button>
     <div class="modal-title" id="daytext-title">하루 일정</div>
     <div class="daytext-opts">
+      <label><input type="checkbox" id="dt-people" onchange="renderDayText()" checked> 인원 포함</label>
       <label><input type="checkbox" id="dt-purpose" onchange="renderDayText()"> 모임명 포함</label>
       <label><input type="checkbox" id="dt-tel" onchange="renderDayText()"> 청지기 연락처 포함</label>
     </div>
@@ -454,7 +455,7 @@ function updateDayTextBar(ds) {
   const n = viewerIsAdmin ? dayTextItems(ds).length : 0;
   bar.style.display = (mode === 'day' && viewerIsAdmin) ? 'flex' : 'none';
   document.getElementById('daytext-summary').textContent = n
-    ? `📋 이 날 일정 문자 형식으로 보기 (${n}건 · 장소·시간·청지기)`
+    ? `📋 이 날 일정 문자 형식으로 보기 (${n}건 · 장소·시간·청지기·인원)`
     : '📋 이 날 일정 문자 형식으로 보기 (예약 없음)';
 }
 window.openDayText = () => {
@@ -470,6 +471,7 @@ window.renderDayText = () => {
   const ds = dayTextDate || toDateStr(curDate());
   const d = new Date(ds + 'T00:00:00');
   const head = `${d.getMonth()+1}.${d.getDate()}(${DOWS[d.getDay()]})`;
+  const withPeople  = document.getElementById('dt-people').checked;
   const withPurpose = document.getElementById('dt-purpose').checked;
   const withTel     = document.getElementById('dt-tel').checked;
   const items = dayTextItems(ds);
@@ -479,6 +481,7 @@ window.renderDayText = () => {
       `시간: ${dispStart(r)}-${dispEnd(r)}`,
       `청지기: ${(r.stewardName || '-')}${withTel && r.stewardTel ? ' ' + r.stewardTel : ''}`,
     ];
+    if (withPeople) lines.push(`인원: ${parseInt(r.people) > 0 ? parseInt(r.people) + '명' : '-'}`);
     if (withPurpose) lines.push(`모임명: ${r.purpose || '-'}`);
     return lines.join('\n');
   });
