@@ -11,6 +11,7 @@
 ## 배포
 코드를 브랜치에 push하면 **GitHub Actions가 자동으로 Firebase Hosting + Firestore 규칙 + Cloud Functions에 배포**함 (30~40초 소요).
 수동 배포 명령어는 더 이상 필요 없음.
+Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.node`) — 2026-10-30 Node.js 20 런타임이 종료되어 배포 전체가 실패했던 적이 있음(함수 배포가 실패하면 홈페이지 등 Hosting 배포도 같이 안 됨). 런타임 종료 공지가 나오면 이 값을 올릴 것
 
 ## 파일 구조
 | 파일 | 역할 |
