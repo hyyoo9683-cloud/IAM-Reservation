@@ -121,3 +121,7 @@ section[data-hidden="1"] .ed-sec{opacity:1;filter:none}
 .editing .img-slot{min-height:80px}
 .editing .img-slot .ed-img{position:absolute;top:10px;right:10px;z-index:3}
 .editing .ptabs [data-k]{cursor:text}
+
+/* 버튼 옆 링크 단추(버튼 안에 두지 않음) */
+.editing .ed-link.side{position:static;opacity:.85;pointer-events:auto;align-self:center;margin-left:-4px;padding:4px 9px;font-size:11px}
+.editing .ed-link.side:hover{opacity:1}

@@ -293,7 +293,11 @@ function decorate() {
       setPath(draft, path, normalizeLink(v));
       render(); updateStatus();
     });
-    el.appendChild(chip);
+    chip.contentEditable = 'false';
+    // 버튼(.btn)은 글자를 고치는 칸이라, 링크 단추를 버튼 안에 넣으면 글자와 섞이고 글자를 지울 때 같이 지워졌다가
+    // 다시 그려질 때 되살아나 보였음 → 버튼 옆에 따로 둠
+    if (el.matches('.btn')) { chip.classList.add('side'); chip.textContent = '🔗 링크 주소'; el.after(chip); }
+    else el.appendChild(chip);
   });
 
   // 4) 홈페이지 공지 추가·삭제 (notice.items — 인트라넷 공지와 별개)
