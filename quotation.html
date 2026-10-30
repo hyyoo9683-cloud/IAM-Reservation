@@ -161,6 +161,15 @@ const STR = {
   },
 };
 
+// 청구서 — 견적서와 같은 입력·계산을 쓰고 제목·문구만 바꿈 (STR 중 아래 항목만 덮어씀)
+const INVOICE_STR = {
+  ko: { docTitle: '청&nbsp;&nbsp;구&nbsp;&nbsp;서', asBelow: '아래와 같이 청구합니다.', grandTotal: '최종&nbsp;청구&nbsp;금액' },
+  en: { docTitle: 'INVOICE', asBelow: 'Billed as per the details below.', grandTotal: 'Final Amount Due' },
+};
+const DOC_NAME = { quote: '견적서', invoice: '청구서' };
+const getDocType = () => document.querySelector('.dtype-btn.active')?.dataset.val || 'quote';
+const getStr = (lang, docType) => docType === 'invoice' ? { ...STR[lang], ...INVOICE_STR[lang] } : STR[lang];
+
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
@@ -196,8 +205,9 @@ function timeDiffHours(start, end) {
   const [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number);
   return Math.max(0, ((eh*60+em) - (sh*60+sm)) / 60);
 }
-// 시간 요금은 30분 단위로 쪼개 청구하지 않고, 1시간 미만이어도 항상 1시간으로 올림해서 청구
-function billableHours(h) { return h > 0 ? Math.ceil(h) : 0; }
+// 시간 요금은 꽉 찬 1시간 단위로만 청구 — 30분처럼 1시간이 안 되는 나머지는 요금에 넣지 않음(내림)
+// (예: 1시간 30분 → 1시간, 30분 → 0시간). 세미나실 추가 시간·5층 소그룹실 시간당 요금이 모두 이 함수를 거침
+function billableHours(h) { return h > 0 ? Math.floor(h) : 0; }
 
 // 5층 소그룹실: 방마다 한 줄(버튼 + 그 방만의 시작~종료 시간) — 페이지 로드 시 한 번만 그림
 function renderSgRooms() {
@@ -266,6 +276,10 @@ window.addQD = () => {
 window.removeQD = i => { quoteDates.splice(i, 1); renderQuoteDates(); };
 window.setCategory = val => {
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+};
+window.setDocType = val => {
+  document.querySelectorAll('.dtype-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
+  updateEditBanner();
 };
 window.setLang = val => {
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.val === val));
@@ -520,7 +534,8 @@ window.printQuote = async () => {
   const vInfo      = VENUES[venue];
   const g          = id => document.getElementById(id);
   const lang       = document.querySelector('.lang-btn.active')?.dataset.val || 'ko';
-  const L          = STR[lang];
+  const docType    = getDocType();
+  const L          = getStr(lang, docType);
   const venueDisplay = lang === 'en' ? (VENUE_NAME_EN[venue] || venue) : venue;
   const clientNm   = g('q-client').value.trim()    || '(수신처)';
   const clientBiz  = g('q-client-biz').value.trim();
@@ -876,6 +891,7 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       discountType,
       discountCustomPct: discountType === 'custom' ? Math.round(discountRate * 100) : 0,
       quoteLang: lang,
+      docType,
       memo,
       refRequestId: refRequestId || null,
     };
@@ -942,6 +958,7 @@ function renderHistory(q = '') {
     return `<div class="hist-row">
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+          ${h.docType === 'invoice' ? '<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--text);color:#fff">청구서</span>' : ''}
           <span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:5px;background:${catBg};color:${catColor};border:1px solid ${catColor}">${cat}</span>
           <span style="font-size:15px;font-weight:700;color:var(--text)">${h.client||'–'}</span>
         </div>
@@ -1033,6 +1050,8 @@ function loadQuoteIntoForm(h) {
   // 분류 복원
   document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.quoteCategory || '신청')));
   document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.quoteLang || 'ko')));
+  document.querySelectorAll('.dtype-btn').forEach(b => b.classList.toggle('active', b.dataset.val === (h.docType || 'quote')));
+  updateEditBanner();
 
   switchVenue();
   renderQuoteDates();
@@ -1105,12 +1124,15 @@ function updateEditBanner() {
   const banner = document.getElementById('edit-mode-banner');
   const btn    = document.getElementById('print-btn');
   if (!banner || !btn) return;
+  const docName = DOC_NAME[getDocType()];
+  const bannerText = document.getElementById('edit-mode-banner-text');
+  if (bannerText) bannerText.textContent = `✏️ 기존 ${docName}를 수정하는 중입니다`;
   if (editingQuoteId) {
     banner.style.display = 'flex';
     btn.textContent = '🖨️ 수정 저장 / 인쇄';
   } else {
     banner.style.display = 'none';
-    btn.textContent = '🖨️ 견적서 인쇄 / PDF';
+    btn.textContent = `🖨️ ${docName} 인쇄 / PDF`;
   }
 }
 
@@ -1268,9 +1290,9 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 .cat-btn[data-val="변경"].active{background:var(--amber-lt);border-color:var(--amber);color:var(--amber);}
 .cat-btn[data-val="취소"].active{background:var(--red-lt);border-color:var(--red);color:var(--red);}
 
-.lang-btn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:#fff;
+.lang-btn,.dtype-btn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:#fff;
   font-size:15px;font-weight:600;font-family:var(--font);cursor:pointer;color:var(--text2);transition:all .15s;}
-.lang-btn.active{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
+.lang-btn.active,.dtype-btn.active{background:var(--blue-lt);border-color:var(--blue);color:var(--blue);}
 
 .print-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
   background:var(--green);color:#fff;font-size:16px;font-weight:700;font-family:var(--font);
@@ -1333,7 +1355,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
   .calc-total-val{font-size:24.5px !important}
   .btn-add-date{font-size:14.5px !important}
   .cat-btn{font-size:17px !important}
-  .lang-btn{font-size:17px !important}
+  .lang-btn,.dtype-btn{font-size:17px !important}
   .print-btn{font-size:18px !important}
   .hist-title{font-size:18px !important}
   .hist-reissue-btn{font-size:14.5px !important}
@@ -1383,7 +1405,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
     <!-- ── 입력 폼 ── -->
     <div class="form-panel">
 
-      <div class="sec-title" style="margin-top:0">견적서 언어</div>
+      <div class="sec-title" style="margin-top:0">문서 종류</div>
+      <div class="fg" style="margin-bottom:16px">
+        <div class="cat-group">
+          <button class="dtype-btn active" data-val="quote" onclick="setDocType('quote')">견적서</button>
+          <button class="dtype-btn" data-val="invoice" onclick="setDocType('invoice')">청구서</button>
+        </div>
+      </div>
+
+      <div class="sec-title">문서 언어</div>
       <div class="fg" style="margin-bottom:16px">
         <div class="cat-group">
           <button class="lang-btn active" data-val="ko" onclick="setLang('ko')">한국어</button>
@@ -1620,7 +1650,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
           <span class="calc-total-val" id="c-total">–</span>
         </div>
         <div class="edit-mode-banner" id="edit-mode-banner">
-          <span>✏️ 기존 견적서를 수정하는 중입니다</span>
+          <span id="edit-mode-banner-text">✏️ 기존 견적서를 수정하는 중입니다</span>
           <button onclick="cancelEdit()">취소</button>
         </div>
         <button class="print-btn" id="print-btn" onclick="printQuote()">🖨️ 견적서 인쇄 / PDF</button>

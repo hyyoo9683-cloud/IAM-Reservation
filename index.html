@@ -3649,7 +3649,7 @@ ${bodyMsg}
 일시: ${ilsi}
 모임명: ${meetingName}`;
 
-  const pantry = isCancel ? '' : pantryNoticeFor([r.newRoom || r.room]);
+  const pantry = isCancel ? '' : roomNoticesFor([r.newRoom || r.room]);
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
@@ -6516,10 +6516,19 @@ const MSG_FOOTER = `[THE GREAT I AM
 IAM center]
 담당자 070.7018.1439`;
 
-// 5층 소그룹실(505~511호) 예약 안내 문자·카카오 맨 끝에 붙이는 탕비실 이용 안내 (취소 안내에는 붙이지 않음)
+// 공간별 안내 문자·카카오 맨 끝에 붙이는 추가 안내 (확정·변경 안내에만, 취소 안내에는 붙이지 않음)
+// - 5층 소그룹실(505~511호): 탕비실 이용 안내 / 샤론홀: 이용 안내 링크. 여러 공간이 섞이면 해당하는 안내를 모두 붙임
 const PANTRY_NOTICE = `예약 이용 시 5층 탕비실도 이용 가능합니다.
 https://m.site.naver.com/2jvWE`;
-const pantryNoticeFor = (rooms) => (rooms || []).some(rm => /^5\d{2}호$/.test(rm || '')) ? `\n\n${PANTRY_NOTICE}` : '';
+const SHARON_NOTICE = `샤론홀 내 장비 이용 방법을 안내드립니다
+https://m.site.naver.com/2jCxh`;
+const MSG_ROOM_NOTICES = [
+  { match: rm => /^5\d{2}호$/.test(rm || ''), text: PANTRY_NOTICE },
+  { match: rm => String(rm || '').includes('샤론홀'), text: SHARON_NOTICE },
+];
+const roomNoticesFor = (rooms) => MSG_ROOM_NOTICES
+  .filter(n => (rooms || []).some(n.match))
+  .map(n => `\n\n${n.text}`).join('');
 
 // checkout.html/checkouts.html의 CHK_LABELS 키와 동일 (퇴실 체크 완료 항목 판별용)
 const CHECKOUT_KEYS = ['trash', 'furniture', 'equipment', 'power', 'nodamage'];
@@ -7088,7 +7097,7 @@ window.renderSmsBody = () => {
 일시: ${ilsi}
 모임명: ${purpose}`;
 
-  const pantry = pantryNoticeFor((r.recurGroup && seriesMode) ? reservations.filter(x => x.recurGroup === r.recurGroup).map(x => x.room) : [r.room]);
+  const pantry = roomNoticesFor((r.recurGroup && seriesMode) ? reservations.filter(x => x.recurGroup === r.recurGroup).map(x => x.room) : [r.room]);
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
@@ -7168,7 +7177,7 @@ ${isChange ? '신청하신 IAM센터 예약 일정이 아래와 같이 변경되
 
 ${list}`;
 
-  const pantry = pantryNoticeFor(entries.map(e => e.room));
+  const pantry = roomNoticesFor(entries.map(e => e.room));
   let text = '';
   if (type === 'sms') {
     text = `${baseBody}
