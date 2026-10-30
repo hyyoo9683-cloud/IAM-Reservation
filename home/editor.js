@@ -199,16 +199,19 @@ async function publish() {
 
 // ── 편집 가능한 요소 꾸미기 (렌더링될 때마다 실행) ───────────────
 // 굵기 조절 글: 화면의 굵은 글씨(<b>/<strong>/font-weight)를 **글자** 표시로 바꿔 저장
-function richToText(el) {
+// keepBold=false면 굵기는 무시하고 글자만 — 어느 쪽이든 편집용 단추(🔗 링크 등)의 글자는 빼고 읽음
+function richToText(el, keepBold = true) {
   const segs = [];
   const walk = (n, bold) => {
     if (n.nodeType === 3) { segs.push([n.nodeValue.replace(/\u00a0/g, ' '), bold]); return; }
     if (n.nodeType !== 1 || n.matches('.ed-chip, .ed-img, .ed-link')) return;
     if (n.tagName === 'BR') { segs.push(['\n', false]); return; }
     let b = bold;
-    if (n.tagName === 'B' || n.tagName === 'STRONG') b = true;
-    const fw = n.style && n.style.fontWeight;
-    if (fw) b = fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600;
+    if (keepBold) {
+      if (n.tagName === 'B' || n.tagName === 'STRONG') b = true;
+      const fw = n.style && n.style.fontWeight;
+      if (fw) b = fw === 'bold' || fw === 'bolder' || parseInt(fw, 10) >= 600;
+    }
     const block = n.tagName === 'DIV' || n.tagName === 'P';
     if (block && segs.length && !segs[segs.length - 1][0].endsWith('\n')) segs.push(['\n', false]);
     n.childNodes.forEach(ch => walk(ch, b));
@@ -240,7 +243,7 @@ function decorate() {
     const isRich = el.dataset.rich === '1';
     el.addEventListener('input', () => {
       if (isRich) { setPath(draft, path, richToText(el)); updateStatus(); return; }
-      let v = el.innerText.replace(/ /g, ' ');
+      let v = richToText(el, false);   // innerText는 숨겨진 '🔗 링크' 단추 글자까지 읽어 함께 저장되던 문제가 있었음
       if (!multi) v = v.replace(/\s*\n\s*/g, ' ');
       v = v.replace(/\n$/, '');
       setPath(draft, path, v);

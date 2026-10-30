@@ -501,9 +501,15 @@ const LEGACY_DEFAULTS = [
 ];
 
 // 저장된 문서에 빠진 항목은 기본값으로 채움 (새 항목을 추가해도 기존 저장본이 깨지지 않게)
+// 예전 편집기가 글자와 함께 저장해 버린 편집용 단추 글자(예: '대관 문의 🔗 링크')를 걷어냄
+const EDITOR_JUNK = /\s*(?:🔗 링크|📷 사진 바꾸기)/g;
+const stripJunk = v => typeof v === 'string' ? v.replace(EDITOR_JUNK, '')
+  : Array.isArray(v) ? v.map(stripJunk)
+  : v && Object.getPrototypeOf(v) === Object.prototype ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, stripJunk(x)])) : v;
 export function mergeContent(saved) {
   const out = structuredClone(DEFAULT_CONTENT);
   if (!saved || typeof saved !== 'object') return out;
+  saved = stripJunk(saved);
   const deep = (base, src) => {
     for (const k of Object.keys(src)) {
       const v = src[k];
