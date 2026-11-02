@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-02c';
+const CSS_VER = '2026-11-02e';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -223,25 +223,16 @@ const SECTIONS = {
 </section>`;
   },
 
+  // 메인에는 공지 목록 없이 대관 안내 띠만(2026-11-02) — 공지는 '아이엠센터 > 공지사항' 페이지에서
   notice() {
-    const steps = c('notice.steps') || [];
-    const items = c('notice.items') || [];
     return `
 <section id="notice" data-sec="notice">
-  <div class="wrap split">
-    <div class="rv">
-      <div class="sec-hd"><h2>${t('notice.title')}<span class="h2sub" data-k="notice.sub">${esc(c('notice.sub'))}</span></h2></div>
-      <div class="list">
-        ${items.length ? (state.editing ? items : items.slice(0, NOTICE_MAIN)).map((n, i) => noticeRow(i)).join('')
-          : '<p class="empty">등록된 공지가 없습니다.</p>'}
+  <div class="wrap">
+    <aside class="rent rent-band rv">
+      <div>
+        ${t('notice.rentEyebrow', 'p', 'eyebrow rent-eb')}
+        ${m('notice.rentTitle', 'h3')}
       </div>
-      ${state.editing ? '<p class="edit-hint">공지는 글자를 눌러 바로 고치고, <button type="button" class="ed-chip" data-notice-add>+ 공지 추가</button> 로 맨 위에 새 공지를 넣습니다. 게시해야 방문자에게 보입니다.</p>' : ''}
-    </div>
-    <aside class="rent rv">
-      ${t('notice.rentEyebrow', 'p', 'eyebrow rent-eb')}
-      ${m('notice.rentTitle', 'h3')}
-      ${m('notice.rentDesc', 'p')}
-      <ol>${steps.map((s, i) => `<li data-k="notice.steps.${i}">${esc(s)}</li>`).join('')}</ol>
       ${ctaBtns([['notice.cta1', 'btn', true], ['notice.cta2', 'btn line']])}
     </aside>
   </div>
@@ -1115,8 +1106,7 @@ async function gotoSchedMonth(month) {
 }
 
 // ── 공지사항 ─────────────────────────────────────────────
-// 메인 Notice는 앞의 NOTICE_MAIN개만 보여주고, 줄을 누르면 공지사항 페이지(./?page=notice#n-번호)의 그 글로 이동
-const NOTICE_MAIN = 5;
+// 공지 한 줄(공지사항 페이지에서 사용 — 메인 Notice 목록은 2026-11-02 삭제)
 function noticeRow(i, tag = 'a') {
   const P = `notice.items.${i}`;
   const cells = `${t(`${P}.category`, 'span', 'c')}${t(`${P}.title`, 'span', 'ti')}${t(`${P}.date`, 'time')}`;
@@ -1511,16 +1501,43 @@ function setupBehaviors() {
     }, { passive: true });
   });
 
-  // Spaces: 오른쪽 목록에서 고르면(PC는 마우스를 올려도) 왼쪽 사진이 그 공간으로 바뀜
+  // Spaces: 오른쪽 목록에서 고르면(PC는 마우스를 올려도) 왼쪽 사진이 그 공간으로 바뀜.
+  // 가만히 두면 히어로처럼 SP_DUR마다 다음 공간으로 넘어감(마우스를 올려 둔 동안·편집 중·움직임 줄이기 설정이면 멈춤)
   document.querySelectorAll('.sp2').forEach(box => {
-    const pick = i => box.querySelectorAll('[data-sp]').forEach(el => el.classList.toggle('on', el.dataset.sp === i));
+    const rows = [...box.querySelectorAll('.sp-row')];
+    const SP_DUR = 5000;
+    let cur = 0, t0 = performance.now(), raf = 0, held = false;
+    const auto = !state.editing && !reduce && rows.length > 1;
+    const pick = i => {
+      cur = Number(i);
+      box.querySelectorAll('[data-sp]').forEach(el => el.classList.toggle('on', el.dataset.sp === String(cur)));
+      t0 = performance.now();
+      box.style.setProperty('--sp-p', 0);
+    };
     const hover = matchMedia('(hover: hover)').matches;
-    box.querySelectorAll('.sp-row').forEach(r => {
+    rows.forEach(r => {
       const i = r.dataset.sp, sel = r.querySelector('.sp-sel');
       sel.addEventListener('click', () => pick(i));
       sel.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(i); } });
       if (hover && !state.editing) r.addEventListener('mouseenter', () => pick(i));
     });
+    if (!auto) return;
+    box.classList.add('sp-auto');
+    box.addEventListener('mouseenter', () => { held = true; });
+    box.addEventListener('mouseleave', () => { held = false; t0 = performance.now(); });
+    let seen = false;   // 화면에 보일 때만 시간이 흐름(내려오기 전에 넘어가 버리지 않게)
+    const io3 = new IntersectionObserver(es => { seen = es.some(e => e.isIntersecting); }, { threshold: 0.35 });
+    io3.observe(box);
+    timers.push(() => io3.disconnect());
+    const tick = now => {
+      if (held || !seen || document.hidden) t0 = now - (Number(box.style.getPropertyValue('--sp-p')) || 0) * SP_DUR;
+      const p = Math.min(1, (now - t0) / SP_DUR);
+      box.style.setProperty('--sp-p', p.toFixed(3));
+      if (p >= 1) pick((cur + 1) % rows.length);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    timers.push(() => cancelAnimationFrame(raf));
   });
 
   // 배경 사진: 화면 가까이(위아래 600px) 오면 넣음. 가로로 넘기는 줄(공연 레일·공간 카드·갤러리)은 줄이 보이면 한꺼번에

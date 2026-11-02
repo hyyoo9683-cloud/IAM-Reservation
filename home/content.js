@@ -5,7 +5,7 @@ export const PAGE_IDS = ['about', 'guide', 'notice', 'schedule', 'aaron', 'sharo
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
-  spaces: '공간 소개', notice: '공지·대관 안내', visit: '오시는 길',
+  spaces: '공간 소개', notice: '대관 안내', visit: '오시는 길',
 };
 
 export const DEFAULT_CONTENT = {
