@@ -221,7 +221,15 @@ window.sendTest = async () => {
   btn.disabled = true; btn.textContent = '보내는 중…'; result.innerHTML = '';
   try {
     const { data } = await httpsCallable(fns, 'sendTestPush')();
-    result.innerHTML = `<span class="ok">✓ 등록된 기기 ${data.total}대 중 ${data.sent}대에 보냈습니다. 알림이 오는지 확인해 주세요.</span>`;
+    if (data.sent > 0) {
+      result.innerHTML = `<span class="ok">✓ 등록된 기기 ${data.total}대 중 ${data.sent}대에 보냈습니다. 알림이 오는지 확인해 주세요.</span>`;
+    } else {
+      const why = (data.errors || []).map(x => `${x.code}${x.message ? ' — ' + x.message : ''}`).join('<br>');
+      const stale = data.removed > 0
+        ? '<br>이 기기의 알림 등록이 만료되어 서버에서 지웠습니다. <b>"알림 끄기" → "알림 켜기"</b>를 눌러 다시 등록해 주세요.'
+        : '';
+      result.innerHTML = `<span class="err">✗ 등록된 기기 ${data.total}대 중 0대에 보내지 못했습니다.<br>${why}${stale}</span>`;
+    }
   } catch (e) {
     console.error(e);
     result.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;

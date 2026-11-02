@@ -283,6 +283,7 @@ exports.sendTestPush = onCall(async (request) => {
       title: '[테스트] 웹 푸시 알림', body: '알림이 정상적으로 도착했습니다.', link: `${process.env.APP_BASE_URL || 'https://iamreservation.web.app'}/push.html`,
     });
     if (r.total === 0) throw new HttpsError('failed-precondition', '알림을 켠 기기가 없습니다. 먼저 이 기기에서 "알림 켜기"를 눌러 주세요.');
+    // 실패한 기기가 있으면 사유(오류 코드)를 함께 돌려줘서 push.html에서 원인을 바로 볼 수 있게 함
     return { ok: true, ...r, devices: await countPushTokens() };
   } catch (err) {
     if (err instanceof HttpsError) throw err;
