@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02p";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02q";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -276,7 +276,6 @@ section{padding:clamp(80px,11vw,160px) 0}
 .sp-list{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
 .sp-row{position:relative;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line)}
 /* 자동으로 넘어갈 때: 고른 줄 아래 선이 시간만큼 차오름 */
-.sp-auto .sp-row.on::after{content:"";position:absolute;left:0;bottom:-1px;height:2px;width:calc(var(--sp-p,0)*100%);background:var(--ink)}
 .sp-sel{flex:1;min-width:0;display:grid;grid-template-columns:40px 1fr;padding:22px 0;cursor:pointer;outline-offset:4px}
 .sp-no{grid-row:span 2;font-size:12px;font-weight:700;letter-spacing:.06em;color:#b5b2ac;padding-top:9px;transition:color .25s}
 .sp-sel h3{font-size:clamp(20px,1.9vw,27px);font-weight:800;letter-spacing:-.03em;line-height:1.2;color:#b5b2ac;transition:color .25s}
