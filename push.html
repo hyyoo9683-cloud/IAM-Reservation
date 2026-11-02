@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>웹 푸시 알림 — IAM 인트라넷</title>
+<link rel="manifest" href="/push.webmanifest">
+<link rel="apple-touch-icon" href="/push-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="IAM 알림">
+<meta name="theme-color" content="#185FA5">
+<style>
+:root {
+  --blue:#185FA5;--blue-lt:#E6F1FB;
+  --green:#3B6D11;--green-lt:#EAF3DE;
+  --red:#A32D2D;--red-lt:#FCEBEB;
+  --amber:#854F0B;--amber-lt:#FAEEDA;
+  --bg:#fff;--bg2:#F8FAFD;
+  --border2:#E8EFF7;
+  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:100vh;}
+#login-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0d2e5e,#185FA5 55%,#378ADD);padding:20px;}
+.login-card{background:#fff;border-radius:20px;padding:44px 32px;width:360px;max-width:100%;text-align:center;
+  box-shadow:0 24px 64px rgba(0,0,0,.28);}
+.login-emblem{font-size:44px;margin-bottom:14px;}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text3);margin-bottom:28px;}
+.login-btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;
+  background:var(--blue);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);}
+.login-error{margin-top:12px;font-size:13px;color:var(--red);display:none;padding:8px;background:var(--red-lt);border-radius:7px;}
+
+#app-wrap{display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px;}
+.card{background:var(--bg);border:1px solid var(--border2);border-radius:16px;padding:32px 26px;
+  width:440px;max-width:100%;box-shadow:0 8px 28px rgba(24,95,165,.08);}
+.card h1{font-size:19px;font-weight:800;margin-bottom:6px;}
+.card .sub{font-size:13px;color:var(--text3);margin-bottom:22px;line-height:1.6;}
+.status{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;font-weight:600;line-height:1.5;}
+.status.ok{background:var(--green-lt);color:var(--green);}
+.status.no{background:var(--red-lt);color:var(--red);}
+.status.warn{background:var(--amber-lt);color:var(--amber);}
+.status .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none;margin-top:6px;}
+.btn{width:100%;padding:14px;border-radius:10px;border:none;cursor:pointer;margin-top:10px;
+  font-size:15px;font-weight:700;font-family:var(--font);background:var(--blue);color:#fff;}
+.btn.sec{background:var(--bg);color:var(--text2);border:1px solid var(--border2);font-size:13.5px;padding:12px;}
+.btn:disabled{opacity:.55;cursor:default;}
+#result{margin-top:12px;font-size:12.5px;word-break:break-all;line-height:1.6;}
+#result .ok{color:var(--green);} #result .err{color:var(--red);}
+.help{margin-top:20px;font-size:12.5px;color:var(--text2);line-height:1.7;background:var(--bg2);border-radius:10px;padding:14px 16px;}
+.help b{color:var(--text);}
+.back{display:inline-block;margin-top:18px;font-size:13px;color:var(--text2);text-decoration:none;}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <div class="login-emblem">🔔</div>
+    <div class="login-title">IAM 인트라넷</div>
+    <div class="login-sub">관리자 전용 — 웹 푸시 알림</div>
+    <button class="login-btn" onclick="doLogin()">Google 계정으로 로그인</button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<div id="app-wrap">
+  <div class="card">
+    <h1>🔔 웹 푸시 알림</h1>
+    <div class="sub">새 예약·변경취소·대관 신청이 들어오면 이 기기에 알림(소리·진동)을 보냅니다. 알림을 받을 기기마다 한 번씩 켜 주세요.</div>
+    <div id="status" class="status">확인 중…</div>
+    <button class="btn" id="toggle-btn" onclick="toggleNotify()" disabled>알림 켜기</button>
+    <button class="btn sec" id="test-btn" onclick="sendTest()" style="display:none">테스트 알림 보내기</button>
+    <div id="result"></div>
+    <div class="help">
+      <b>안드로이드</b>: 크롬에서 이 페이지를 열고 "알림 켜기" → 허용.<br>
+      <b>아이폰</b>: <b>사파리</b>로 이 페이지를 열고 공유 버튼 → <b>"홈 화면에 추가"</b> → 홈 화면에 생긴 <b>"IAM 알림" 아이콘으로 다시 열어서</b> 알림 켜기 (iOS 16.4 이상).<br>
+      카카오톡 안에서 열린 화면에서는 설정할 수 없습니다. 크롬·사파리로 열어 주세요.
+    </div>
+    <a class="back" href="portal.html">← 인트라넷으로</a>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getFirestore, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
+import { getMessaging, getToken, deleteToken, isSupported } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+};
+const ADMIN_EMAILS = ["hyyoo9683@gmail.com"];
+// Firebase 콘솔 > 프로젝트 설정 > Cloud Messaging > 웹 푸시 인증서의 "키 쌍"(공개 키).
+// 비워 두면 Firebase 기본 키를 씀 — 알림을 켤 때 오류가 나면 콘솔에서 키를 생성해 여기에 붙여 넣기.
+const FCM_VAPID_KEY = "";
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+const fns  = getFunctions(app);
+
+const $ = id => document.getElementById(id);
+const LS_KEY = 'iamPushToken';
+let messaging = null;
+let swReg = null;
+
+async function isAdminAccount(email) {
+  if (!email) return false;
+  if (ADMIN_EMAILS.includes(email)) return true;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch (_) { return false; }
+}
+function showLogin() { $('login-wrap').style.display = 'flex'; $('app-wrap').style.display = 'none'; }
+function showLoginError(msg) { const el = $('login-error'); el.textContent = msg; el.style.display = 'block'; showLogin(); }
+window.doLogin = async () => {
+  $('login-error').style.display = 'none';
+  try {
+    const p = new GoogleAuthProvider(); p.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, p);
+  } catch (e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+};
+
+function setStatus(kind, html) { const el = $('status'); el.className = 'status ' + kind; el.innerHTML = `<span class="dot"></span><span>${html}</span>`; }
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isKakaoInApp = /KAKAOTALK/i.test(navigator.userAgent);
+
+async function refresh() {
+  const btn = $('toggle-btn'), testBtn = $('test-btn');
+  btn.disabled = true; testBtn.style.display = 'none';
+  if (isKakaoInApp) { setStatus('no', '카카오톡 안에서는 설정할 수 없습니다. 크롬·사파리로 열어 주세요.'); return; }
+  if (isIOS && !isStandalone) {
+    setStatus('warn', '아이폰은 사파리에서 <b>홈 화면에 추가</b>한 뒤, 홈 화면의 "IAM 알림" 아이콘으로 열어야 알림을 받을 수 있습니다.');
+    return;
+  }
+  let supported = false;
+  try { supported = await isSupported(); } catch (_) {}
+  if (!supported || !('Notification' in window)) {
+    setStatus('no', '이 브라우저는 웹 푸시를 지원하지 않습니다. (아이폰은 iOS 16.4 이상 필요)');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    setStatus('no', '알림이 차단되어 있습니다. 브라우저(또는 휴대폰) 설정에서 이 사이트의 알림을 허용으로 바꾼 뒤 새로고침해 주세요.');
+    return;
+  }
+  const on = Notification.permission === 'granted' && !!localStorage.getItem(LS_KEY);
+  if (on) {
+    setStatus('ok', '이 기기는 알림이 <b>켜져</b> 있습니다.');
+    btn.textContent = '알림 끄기'; btn.className = 'btn sec'; testBtn.style.display = 'block';
+  } else {
+    setStatus('no', '이 기기는 알림이 꺼져 있습니다.');
+    btn.textContent = '알림 켜기'; btn.className = 'btn';
+  }
+  btn.disabled = false;
+}
+
+async function ensureMessaging() {
+  if (!swReg) swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+  await navigator.serviceWorker.ready;
+  if (!messaging) messaging = getMessaging(app);
+}
+
+window.toggleNotify = async () => {
+  const btn = $('toggle-btn'), result = $('result');
+  btn.disabled = true; result.innerHTML = '';
+  try {
+    await ensureMessaging();
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved && Notification.permission === 'granted') {
+      // 끄기
+      await httpsCallable(fns, 'unregisterAdminPushToken')({ token: saved });
+      try { await deleteToken(messaging); } catch (_) {}
+      localStorage.removeItem(LS_KEY);
+      result.innerHTML = '<span class="ok">✓ 이 기기의 알림을 껐습니다.</span>';
+    } else {
+      // 켜기
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') throw new Error('알림 권한이 허용되지 않았습니다.');
+      const token = await getToken(messaging, { ...(FCM_VAPID_KEY ? { vapidKey: FCM_VAPID_KEY } : {}), serviceWorkerRegistration: swReg });
+      if (!token) throw new Error('알림 토큰을 받지 못했습니다.');
+      await httpsCallable(fns, 'registerAdminPushToken')({ token, userAgent: navigator.userAgent });
+      localStorage.setItem(LS_KEY, token);
+      result.innerHTML = '<span class="ok">✓ 이 기기로 알림을 받습니다. "테스트 알림 보내기"로 확인해 보세요.</span>';
+    }
+  } catch (e) {
+    console.error(e);
+    result.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;
+  } finally {
+    await refresh();
+  }
+};
+
+window.sendTest = async () => {
+  const btn = $('test-btn'), result = $('result');
+  btn.disabled = true; btn.textContent = '보내는 중…'; result.innerHTML = '';
+  try {
+    const { data } = await httpsCallable(fns, 'sendTestPush')();
+    result.innerHTML = `<span class="ok">✓ 등록된 기기 ${data.total}대 중 ${data.sent}대에 보냈습니다. 알림이 오는지 확인해 주세요.</span>`;
+  } catch (e) {
+    console.error(e);
+    result.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '테스트 알림 보내기';
+  }
+};
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  if (!(await isAdminAccount(user.email))) { await signOut(auth); showLoginError('관리자로 등록된 계정만 이용할 수 있습니다.'); return; }
+  $('login-wrap').style.display = 'none';
+  $('app-wrap').style.display = 'flex';
+  await refresh();
+});
+</script>
+</body>
+</html>

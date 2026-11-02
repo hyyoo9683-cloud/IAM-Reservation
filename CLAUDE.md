@@ -378,6 +378,7 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - **알림 채널은 3개가 서로 독립**(`notifyAdmin()`): 이메일(Resend), 카카오톡 "나에게 보내기"(`lib/kakaoClient.js`,
   `kakao-auth.html`에서 1회 연동 — 알림음 없음), 문자(알리고, `lib/smsClient.js`). 한 채널 실패가 다른 채널에 영향 없고,
   채널마다 `emailLogs`에 `<eventKey>_kakao`/`_sms` 키로 따로 멱등 처리됨
+- **웹 푸시(FCM)**: `push.html`(관리자 전용, 아이폰은 홈 화면에 추가한 아이콘으로 열어야 함 — `push.webmanifest`·`push-icon.png`)에서 기기별로 "알림 켜기" → 기기 토큰이 `adminPushTokens`에 저장됨(`registerAdminPushToken`/`unregisterAdminPushToken` 콜러블, Admin SDK 전용이라 rules 없음). `notifyAdmin()`이 카카오 문구(`kakaoText`)를 제목+본문으로 나눠 `sendPushToAdmins()`(`functions/lib/pushClient.js`)로 발송하고 `<eventKey>_push` 키로 멱등 처리, 켠 기기가 없으면 `skipped`로 기록. 서비스 워커는 사이트 루트 `firebase-messaging-sw.js`(위치 고정). `push.html`의 `FCM_VAPID_KEY`는 비워 두면 Firebase 기본 키를 쓰며, 알림을 켤 때 오류가 나면 콘솔(프로젝트 설정 > Cloud Messaging > 웹 푸시 인증서)에서 키 쌍을 만들어 붙여 넣을 것. 카카오 알림은 알림음이 없어서 푸시가 정착하면 보조 채널로 둠
 - **문자(SMS)**: `ALIGO_KEY`·`ALIGO_USER_ID`·`ALIGO_SENDER`(사전 등록한 발신번호)·`ADMIN_NOTIFY_PHONE`(받을 번호)
   GitHub Secret이 **모두** 있을 때만 발송(없으면 조용히 건너뜀). 90바이트(한글 약 45자) 이하는 SMS, 넘으면 LMS(요금↑)로
   자동 전환. 알리고는 **호출 서버 IP를 미리 등록**해야 해서 고정 IP가 없는 Cloud Functions에서는 인증 오류가 날 수 있음 —

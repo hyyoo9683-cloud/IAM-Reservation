@@ -1,0 +1,13 @@
+{
+  "name": "아이엠센터 관리자 알림",
+  "short_name": "IAM 알림",
+  "description": "아이엠센터 새 예약·변경취소·대관 신청 알림",
+  "start_url": "/push.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFD",
+  "theme_color": "#185FA5",
+  "icons": [
+    { "src": "/push-icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

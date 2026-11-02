@@ -14,6 +14,7 @@ const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/em
 const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
 const { exchangeCodeForTokens, sendKakaoMemoToMe, getKakaoAuthStatus } = require('./lib/kakaoClient');
 const { sendSms, isSmsConfigured, digits } = require('./lib/smsClient');
+const { savePushToken, removePushToken, countPushTokens, sendPushToAdmins, splitKakaoText } = require('./lib/pushClient');
 
 initializeApp();
 
@@ -99,6 +100,24 @@ async function notifyAdmin({ eventKey, emailType, content, kakaoText, smsText })
         // 카카오 미연동·토큰 만료 등으로 실패해도 로그만 남기고 조용히 넘어감 — 다른 채널은 별도로 처리됨
         console.error(`${emailType} 카카오 알림 발송 실패:`, err.message || err);
         await markFailed(kakaoLogRef, err);
+      }
+    }
+  }
+
+  // 웹 푸시 — push.html에서 알림을 켠 기기가 있을 때만 의미 있음(없으면 발송 없이 끝남)
+  if (kakaoText && kakaoText.text) {
+    const pushLogRef = await claimEmailEvent(`${eventKey}_push`, {
+      reservationId: null, emailType: `${emailType}_push`, recipient: 'push:admin', recipientType: 'admin',
+    });
+    if (pushLogRef) {
+      try {
+        const { title, body } = splitKakaoText(kakaoText.text);
+        const r = await sendPushToAdmins({ title, body, link: kakaoText.linkUrl });
+        if (r.total === 0) await markSkipped(pushLogRef, '푸시를 켠 기기 없음');
+        else await markSent(pushLogRef, null);
+      } catch (err) {
+        console.error(`${emailType} 푸시 알림 발송 실패:`, err.message || err);
+        await markFailed(pushLogRef, err);
       }
     }
   }
@@ -225,6 +244,50 @@ exports.sendTestSmsMessage = onCall(async (request) => {
   } catch (err) {
     console.error('테스트 문자 발송 실패:', err.message || err);
     throw new HttpsError('internal', err.message || String(err));
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// 웹 푸시(FCM) 관리자 알림 — push.html에서 기기별로 켜고 끔
+// ─────────────────────────────────────────────────────────────
+async function requireAdminCaller(request) {
+  const callerEmail = request.auth && request.auth.token && request.auth.token.email;
+  if (!(await isAdminEmail(callerEmail))) {
+    throw new HttpsError('permission-denied', '관리자만 사용할 수 있습니다.');
+  }
+  return callerEmail;
+}
+
+exports.registerAdminPushToken = onCall(async (request) => {
+  const email = await requireAdminCaller(request);
+  const token = request.data && request.data.token;
+  if (typeof token !== 'string' || token.length < 20 || token.length > 4096) {
+    throw new HttpsError('invalid-argument', '알림 토큰이 올바르지 않습니다.');
+  }
+  await savePushToken(token, { email, userAgent: request.data.userAgent });
+  return { ok: true };
+});
+
+exports.unregisterAdminPushToken = onCall(async (request) => {
+  await requireAdminCaller(request);
+  const token = request.data && request.data.token;
+  if (typeof token !== 'string' || !token) throw new HttpsError('invalid-argument', '알림 토큰이 없습니다.');
+  await removePushToken(token);
+  return { ok: true };
+});
+
+exports.sendTestPush = onCall(async (request) => {
+  await requireAdminCaller(request);
+  try {
+    const r = await sendPushToAdmins({
+      title: '[테스트] 웹 푸시 알림', body: '알림이 정상적으로 도착했습니다.', link: `${process.env.APP_BASE_URL || 'https://iamreservation.web.app'}/push.html`,
+    });
+    if (r.total === 0) throw new HttpsError('failed-precondition', '알림을 켠 기기가 없습니다. 먼저 이 기기에서 "알림 켜기"를 눌러 주세요.');
+    return { ok: true, ...r, devices: await countPushTokens() };
+  } catch (err) {
+    if (err instanceof HttpsError) throw err;
+    console.error('테스트 푸시 발송 실패:', err.message || err);
+    throw new HttpsError('internal', '푸시 발송에 실패했습니다: ' + (err.message || err));
   }
 });
 
