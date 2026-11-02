@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-02f';
+const CSS_VER = '2026-11-02g';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -205,7 +205,7 @@ const SECTIONS = {
     </div>
     <div class="sp2 rv">
       <div class="sp-stage">
-        ${items.map((s, i) => `<div class="ph${i === 0 ? ' on' : ''}" data-sp="${i}" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span></div>`).join('')}
+        ${items.map((s, i) => `<div class="ph${i === 0 ? ' on' : ''}" data-sp="${i}" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span><div class="sp-cap"><strong>${esc(s.name || '')}</strong>${filled(s.cap) || state.editing ? t(`spaces.items.${i}.cap`, 'p') : ''}</div></div>`).join('')}
       </div>
       <ol class="sp-list">
         ${items.map((s, i) => `
@@ -215,7 +215,7 @@ const SECTIONS = {
         </li>`).join('')}
       </ol>
     </div>
-    ${state.editing ? '<p class="edit-hint">오른쪽 목록에서 공간을 누르면 왼쪽 사진이 바뀝니다. 사진을 바꾸려면 그 공간을 먼저 고른 뒤 왼쪽 사진의 ‘📷 사진 바꾸기’를 누르세요. 화살표(→)의 🔗로 연결 주소를 고칩니다.</p>' : ''}
+    ${state.editing ? '<p class="edit-hint">오른쪽 목록에서 공간을 누르면 왼쪽 사진이 바뀝니다. 사진 왼쪽 아래 제목은 목록의 공간 이름을 그대로 쓰고, 그 아래 한 줄 설명은 바로 눌러 고칩니다(비우면 방문자에게 제목만). 사진을 바꾸려면 그 공간을 먼저 고른 뒤 왼쪽 사진의 ‘📷 사진 바꾸기’를 누르세요. 화살표(→)의 🔗로 연결 주소를 고칩니다.</p>' : ''}
     <div class="amen rv">
       ${am.map((a, i) => `<a ${href(`spaces.amenities.${i}.link`)}>${t(`spaces.amenities.${i}.name`)} <span data-k="spaces.amenities.${i}.note">${esc(a.note)}</span></a>`).join('')}
     </div>

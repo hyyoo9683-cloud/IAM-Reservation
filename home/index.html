@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02f";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02g";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -268,6 +268,11 @@ section{padding:clamp(80px,11vw,160px) 0}
 .sp-stage .ph{position:absolute;inset:0;opacity:0;transition:opacity .6s var(--ease);pointer-events:none}
 .sp-stage .ph.on{opacity:1;pointer-events:auto}
 .sp-stage .ph .tag{top:18px;bottom:auto}
+.sp-cap{position:absolute;z-index:3;left:0;right:0;bottom:0;padding:64px clamp(20px,2.4vw,32px) clamp(20px,2.4vw,28px);background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));color:#fff}
+.sp-cap strong{display:block;font-size:clamp(22px,2.2vw,30px);font-weight:800;letter-spacing:-.03em;line-height:1.2}
+.sp-cap p{margin-top:6px;font-size:14.5px;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.editing .sp-cap p{white-space:normal}
+@media(max-width:600px){.sp-cap p{white-space:normal;font-size:13.5px}}
 .sp-list{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
 .sp-row{position:relative;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line)}
 /* 자동으로 넘어갈 때: 고른 줄 아래 선이 시간만큼 차오름 */
