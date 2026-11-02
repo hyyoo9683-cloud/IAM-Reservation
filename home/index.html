@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02a";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02b";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -321,6 +321,17 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .gmap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:grayscale(.35) contrast(1.05)}
 .kmap{position:absolute;inset:0}
 .kb{display:inline-block;max-width:100%}
+/* 대관 안내 분리(2026-11-02): 공간 소개 페이지 끝의 안내 한 줄 · 대관 안내 안의 공간 제목 · 대관 일정 공간 전환 */
+.rent-link{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:clamp(24px,4vw,48px) 0 clamp(56px,7vw,96px);padding:18px 22px;border:1px solid var(--line);border-radius:14px;font-size:14.5px;color:var(--mute);transition:border-color .2s,color .2s}
+.rent-link b{color:var(--ink);font-weight:700}
+.rent-link:hover{border-color:var(--ink);color:var(--ink)}
+.rent-room{margin:clamp(40px,5vw,64px) 0 4px;padding-top:28px;border-top:2px solid var(--ink)}
+.rent-room:first-child{margin-top:0}
+.rent-room-h{font-size:clamp(22px,2.2vw,28px);font-weight:800;letter-spacing:-.03em}
+.sched-lead{color:var(--mute);margin-bottom:20px}
+.seg{display:inline-flex;border:1px solid var(--ink);border-radius:999px;padding:3px;margin-bottom:24px}
+.seg button{padding:8px 20px;border-radius:999px;font-size:14px;font-weight:600;color:var(--mute)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
 .btn.btn-empty{opacity:.45;border-style:dashed;min-width:96px}
 .kpin{position:relative;display:block;margin-bottom:12px;background:#1f4f9c;color:#fff;font-size:13px;font-weight:700;letter-spacing:-.01em;padding:8px 14px;border-radius:999px;box-shadow:0 6px 16px rgba(31,79,156,.35);white-space:nowrap}
 .kpin::after{content:'';position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:#1f4f9c;transform:translateX(-50%) rotate(45deg);border-radius:0 0 2px 0}
@@ -820,6 +831,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
       <a href="./?page=hall">아이엠홀</a>
       <div class="has-dd"><a href="./#spaces" class="top">세미나실</a><div class="dd" id="dd-seminar"></div></div>
     </nav>
+    <a href="./?page=rental" class="hd-cta"><span>대관 안내</span></a>
     <button class="burger" id="burger" aria-label="메뉴 열기" aria-expanded="false"><i></i><i></i><i></i></button>
   </div>
 </header>
@@ -830,6 +842,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   <a href="./?page=hall">아이엠홀</a>
   <a href="./#spaces">세미나실</a>
   <div class="msub" id="mdd-seminar"></div>
+  <a href="./?page=rental" class="mcta">대관 안내</a>
 </nav>
 
 

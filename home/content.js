@@ -21,7 +21,6 @@ export const DEFAULT_CONTENT = {
     seminar: [
       { label: '아론홀(2F)', link: './?page=aaron' },
       { label: '샤론홀(6F)', link: './?page=sharon' },
-      { label: '대관 일정', link: './?page=schedule' },
     ],
   },
   // 세부 페이지(주소 ./?page=아이디) — 편집 모드에서 제목·소개·사진·본문 블록을 고칠 수 있음
@@ -229,12 +228,14 @@ export const DEFAULT_CONTENT = {
       blocks: [],
       tabs: { aaron: '아론홀', sharon: '샤론홀' },
       note: '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주십시오.',
-      ctaText: '대관 신청하기', ctaLink: './?page=rental&tab=seminar',
+      ctaText: '온라인으로 신청하기', ctaLink: './?page=rental&tab=apply',
     },
+    // 대관 안내(./?page=rental) — 대관하실 분을 위한 정보를 한곳에: 공간별 대관 정보·대관료·규정 / 대관 일정 / 온라인 신청
+    // (공간 소개 페이지 아이엠홀·아론홀·샤론홀은 둘러보는 분을 위한 소개만 — 2026-11-02 분리)
     rental: {
-      eyebrow: 'Rental', title: '대관신청', lead: '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.',
+      eyebrow: 'Rental', title: '대관 안내', lead: '아이엠홀과 세미나실의 대관 절차·이용료·일정·신청을 한곳에 모았습니다.',
       img: '', blocks: [],
-      tabs: { hall: '아이엠홀', seminar: '세미나실', apply: '온라인 신청' },
+      tabs: { hall: '아이엠홀', seminar: '세미나실', schedule: '대관 일정', apply: '온라인 신청' },
       stepsEn: 'Process', stepsTitle: '대관 절차',
       contactEn: 'Contact', contactTitle: '대관 문의',
       email: 'iamspace@suwoncca.org', tel: '070-7018-1439',
@@ -467,6 +468,10 @@ const LEGACY_DEFAULTS = [
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
   ['pages.guide.tabs.amenity', '편의시설'],
+  // 2026-11-02 대관 안내 분리: 세미나실 메뉴의 '대관 일정'은 대관 안내 안의 탭으로, 대관신청 → 대관 안내
+  ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }, { label: '대관 일정', link: './?page=schedule' }]],
+  ['pages.rental.title', '대관신청'], ['pages.rental.lead', '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.'],
+  ['pages.schedule.ctaText', '대관 신청하기'], ['pages.schedule.ctaLink', './?page=rental&tab=seminar'],
   // 2026-11-02 Spaces: 다섯째 카드 조스테이블 → 방문 가이드(오시는 길), 아래 줄의 주차 안내 → 조스테이블
   ['spaces.items.4.name', '조스테이블'], ['spaces.items.4.desc', '함께 일하는 카페 · 통합 고용'],
   ['spaces.items.4.link', '#'], ['spaces.items.4.tag', 'PHOTO · 조스테이블 사람 있는 장면'],

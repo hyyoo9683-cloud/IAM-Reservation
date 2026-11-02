@@ -7,18 +7,36 @@ export const state = {
   programs: [],
   editing: false,      // 편집 모드 여부 (editor.js가 켬)
   // 세부 페이지: 주소 ./?page=about 처럼 열면 메인 섹션 대신 그 페이지를 그림 (없거나 모르는 값이면 메인)
-  page: (p => (PAGE_IDS.includes(p) ? p : null))(new URLSearchParams(location.search).get('page')),
-  tab: new URLSearchParams(location.search).get('tab') || '',   // 탭이 있는 세부 페이지(방문가이드·대관신청)에서 열린 탭
+  page: null,         // 세부 페이지 id(없으면 메인) — 아래 applyRoute()가 주소에서 채움
+  tab: '',            // 탭이 있는 세부 페이지(방문가이드·대관 안내)에서 열린 탭
   space: null,         // 공간 페이지(아론홀·샤론홀)일 때 spaces 컬렉션에서 가져온 문서
-  sched: { month: '', sel: '', res: {}, blocked: null, loading: false },   // 대관 일정 페이지 — 보고 있는 달·선택한 날·달별 예약(캐시)·차단일
+  sched: { month: '', sel: '', res: {}, blocked: null, loading: false, room: 'aaron' },   // 대관 일정 페이지 — 보고 있는 달·선택한 날·달별 예약(캐시)·차단일
   floors: [],         // 소개 페이지의 층별 안내 — 예약 시스템 관리자 '아이엠센터 소개 > 층별 안내'(siteContent/floors) 데이터
 };
+
+// 주소 → 화면: ?page=…&tab=… . 예전 '대관 일정' 페이지(?page=schedule&tab=aaron|sharon)는 2026-11-02부터
+// 대관 안내(?page=rental)의 '대관 일정' 탭으로 열림(예전에 공유된 링크도 그대로 동작)
+function applyRoute(search) {
+  const q = new URLSearchParams(search), p = q.get('page'), tab = q.get('tab') || '';
+  if (p === 'schedule') {
+    state.page = 'rental'; state.tab = 'schedule';
+    if (tab === 'aaron' || tab === 'sharon') state.sched.room = tab;
+  } else {
+    state.page = PAGE_IDS.includes(p) ? p : null;
+    state.tab = tab;
+  }
+}
+applyRoute(location.search);
+// 예전 대관 일정 주소로 들어오면 주소창도 새 주소로 바꿔 둠(탭을 눌러도 대관 안내 기준으로 바뀌게)
+if (new URLSearchParams(location.search).get('page') === 'schedule') {
+  history.replaceState(history.state, '', `${location.pathname}?page=rental&tab=schedule${location.hash}`);
+}
 
 export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '가족·어린이', '전시', '기타'];
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-02a';
+const CSS_VER = '2026-11-02b';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -477,20 +495,20 @@ function spaceBody(id) {
     <div class="rv">
       ${c(`pages.${id}.headline`) || state.editing ? rich(`pages.${id}.headline`, 'h2', 'sp-head') : ''}
       ${c(`pages.${id}.intro`) || state.editing ? rich(`pages.${id}.intro`, 'p', 'sp-intro') : ''}
-      <div class="btns" style="margin-top:32px">
-        <a ${href(`pages.${id}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="pages.${id}.ctaText">${esc(c(`pages.${id}.ctaText`))}</span> <span aria-hidden="true">→</span></a>
-        <a href="./?page=schedule&amp;tab=${id}" class="btn line" data-k="notice.cta2">${esc(c('notice.cta2'))}</a>
-      </div>
     </div>
   </div>
   ${photos.length > 1 ? `<div class="wrap"><div class="gallery">${photos.slice(0, 9).map(u => `<a class="ph rv" href="${esc(safeUrl(u))}" target="_blank" rel="noopener" ${lazyImg(u)} aria-label="사진 크게 보기"></a>`).join('')}</div></div>` : ''}
 </section>
-<section class="page-facts" data-sec="page">
-  <div class="wrap">
+${rentLink('seminar')}`;
+}
+// 공간 소개 페이지 맨 아래 한 줄: 대관 정보는 대관 안내에서 (둘러보는 분에게는 눈에 띄지 않게)
+const rentLink = tab => `<div class="wrap"><a class="rent-link rv" href="./?page=rental&amp;tab=${tab}"><span>대관을 계획하고 계신가요? 비품·대관료·일정·신청은 <b>대관 안내</b>에서 확인하실 수 있습니다.</span><span aria-hidden="true">→</span></a></div>`;
+// 세미나실 대관 정보(대관 안내 > 세미나실 탭): 아론홀·샤론홀 각각의 비품 표·이용 안내 — 공간 소개 페이지에서 옮겨 옴(데이터는 그대로 pages.<id>.*)
+function seminarFacts() {
+  return ['aaron', 'sharon'].map(id => `
+    <div class="rent-room rv"><h3 class="rent-room-h">${esc(c(`pages.${id}.title`))}</h3></div>
     ${kvTable(`pages.${id}.factsTitle`, `pages.${id}.facts`, `pages.${id}.factsEn`, 'Facilities')}
-    ${textList(`pages.${id}.usageTitle`, `pages.${id}.usage`, 'dot', `pages.${id}.usageEn`, 'Guidelines')}
-  </div>
-</section>`;
+    ${textList(`pages.${id}.usageTitle`, `pages.${id}.usage`, 'dot', `pages.${id}.usageEn`, 'Guidelines')}`).join('');
 }
 
 // ── 세부 페이지 공통 부품 ──────────────────────────────────────
@@ -568,7 +586,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { apply: 'Apply Online', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities · Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { apply: 'Apply Online', schedule: 'Schedule', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities · Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -680,7 +698,6 @@ function guideWheel() {
 // ── 아이엠홀 ─────────────────────────────────────────────────
 function hallBody() {
   const H = 'pages.hall';
-  const specs = c(`${H}.specs`) || [];
   return `
 <section class="page-vision" data-sec="page">
   <div class="wrap">
@@ -694,12 +711,17 @@ ${hallStats()}
 <section class="page-facts" data-sec="page">
   <div class="wrap">
     ${c(`${H}.seatImg`) || state.editing ? `<div class="kv rv">${kvHead(`${H}.seatTitle`, `${H}.seatEn`, 'Seating')}<div>${imgSlot(`${H}.seatImg`, '좌석배치도', 'plan')}</div></div>` : ''}
+  </div>
+</section>
+${rentLink('hall')}`;
+}
+// 아이엠홀 대관 정보(대관 안내 > 아이엠홀 탭): 시설·무대 사양 표·무대 도면·안내 — 소개 페이지에서 옮겨 옴(데이터는 그대로 pages.hall.*)
+function hallFacts() {
+  const H = 'pages.hall', specs = c(`${H}.specs`) || [];
+  return `
     ${specs.map((sp, i) => kvTable(`${H}.specs.${i}.h`, `${H}.specs.${i}.rows`, `${H}.specs.${i}.en`, ['Facilities', 'Stage'][i] || '')).join('')}
     ${c(`${H}.stageImg`) || state.editing ? `<div class="kv rv">${kvHead(`${H}.stageTitle`, `${H}.stageEn`, 'Stage Plan')}<div>${imgSlot(`${H}.stageImg`, '무대 도면', 'plan')}</div></div>` : ''}
-    ${c(`${H}.note`) || state.editing ? m(`${H}.note`, 'p', 'hall-note rv') : ''}
-    <div class="btns center rv"><a ${href(`${H}.ctaLink`)} class="btn"><span class="dot"></span><span data-k="${H}.ctaText">${esc(c(`${H}.ctaText`))}</span> <span aria-hidden="true">→</span></a></div>
-  </div>
-</section>`;
+    ${c(`${H}.note`) || state.editing ? m(`${H}.note`, 'p', 'hall-note rv') : ''}`;
 }
 
 // 아이엠홀 숫자 띠: 메인 'WHY I AM CENTER'의 숫자 칸과 같은 모양(어두운 배경)
@@ -977,7 +999,8 @@ function rentPanel(k) {
     ${rentContact(k)}
     ${k === 'hall' ? rentHallFees() : rentSeminarFees()}
   </div>
-</section>${rentTerms(k)}`;
+</section>
+<section class="page-facts" data-sec="page"><div class="wrap">${k === 'hall' ? hallFacts() : seminarFacts()}</div></section>${rentTerms(k)}`;
 }
 
 // ── 대관 일정(아론홀·샤론홀) ─────────────────────────────────────
@@ -1059,9 +1082,15 @@ function schedCal(k) {
     </div>`;
 }
 function scheduleBody() {
-  const P = 'pages.schedule';
-  return tabbed('schedule', { aaron: () => `<section class="g-sec" data-sec="page"><div class="wrap narrow"><div class="sched" data-sched="aaron">${schedCal('aaron')}</div></div></section>`,
-    sharon: () => `<section class="g-sec" data-sec="page"><div class="wrap narrow"><div class="sched" data-sched="sharon">${schedCal('sharon')}</div></div></section>` }) + `
+  const P = 'pages.schedule', room = state.sched.room === 'sharon' ? 'sharon' : 'aaron';
+  return `
+<section class="g-sec" data-sec="page">
+  <div class="wrap narrow">
+    ${m(`${P}.lead`, 'p', 'sched-lead')}
+    <div class="seg" role="group" aria-label="공간 선택">${['aaron', 'sharon'].map(k => `<button type="button" data-sched-room="${k}" aria-pressed="${k === room}">${t(`${P}.tabs.${k}`)}</button>`).join('')}</div>
+    <div class="sched" data-sched="${room}">${schedCal(room)}</div>
+  </div>
+</section>
 <section class="g-sec sched-foot" data-sec="page">
   <div class="wrap narrow">
     ${m(`${P}.note`, 'p', 'hall-note')}
@@ -1115,8 +1144,8 @@ const PAGES = {
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
   sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
   hall: () => pageHead('hall') + hallBody() + pageBlocks('hall'),
-  schedule: () => pageHead('schedule') + scheduleBody() + pageBlocks('schedule'),
-  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar'), apply: applyPanel }) + pageBlocks('rental'),
+  schedule: () => PAGES.rental(),   // 예전 주소 — applyRoute()가 rental로 바꾸므로 보통 쓰이지 않음
+  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), seminar: () => rentPanel('seminar'), schedule: scheduleBody, apply: applyPanel }) + pageBlocks('rental'),
 };
 
 // 푸터 INFO 링크: 주소가 있으면 링크, 없으면 이름만 흐리게(편집 모드에서는 🔗로 주소 입력)
@@ -1129,7 +1158,7 @@ function footerHtml() {
       <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}
         <p class="ft-ct">대표 전화 ${t('footer.tel')}${c('footer.bizNo') || state.editing ? `<br>사업자등록번호 ${t('footer.bizNo')}` : ''}</p>
         ${c('footer.kakaoLink') || state.editing ? `<a ${href('footer.kakaoLink')} target="_blank" rel="noopener" class="ft-kakao" aria-label="카카오채널"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg><span>카카오채널</span></a>` : ''}</div>
-      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li></ul></div>
+      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li><li><a href="./?page=rental">대관 안내</a></li></ul></div>
       <div><h4>INFO</h4><ul><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
@@ -1299,7 +1328,7 @@ async function loadPageData() {
     const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
     pageData.spaces[spaceName] = sn.docs[0] ? sn.docs[0].data() : null;
   });
-  if (page === 'schedule') {
+  if (page === 'rental') {   // 대관 안내의 '대관 일정' 탭(탭은 화면 안에서 바뀌므로 페이지를 열 때 미리 받아 둠)
     const S = state.sched;
     S.sel = S.sel || todayStr();
     S.month = S.month || S.sel.slice(0, 7);
@@ -1335,13 +1364,16 @@ export async function loadAll() {
 // ── 홈페이지 안 이동: 페이지를 새로 열지 않고 받아 둔 내용으로 화면만 바꿈 (주소·뒤로가기는 그대로) ─────
 async function navigate(href, push = true) {
   const u = new URL(href, location.href);
-  const p = u.searchParams.get('page');
+  if (u.searchParams.get('page') === 'schedule') {   // 예전 대관 일정 주소 → 대관 안내 '대관 일정' 탭(공간 선택은 유지)
+    const room = u.searchParams.get('tab');
+    if (room === 'aaron' || room === 'sharon') state.sched.room = room;
+    u.search = '?page=rental&tab=schedule';
+  }
   if (push) {
     history.replaceState({ ...(history.state || {}), y: scrollY }, '');
     history.pushState({ y: 0 }, '', u.pathname + u.search + u.hash);
   }
-  state.page = PAGE_IDS.includes(p) ? p : null;
-  state.tab = u.searchParams.get('tab') || '';
+  applyRoute(u.search);
   hashDone = false;
   usePageData();
   const page = state.page, sig = viewSig();
@@ -1369,9 +1401,9 @@ function setupNavigation() {
     navigate(u.href);
   });
   addEventListener('popstate', () => {
-    const q = new URLSearchParams(location.search), p = q.get('page');
-    const page = PAGE_IDS.includes(p) ? p : null;
-    if (page === state.page && (q.get('tab') || '') === state.tab) return;   // #위치만 바뀐 뒤로가기
+    const before = [state.page, state.tab, state.sched.room].join();
+    applyRoute(location.search);
+    if ([state.page, state.tab, state.sched.room].join() === before) return;   // #위치만 바뀐 뒤로가기
     if (!state.editing) navigate(location.href, false);
   });
 }
@@ -1431,6 +1463,13 @@ function setupBehaviors() {
     timers.push(() => document.removeEventListener('click', close));
   }
 
+  // 대관 일정: 아론홀·샤론홀 전환
+  document.querySelectorAll('[data-sched-room]').forEach(b => b.addEventListener('click', () => {
+    state.sched.room = b.dataset.schedRoom;
+    document.querySelectorAll('[data-sched-room]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    document.querySelectorAll('[data-sched]').forEach(el => { el.dataset.sched = state.sched.room; });
+    redrawSched();
+  }));
   // 대관 일정 달력: 이전·다음 달, 오늘, 날짜 누르기 (달력 안의 버튼은 다시 그려지므로 바깥에서 한 번에 받음)
   document.querySelectorAll('[data-sched]').forEach(box => box.addEventListener('click', e => {
     const S = state.sched;
