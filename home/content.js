@@ -5,7 +5,7 @@ export const PAGE_IDS = ['about', 'guide', 'notice', 'schedule', 'aaron', 'sharo
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
-  spaces: '공간 소개', notice: '대관 안내', visit: '오시는 길',
+  spaces: '둘러보기(Explore)', notice: '대관 안내', visit: '오시는 길',
 };
 
 export const DEFAULT_CONTENT = {
@@ -384,8 +384,8 @@ export const DEFAULT_CONTENT = {
     ],
   },
   spaces: {
-    title: 'Spaces',
-    sub: '공연부터 모임까지, 아이엠센터의 공간',
+    title: 'Explore',
+    sub: '아이엠센터 둘러보기 — 공연장·세미나실·입점기관',
     moreText: '공간 전체 보기',
     moreLink: 'https://iamreservation.web.app/venue-spaces.html',
     items: [
@@ -458,6 +458,9 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  // 2026-11-02 공간 + 입점기관을 함께 담는 제목으로(Spaces/Info → Explore) — 예전 기본값·게시본 문구 그대로면 새 제목으로
+  ['spaces.title', 'Spaces'], ['spaces.title', 'Info'],
+  ['spaces.sub', '공연부터 모임까지, 아이엠센터의 공간'], ['spaces.sub', '아이엠센터 내 공간 및 시설 안내'], ['spaces.sub', '아이엠센터는 어떤 곳일까요?'],
   // 2026-11-02 WHY 숫자 칸에서 '2곳 편리한 주차' 제외(4칸 → 3칸)
   ['about.stats', [{ n: '785', unit: '석', title: '다목적 공연장', desc: '세미나부터 콘서트까지 품는 아이엠홀' },{ n: '함께', unit: '', title: '통합 고용', desc: '발달장애인과 비장애인이 함께 근무하는 조스테이블' },{ n: '2', unit: '곳', title: '편리한 주차', desc: '아이엠센터 주차장 · 에덴 주차타워 이용 가능' },{ n: '전 층', unit: '', title: '배리어프리', desc: '엘리베이터 이동, 장애인 화장실·휠체어석 완비' }]],
   ['notice.rentTitle', '공간이\n필요하신가요?'],
