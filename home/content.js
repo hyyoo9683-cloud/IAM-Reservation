@@ -391,13 +391,11 @@ export const DEFAULT_CONTENT = {
     items: [
       { name: '아이엠홀', cap: '', desc: '785석 · 공연 · 예배 · 컨퍼런스', img: '', link: './?page=hall', tag: 'PHOTO · 아이엠홀 무대→객석 와이드',
         g: 'radial-gradient(70% 70% at 50% 30%,#5d4a36,#1c1712 70%)' },
-      { name: '아이엠센터', cap: '', desc: '센터 소개 · 층별 안내', img: '', link: './?page=about', tag: 'PHOTO · 건물 전경 세로컷',
-        g: 'linear-gradient(180deg,#36424e,#151a20)' },
       { name: '아론홀', cap: '', desc: '세미나 · 강의 · 소모임', img: '', link: './?page=aaron', tag: 'PHOTO · 아론홀 세팅 컷',
         g: 'linear-gradient(160deg,#6d6a63,#2b2a27)' },
       { name: '샤론홀', cap: '', desc: '세미나 · 워크숍 · 모임', img: '', link: './?page=sharon', tag: 'PHOTO · 샤론홀 세팅 컷',
         g: 'linear-gradient(160deg,#58605a,#202421)' },
-      { name: '방문 가이드', cap: '', desc: '오시는 길 · 주차 · 편의시설', img: '', link: './?page=guide&tab=way', tag: 'PHOTO · 건물 입구 · 안내 장면',
+      { name: '입점기관', cap: '', desc: '조스테이블 · 여유앤미 · 차폰팩토리 · 반석한의원', img: '', link: './?page=guide&tab=amenity', tag: 'PHOTO · 입점기관',
         g: 'radial-gradient(80% 80% at 30% 40%,#8a6f4e,#2e241a 75%)' },
     ],
     amenities: [
@@ -476,9 +474,7 @@ const LEGACY_DEFAULTS = [
   ['pages.schedule.ctaText', '대관 신청하기'], ['pages.schedule.ctaLink', './?page=rental&tab=seminar'],
   // 2026-11-02 Spaces: 다섯째 카드 조스테이블 → 방문 가이드(오시는 길), 아래 줄의 주차 안내 → 조스테이블
   // 2026-11-02 Spaces 목록형: 아이엠센터·아론홀·샤론홀도 홈페이지 안 페이지로
-  ['spaces.items.1.link', '#'], ['spaces.items.2.link', 'https://iamreservation.web.app/venue-spaces.html'], ['spaces.items.3.link', 'https://iamreservation.web.app/venue-spaces.html'],
-  ['spaces.items.4.name', '조스테이블'], ['spaces.items.4.desc', '함께 일하는 카페 · 통합 고용'],
-  ['spaces.items.4.link', '#'], ['spaces.items.4.tag', 'PHOTO · 조스테이블 사람 있는 장면'],
+  // (2026-11-02 목록을 4개로 줄이면서 1~4번 칸 예전 값 처리는 mergeContent()의 migrateSpaces()로 옮김)
   ['spaces.amenities.3.name', '주차 안내'], ['spaces.amenities.3.note', '에덴 주차타워'],
   ['spaces.amenities.3.link', '#visit'], ['spaces.amenities.3.link', 'https://iamcenter.web.app/?page=guide&tab=parking'],
   // 2026-10-26 안내 문구를 ‘-요’체에서 ‘-(니)다’체로 — 예전 기본 문구 그대로 게시된 경우 새 문구로
@@ -520,10 +516,26 @@ const EDITOR_JUNK = /\s*(?:🔗 링크|📷 사진 바꾸기)/g;
 const stripJunk = v => typeof v === 'string' ? v.replace(EDITOR_JUNK, '')
   : Array.isArray(v) ? v.map(stripJunk)
   : v && Object.getPrototypeOf(v) === Object.prototype ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, stripJunk(x)])) : v;
+// 2026-11-02 Spaces 목록: 아이엠홀·아이엠센터·아론홀·샤론홀·방문 가이드(예전엔 조스테이블) 5개 → 아이엠홀·아론홀·샤론홀·입점기관 4개.
+// 예전 5개짜리 게시본이면(아이엠센터·방문 가이드·조스테이블 중 하나가 있으면) 아이엠홀·아론홀·샤론홀은 그 내용(사진·설명) 그대로 두고 입점기관을 기본값으로 붙임
+// — 배열은 칸 번호대로 기본값과 합쳐지므로 합치기 전에 바꿔야 함. 다음 게시 때 저장본도 새 모양으로 바뀜
+const SPACE_LINKS = { 아이엠홀: './?page=hall', 아론홀: './?page=aaron', 샤론홀: './?page=sharon' };
+function migrateSpaces(saved) {
+  const items = saved?.spaces?.items;
+  if (!Array.isArray(items) || items.length !== 5 || !items.some(x => ['아이엠센터', '방문 가이드', '조스테이블'].includes(x?.name))) return saved;
+  const keep = ['아이엠홀', '아론홀', '샤론홀'].map(n => {
+    const it = structuredClone(items.find(x => x?.name === n) || { name: n });
+    if (!String(it.link || '').startsWith('./')) it.link = SPACE_LINKS[n];
+    return it;
+  });
+  return { ...saved, spaces: { ...saved.spaces, items: [...keep, {}] } };
+}
+
 export function mergeContent(saved) {
   const out = structuredClone(DEFAULT_CONTENT);
   if (!saved || typeof saved !== 'object') return out;
   saved = stripJunk(saved);
+  saved = migrateSpaces(saved);
   const deep = (base, src) => {
     for (const k of Object.keys(src)) {
       const v = src[k];
