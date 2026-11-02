@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-02b';
+const CSS_VER = '2026-11-02c';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -196,7 +196,6 @@ const SECTIONS = {
   spaces() {
     const items = c('spaces.items') || [];
     const am = c('spaces.amenities') || [];
-    const cls = ['sp-a', 'sp-b', 'sp-c', 'sp-d', 'sp-e'];
     return `
 <section id="spaces" data-sec="spaces">
   <div class="wrap">
@@ -204,13 +203,19 @@ const SECTIONS = {
       <h2>${t('spaces.title')}<span class="h2sub" data-k="spaces.sub">${esc(c('spaces.sub'))}</span></h2>
       <a ${href('spaces.moreLink')} class="more" data-k="spaces.moreText">${esc(c('spaces.moreText'))}</a>
     </div>
-    <div class="spaces">
-      ${items.map((s, i) => `
-      <a ${href(`spaces.items.${i}.link`)} class="sp ${cls[i] || 'sp-c'} rv">
-        <div class="ph" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span></div>
-        <div class="lab"><div>${t(`spaces.items.${i}.name`, 'h3')}${t(`spaces.items.${i}.desc`, 'p')}</div>${i < 2 ? `<span class="arw">${ARROW}</span>` : ''}</div>
-      </a>`).join('')}
+    <div class="sp2 rv">
+      <div class="sp-stage">
+        ${items.map((s, i) => `<div class="ph${i === 0 ? ' on' : ''}" data-sp="${i}" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span></div>`).join('')}
+      </div>
+      <ol class="sp-list">
+        ${items.map((s, i) => `
+        <li class="sp-row${i === 0 ? ' on' : ''}" data-sp="${i}">
+          <div class="sp-sel" role="button" tabindex="0"><span class="sp-no">${String(i + 1).padStart(2, '0')}</span>${t(`spaces.items.${i}.name`, 'h3')}${t(`spaces.items.${i}.desc`, 'p')}</div>
+          <a ${href(`spaces.items.${i}.link`)} class="sp-go" aria-label="${esc(s.name || '')} 보기">${ARROW}</a>
+        </li>`).join('')}
+      </ol>
     </div>
+    ${state.editing ? '<p class="edit-hint">오른쪽 목록에서 공간을 누르면 왼쪽 사진이 바뀝니다. 사진을 바꾸려면 그 공간을 먼저 고른 뒤 왼쪽 사진의 ‘📷 사진 바꾸기’를 누르세요. 화살표(→)의 🔗로 연결 주소를 고칩니다.</p>' : ''}
     <div class="amen rv">
       ${am.map((a, i) => `<a ${href(`spaces.amenities.${i}.link`)}>${t(`spaces.amenities.${i}.name`)} <span data-k="spaces.amenities.${i}.note">${esc(a.note)}</span></a>`).join('')}
     </div>
@@ -1506,6 +1511,18 @@ function setupBehaviors() {
     }, { passive: true });
   });
 
+  // Spaces: 오른쪽 목록에서 고르면(PC는 마우스를 올려도) 왼쪽 사진이 그 공간으로 바뀜
+  document.querySelectorAll('.sp2').forEach(box => {
+    const pick = i => box.querySelectorAll('[data-sp]').forEach(el => el.classList.toggle('on', el.dataset.sp === i));
+    const hover = matchMedia('(hover: hover)').matches;
+    box.querySelectorAll('.sp-row').forEach(r => {
+      const i = r.dataset.sp, sel = r.querySelector('.sp-sel');
+      sel.addEventListener('click', () => pick(i));
+      sel.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(i); } });
+      if (hover && !state.editing) r.addEventListener('mouseenter', () => pick(i));
+    });
+  });
+
   // 배경 사진: 화면 가까이(위아래 600px) 오면 넣음. 가로로 넘기는 줄(공연 레일·공간 카드·갤러리)은 줄이 보이면 한꺼번에
   const lazy = [...document.querySelectorAll('[data-bg]')];
   const show = el => { if (el.dataset.bg) { el.style.setProperty('--img', `url('${el.dataset.bg}')`); el.removeAttribute('data-bg'); } };
@@ -1513,7 +1530,7 @@ function setupBehaviors() {
   else if (lazy.length) {
     const io2 = new IntersectionObserver(es => es.forEach(e => {
       if (!e.isIntersecting) return;
-      const group = e.target.closest('.rail, .spaces, .gallery, .hero');
+      const group = e.target.closest('.rail, .sp-stage, .gallery, .hero');
       (group ? group.querySelectorAll('[data-bg]') : [e.target]).forEach(el => { show(el); io2.unobserve(el); });
     }), { rootMargin: '600px 0px' });
     lazy.forEach(el => io2.observe(el));

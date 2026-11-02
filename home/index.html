@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02b";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02c";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -40,7 +40,7 @@ img{display:block;max-width:100%}
 .ph[data-hasimg]::before{background:var(--img) center/cover no-repeat}
 .ph[data-hasimg]::after,.ph[data-hasimg] .tag{display:none}
 /* Spaces 사진: 가장자리를 은은하게 어둡게(비네팅) — 실제 사진을 넣었을 때만, 원본 파일은 그대로 */
-.sp .ph[data-hasimg]::after{display:block;opacity:1;mix-blend-mode:normal;background:radial-gradient(ellipse 75% 75% at 50% 45%,transparent 45%,rgba(0,0,0,.28) 75%,rgba(0,0,0,.55) 100%)}
+.sp-stage .ph[data-hasimg]::after,.sp .ph[data-hasimg]::after{display:block;opacity:1;mix-blend-mode:normal;background:radial-gradient(ellipse 75% 75% at 50% 45%,transparent 45%,rgba(0,0,0,.28) 75%,rgba(0,0,0,.55) 100%)}
 .ph::after{content:"";position:absolute;inset:0;opacity:.18;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .ph .tag{position:absolute;z-index:2;left:16px;bottom:14px;font-size:11px;letter-spacing:.06em;color:rgba(255,255,255,.55);font-weight:500}
@@ -263,6 +263,23 @@ section{padding:clamp(80px,11vw,160px) 0}
 .sp-a{grid-column:span 7;aspect-ratio:7/5}
 .sp-b{grid-column:span 5}
 .sp-c,.sp-d,.sp-e{grid-column:span 4;aspect-ratio:4/3}
+.sp2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(32px,5vw,72px);align-items:center}
+.sp-stage{position:relative;aspect-ratio:4/3;overflow:hidden;background:#1a1a1a}
+.sp-stage .ph{position:absolute;inset:0;opacity:0;transition:opacity .6s var(--ease);pointer-events:none}
+.sp-stage .ph.on{opacity:1;pointer-events:auto}
+.sp-stage .ph .tag{top:18px;bottom:auto}
+.sp-list{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
+.sp-row{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line)}
+.sp-sel{flex:1;min-width:0;display:grid;grid-template-columns:40px 1fr;padding:22px 0;cursor:pointer;outline-offset:4px}
+.sp-no{grid-row:span 2;font-size:12px;font-weight:700;letter-spacing:.06em;color:#b5b2ac;padding-top:9px;transition:color .25s}
+.sp-sel h3{font-size:clamp(20px,1.9vw,27px);font-weight:800;letter-spacing:-.03em;line-height:1.2;color:#b5b2ac;transition:color .25s}
+.sp-sel p{font-size:13.5px;color:var(--mute);margin-top:5px}
+.sp-row.on .sp-sel h3,.sp-row.on .sp-no{color:var(--ink)}
+.sp-sel:hover h3{color:var(--ink)}
+.sp-go{width:42px;height:42px;flex:none;border:1px solid var(--line);border-radius:50%;display:grid;place-items:center;color:#b5b2ac;transition:background .25s,color .25s,border-color .25s}
+.sp-row.on .sp-go{border-color:var(--ink);color:var(--ink)}
+.sp-go:hover{background:var(--ink);color:#fff!important;border-color:var(--ink)}
+@media (max-width:900px){.sp2{grid-template-columns:1fr;gap:24px}.sp-sel{padding:18px 0}}
 .amen{display:flex;flex-wrap:wrap;gap:0;margin-top:40px;border-top:1px solid var(--line)}
 .amen a{flex:1 1 25%;padding:22px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:16px;padding-right:24px}
 .amen a span{font-size:13px;color:var(--mute);font-weight:500}

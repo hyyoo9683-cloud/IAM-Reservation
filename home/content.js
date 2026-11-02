@@ -392,11 +392,11 @@ export const DEFAULT_CONTENT = {
     items: [
       { name: '아이엠홀', desc: '785석 · 공연 · 예배 · 컨퍼런스', img: '', link: './?page=hall', tag: 'PHOTO · 아이엠홀 무대→객석 와이드',
         g: 'radial-gradient(70% 70% at 50% 30%,#5d4a36,#1c1712 70%)' },
-      { name: '아이엠센터', desc: '센터 소개 · 층별 안내', img: '', link: '#', tag: 'PHOTO · 건물 전경 세로컷',
+      { name: '아이엠센터', desc: '센터 소개 · 층별 안내', img: '', link: './?page=about', tag: 'PHOTO · 건물 전경 세로컷',
         g: 'linear-gradient(180deg,#36424e,#151a20)' },
-      { name: '아론홀', desc: '세미나 · 강의 · 소모임', img: '', link: 'https://iamreservation.web.app/venue-spaces.html', tag: 'PHOTO · 아론홀 세팅 컷',
+      { name: '아론홀', desc: '세미나 · 강의 · 소모임', img: '', link: './?page=aaron', tag: 'PHOTO · 아론홀 세팅 컷',
         g: 'linear-gradient(160deg,#6d6a63,#2b2a27)' },
-      { name: '샤론홀', desc: '세미나 · 워크숍 · 모임', img: '', link: 'https://iamreservation.web.app/venue-spaces.html', tag: 'PHOTO · 샤론홀 세팅 컷',
+      { name: '샤론홀', desc: '세미나 · 워크숍 · 모임', img: '', link: './?page=sharon', tag: 'PHOTO · 샤론홀 세팅 컷',
         g: 'linear-gradient(160deg,#58605a,#202421)' },
       { name: '방문 가이드', desc: '오시는 길 · 주차 · 편의시설', img: '', link: './?page=guide&tab=way', tag: 'PHOTO · 건물 입구 · 안내 장면',
         g: 'radial-gradient(80% 80% at 30% 40%,#8a6f4e,#2e241a 75%)' },
@@ -473,6 +473,8 @@ const LEGACY_DEFAULTS = [
   ['pages.rental.title', '대관신청'], ['pages.rental.lead', '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.'],
   ['pages.schedule.ctaText', '대관 신청하기'], ['pages.schedule.ctaLink', './?page=rental&tab=seminar'],
   // 2026-11-02 Spaces: 다섯째 카드 조스테이블 → 방문 가이드(오시는 길), 아래 줄의 주차 안내 → 조스테이블
+  // 2026-11-02 Spaces 목록형: 아이엠센터·아론홀·샤론홀도 홈페이지 안 페이지로
+  ['spaces.items.1.link', '#'], ['spaces.items.2.link', 'https://iamreservation.web.app/venue-spaces.html'], ['spaces.items.3.link', 'https://iamreservation.web.app/venue-spaces.html'],
   ['spaces.items.4.name', '조스테이블'], ['spaces.items.4.desc', '함께 일하는 카페 · 통합 고용'],
   ['spaces.items.4.link', '#'], ['spaces.items.4.tag', 'PHOTO · 조스테이블 사람 있는 장면'],
   ['spaces.amenities.3.name', '주차 안내'], ['spaces.amenities.3.note', '에덴 주차타워'],
