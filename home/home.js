@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-02h';
+const CSS_VER = '2026-11-02i';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -181,14 +181,16 @@ const SECTIONS = {
       ${m('about.intro')}
       ${ctaBtns([['about.cta1', 'btn'], ['about.cta2', 'btn line']])}
     </div>` : ''}
-    <div class="stats">
+    <div class="stats${stats.length <= 3 ? ' few' : ''}" style="--n:${Math.max(stats.length, 1)}">
       ${stats.map((s, i) => `
       <div class="stat rv">
         <div class="n">${t(`about.stats.${i}.n`)}<small data-k="about.stats.${i}.unit">${esc(s.unit)}</small></div>
         ${t(`about.stats.${i}.title`, 'h3')}
         ${t(`about.stats.${i}.desc`, 'p')}
+        ${arrCtl('about.stats', i, stats.length)}
       </div>`).join('')}
     </div>
+    ${arrAdd('about.stats', { n: '0', unit: '', title: '제목', desc: '설명' }, '+ 칸 추가')}
   </div>
 </section>`;
   },
