@@ -56,10 +56,12 @@ const cssUrl = u => esc(safeUrl(u).replace(/['"()\s\\]/g, ch => encodeURICompone
 const t = (path, tag = 'span', cls = '') => `<${tag}${cls ? ` class="${cls}"` : ''} data-k="${path}">${esc(c(path))}</${tag}>`;
 const m = (path, tag = 'p', cls = '') => `<${tag}${cls ? ` class="${cls}"` : ''} data-k="${path}" data-ml="1">${ml(c(path))}</${tag}>`;
 const href = path => `href="${esc(safeUrl(c(path)))}" data-link="${path}"`;
+// 배경 사진은 바로 넣지 않고 data-bg에 두었다가 화면 가까이 왔을 때 넣음(setupBehaviors의 lazyBg) — 첫 화면이 빨리 뜨게
+const lazyImg = u => `data-bg="${cssUrl(u)}" data-hasimg="1"`;
 const bg = (imgPath, gPath) => {
   const img = c(imgPath);
-  if (img) return `style="--img:url('${cssUrl(img)}')" data-hasimg="1"`;
   const g = gPath ? c(gPath) : '';
+  if (img) return `${g ? `style="--g:${esc(g)}" ` : ''}${lazyImg(img)}`;
   return g ? `style="--g:${esc(g)}"` : '';
 };
 const ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 11 11 3M5 3h6v6"/></svg>';
@@ -134,7 +136,7 @@ const SECTIONS = {
     <div class="rail rv">
       ${list.map((p, pi) => `
       <a ${p.link ? `href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener"` : 'href="#whatson"'} class="card" data-c="${esc(p.category)}">
-        <div class="ph poster-ph" ${p.posterUrl ? `style="--img:url('${cssUrl(p.posterUrl)}')" data-hasimg="1"` : `style="--g:${esc(posterGradient(pi))}"`}>
+        <div class="ph poster-ph" ${p.posterUrl ? lazyImg(p.posterUrl) : `style="--g:${esc(posterGradient(pi))}"`}>
           ${p.posterUrl ? '' : `<div class="poster"><span class="k">${esc(p.category || '')}</span><span class="t">${keepBrackets(p.title)}</span></div>`}
         </div>
         <div class="meta">
@@ -471,7 +473,7 @@ function spaceBody(id) {
   return `
 <section class="page-space" data-sec="page">
   <div class="wrap split">
-    <div class="ph space-main rv" data-img="pages.${id}.img" ${main ? `style="--img:url('${cssUrl(main)}')" data-hasimg="1"` : ''}><span class="tag"><b>PHOTO</b> · ${esc(c(`pages.${id}.title`))} 대표 사진</span></div>
+    <div class="ph space-main rv" data-img="pages.${id}.img" ${main ? lazyImg(main) : ''}><span class="tag"><b>PHOTO</b> · ${esc(c(`pages.${id}.title`))} 대표 사진</span></div>
     <div class="rv">
       ${c(`pages.${id}.headline`) || state.editing ? rich(`pages.${id}.headline`, 'h2', 'sp-head') : ''}
       ${c(`pages.${id}.intro`) || state.editing ? rich(`pages.${id}.intro`, 'p', 'sp-intro') : ''}
@@ -481,7 +483,7 @@ function spaceBody(id) {
       </div>
     </div>
   </div>
-  ${photos.length > 1 ? `<div class="wrap"><div class="gallery">${photos.slice(0, 9).map(u => `<a class="ph rv" href="${esc(safeUrl(u))}" target="_blank" rel="noopener" style="--img:url('${cssUrl(u)}')" data-hasimg="1" aria-label="사진 크게 보기"></a>`).join('')}</div></div>` : ''}
+  ${photos.length > 1 ? `<div class="wrap"><div class="gallery">${photos.slice(0, 9).map(u => `<a class="ph rv" href="${esc(safeUrl(u))}" target="_blank" rel="noopener" ${lazyImg(u)} aria-label="사진 크게 보기"></a>`).join('')}</div></div>` : ''}
 </section>
 <section class="page-facts" data-sec="page">
   <div class="wrap">
@@ -1464,6 +1466,20 @@ function setupBehaviors() {
       dots.forEach((d, i) => d.classList.toggle('on', i === k));
     }, { passive: true });
   });
+
+  // 배경 사진: 화면 가까이(위아래 600px) 오면 넣음. 가로로 넘기는 줄(공연 레일·공간 카드·갤러리)은 줄이 보이면 한꺼번에
+  const lazy = [...document.querySelectorAll('[data-bg]')];
+  const show = el => { if (el.dataset.bg) { el.style.setProperty('--img', `url('${el.dataset.bg}')`); el.removeAttribute('data-bg'); } };
+  if (state.editing || !('IntersectionObserver' in window)) lazy.forEach(show);
+  else if (lazy.length) {
+    const io2 = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return;
+      const group = e.target.closest('.rail, .spaces, .gallery, .hero');
+      (group ? group.querySelectorAll('[data-bg]') : [e.target]).forEach(el => { show(el); io2.unobserve(el); });
+    }), { rootMargin: '600px 0px' });
+    lazy.forEach(el => io2.observe(el));
+    timers.push(() => io2.disconnect());
+  }
 
   // 스크롤 등장 효과 (편집 중에는 바로 보이게)
   const els = document.querySelectorAll('.rv');

@@ -1,7 +1,7 @@
 // 아이엠센터 홈페이지 — 관리자 편집 모드
 // · 글자: 클릭해서 바로 수정  · 사진: '사진 바꾸기'로 업로드  · 링크: '링크' 버튼으로 주소 변경
 // · 섹션: 순서 바꾸기 / 숨기기  · '게시하기'를 눌러야 방문자에게 반영 (이전 버전은 자동 보관)
-import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, isAdminAccount, uploadImage } from './fb.js';
+import { db, doc, getDoc, setDoc, addDoc, collection, serverTimestamp, authApi, isAdminAccount, uploadImage, fixImageCache } from './fb.js';
 import { state, render, floorRank, defaultFloorBtns, allFloors, floorSummary } from './home.js';
 import { getPath, setPath, SECTION_LABELS, normalizeLink } from './content.js';
 
@@ -59,6 +59,9 @@ export async function start() {
   document.addEventListener('click', blockNavigation, true);
   addEventListener('beforeunload', e => { if (isDirty()) { e.preventDefault(); e.returnValue = ''; } });
   setEditing(true);
+  // 예전에 올린 사진들도 브라우저가 저장해 두고 다시 받지 않게(사진 로딩 속도) — 뒤에서 조용히 처리
+  const urls = JSON.stringify([base, state.programs, state.space]).match(/https:\/\/firebasestorage\.googleapis\.com\/[^"\\\s]+/g) || [];
+  fixImageCache(urls).then(n => { if (n) console.info(`사진 ${n}장 저장 설정 완료`); }).catch(() => {});
 }
 
 function seedFloorBtns(content) {

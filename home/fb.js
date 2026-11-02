@@ -43,13 +43,35 @@ export async function storageApi() {
   return _st;
 }
 
-// 이미지 업로드: 긴 변 2400px 이하 JPEG로 줄여서 site/homepage/ 아래에 저장 → 공개 URL 반환
+// 이미지 업로드: 긴 변 1920px 이하 JPEG로 줄여서 site/homepage/ 아래에 저장 → 공개 URL 반환
+// 파일 이름이 매번 새로 생기므로(같은 주소의 내용이 바뀌는 일 없음) 브라우저가 1년 동안 저장해 두고 다시 받지 않게 함
+export const LONG_CACHE = 'public, max-age=31536000, immutable';
 export async function uploadImage(file, folder = 'site/homepage') {
-  const blob = await shrinkImage(file, 2400, 0.85);
+  const blob = await shrinkImage(file, 1920, 0.82);
   const { storage, ref, uploadBytes, getDownloadURL } = await storageApi();
   const path = `${folder}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
-  const snap = await uploadBytes(ref(storage, path), blob, { contentType: 'image/jpeg' });
+  const snap = await uploadBytes(ref(storage, path), blob, { contentType: 'image/jpeg', cacheControl: LONG_CACHE });
   return getDownloadURL(snap.ref);
+}
+// 예전에 올린 사진(저장 안 함 설정)에 '1년 저장' 설정을 붙임 — 사진 파일 자체는 그대로, 설정만 바꿈.
+// 관리자가 편집 모드를 열 때 한 번씩 실행(이미 바꾼 주소는 이 브라우저에 기억해 두고 건너뜀). 권한이 없는 사진은 조용히 넘어감
+export async function fixImageCache(urls) {
+  let done = [];
+  try { done = JSON.parse(localStorage.getItem('iamImgCacheFixed') || '[]'); } catch (_) { /* 무시 */ }
+  const todo = [...new Set(urls)].filter(u => /^https:\/\/firebasestorage\.googleapis\.com\//.test(u) && !done.includes(u));
+  if (!todo.length) return 0;
+  const { storage, ref, getMetadata, updateMetadata } = await storageApi();
+  let n = 0;
+  for (const u of todo) {
+    try {
+      const r = ref(storage, u);
+      const md = await getMetadata(r);
+      if (md.cacheControl !== LONG_CACHE) { await updateMetadata(r, { cacheControl: LONG_CACHE }); n++; }
+      done.push(u);
+    } catch (e) { console.warn('사진 저장 설정 실패', u, e?.code || e); }
+  }
+  try { localStorage.setItem('iamImgCacheFixed', JSON.stringify(done.slice(-500))); } catch (_) { /* 무시 */ }
+  return n;
 }
 function shrinkImage(file, maxSide, quality) {
   return new Promise((resolve, reject) => {

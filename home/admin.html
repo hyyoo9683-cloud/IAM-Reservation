@@ -151,7 +151,7 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 
 <script type="module">
 import { db, collection, doc, getDoc, getDocs, setDoc, addDoc, deleteDoc, query, where, serverTimestamp,
-         authApi, isAdminAccount, uploadImage } from './fb.js';
+         authApi, isAdminAccount, uploadImage, fixImageCache } from './fb.js';
 import { PROGRAM_CATS } from './home.js';
 
 const $ = id => document.getElementById(id);
@@ -193,6 +193,7 @@ async function loadPrograms() {
   const snap = await getDocs(collection(db, 'programs'));
   programs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderPrograms();
+  fixImageCache(programs.map(p => p.posterUrl).filter(Boolean)).catch(() => {});   // 예전 포스터도 브라우저가 저장해 두게
 }
 function isPast(p) { return (p.endDate || p.startDate || '') < today(); }
 function renderPrograms() {
