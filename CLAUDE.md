@@ -426,6 +426,7 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - 게시·되돌리기 때마다 직전 게시본을 `siteContentHistory`(doc:'homepage')에 보관 → `home/admin.html` '버전 기록'에서 복원
 - `home/admin.html`: 공연·행사 등록·수정·공개 전환·포스터 업로드(`site/programs/`), 버전 기록
 - 메인 About·Notice의 버튼 2개는 `ctaBtns()`로 그림 — 버튼 글자(`about.cta1/cta2`, `notice.cta1/cta2`)를 모두 지우면 방문자에게 숨김, 편집 모드에서는 흐린 점선(`.btn-empty`)으로 남아 다시 쓸 수 있음(2026-10-26). 편집기는 글자 칸을 `richToText(el, false)`로 읽음 — 예전엔 `innerText`가 칸 안의 숨은 '🔗 링크' 단추 글자까지 읽어 저장했음(2026-10-30 수정, 이미 저장된 '… 🔗 링크'·'📷 사진 바꾸기' 글자는 `mergeContent()`의 `stripJunk()`가 걷어내고 보여줌). 버튼(`.btn`)의 링크 단추는 버튼 안이 아니라 버튼 옆에 '🔗 링크 주소'(`.ed-link.side`)로 둠 — 버튼 글자를 지울 때 단추가 같이 지워졌다가 되살아나 글자처럼 보이던 문제
+- Spaces 섹션(2026-11-02): 다섯째 카드는 '방문 가이드'(`./?page=guide&tab=way`, 예전 '조스테이블' 카드 값은 `LEGACY_DEFAULTS`로 교체 — 올려 둔 사진은 그대로), 카드 아래 줄의 넷째 항목은 '조스테이블 · 입점 시설'(`./?page=guide&tab=amenity`, 예전 '주차 안내' 대신)
 - What's On 카드(2026-11-02): 제목의 괄호 묶음(<…>·(…)·[…]·《…》 등)은 `keepBrackets()`가 `.kb`(inline-block)로 감싸 한 덩어리로 줄바꿈. 상태 표시(`programs.badge`)는 `stBadge()`가 글자로 색을 정함 — 마감·종료·매진=검정, 무료=파랑, 예매…=빨강 채움, 그 밖(사전신청 등)은 테두리만
 - 새 편집 항목을 추가할 때: `content.js`의 `DEFAULT_CONTENT`에 기본값 → `home.js` 템플릿에서 `t()/m()/href()/bg()`로 출력하면 편집 모드가 자동으로 붙음
 - 규칙: `siteContent` 쓰기·`siteContentHistory`·`programs` 쓰기는 관리자만. Storage `site/` 경로에 관리자 쓰기가 허용되어 있어야 사진 업로드 가능(Storage 규칙은 콘솔에서 관리 중 — 저장소에 없음). 2026-10-13 확인: 비로그인 상태로 bucket 전체 목록 조회가 가능함(읽기는 공개), `site/`에는 아직 업로드된 파일이 없음 — 쓰기 허용 여부는 콘솔 규칙에서 직접 확인 필요

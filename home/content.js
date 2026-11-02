@@ -397,14 +397,14 @@ export const DEFAULT_CONTENT = {
         g: 'linear-gradient(160deg,#6d6a63,#2b2a27)' },
       { name: '샤론홀', desc: '세미나 · 워크숍 · 모임', img: '', link: 'https://iamreservation.web.app/venue-spaces.html', tag: 'PHOTO · 샤론홀 세팅 컷',
         g: 'linear-gradient(160deg,#58605a,#202421)' },
-      { name: '조스테이블', desc: '함께 일하는 카페 · 통합 고용', img: '', link: '#', tag: 'PHOTO · 조스테이블 사람 있는 장면',
+      { name: '방문 가이드', desc: '오시는 길 · 주차 · 편의시설', img: '', link: './?page=guide&tab=way', tag: 'PHOTO · 건물 입구 · 안내 장면',
         g: 'radial-gradient(80% 80% at 30% 40%,#8a6f4e,#2e241a 75%)' },
     ],
     amenities: [
       { name: '여유앤미', note: '입점 시설', link: '#' },
       { name: '차폰팩토리', note: '입점 시설', link: '#' },
       { name: '반석한의원', note: '입점 시설', link: '#' },
-      { name: '주차 안내', note: '에덴 주차타워', link: '#visit' },
+      { name: '조스테이블', note: '입점 시설', link: './?page=guide&tab=amenity' },
     ],
   },
   notice: {
@@ -467,6 +467,11 @@ const LEGACY_DEFAULTS = [
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
   ['pages.guide.tabs.amenity', '편의시설'],
+  // 2026-11-02 Spaces: 다섯째 카드 조스테이블 → 방문 가이드(오시는 길), 아래 줄의 주차 안내 → 조스테이블
+  ['spaces.items.4.name', '조스테이블'], ['spaces.items.4.desc', '함께 일하는 카페 · 통합 고용'],
+  ['spaces.items.4.link', '#'], ['spaces.items.4.tag', 'PHOTO · 조스테이블 사람 있는 장면'],
+  ['spaces.amenities.3.name', '주차 안내'], ['spaces.amenities.3.note', '에덴 주차타워'],
+  ['spaces.amenities.3.link', '#visit'], ['spaces.amenities.3.link', 'https://iamcenter.web.app/?page=guide&tab=parking'],
   // 2026-10-26 안내 문구를 ‘-요’체에서 ‘-(니)다’체로 — 예전 기본 문구 그대로 게시된 경우 새 문구로
   ['pages.about.valueItems.0.d', '세부 설명을 입력하세요'],
   ['pages.about.valueItems.1.d', '세부 설명을 입력하세요'],
