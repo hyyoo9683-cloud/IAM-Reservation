@@ -14,3 +14,12 @@ firebase.initializeApp({
 });
 
 firebase.messaging();
+
+// 앱이 열려 있을 때 push.html이 직접 띄운 알림(data.iamLink)을 누르면 해당 링크를 열기
+// (서버가 보낸 알림의 클릭 처리는 위 Firebase SDK가 따로 처리함)
+self.addEventListener('notificationclick', (event) => {
+  const link = event.notification && event.notification.data && event.notification.data.iamLink;
+  if (!link) return;
+  event.notification.close();
+  event.waitUntil(clients.openWindow(link));
+});

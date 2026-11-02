@@ -50,9 +50,11 @@ async function sendPushToAdmins({ title, body, link }) {
   });
 
   const dead = [];
+  const errors = [];
   res.responses.forEach((r, i) => {
     if (r.success) return;
     const code = r.error && r.error.code;
+    errors.push({ code: code || 'unknown', message: (r.error && r.error.message) || '' });
     if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') {
       dead.push(docs[i].ref);
     } else {
@@ -60,7 +62,7 @@ async function sendPushToAdmins({ title, body, link }) {
     }
   });
   await Promise.all(dead.map(ref => ref.delete().catch(() => {})));
-  return { sent: res.successCount, failed: res.failureCount, total: tokens.length };
+  return { sent: res.successCount, failed: res.failureCount, total: tokens.length, removed: dead.length, errors };
 }
 
 // "[새 예약 신청]\n505호 · …\n신청자: …" 형식의 카카오 문구를 제목(첫 줄)+본문으로 나눔
