@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02e";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02f";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -315,8 +315,9 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .rent h3{font-size:clamp(26px,2.6vw,38px);font-weight:800;letter-spacing:-.035em;line-height:1.15}
 .rent p{color:var(--mute);margin:16px 0 30px;font-size:15px}
 .rent .rent-eb{color:var(--mute);margin-bottom:18px}
-.rent-band{display:flex;align-items:center;justify-content:space-between;gap:28px 48px;flex-wrap:wrap}
-.rent-band .btns{flex:0 1 auto}
+.rent-row{display:flex;align-items:center;flex-wrap:wrap;gap:20px 40px}
+.rent-row h3{margin:0}
+.rent-row .btns{flex:0 1 auto}
 #about .eyebrow{opacity:.6;margin-bottom:28px}
 .amen a>span:first-child{font-size:inherit;color:inherit;font-weight:inherit}
 .rent ol{list-style:none;counter-reset:s;border-top:1px solid #d6d4d0;margin-bottom:32px}

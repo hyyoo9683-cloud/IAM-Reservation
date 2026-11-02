@@ -419,7 +419,7 @@ export const DEFAULT_CONTENT = {
       { category: '안내', title: '아이엠센터 주차 안내 업데이트', date: '2026.07.30', body: '' },
     ],
     rentEyebrow: 'Rental',
-    rentTitle: '공간이\n필요하신가요?',
+    rentTitle: '공간이 필요하신가요?',
     rentDesc: '아이엠홀 · 아론홀 · 샤론홀 대관 절차와 일정을 친절히 안내해 드립니다.',
     steps: ['일정·공간 확인', '대관 신청서 접수', '상담 및 승인', '계약 및 이용'],
     cta1: '대관 문의하기', cta1Link: 'https://iamreservation.web.app/venue-spaces.html',
@@ -461,6 +461,7 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  ['notice.rentTitle', '공간이\n필요하신가요?'],
   ['hero.slides.0.caption', '아이엠홀 — 760석 다목적 공연장'],
   ['about.stats.0.n', '760'],
   ['spaces.items.0.desc', '760석 · 공연 · 예배 · 컨퍼런스'],
