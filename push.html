@@ -90,7 +90,7 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChang
   setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
 import { getFirestore, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
-import { getMessaging, getToken, deleteToken, isSupported } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
+import { getMessaging, getToken, deleteToken, isSupported, onMessage } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
@@ -155,6 +155,7 @@ async function refresh() {
   }
   const on = Notification.permission === 'granted' && !!localStorage.getItem(LS_KEY);
   if (on) {
+    try { await ensureMessaging(); } catch (e) { console.error(e); }
     setStatus('ok', '이 기기는 알림이 <b>켜져</b> 있습니다.');
     btn.textContent = '알림 끄기'; btn.className = 'btn sec'; testBtn.style.display = 'block';
   } else {
@@ -164,10 +165,25 @@ async function refresh() {
   btn.disabled = false;
 }
 
+let foregroundBound = false;
 async function ensureMessaging() {
   if (!swReg) swReg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
   await navigator.serviceWorker.ready;
   if (!messaging) messaging = getMessaging(app);
+  // 앱이 화면에 열려 있는 동안 도착한 푸시는 Firebase가 자동으로 알림을 띄우지 않고 페이지로 넘겨줌 —
+  // 그대로 두면 앱을 보고 있을 때(예: 테스트 버튼을 누른 직후) 알림이 안 보이므로 직접 띄움
+  if (!foregroundBound) {
+    foregroundBound = true;
+    onMessage(messaging, payload => {
+      const n = payload.notification || {};
+      swReg.showNotification(n.title || '아이엠센터 알림', {
+        body: n.body || '',
+        icon: '/push-icon.png',
+        badge: '/push-icon.png',
+        data: { iamLink: (payload.fcmOptions && payload.fcmOptions.link) || '/' },
+      });
+    });
+  }
 }
 
 window.toggleNotify = async () => {
