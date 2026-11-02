@@ -562,6 +562,12 @@ export function setPath(obj, path, value) {
 // (편집 모드 링크 입력 + 이미 저장된 값 모두에 적용)
 export function normalizeLink(u) {
   const s = String(u || '').trim();
+  // 홈페이지 안 주소: '/'·'/?page=…'·'/#…'·'?page=…'는 홈페이지(현재 사이트) 기준 './…'로 — 예전엔 '/…'가 예약 시스템으로 연결됐음
+  if (/^\/(?:[?#]|$)/.test(s)) return '.' + s;
+  if (/^\?/.test(s)) return './' + s;
+  // 예약 시스템 주소에 홈페이지 세부 페이지(?page=…)를 붙여 저장된 링크도 홈페이지 안으로
+  const m = s.match(/^(?:https?:\/\/)?iamreservation\.web\.app\/(?:home\/)?(?:index\.html)?(\?page=.*|#.*)?$/i);
+  if (m && (m[1] || /\/home\//i.test(s))) return './' + (m[1] || '');
   if (/^(www\.|[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}(:\d+)?([/?#]|$))/i.test(s) && !/^[a-z][a-z0-9+.-]*:/i.test(s)) return 'https://' + s;
   return s;
 }
