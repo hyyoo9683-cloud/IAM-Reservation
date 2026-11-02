@@ -22,7 +22,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-02i";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02j";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -336,7 +336,9 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 
 /* ---------- VISIT ---------- */
 .visit{border-top:1px solid var(--line)}
-.visit .grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,6vw,96px);align-items:center}
+.visit .grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,6vw,96px);align-items:stretch}
+/* 지도는 '오시는 길 · 이용 시간' 줄부터 표 마지막 줄까지(2단일 때만) — 위 여백 = 큰 제목 높이(line-height 1) + 부제 위 여백 */
+@media (min-width:1101px){.visit .grid>.map{aspect-ratio:auto;min-height:320px;margin-top:calc(clamp(34px,4.6vw,68px) + 14px)}}
 .info{display:grid;grid-template-columns:120px 1fr;border-top:2px solid var(--ink)}
 .info dt,.info dd{padding:20px 0;border-bottom:1px solid var(--line);font-size:15px}
 .info dt{font-weight:700}
