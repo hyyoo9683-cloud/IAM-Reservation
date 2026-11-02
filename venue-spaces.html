@@ -377,8 +377,11 @@
   @media (min-width: 900px) {
     .page { max-width: 900px; }
     .intro { max-width: 70ch; }
-    /* 넓은 화면에서는 한 줄에 공간 3개 */
-    .venue-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    /* 넓은 화면에서는 가로형 카드(사진 왼쪽, 이름·정원·비품 오른쪽)를 한 줄에 2개 */
+    .venue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .venue-card { flex-direction: row; }
+    .venue-img { width: 42%; flex: none; aspect-ratio: auto; min-height: 150px; }
+    .venue-body { min-width: 0; justify-content: center; }
   }
 
   @media (max-width: 520px) {
