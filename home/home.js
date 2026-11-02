@@ -1254,41 +1254,124 @@ function scrollToHash() {
 }
 
 // ── 데이터 불러오기 ───────────────────────────────────────────
-export async function loadAll() {
+// 빠르게 보여주기: 마지막으로 받은 내용을 브라우저(localStorage)에 기억해 두고, 다음에 열 때 그것으로 먼저 그린 뒤
+// 서버에서 받은 최신 내용이 다르면 한 번 더 그림. 편집 모드는 항상 서버에서 받은 최신 내용으로 시작(loadAll을 기다림)
+const CACHE_KEY = 'iamHomeCache:v1';
+const pageData = { spaces: {}, floors: null };   // 공간 문서(이름별)·층별 안내 — 페이지를 옮겨 다녀도 다시 받지 않게
+let rawSaved = null, rawPrograms = [];
+const sortPrograms = list => {
   const today = new Date().toISOString().slice(0, 10);
-  const [contentSnap, progSnap] = await Promise.allSettled([
-    getDoc(doc(db, 'siteContent', 'homepage')),
-    getDocs(query(collection(db, 'programs'), where('published', '==', true))),
-  ]);
-  if (contentSnap.status === 'fulfilled' && contentSnap.value.exists()) {
-    state.content = mergeContent(contentSnap.value.data());
-  }
-  // 공간 페이지면 공간 관리(spaces)의 해당 공간 문서도 가져옴 (사진·정원·비품)
+  return list.filter(p => (p.endDate || p.startDate || '') >= today)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.startDate).localeCompare(String(b.startDate)));
+};
+function saveCache() {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ content: rawSaved, programs: rawPrograms, floors: pageData.floors, spaces: pageData.spaces })); }
+  catch (_) { /* 저장 공간이 없거나 막힌 브라우저는 그냥 넘어감 */ }
+}
+export function applyCache() {
+  try {
+    const k = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (!k || !k.content) return false;
+    state.content = mergeContent(k.content);
+    state.programs = sortPrograms(k.programs || []);
+    if (k.floors) pageData.floors = k.floors;
+    Object.assign(pageData.spaces, k.spaces || {});
+    usePageData();
+    return true;
+  } catch (_) { return false; }
+}
+// 지금 페이지에 필요한 것(공간 문서·층별 안내)을 이미 받아 둔 것에서 꺼내 state에 넣음
+function usePageData() {
   const spaceName = state.page && c(`pages.${state.page}.space`);
-  if (spaceName) {
-    try {
-      const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
-      state.space = sn.docs[0] ? sn.docs[0].data() : null;
-    } catch (e) { console.warn('공간 정보 불러오기 실패', e); }
-  }
-  if (state.page === 'schedule') {
+  state.space = spaceName ? (pageData.spaces[spaceName] ?? null) : null;
+  if (state.page === 'guide' && pageData.floors) state.floors = pageData.floors;
+}
+const viewSig = () => JSON.stringify([state.content, state.programs, state.space, state.page === 'guide' ? state.floors : 0]);
+// 지금 페이지에만 필요한 데이터를 서버에서 받음 (공간 페이지·대관 일정·방문가이드 층별 안내)
+const fetching = new Map();   // 같은 데이터를 두 번 받지 않게(받는 중이면 그 결과를 같이 기다림)
+const once = (key, fn) => { if (!fetching.has(key)) fetching.set(key, fn().catch(e => { fetching.delete(key); console.warn(key, '불러오기 실패', e); })); return fetching.get(key); };
+async function loadPageData() {
+  const page = state.page;
+  const spaceName = page && c(`pages.${page}.space`);
+  if (spaceName) await once('space:' + spaceName, async () => {
+    const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
+    pageData.spaces[spaceName] = sn.docs[0] ? sn.docs[0].data() : null;
+  });
+  if (page === 'schedule') {
     const S = state.sched;
     S.sel = S.sel || todayStr();
     S.month = S.month || S.sel.slice(0, 7);
     await loadSchedMonth(S.month);
   }
-  if (state.page === 'guide') {
-    try {
-      const fs = await getDoc(doc(db, 'siteContent', 'floors'));
-      state.floors = fs.exists() ? (fs.data().floors || []) : [];
-    } catch (e) { console.warn('층별 안내 불러오기 실패', e); }
+  if (page === 'guide') await once('floors', async () => {
+    const fs = await getDoc(doc(db, 'siteContent', 'floors'));
+    pageData.floors = fs.exists() ? (fs.data().floors || []) : [];
+  });
+  if (state.page === page) usePageData();
+}
+// 처음 열 때: 홈페이지 내용·공연·행사 + 지금 페이지 데이터. 화면에 보이는 내용이 바뀌었으면 true
+export async function loadAll() {
+  const before = viewSig();
+  const [contentSnap, progSnap] = await Promise.allSettled([
+    getDoc(doc(db, 'siteContent', 'homepage')),
+    getDocs(query(collection(db, 'programs'), where('published', '==', true))),
+  ]);
+  if (contentSnap.status === 'fulfilled' && contentSnap.value.exists()) {
+    rawSaved = contentSnap.value.data();
+    state.content = mergeContent(rawSaved);
   }
   if (progSnap.status === 'fulfilled') {
-    state.programs = progSnap.value.docs.map(d => ({ id: d.id, ...d.data() }))
-      .filter(p => (p.endDate || p.startDate || '') >= today)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.startDate).localeCompare(String(b.startDate)));
+    rawPrograms = progSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
+    state.programs = sortPrograms(rawPrograms);
   }
   [contentSnap, progSnap].forEach(r => { if (r.status === 'rejected') console.warn('홈페이지 데이터 불러오기 실패', r.reason); });
+  await loadPageData();
+  if (rawSaved && progSnap.status === 'fulfilled') saveCache();
+  return viewSig() !== before;
+}
+
+// ── 홈페이지 안 이동: 페이지를 새로 열지 않고 받아 둔 내용으로 화면만 바꿈 (주소·뒤로가기는 그대로) ─────
+async function navigate(href, push = true) {
+  const u = new URL(href, location.href);
+  const p = u.searchParams.get('page');
+  if (push) {
+    history.replaceState({ ...(history.state || {}), y: scrollY }, '');
+    history.pushState({ y: 0 }, '', u.pathname + u.search + u.hash);
+  }
+  state.page = PAGE_IDS.includes(p) ? p : null;
+  state.tab = u.searchParams.get('tab') || '';
+  hashDone = false;
+  usePageData();
+  const page = state.page, sig = viewSig();
+  render();
+  const y = push ? 0 : (history.state?.y || 0);
+  if (u.hash && !state.page) {
+    const el = document.getElementById(decodeURIComponent(u.hash.slice(1)));
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ block: 'start' }));
+  } else if (!u.hash) scrollTo({ top: y, behavior: 'instant' });
+  await loadPageData();
+  if (state.page === page && !state.editing && viewSig() !== sig) render();
+  saveCache();
+}
+function setupNavigation() {
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  document.addEventListener('click', e => {
+    if (state.editing || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const a = e.target.closest('a[href]');
+    if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+    let u;
+    try { u = new URL(a.href, location.href); } catch (_) { return; }
+    if (u.origin !== location.origin || u.pathname !== location.pathname) return;   // 다른 사이트·다른 파일(admin.html 등)은 그대로
+    if (u.search === location.search && u.hash) return;   // 같은 화면 안의 #위치 이동은 브라우저 기본 동작
+    e.preventDefault();
+    navigate(u.href);
+  });
+  addEventListener('popstate', () => {
+    const q = new URLSearchParams(location.search), p = q.get('page');
+    const page = PAGE_IDS.includes(p) ? p : null;
+    if (page === state.page && (q.get('tab') || '') === state.tab) return;   // #위치만 바뀐 뒤로가기
+    if (!state.editing) navigate(location.href, false);
+  });
 }
 
 // ── 화면 동작 (슬라이더, 레일, 탭, 등장 효과) ─────────────────────
@@ -1400,6 +1483,7 @@ function setupBehaviors() {
 
 // 헤더·퀵바·모바일 메뉴 (한 번만 연결)
 export function setupChrome() {
+  setupNavigation();
   const hd = document.getElementById('hd'), quick = document.getElementById('quick');
   const onScroll = () => {
     const y = scrollY;

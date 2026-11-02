@@ -843,15 +843,17 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 </div>
 
 <script type="module">
-import { state, render, loadAll, setupChrome } from './home.js';
+import { state, render, loadAll, setupChrome, applyCache } from './home.js';
 
 setupChrome();
-// 데이터를 최대 2.5초 기다렸다가 그리고(기본 문구가 깜빡이지 않게), 늦게 오면 한 번 더 그림
-const loaded = loadAll().catch(e => console.warn(e));
-const first = await Promise.race([loaded.then(() => true), new Promise(r => setTimeout(() => r(false), 2500))]);
+// 전에 받아 둔 내용이 있으면 바로 그리고, 서버의 최신 내용이 다르면 한 번 더 그림
+// (처음 방문이면 데이터를 최대 2.5초 기다렸다가 그림 — 기본 문구가 깜빡이지 않게)
+const cached = applyCache();
+const loaded = loadAll().catch(e => { console.warn(e); return false; });
+const first = cached || await Promise.race([loaded.then(() => true), new Promise(r => setTimeout(() => r(false), 2500))]);
 render();
 document.body.classList.remove('booting');
-if (!first) loaded.then(() => { if (!state.editing) render(); });
+loaded.then(changed => { if (!state.editing && (changed || !first)) render(); });
 
 // 관리자 편집 모드: 푸터의 '관리자' 또는 주소 끝 ?edit=1
 async function openEditor() {
