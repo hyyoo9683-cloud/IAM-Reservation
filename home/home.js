@@ -18,7 +18,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-10-26k';
+const CSS_VER = '2026-11-02a';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -33,6 +33,11 @@ const mapQuery = a => { const s = String(a || '').trim(); const m = s.match(/^.*
 const mlStrong = s => ml(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
 // 굵기 조절이 되는 여러 줄 글 (편집 모드에서 글자 선택 → 'B 굵게' 또는 Ctrl+B)
 const rich = (path, tag = 'p', cls = '') => `<${tag}${cls ? ` class="${cls}"` : ''} data-k="${path}" data-ml="1" data-rich="1">${mlStrong(c(path))}</${tag}>`;
+// 공연 제목의 괄호 묶음(<부제>·(…)·[…]·《…》 등)은 한 덩어리로 — 줄 끝에 안 들어가면 괄호째 다음 줄로(괄호 안이 한 줄보다 길 때만 그 안에서 줄바꿈)
+const keepBrackets = s => esc(s).replace(/(&lt;[^&]*?&gt;|\([^)]*\)|\[[^\]]*\]|[《〈「『【][^》〉」』】]*[》〉」』】])/g, '<span class="kb">$1</span>');
+// 공연·행사 상태 표시 색: 마감=검정, 무료=파랑, 예매중=빨강, 그 밖(사전신청 등)은 테두리만
+const stTone = s => /마감|종료|매진/.test(s) ? 'closed' : /무료/.test(s) ? 'free' : /예매/.test(s) ? 'sale' : '';
+const stBadge = s => `<span class="st"${stTone(s) ? ` data-tone="${stTone(s)}"` : ''}>${esc(s)}</span>`;
 const mlQuoteBold = s => ml(s).replace(/“[^”<]*”/g, '<b>$&</b>');
 // 홈페이지는 iamcenter.web.app(별도 사이트)에서도 열리므로, 예전에 저장된 '../x'·'/x' 같은
 // 예약 시스템 쪽 상대 주소는 예약 시스템 전체 주소로 바꿔서 연결함
@@ -81,7 +86,7 @@ const sampleRail = () => `
       ${SAMPLE_PROGRAMS.map(p => `
       <a href="#whatson" class="card" data-c="${p.c}">
         <div class="ph" style="--g:${p.g}"><div class="poster"${p.dark ? ' style="color:#111"' : ''}><span class="k">${p.k}</span><span class="t">${p.t}</span></div></div>
-        <div class="meta"><div class="cat">${p.st ? `<span class="st">${p.st}</span>` : ''}${p.cat}</div><h3>${p.title}</h3><p>${p.date}</p></div>
+        <div class="meta"><div class="cat">${p.st ? stBadge(p.st) : ''}${p.cat}</div><h3>${p.title}</h3><p>${p.date}</p></div>
       </a>`).join('')}
     </div>
     <p class="sample">※ 위 공연·행사는 레이아웃 확인용 <b>예시</b>입니다. 실제 운영 시 관리자 페이지에서 등록한 프로그램이 자동으로 표시됩니다.</p>`;
@@ -130,11 +135,11 @@ const SECTIONS = {
       ${list.map((p, pi) => `
       <a ${p.link ? `href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener"` : 'href="#whatson"'} class="card" data-c="${esc(p.category)}">
         <div class="ph poster-ph" ${p.posterUrl ? `style="--img:url('${cssUrl(p.posterUrl)}')" data-hasimg="1"` : `style="--g:${esc(posterGradient(pi))}"`}>
-          ${p.posterUrl ? '' : `<div class="poster"><span class="k">${esc(p.category || '')}</span><span class="t">${esc(p.title)}</span></div>`}
+          ${p.posterUrl ? '' : `<div class="poster"><span class="k">${esc(p.category || '')}</span><span class="t">${keepBrackets(p.title)}</span></div>`}
         </div>
         <div class="meta">
-          <div class="cat">${p.badge ? `<span class="st">${esc(p.badge)}</span>` : ''}${esc([p.category, p.venue].filter(Boolean).join(' · '))}</div>
-          <h3>${esc(p.title)}</h3>
+          <div class="cat">${p.badge ? stBadge(p.badge) : ''}${esc([p.category, p.venue].filter(Boolean).join(' · '))}</div>
+          <h3>${keepBrackets(p.title)}</h3>
           <p>${esc(p.dateText || fmtRange(p.startDate, p.endDate))}</p>
         </div>
       </a>`).join('')}

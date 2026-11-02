@@ -20,7 +20,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-10-26k";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-02a";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -199,6 +199,10 @@ section{padding:clamp(80px,11vw,160px) 0}
 .card .meta{padding-top:18px}
 .card .cat{font-size:12px;font-weight:600;color:var(--mute);display:flex;gap:8px;align-items:center}
 .card .cat .st{color:var(--ink);border:1px solid var(--ink);padding:1px 7px;border-radius:999px;font-size:11px}
+.card .cat .st[data-tone]{color:#fff;font-weight:700}
+.card .cat .st[data-tone="closed"]{background:#111;border-color:#111}
+.card .cat .st[data-tone="free"]{background:#1f4f9c;border-color:#1f4f9c}
+.card .cat .st[data-tone="sale"]{background:#d6322b;border-color:#d6322b}
 .card h3{font-size:19px;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px;line-height:1.35}
 .card p{font-size:14px;color:var(--mute)}
 .rail-ctl{display:flex;gap:8px}
@@ -314,6 +318,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .gmap{background:var(--soft)}
 .gmap iframe{position:absolute;inset:0;width:100%;height:100%;border:0;filter:grayscale(.35) contrast(1.05)}
 .kmap{position:absolute;inset:0}
+.kb{display:inline-block;max-width:100%}
 .btn.btn-empty{opacity:.45;border-style:dashed;min-width:96px}
 .kpin{position:relative;display:block;margin-bottom:12px;background:#1f4f9c;color:#fff;font-size:13px;font-weight:700;letter-spacing:-.01em;padding:8px 14px;border-radius:999px;box-shadow:0 6px 16px rgba(31,79,156,.35);white-space:nowrap}
 .kpin::after{content:'';position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:#1f4f9c;transform:translateX(-50%) rotate(45deg);border-radius:0 0 2px 0}
