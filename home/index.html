@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03zd";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03ze";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -930,6 +930,38 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
 
 .hero{padding:0}
 #notice{padding-top:0}
+
+/* ---------- 모바일 정리(2026-11-03) ---------- */
+.kv>*{min-width:0}   /* 표가 넓어도 페이지 전체가 옆으로 밀리지 않게(표 안에서만 스크롤) */
+@media (max-width:600px){
+  /* 페이지 탭: 영문 작은 글자는 숨기고 탭을 화면 너비에 나눠 담음(잘리지 않게) */
+  .ptabs{gap:12px;justify-content:space-between}
+  .ptabs .pt-en{display:none}
+  .ptabs button,.ptabs button[aria-selected="true"]{flex:1 1 auto;font-size:15px;padding:13px 0 14px;white-space:nowrap}
+  /* 대관료 제목: 오른쪽으로 밀리던 것 왼쪽 정렬 */
+  .fee-hd{align-items:flex-start}
+  /* 대관 일정 아래 안내 문구 왼쪽 정렬 */
+  .rent-main .hall-note{text-align:left;font-size:14px}
+  /* 주차 요금 표: 휴대폰 화면 안에 맞춤 */
+  .g-sec .ptable{min-width:0;font-size:13.5px}
+  .g-sec .ptable th,.g-sec .ptable td{padding:12px 6px}
+  .g-sec .ptable thead th{padding:12px 6px;font-size:12px}
+  /* 층별 안내: B1-B2F 같은 긴 층 표시가 글과 겹치지 않게 */
+  .fl-row{grid-template-columns:78px 1fr}
+  .fl-n{font-size:16px}
+  /* 아이엠홀 숫자 띠(4칸): 2칸씩 가지런히 */
+  .stats:not(.few){grid-template-columns:1fr 1fr}
+  .stats:not(.few) .stat{padding:24px 12px 0 0;margin-top:0;border-top:0;border-left:0}
+  .stats:not(.few) .stat:nth-child(even){padding-left:16px;border-left:1px solid rgba(255,255,255,.2)}
+  .stats:not(.few) .stat:nth-child(n+3){border-top:1px solid rgba(255,255,255,.2);margin-top:24px}
+  .stats:not(.few) .stat .n{font-size:34px}
+  /* 메인 '공간이 필요하신가요?' 띠: 제목 아래 버튼 2개를 한 줄로 */
+  .rent.rent-band{padding:20px}
+  .rent-row{gap:14px}
+  .rent-row .btns{width:100%;display:flex;flex-wrap:nowrap;gap:8px;margin:0}
+  .rent-row .btns .btn{flex:1;justify-content:center;padding:10px 8px;font-size:13px;white-space:nowrap}
+  .rent-band .btns{opacity:.6}
+}
 </style>
 </head>
 <body class="booting">

@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03zd';
+const CSS_VER = '2026-11-03ze';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -878,7 +878,7 @@ function rentSeminarFees(room) {
     <div class="fcards">
       ${cards.map((cd, ci) => { if (word && ci !== pick) return ''; const rows = cd.rows || []; const Q = `${P}.cards.${ci}.rows`; return `
       <div class="fcard rv">
-        ${t(`${P}.cards.${ci}.name`, 'h4')}
+        ${word && !state.editing ? '' : t(`${P}.cards.${ci}.name`, 'h4')}
         <table class="ptable">
           <thead><tr><th scope="col">${t(`${P}.cols.k`)}</th><th scope="col">${t(`${P}.cols.time`)}</th><th scope="col">${t(`${P}.cols.fee`)}</th></tr></thead>
           <tbody>${rows.map((r, i) => `<tr><th scope="row">${t(`${Q}.${i}.k`)}${arrCtl(Q, i, rows.length)}</th><td>${t(`${Q}.${i}.time`)}</td><td>${fee(`${Q}.${i}.fee`)}</td></tr>`).join('')}</tbody>
