@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03j';
+const CSS_VER = '2026-11-03k';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -443,18 +443,18 @@ function floorsHtml() {
   </div>
 </section>`;
 }
-// 층별 안내 탭 아래 유관기관 — 푸터 '유관기관'(footer.orgs)과 같은 목록(가나다순). 글자·링크 편집은 푸터에서 함(같은 칸이 두 군데 있으면 편집이 꼬여서 여기는 보여주기만)
+// 층별 안내 탭 아래 유관기관(Partners) — 2026-11-03부터 푸터 목록과 별개인 pages.about.partners[{label, link}](편집 모드에서 이름·🔗·↑↓✕·추가)
 function orgsHtml() {
-  const orgs = (c('footer.orgs') || []).filter(o => filled(o.label)).sort((a, b) => String(a.label).localeCompare(String(b.label), 'ko'));
-  if (!orgs.length && !state.editing) return '';
+  const P = 'pages.about.partners', list = c(P) || [];
+  if (!list.some(o => filled(o.label)) && !state.editing) return '';
   return `
 <section class="page-orgs" data-sec="page">
   <div class="wrap">
     <div class="sec-hd rv"><h2>${t('pages.about.orgsTitle')}<span class="h2sub" data-k="pages.about.orgsSub">${esc(c('pages.about.orgsSub'))}</span></h2></div>
-    <ul class="org-grid rv">${orgs.map(o => `<li>${filled(o.link)
-      ? `<a href="${esc(safeUrl(o.link))}" target="_blank" rel="noopener"><span>${esc(o.label)}</span><span class="og-ar" aria-hidden="true">↗</span></a>`
-      : `<span class="og-na">${esc(o.label)}</span>`}</li>`).join('')}</ul>
-    ${state.editing ? '<p class="edit-hint">유관기관 이름·링크는 페이지 맨 아래 푸터의 ‘유관기관’에서 고치면 여기에도 같이 바뀝니다.</p>' : ''}
+    <ul class="org-grid rv">${list.map((o, i) => filled(o.label) || state.editing ? `<li>${filled(o.link) || state.editing
+      ? `<a ${href(`${P}.${i}.link`)} target="_blank" rel="noopener">${t(`${P}.${i}.label`)}<span class="og-ar" aria-hidden="true">↗</span></a>`
+      : `<span class="og-na">${t(`${P}.${i}.label`)}</span>`}${arrCtl(P, i, list.length)}</li>` : '').join('')}</ul>
+    ${arrAdd(P, { label: '새 기관', link: '' }, '+ 기관 추가')}
   </div>
 </section>`;
 }

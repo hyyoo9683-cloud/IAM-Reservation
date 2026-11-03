@@ -45,6 +45,11 @@ export const DEFAULT_CONTENT = {
       // 탭 2개(2026-11-03): 소개 / 층별 안내(층별 표 + 유관기관) — 주소 ./?page=about&tab=floors
       tabs: { intro: '소개', floors: '층별 안내' },
       orgsTitle: 'Partners', orgsSub: '유관기관',
+      partners: [   // 층별 안내 탭의 유관기관(푸터 '유관기관' 목록과 별개)
+        { label: '가온솔로이스츠', link: 'https://www.gaonsoloists.org/' },
+        { label: '마더와이즈', link: 'http://motherwise.or.kr/' },
+        { label: '브솔복지재단', link: 'https://www.besor.kr/' },
+      ],
       floorsTitle: 'Floors', floorsSub: '층별 안내',
       // 층별 바로가기 버튼(키 = 층 번호, 지하는 -1): [{label, link}] — 편집 모드에서 추가·수정·삭제.
       // 아직 홈페이지에서 손대지 않은 층은 예약 시스템 관리자 '층별 안내'의 links를 보여주고, 편집 모드를 열면 그 링크를 복사해 와서 고칠 수 있음
