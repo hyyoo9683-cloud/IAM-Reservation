@@ -148,7 +148,7 @@ export const DEFAULT_CONTENT = {
       img: '', space: '아론홀', blocks: [],
       headline: '케이터링이 가능한 **소규모 세미나실**',
       intro: '아이엠센터 2층에 자리한 아론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.',
-      ctaText: '대관하기', ctaLink: './?page=rental&tab=seminar',
+      ctaText: '대관하기', ctaLink: './?page=rental&tab=aaron',
       factsEn: 'Facilities', factsTitle: '시설 안내',
       facts: [
         { k: '면적', v: '174.5㎡' },
@@ -171,7 +171,7 @@ export const DEFAULT_CONTENT = {
       img: '', space: '샤론홀', blocks: [],
       headline: '**소규모 세미나실**',
       intro: '아이엠센터 6층에 자리한 샤론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.\n단, 카펫이 설치된 공간으로 홀 내부에는 생수를 제외한 음식·음료 반입이 제한됩니다.',
-      ctaText: '대관하기', ctaLink: './?page=rental&tab=seminar',
+      ctaText: '대관하기', ctaLink: './?page=rental&tab=sharon',
       factsEn: 'Facilities', factsTitle: '시설 안내',
       facts: [
         { k: '면적', v: '' },
@@ -269,7 +269,9 @@ export const DEFAULT_CONTENT = {
     rental: {
       eyebrow: 'Rental', title: '대관 안내', lead: '아이엠홀과 세미나실의 대관 절차·이용료·일정·신청을 한곳에 모았습니다.',
       img: '', blocks: [],
-      tabs: { hall: '아이엠홀', seminar: '세미나실', schedule: '대관 일정', apply: '온라인 신청' },
+      // 대관 안내 아론홀·샤론홀 탭 맨 위 사진 묶음(비어 있으면 그 홀 페이지 대표 사진, 아이엠홀 탭은 pages.hall.imgs를 같이 씀)
+      aaronImgs: [], sharonImgs: [],
+      tabs: { hall: '아이엠홀', aaron: '아론홀', sharon: '샤론홀', schedule: '대관 일정', apply: '온라인 신청' },
       stepsEn: 'Process', stepsTitle: '대관 절차',
       contactEn: 'Contact', contactTitle: '대관 문의',
       email: 'iamspace@suwoncca.org', tel: '070-7018-1439',
@@ -493,6 +495,8 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  // 2026-11-03 대관 안내 '세미나실' 탭을 아론홀·샤론홀 탭으로 나눔
+  ['pages.aaron.ctaLink', './?page=rental&tab=seminar'], ['pages.sharon.ctaLink', './?page=rental&tab=seminar'],
   // 2026-11-03 푸터 FAQ를 새 자주 묻는 질문 페이지로
   ['footer.faqLink', ''],
   // 2026-11-03 '세미나실' 메뉴 → '공간 소개'(아이엠홀 포함)
