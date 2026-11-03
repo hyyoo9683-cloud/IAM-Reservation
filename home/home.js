@@ -1207,7 +1207,7 @@ function footerHtml() {
       <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}
         <p class="ft-ct">대표 전화 ${t('footer.tel')}${c('footer.bizNo') || state.editing ? `<br>사업자등록번호 ${t('footer.bizNo')}` : ''}</p>
         ${c('footer.kakaoLink') || state.editing ? `<a ${href('footer.kakaoLink')} target="_blank" rel="noopener" class="ft-kakao" aria-label="카카오채널"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg><span>카카오채널</span></a>` : ''}</div>
-      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=events">행사 안내</a></li><li><a href="./?page=hall">공간 소개</a></li><li><a href="./?page=rental">대관 안내</a></li></ul></div>
+      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=events">행사</a></li><li><a href="./?page=hall">공간</a></li><li><a href="./?page=rental">대관 안내</a></li></ul></div>
       <div><h4>INFO</h4><ul><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
