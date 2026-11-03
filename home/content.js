@@ -1,7 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
-export const PAGE_IDS = ['about', 'guide', 'notice', 'events', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
+export const PAGE_IDS = ['about', 'guide', 'notice', 'events', 'faq', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -234,6 +234,18 @@ export const DEFAULT_CONTENT = {
     // 대관 일정 페이지(./?page=schedule) — 아론홀·샤론홀 탭, 월간 달력은 예약 시스템의 공개 사본(publicReservations, 확정만)·차단일(blockedDates)을 읽어 그림
     // 개인정보 보호를 위해 시간만 보여주고 행사명·단체명은 보여주지 않음(예약 시스템 공개 캘린더와 같은 기준)
     // 공지사항 페이지(./?page=notice) — 메인 Notice와 같은 notice.items를 모두 보여줌, 본문(body)이 있는 공지는 눌러서 펼침
+    // 자주 묻는 질문(./?page=faq, 2026-11-03) — 상단 '문의' 메뉴에서 연결, 질문을 누르면 답이 펼쳐짐. 편집 모드에서 질문·답 수정·추가·순서·삭제
+    faq: {
+      eyebrow: 'Q&A', title: '자주 묻는 질문', lead: '아이엠센터 이용과 대관에 대해 자주 묻는 질문을 모았습니다.',
+      items: [
+        { q: '아이엠센터 운영 시간은 어떻게 되나요?', a: '매일 08:00 – 22:00에 운영합니다. (공휴일 제외)' },
+        { q: '주차할 수 있나요?', a: '**아이엠센터 건물 지하 주차장**과 **에덴 주차타워**를 이용할 수 있습니다.\n주차장이 협소하여 자주 만차되오니, 가급적 대중교통을 이용해 주시기 바랍니다.' },
+        { q: '공간을 대관하려면 어떻게 하나요?', a: '상단 **문의 › 대관 안내**에서 공간별 대관 절차·대관료·대관 일정을 확인하신 뒤, 온라인 신청서를 작성해 주시면 담당자가 연락드립니다.' },
+        { q: '주일(일요일)에도 대관할 수 있나요?', a: '세미나실(아론홀·샤론홀)은 주일에 대관하지 않습니다.' },
+      ],
+      moreText: '더 궁금하신 점은 대표 전화 또는 카카오채널로 문의해 주십시오.',
+      blocks: [],
+    },
     // 행사 안내(./?page=events, 2026-11-03) — 공연·행사(programs) 중 진행 중·예정 / 지난 행사
     events: {
       eyebrow: 'Events', title: '행사 안내', lead: '아이엠센터에서 열리는 공연과 행사를 소개합니다.',
@@ -473,7 +485,7 @@ export const DEFAULT_CONTENT = {
     // 대표 전화·사업자등록번호(비어 있으면 숨김)·카카오채널 링크(비어 있으면 숨김)
     tel: '070-7018-1439', bizNo: '', kakaoLink: '',
     // INFO 링크 — FAQ·개인정보처리방침은 페이지가 준비되면 편집 모드 🔗로 주소 입력(비어 있으면 이름만 흐리게)
-    faqLink: '', privacyLink: '',
+    faqLink: './?page=faq', privacyLink: '',
     bottom: '',
   },
 };
@@ -481,6 +493,8 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  // 2026-11-03 푸터 FAQ를 새 자주 묻는 질문 페이지로
+  ['footer.faqLink', ''],
   // 2026-11-03 '세미나실' 메뉴 → '공간 소개'(아이엠홀 포함)
   ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
   // 2026-11-03 버스 안내 맨 위에 정류장 이름 줄 추가 — 예전 3줄 그대로면 새 4줄로

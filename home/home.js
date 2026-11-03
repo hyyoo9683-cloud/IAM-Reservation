@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03u';
+const CSS_VER = '2026-11-03v';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -126,6 +126,26 @@ function programCard(p, pi, past = false) {
   return p.link
     ? `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener" class="card${past ? ' past' : ''}" data-c="${esc(p.category)}">${inner}</a>`
     : `<div class="card${past ? ' past' : ''}" data-c="${esc(p.category)}">${inner}</div>`;
+}
+// 자주 묻는 질문(./?page=faq): 질문을 누르면 답이 펼쳐짐(편집 모드에서는 모두 펼쳐서 바로 고침)
+function faqBody() {
+  const P = 'pages.faq.items', list = c(P) || [];
+  const tel = c('footer.tel'), kakao = c('footer.kakaoLink');
+  return `
+<section class="page-faq" data-sec="page">
+  <div class="wrap narrow">
+    <div class="faq rv">${list.map((f, i) => `
+      <details class="faq-it"${state.editing ? ' open' : ''}>
+        <summary><span class="faq-q-mark">Q</span>${t(`${P}.${i}.q`, 'span', 'faq-q')}</summary>
+        <div class="faq-a"><span class="faq-a-mark">A</span>${rich(`${P}.${i}.a`, 'div', 'faq-a-t')}${arrCtl(P, i, list.length)}</div>
+      </details>`).join('') || '<p class="empty">등록된 질문이 없습니다.</p>'}</div>
+    ${arrAdd(P, { q: '새 질문', a: '답변을 입력하십시오.' }, '+ 질문 추가')}
+    <div class="faq-more rv">
+      ${m('pages.faq.moreText', 'p')}
+      <div class="faq-btns">${tel ? `<a href="tel:${esc(String(tel).replace(/[^\d+]/g, ''))}" class="btn line">전화 ${esc(tel)}</a>` : ''}${kakao ? `<a href="${esc(safeUrl(kakao))}" target="_blank" rel="noopener" class="btn line">카카오톡 문의</a>` : ''}</div>
+    </div>
+  </div>
+</section>`;
 }
 // 행사 안내(./?page=events, 2026-11-03): 진행 중·예정 행사 + 지난 행사 — 목록은 관리자 페이지 › 공연·행사(programs)에서 관리
 function eventsBody() {
@@ -1186,6 +1206,7 @@ function noticeBody() {
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
   events: () => pageHead('events') + eventsBody() + pageBlocks('events'),
+  faq: () => pageHead('faq') + faqBody() + pageBlocks('faq'),
   // 아이엠센터 소개: 탭 2개 — 소개(비전·본문·중심 가치) / 층별 안내(층별 표 + 푸터와 같은 유관기관 목록) (2026-11-03)
   about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), floors: () => (floorsHtml() || '') + orgsHtml() }),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
@@ -1253,17 +1274,12 @@ function renderNav() {
   }
   // 오른쪽 아래 퀵바: 전화·카카오 버튼을 푸터의 대표 전화·카카오채널 링크로 연결
   const tel = String(c('footer.tel') || '').replace(/[^\d+]/g, '');
-  // 상단 '문의' 버튼의 펼침 목록(2026-11-03): 대관 안내 + 전화 문의(푸터 대표 전화) + 카카오톡 문의(푸터 카카오채널) — 번호·링크가 없으면 그 줄은 숨김
-  const kakao = c('footer.kakaoLink');
-  const ask = [
-    `<a href="./?page=rental">대관 안내<small>대관료 · 일정 · 온라인 신청</small></a>`,
-    tel ? `<a href="tel:${esc(tel)}">전화 문의<small>${esc(c('footer.tel'))}</small></a>` : '',
-    kakao ? `<a href="${esc(safeUrl(kakao))}" target="_blank" rel="noopener">카카오톡 문의<small>카카오채널 ‘아이엠센터’</small></a>` : '',
-  ].join('');
+  // 상단 '문의' 버튼의 펼침 목록(2026-11-03): 자주 묻는 질문 + 대관 안내
+  const ask = `<a href="./?page=faq">자주 묻는 질문<small>Q&amp;A</small></a><a href="./?page=rental">대관 안내<small>대관료 · 일정 · 온라인 신청</small></a>`;
   const dda = document.getElementById('dd-ask');
   if (dda) dda.innerHTML = `<div class="dd-in">${ask}</div>`;
   const ma = document.getElementById('m-ask');
-  if (ma) ma.innerHTML = `<a href="./?page=rental" class="mcta">대관 안내</a>${tel ? `<a href="tel:${esc(tel)}" class="msub2">전화 문의 · ${esc(c('footer.tel'))}</a>` : ''}${kakao ? `<a href="${esc(safeUrl(kakao))}" target="_blank" rel="noopener" class="msub2">카카오톡 문의</a>` : ''}`;
+  if (ma) ma.innerHTML = `<a href="./?page=faq" class="msub2">자주 묻는 질문</a><a href="./?page=rental" class="mcta">대관 안내</a>`;
   const qt = document.querySelector('#quick [data-tip="전화 문의"]');
   if (qt && tel) qt.href = `tel:${tel}`;
   const qk = document.querySelector('#quick .kakao');

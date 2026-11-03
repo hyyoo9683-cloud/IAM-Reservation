@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03u";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03v";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -76,7 +76,10 @@ img{display:block;max-width:100%}
 .cta-dd .dd{left:auto;right:0;transform:translate(0,6px);min-width:190px}
 .cta-dd:hover .dd,.cta-dd:focus-within .dd{transform:translate(0,0)}
 .cta-dd .dd a{text-align:left}
-.cta-dd .dd small{display:block;font-size:12px;color:var(--mute);font-weight:400;margin-top:2px}
+.cta-dd .dd-in{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cta-dd .dd a+a{border-top-color:rgba(255,255,255,.14)}
+.cta-dd .dd a:hover{background:#2a2a2a}
+.cta-dd .dd small{display:block;font-size:12px;color:rgba(255,255,255,.55);font-weight:400;margin-top:2px}
 .m-ask{margin-top:28px;display:flex;flex-direction:column;gap:10px}
 .m-ask .mcta{margin-top:0}
 .m-ask .msub2{font-size:15px;font-weight:600;border:1px solid rgba(255,255,255,.4);border-radius:999px;text-align:center;padding:12px}
@@ -245,6 +248,21 @@ section{padding:clamp(80px,11vw,160px) 0}
 .vc3{right:0;bottom:0;background:rgba(170,130,100,.26)}
 .vc-in{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;max-width:62%}
 .vc strong{font-family:"Noto Serif KR","Nanum Myeongjo",serif;font-size:clamp(22px,3.2vw,38px);font-weight:600;color:#4a4540;letter-spacing:-.03em;line-height:1.25}
+.page-faq{padding:clamp(16px,2vw,32px) 0 clamp(72px,9vw,120px)}
+.faq{border-top:2px solid var(--ink)}
+.faq-it{border-bottom:1px solid var(--line)}
+.faq-it summary{list-style:none;display:flex;align-items:baseline;gap:16px;padding:22px 4px;cursor:pointer;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.faq-it summary::-webkit-details-marker{display:none}
+.faq-it summary::after{content:'+';margin-left:auto;font-size:22px;font-weight:300;color:var(--mute)}
+.faq-it[open] summary::after{content:'−'}
+.faq-it summary:hover .faq-q{text-decoration:underline;text-underline-offset:4px}
+.faq-q-mark,.faq-a-mark{flex:none;width:22px;font-weight:800;color:#6f6a64}
+.faq-a{position:relative;display:flex;gap:16px;padding:0 4px 24px;font-size:15px;line-height:1.8;color:#444}
+.faq-a-mark{color:#b0aaa2}
+.faq-a-t b{color:var(--ink)}
+.faq-more{margin-top:48px;padding:28px;background:var(--soft);border-radius:14px;font-size:15px;color:#444}
+.faq-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+.faq-btns .btn{padding:12px 20px;font-size:14px}
 .page-events{padding:clamp(24px,3vw,40px) 0 clamp(72px,9vw,120px)}
 .ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px 24px}
 .ev-past-hd{margin-top:clamp(72px,9vw,120px)}
