@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03l";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03m";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -79,16 +79,16 @@ img{display:block;max-width:100%}
 .page-hd .lead{margin-top:24px;font-size:clamp(16px,1.4vw,19px);color:#444;max-width:760px;line-height:1.75}
 .page-img{aspect-ratio:21/9}
 .bld{border:2px solid var(--ink);background:#fff}
-.fl-row{display:grid;grid-template-columns:132px 220px 1fr;border-top:1px solid var(--line);transition:background .2s}
+.fl-row{display:grid;grid-template-columns:104px 190px 1fr;border-top:1px solid var(--line);transition:background .2s}
 .fl-row:first-child{border-top:0}
 .fl-row:hover{background:#faf9f7}
-.fl-row>*{padding:24px 26px;margin:0}
+.fl-row>*{padding:15px 22px;margin:0}
 .fl-row>.fl-n{padding-left:10px;padding-right:10px}
 .fl-row>*+*{border-left:1px solid var(--line)}
-.fl-n{background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:clamp(26px,2.4vw,34px);font-weight:800;letter-spacing:-.04em;line-height:1;white-space:nowrap}
+.fl-n{background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:clamp(22px,2vw,28px);font-weight:800;letter-spacing:-.04em;line-height:1;white-space:nowrap}
 .fl-n small{font-size:.45em;font-weight:700;margin-left:3px;color:var(--mute)}
-.fl-t{display:flex;align-items:center;font-size:18px;font-weight:700;letter-spacing:-.02em}
-.fl-d{display:flex;flex-direction:column;justify-content:center;gap:12px;font-size:15px;color:#555;line-height:1.7}
+.fl-t{display:flex;align-items:center;font-size:16px;font-weight:700;letter-spacing:-.02em}
+.fl-d{display:flex;flex-direction:column;justify-content:center;gap:8px;font-size:14px;color:#555;line-height:1.6}
 .fl-links{display:flex;flex-wrap:wrap;gap:8px}
 /* 층별 바로가기: 옅은 색의 작은 버튼 — 표 안에서 튀지 않게 */
 .fl-link{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:500;color:#555;background:transparent;border:1px solid #e2e0db;padding:5px 11px;border-radius:999px;line-height:1.2;transition:background .2s,color .2s,border-color .2s}
@@ -237,11 +237,13 @@ section{padding:clamp(80px,11vw,160px) 0}
 .page-orgs{padding:clamp(56px,7vw,96px) 0 clamp(72px,9vw,120px)}
 .org-grid{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);column-gap:clamp(20px,3vw,40px);border-top:2px solid var(--ink)}
 .org-grid li{position:relative;border-bottom:1px solid var(--line)}
-.org-grid a,.org-grid .og-na{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:22px 24px;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.org-grid a,.org-grid .og-na{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px 4px 6px;font-size:17px;font-weight:700;letter-spacing:-.02em}
+.org-grid .og-d{font-size:14px;line-height:1.7;color:#666;padding:0 4px 20px;margin:0}
+.orgs-lead{font-size:15px;line-height:1.8;color:#555;margin:-12px 0 28px;max-width:720px}
 .org-grid .og-na{color:var(--mute);font-weight:600}
 .org-grid a:hover{background:var(--soft)}
 .og-ar{color:var(--mute);font-weight:500}
-@media (max-width:640px){.org-grid{grid-template-columns:1fr}.org-grid a,.org-grid .og-na{padding:18px 4px}}
+@media (max-width:640px){.org-grid{grid-template-columns:1fr}.org-grid a,.org-grid .og-na{padding:16px 4px 4px}}
 .v-details{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,40px);max-width:1000px;margin:0 auto clamp(48px,6vw,80px)}
 .vd{border-top:1px solid #cfcac3;padding-top:18px}
 .vd h3{font-size:clamp(17px,1.6vw,20px);font-weight:800;letter-spacing:-.03em;margin-bottom:10px}
@@ -442,7 +444,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
   .page-space .split{grid-template-columns:1fr}
   .fl-row{grid-template-columns:88px 1fr}
   .fl-n{grid-row:span 2;font-size:22px}
-  .fl-row>*{padding:16px 16px}
+  .fl-row>*{padding:12px 14px}
   .fl-t{padding-bottom:4px}
   .fl-d{padding-top:0;border-left:1px solid var(--line)}
   .fl-d{font-size:14px}

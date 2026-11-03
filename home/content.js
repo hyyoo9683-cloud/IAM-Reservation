@@ -45,10 +45,11 @@ export const DEFAULT_CONTENT = {
       // 탭 2개(2026-11-03): 소개 / 층별 안내(층별 표 + 유관기관) — 주소 ./?page=about&tab=floors
       tabs: { intro: '소개', floors: '층별 안내' },
       orgsTitle: 'Partners', orgsSub: '유관기관',
+      orgsLead: '아이엠센터 안에서 함께 일하며 같은 가치를 나누는 기관들입니다.',   // Partners 아래 짧은 소개(굵게 가능, 비우면 숨김)
       partners: [   // 층별 안내 탭의 유관기관(푸터 '유관기관' 목록과 별개)
-        { label: '가온솔로이스츠', link: 'https://www.gaonsoloists.org/' },
-        { label: '마더와이즈', link: 'http://motherwise.or.kr/' },
-        { label: '브솔복지재단', link: 'https://www.besor.kr/' },
+        { label: '가온솔로이스츠', desc: '', link: 'https://www.gaonsoloists.org/' },
+        { label: '마더와이즈', desc: '', link: 'http://motherwise.or.kr/' },
+        { label: '브솔복지재단', desc: '', link: 'https://www.besor.kr/' },
       ],
       floorsTitle: 'Floors', floorsSub: '층별 안내',
       // 층별 바로가기 버튼(키 = 층 번호, 지하는 -1): [{label, link}] — 편집 모드에서 추가·수정·삭제.

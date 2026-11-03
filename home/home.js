@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03l';
+const CSS_VER = '2026-11-03m';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -451,10 +451,11 @@ function orgsHtml() {
 <section class="page-orgs" data-sec="page">
   <div class="wrap">
     <div class="sec-hd rv"><h2>${t('pages.about.orgsTitle')}<span class="h2sub" data-k="pages.about.orgsSub">${esc(c('pages.about.orgsSub'))}</span></h2></div>
+    ${filled(c('pages.about.orgsLead')) || state.editing ? rich('pages.about.orgsLead', 'div', 'orgs-lead rv') : ''}
     <ul class="org-grid rv">${list.map((o, i) => filled(o.label) || state.editing ? `<li>${filled(o.link) || state.editing
       ? `<a ${href(`${P}.${i}.link`)} target="_blank" rel="noopener">${t(`${P}.${i}.label`)}<span class="og-ar" aria-hidden="true">↗</span></a>`
-      : `<span class="og-na">${t(`${P}.${i}.label`)}</span>`}${arrCtl(P, i, list.length)}</li>` : '').join('')}</ul>
-    ${arrAdd(P, { label: '새 기관', link: '' }, '+ 기관 추가')}
+      : `<span class="og-na">${t(`${P}.${i}.label`)}</span>`}${filled(o.desc) || state.editing ? rich(`${P}.${i}.desc`, 'p', 'og-d') : ''}${arrCtl(P, i, list.length)}</li>` : '').join('')}</ul>
+    ${arrAdd(P, { label: '새 기관', link: '', desc: '' }, '+ 기관 추가')}
   </div>
 </section>`;
 }
