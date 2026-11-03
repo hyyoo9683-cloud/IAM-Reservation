@@ -391,6 +391,7 @@ export const DEFAULT_CONTENT = {
   whatson: {
     title: "What's On",
     sub: '아이엠센터에서 열리는 공연과 행사',
+    moreText: '행사 더보기', moreLink: './?page=events',   // 제목 오른쪽 작은 링크(2026-11-03) — 글자를 지우면 숨김
   },
   about: {
     eyebrow: 'Why I AM Center',
