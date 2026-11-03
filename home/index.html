@@ -10,6 +10,10 @@
 <link rel="preconnect" href="https://firebasestorage.googleapis.com">
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<!-- 중심 가치 원 안 글자용 세리프(명조) — 쓰는 글자만 나눠 받음(unicode-range) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@600;700&display=swap">
 <link rel="stylesheet" href="editor.css" media="print" id="editor-css">
 <style>
 :root{
@@ -22,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03b";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03c";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -228,7 +232,7 @@ section{padding:clamp(80px,11vw,160px) 0}
 .vc2{left:0;bottom:0;background:rgba(98,128,160,.26)}
 .vc3{right:0;bottom:0;background:rgba(170,130,100,.26)}
 .vc-in{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;max-width:62%}
-.vc strong{font-size:clamp(21px,3.1vw,36px);font-weight:800;letter-spacing:-.03em;line-height:1.25}
+.vc strong{font-family:"Noto Serif KR","Nanum Myeongjo",serif;font-size:clamp(22px,3.2vw,38px);font-weight:700;letter-spacing:-.03em;line-height:1.25}
 .v-details{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(20px,3vw,40px);max-width:1000px;margin:0 auto clamp(48px,6vw,80px)}
 .vd{border-top:2px solid var(--ink);padding-top:18px}
 .vd h3{font-size:clamp(17px,1.6vw,20px);font-weight:800;letter-spacing:-.03em;margin-bottom:10px}
