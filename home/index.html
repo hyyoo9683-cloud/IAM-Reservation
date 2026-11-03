@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03p";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03q";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -298,6 +298,8 @@ section{padding:clamp(80px,11vw,160px) 0}
 .sp-stage .ph .tag{top:18px;bottom:auto}
 .sp-cap{position:absolute;z-index:3;left:0;right:0;bottom:0;padding:64px clamp(20px,2.4vw,32px) clamp(20px,2.4vw,28px);background:linear-gradient(180deg,transparent,rgba(0,0,0,.55));color:#fff}
 .sp-cap strong{display:block;font-size:clamp(22px,2.2vw,30px);font-weight:800;letter-spacing:-.03em;line-height:1.2}
+.sp-cap .sp-fl{font-size:.5em;font-weight:500;letter-spacing:0;color:rgba(255,255,255,.6);margin-left:10px;vertical-align:.25em}
+.editing .sp-cap .sp-fl:empty::before{font-size:12px}
 .sp-cap p{margin-top:6px;font-size:14.5px;color:rgba(255,255,255,.85);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .editing .sp-cap p{white-space:normal}
 @media(max-width:600px){.sp-cap p{white-space:normal;font-size:13.5px}}

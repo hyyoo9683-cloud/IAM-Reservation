@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03p';
+const CSS_VER = '2026-11-03q';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -229,7 +229,7 @@ const SECTIONS = {
     </div>
     <div class="sp2 rv">
       <div class="sp-stage">
-        ${items.map((s, i) => `<div class="ph${i === 0 ? ' on' : ''}" data-sp="${i}" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span><div class="sp-cap"><strong>${esc(s.name || '')}</strong>${filled(s.cap) || state.editing ? t(`spaces.items.${i}.cap`, 'p') : ''}</div></div>`).join('')}
+        ${items.map((s, i) => `<div class="ph${i === 0 ? ' on' : ''}" data-sp="${i}" data-img="spaces.items.${i}.img" ${bg(`spaces.items.${i}.img`, `spaces.items.${i}.g`)}><span class="tag">${esc(s.tag || '')}</span><div class="sp-cap"><strong>${esc(s.name || '')}${filled(s.floor) || state.editing ? t(`spaces.items.${i}.floor`, 'span', 'sp-fl') : ''}</strong>${filled(s.cap) || state.editing ? t(`spaces.items.${i}.cap`, 'p') : ''}</div></div>`).join('')}
       </div>
       <ol class="sp-list">
         ${items.map((s, i) => `

@@ -411,13 +411,13 @@ export const DEFAULT_CONTENT = {
     moreText: '공간 전체 보기',
     moreLink: 'https://iamreservation.web.app/venue-spaces.html',
     items: [
-      { name: '아이엠홀', cap: '', desc: '785석 · 공연 · 예배 · 컨퍼런스', img: '', link: './?page=hall', tag: 'PHOTO · 아이엠홀 무대→객석 와이드',
+      { name: '아이엠홀', cap: '', floor: '', desc: '785석 · 공연 · 예배 · 컨퍼런스', img: '', link: './?page=hall', tag: 'PHOTO · 아이엠홀 무대→객석 와이드',
         g: 'radial-gradient(70% 70% at 50% 30%,#5d4a36,#1c1712 70%)' },
-      { name: '아론홀', cap: '', desc: '세미나 · 강의 · 소모임', img: '', link: './?page=aaron', tag: 'PHOTO · 아론홀 세팅 컷',
+      { name: '아론홀', cap: '', floor: '', desc: '세미나 · 강의 · 소모임', img: '', link: './?page=aaron', tag: 'PHOTO · 아론홀 세팅 컷',
         g: 'linear-gradient(160deg,#6d6a63,#2b2a27)' },
-      { name: '샤론홀', cap: '', desc: '세미나 · 워크숍 · 모임', img: '', link: './?page=sharon', tag: 'PHOTO · 샤론홀 세팅 컷',
+      { name: '샤론홀', cap: '', floor: '', desc: '세미나 · 워크숍 · 모임', img: '', link: './?page=sharon', tag: 'PHOTO · 샤론홀 세팅 컷',
         g: 'linear-gradient(160deg,#58605a,#202421)' },
-      { name: '입점기관', cap: '', desc: '조스테이블 · 여유앤미 · 차폰팩토리 · 반석한의원', img: '', link: './?page=guide&tab=amenity', tag: 'PHOTO · 입점기관',
+      { name: '입점기관', cap: '', floor: '', desc: '조스테이블 · 여유앤미 · 차폰팩토리 · 반석한의원', img: '', link: './?page=guide&tab=amenity', tag: 'PHOTO · 입점기관',
         g: 'radial-gradient(80% 80% at 30% 40%,#8a6f4e,#2e241a 75%)' },
     ],
     amenities: [
