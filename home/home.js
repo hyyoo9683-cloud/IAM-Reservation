@@ -612,13 +612,13 @@ const DOTS = '<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>';
 const G = 'pages.guide';
 function guideWay() {
   const tr = c(`${G}.way.transport`) || [];
-  // 2026-11-03: 주소 표·카카오톡·지도(메인 Visit 섹션)는 빼고 'Getting Here' 제목 + 바로 아래 주소 한 줄로 시작
+  // 2026-11-03: 주소 표·카카오톡·지도(메인 Visit 섹션)는 빼고 약도 → 'Getting Here' 제목 + 주소 한 줄(주차안내 탭처럼 그림이 위)
   return `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
+    ${imgSlot(`${G}.way.mapImg`, '약도', 'rv', true)}
     ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
     ${t('visit.address', 'p', 'gh-addr rv')}
-    ${imgSlot(`${G}.way.mapImg`, '약도', 'rv', true)}
     ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr rv">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
     <div class="tboxes">
       ${tr.map((b, bi) => `
