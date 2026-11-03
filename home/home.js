@@ -5,6 +5,7 @@ import { DEFAULT_CONTENT, mergeContent, getPath, PAGE_IDS, normalizeLink } from 
 export const state = {
   content: structuredClone(DEFAULT_CONTENT),
   programs: [],
+  pastPrograms: [],   // 행사 안내 페이지의 '지난 행사'(종료일이 지난 공개 프로그램, 최근 순)
   editing: false,      // 편집 모드 여부 (editor.js가 켬)
   // 세부 페이지: 주소 ./?page=about 처럼 열면 메인 섹션 대신 그 페이지를 그림 (없거나 모르는 값이면 메인)
   page: null,         // 세부 페이지 id(없으면 메인) — 아래 applyRoute()가 주소에서 채움
@@ -36,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03o';
+const CSS_VER = '2026-11-03p';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -111,6 +112,39 @@ const sampleRail = () => `
     </div>
     <p class="sample">※ 위 공연·행사는 레이아웃 확인용 <b>예시</b>입니다. 실제 운영 시 관리자 페이지에서 등록한 프로그램이 자동으로 표시됩니다.</p>`;
 
+// 공연·행사 카드 한 장(메인 What's On과 행사 안내 페이지가 함께 씀)
+function programCard(p, pi, past = false) {
+  const inner = `
+        <div class="ph poster-ph" ${p.posterUrl ? lazyImg(p.posterUrl) : `style="--g:${esc(posterGradient(pi))}"`}>
+          ${p.posterUrl ? '' : `<div class="poster"><span class="k">${esc(p.category || '')}</span><span class="t">${keepBrackets(p.title)}</span></div>`}
+        </div>
+        <div class="meta">
+          <div class="cat">${past ? '<span class="st">종료</span>' : (p.badge ? stBadge(p.badge) : '')}${esc([p.category, p.venue].filter(Boolean).join(' · '))}</div>
+          <h3>${keepBrackets(p.title)}</h3>
+          <p>${esc(p.dateText || fmtRange(p.startDate, p.endDate))}</p>
+        </div>`;
+  return p.link
+    ? `<a href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener" class="card${past ? ' past' : ''}" data-c="${esc(p.category)}">${inner}</a>`
+    : `<div class="card${past ? ' past' : ''}" data-c="${esc(p.category)}">${inner}</div>`;
+}
+// 행사 안내(./?page=events, 2026-11-03): 진행 중·예정 행사 + 지난 행사 — 목록은 관리자 페이지 › 공연·행사(programs)에서 관리
+function eventsBody() {
+  const now = state.programs, past = state.pastPrograms || [];
+  const grid = (list, isPast) => list.length
+    ? `<div class="ev-grid rv">${list.map((p, i) => programCard(p, i, isPast)).join('')}</div>`
+    : `<p class="empty rv">${isPast ? '지난 행사가 아직 없습니다.' : '현재 진행 중이거나 예정된 행사가 없습니다.'}</p>`;
+  return `
+<section class="page-events" data-sec="page">
+  <div class="wrap">
+    ${secHd('pages.events.nowEn', 'Now & Upcoming', 'pages.events.nowTitle')}
+    ${grid(now, false)}
+    ${secHd('pages.events.pastEn', 'Past Events', 'pages.events.pastTitle', '', 'ev-past-hd')}
+    ${grid(past, true)}
+    ${state.editing ? '<p class="edit-hint">행사 목록은 <a href="admin.html#programs">관리자 페이지 › 공연·행사</a>에서 등록·수정합니다(공개로 바꾼 것만 보이고, 종료일이 지나면 자동으로 ‘지난 행사’로 옮겨집니다).</p>' : ''}
+  </div>
+</section>`;
+}
+
 // ── 섹션 템플릿 ────────────────────────────────────────────────
 const SECTIONS = {
   hero() {
@@ -152,17 +186,7 @@ const SECTIONS = {
       ${cats.map(k => `<button aria-pressed="false" data-f="${esc(k)}">${esc(k)}</button>`).join('')}
     </div>
     <div class="rail rv">
-      ${list.map((p, pi) => `
-      <a ${p.link ? `href="${esc(safeUrl(p.link))}" target="_blank" rel="noopener"` : 'href="#whatson"'} class="card" data-c="${esc(p.category)}">
-        <div class="ph poster-ph" ${p.posterUrl ? lazyImg(p.posterUrl) : `style="--g:${esc(posterGradient(pi))}"`}>
-          ${p.posterUrl ? '' : `<div class="poster"><span class="k">${esc(p.category || '')}</span><span class="t">${keepBrackets(p.title)}</span></div>`}
-        </div>
-        <div class="meta">
-          <div class="cat">${p.badge ? stBadge(p.badge) : ''}${esc([p.category, p.venue].filter(Boolean).join(' · '))}</div>
-          <h3>${keepBrackets(p.title)}</h3>
-          <p>${esc(p.dateText || fmtRange(p.startDate, p.endDate))}</p>
-        </div>
-      </a>`).join('')}
+      ${list.map((p, pi) => programCard(p, pi)).join('')}
     </div>` : sampleRail()}
     ${state.editing ? `<p class="edit-hint">공연·행사 목록은 <a href="admin.html#programs">관리자 페이지 › 공연·행사</a>에서 등록·수정합니다.</p>` : ''}
   </div>
@@ -1160,6 +1184,7 @@ function noticeBody() {
 
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
+  events: () => pageHead('events') + eventsBody() + pageBlocks('events'),
   // 아이엠센터 소개: 탭 2개 — 소개(비전·본문·중심 가치) / 층별 안내(층별 표 + 푸터와 같은 유관기관 목록) (2026-11-03)
   about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), floors: () => (floorsHtml() || '') + orgsHtml() }),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
@@ -1181,7 +1206,7 @@ function footerHtml() {
       <div><div class="logo"><span class="logo-mark" role="img" aria-label="I AM"></span></div>${m('footer.desc')}
         <p class="ft-ct">대표 전화 ${t('footer.tel')}${c('footer.bizNo') || state.editing ? `<br>사업자등록번호 ${t('footer.bizNo')}` : ''}</p>
         ${c('footer.kakaoLink') || state.editing ? `<a ${href('footer.kakaoLink')} target="_blank" rel="noopener" class="ft-kakao" aria-label="카카오채널"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4C7 4 3 7.1 3 11c0 2.5 1.7 4.7 4.2 6l-1 3.6 4.1-2.7c.6.1 1.1.1 1.7.1 5 0 9-3.1 9-7s-4-7-9-7"/></svg><span>카카오채널</span></a>` : ''}</div>
-      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=hall">아이엠홀</a></li><li><a href="./?page=aaron">세미나실</a></li><li><a href="./?page=rental">대관 안내</a></li></ul></div>
+      <div><h4>MENU</h4><ul><li><a href="./">홈</a></li><li><a href="./?page=about">아이엠센터</a></li><li><a href="./?page=events">행사 안내</a></li><li><a href="./?page=hall">공간 소개</a></li><li><a href="./?page=rental">대관 안내</a></li></ul></div>
       <div><h4>INFO</h4><ul><li><a href="./?page=guide">방문가이드</a></li>${ftLink('footer.faqLink', 'FAQ')}${c('pages.rental.rulesHidden') !== false && !state.editing ? '<li><span class="o-na">대관규약</span></li>' : '<li><a href="./?page=rental#terms">대관규약</a></li>'}${ftLink('footer.privacyLink', '개인정보처리방침')}</ul></div>
       <div><h4>RELATED</h4>
         <div class="orgs${state.editing ? ' open' : ''}">
@@ -1313,6 +1338,11 @@ function scrollToHash() {
 const CACHE_KEY = 'iamHomeCache:v1';
 const pageData = { spaces: {}, floors: null };   // 공간 문서(이름별)·층별 안내 — 페이지를 옮겨 다녀도 다시 받지 않게
 let rawSaved = null, rawPrograms = [];
+const sortPast = list => {
+  const today = new Date().toISOString().slice(0, 10);
+  return list.filter(p => { const d = p.endDate || p.startDate || ''; return d && d < today; })
+    .sort((a, b) => String(b.startDate || b.endDate).localeCompare(String(a.startDate || a.endDate)));
+};
 const sortPrograms = list => {
   const today = new Date().toISOString().slice(0, 10);
   return list.filter(p => (p.endDate || p.startDate || '') >= today)
@@ -1328,6 +1358,7 @@ export function applyCache() {
     if (!k || !k.content) return false;
     state.content = mergeContent(k.content);
     state.programs = sortPrograms(k.programs || []);
+    state.pastPrograms = sortPast(k.programs || []);
     if (k.floors) pageData.floors = k.floors;
     Object.assign(pageData.spaces, k.spaces || {});
     usePageData();
@@ -1377,6 +1408,7 @@ export async function loadAll() {
   if (progSnap.status === 'fulfilled') {
     rawPrograms = progSnap.value.docs.map(d => ({ id: d.id, ...d.data() }));
     state.programs = sortPrograms(rawPrograms);
+    state.pastPrograms = sortPast(rawPrograms);
   }
   [contentSnap, progSnap].forEach(r => { if (r.status === 'rejected') console.warn('홈페이지 데이터 불러오기 실패', r.reason); });
   await loadPageData();

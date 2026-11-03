@@ -1,7 +1,7 @@
 // 홈페이지 기본 문구·구성 — Firestore siteContent/homepage 문서가 없거나 항목이 비어 있을 때 사용.
 // 편집 모드에서 게시하면 이 구조 그대로 siteContent/homepage 에 저장된다.
 // 사진(img)은 비어 있으면 그라데이션 임시 이미지 + 촬영 가이드(tag)가 표시된다.
-export const PAGE_IDS = ['about', 'guide', 'notice', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
+export const PAGE_IDS = ['about', 'guide', 'notice', 'events', 'schedule', 'aaron', 'sharon', 'hall', 'rental'];
 export const SECTION_IDS = ['hero', 'whatson', 'about', 'spaces', 'notice', 'visit'];
 export const SECTION_LABELS = {
   hero: '메인 비주얼', whatson: '공연·행사', about: '센터 소개(숫자)',
@@ -18,7 +18,9 @@ export const DEFAULT_CONTENT = {
       { label: '방문가이드', link: './?page=guide' },
       { label: '공지사항', link: './?page=notice' },
     ],
+    // '공간 소개' 메뉴(2026-11-03 예전 '세미나실' 메뉴 + 아이엠홀) — 키 이름은 그대로 seminar
     seminar: [
+      { label: '아이엠홀', link: './?page=hall' },
       { label: '아론홀(2F)', link: './?page=aaron' },
       { label: '샤론홀(6F)', link: './?page=sharon' },
     ],
@@ -232,6 +234,13 @@ export const DEFAULT_CONTENT = {
     // 대관 일정 페이지(./?page=schedule) — 아론홀·샤론홀 탭, 월간 달력은 예약 시스템의 공개 사본(publicReservations, 확정만)·차단일(blockedDates)을 읽어 그림
     // 개인정보 보호를 위해 시간만 보여주고 행사명·단체명은 보여주지 않음(예약 시스템 공개 캘린더와 같은 기준)
     // 공지사항 페이지(./?page=notice) — 메인 Notice와 같은 notice.items를 모두 보여줌, 본문(body)이 있는 공지는 눌러서 펼침
+    // 행사 안내(./?page=events, 2026-11-03) — 공연·행사(programs) 중 진행 중·예정 / 지난 행사
+    events: {
+      eyebrow: 'Events', title: '행사 안내', lead: '아이엠센터에서 열리는 공연과 행사를 소개합니다.',
+      nowEn: 'Now & Upcoming', nowTitle: '진행 중 · 예정 행사',
+      pastEn: 'Past Events', pastTitle: '지난 행사',
+      blocks: [],
+    },
     notice: {
       eyebrow: 'Notice', title: '공지사항', lead: '아이엠센터의 대관·이용 소식을 알려 드립니다.',
       blocks: [],
@@ -471,6 +480,8 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  // 2026-11-03 '세미나실' 메뉴 → '공간 소개'(아이엠홀 포함)
+  ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }]],
   // 2026-11-03 버스 안내 맨 위에 정류장 이름 줄 추가 — 예전 3줄 그대로면 새 4줄로
   ['pages.guide.way.transport.1.rows', [
     { label: '일반 버스', tone: 'blue', text: '3, 10, 10-2, 10-5, 15-1, 27, 37, 65, 66, 66-4, 720-1, 720-3, 201, 999' },
