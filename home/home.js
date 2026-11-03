@@ -1161,7 +1161,7 @@ function noticeBody() {
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
   // 아이엠센터 소개: 탭 2개 — 소개(비전·본문·중심 가치) / 층별 안내(층별 표 + 푸터와 같은 유관기관 목록) (2026-11-03)
-  about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), history: historyHtml, floors: () => (floorsHtml() || '') + orgsHtml() }),
+  about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), floors: () => (floorsHtml() || '') + orgsHtml() }),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
