@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03n';
+const CSS_VER = '2026-11-03o';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -443,6 +443,20 @@ function floorsHtml() {
   </div>
 </section>`;
 }
+// 아이엠센터 소개 > 연혁 탭: 연도 + 내용 줄(층별 안내와 같은 가로 구분선 모양)
+function historyHtml() {
+  const P = 'pages.about.history', list = c(P) || [];
+  return `
+<section class="page-hist" data-sec="page">
+  <div class="wrap">
+    ${secHd('pages.about.historyEn', 'History', 'pages.about.historyTitle')}
+    ${list.length ? `<ol class="hist rv">${list.map((h, i) => `
+      <li class="hist-row">${t(`${P}.${i}.y`, 'span', 'hist-y')}${rich(`${P}.${i}.t`, 'div', 'hist-t')}${arrCtl(P, i, list.length)}</li>`).join('')}</ol>`
+      : (state.editing ? '' : '<p class="empty rv">연혁을 준비하고 있습니다.</p>')}
+    ${arrAdd(P, { y: '2026', t: '내용을 입력하십시오.' }, '+ 연혁 추가')}
+  </div>
+</section>`;
+}
 // 층별 안내 탭 아래 유관기관(Partners) — 2026-11-03부터 푸터 목록과 별개인 pages.about.partners[{label, link}](편집 모드에서 이름·🔗·↑↓✕·추가)
 function orgsHtml() {
   const P = 'pages.about.partners', list = c(P) || [];
@@ -452,7 +466,7 @@ function orgsHtml() {
   <div class="wrap">
     <div class="sec-hd rv"><h2>${t('pages.about.orgsTitle')}<span class="h2sub" data-k="pages.about.orgsSub">${esc(c('pages.about.orgsSub'))}</span></h2></div>
     ${filled(c('pages.about.orgsLead')) || state.editing ? rich('pages.about.orgsLead', 'div', 'orgs-lead rv') : ''}
-    <ul class="org-grid rv">${list.map((o, i) => filled(o.label) || state.editing ? `<li>${filled(o.link) || state.editing
+    <ul class="org-grid rv" style="--n:${Math.min(Math.max(list.filter(o => filled(o.label) || state.editing).length, 1), 5)}">${list.map((o, i) => filled(o.label) || state.editing ? `<li>${filled(o.link) || state.editing
       ? `<a ${href(`${P}.${i}.link`)} target="_blank" rel="noopener">${t(`${P}.${i}.label`)}<span class="og-ar" aria-hidden="true">↗</span></a>`
       : `<span class="og-na">${t(`${P}.${i}.label`)}</span>`}${filled(o.desc) || state.editing ? rich(`${P}.${i}.desc`, 'p', 'og-d') : ''}${arrCtl(P, i, list.length)}</li>` : '').join('')}</ul>
     ${arrAdd(P, { label: '새 기관', link: '', desc: '' }, '+ 기관 추가')}
@@ -595,7 +609,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { apply: 'Apply Online', schedule: 'Schedule', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', intro: 'About', floors: 'Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { apply: 'Apply Online', schedule: 'Schedule', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', intro: 'About', history: 'History', floors: 'Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -1147,7 +1161,7 @@ function noticeBody() {
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
   // 아이엠센터 소개: 탭 2개 — 소개(비전·본문·중심 가치) / 층별 안내(층별 표 + 푸터와 같은 유관기관 목록) (2026-11-03)
-  about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), floors: () => (floorsHtml() || '') + orgsHtml() }),
+  about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), history: historyHtml, floors: () => (floorsHtml() || '') + orgsHtml() }),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),

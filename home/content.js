@@ -43,7 +43,10 @@ export const DEFAULT_CONTENT = {
         { t: '가치 셋', d: '세부 설명을 입력하십시오' },
       ],
       // 탭 2개(2026-11-03): 소개 / 층별 안내(층별 표 + 유관기관) — 주소 ./?page=about&tab=floors
-      tabs: { intro: '소개', floors: '층별 안내' },
+      tabs: { intro: '소개', history: '연혁', floors: '층별 안내' },
+      // 연혁 탭(2026-11-03): [{y: '연도', t: '내용'}] — 위에서 아래로(최근 → 예전 순으로 쓰면 됨), 편집 모드에서 추가·순서·삭제
+      historyEn: 'History', historyTitle: '연혁',
+      history: [],
       orgsTitle: 'Partners', orgsSub: '유관기관',
       orgsLead: '아이엠센터 안에서 함께 일하며 같은 가치를 나누는 기관들입니다.',   // Partners 아래 짧은 소개(굵게 가능, 비우면 숨김)
       partners: [   // 층별 안내 탭의 유관기관(푸터 '유관기관' 목록과 별개)
