@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03v';
+const CSS_VER = '2026-11-03w';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -1275,7 +1275,7 @@ function renderNav() {
   // 오른쪽 아래 퀵바: 전화·카카오 버튼을 푸터의 대표 전화·카카오채널 링크로 연결
   const tel = String(c('footer.tel') || '').replace(/[^\d+]/g, '');
   // 상단 '문의' 버튼의 펼침 목록(2026-11-03): 자주 묻는 질문 + 대관 안내
-  const ask = `<a href="./?page=faq">자주 묻는 질문<small>Q&amp;A</small></a><a href="./?page=rental">대관 안내<small>대관료 · 일정 · 온라인 신청</small></a>`;
+  const ask = `<a href="./?page=faq">자주 묻는 질문</a><a href="./?page=rental">대관 안내</a>`;
   const dda = document.getElementById('dd-ask');
   if (dda) dda.innerHTML = `<div class="dd-in">${ask}</div>`;
   const ma = document.getElementById('m-ask');
