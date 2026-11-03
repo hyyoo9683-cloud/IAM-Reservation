@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03g';
+const CSS_VER = '2026-11-03h';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -235,12 +235,13 @@ const SECTIONS = {
 </section>`;
   },
 
-  visit() {
+  // noHead: 방문가이드 '오시는 길' 탭에서는 큰 'Visit' 제목·부제를 뺌(2026-11-03, 탭 이름이 이미 '오시는 길')
+  visit(noHead = false) {
     return `
-<section class="visit" id="visit" data-sec="visit">
+<section class="visit${noHead ? ' nohd' : ''}" id="visit" data-sec="visit">
   <div class="wrap grid">
     <div class="rv">
-      <div class="sec-hd"><h2>${t('visit.title')}<span class="h2sub" data-k="visit.sub">${esc(c('visit.sub'))}</span></h2></div>
+      ${noHead ? '' : `<div class="sec-hd"><h2>${t('visit.title')}<span class="h2sub" data-k="visit.sub">${esc(c('visit.sub'))}</span></h2></div>`}
       <dl class="info">
         <dt>주소</dt>${t('visit.address', 'dd')}
         <dt>운영 시간</dt>${t('visit.hours', 'dd')}
@@ -610,7 +611,7 @@ const DOTS = '<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>';
 const G = 'pages.guide';
 function guideWay() {
   const tr = c(`${G}.way.transport`) || [];
-  return SECTIONS.visit() + `
+  return SECTIONS.visit(true) + `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
     ${imgSlot(`${G}.way.mapImg`, '약도', 'rv', true)}
