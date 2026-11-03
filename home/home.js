@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03r';
+const CSS_VER = '2026-11-03s';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -178,8 +178,7 @@ const SECTIONS = {
   <div class="wrap">
     <div class="sec-hd rv">
       <h2>${t('whatson.title')}<span class="h2sub" data-k="whatson.sub">${esc(c('whatson.sub'))}</span></h2>
-      <div class="wo-side">${filled(c('whatson.moreText')) || state.editing ? `<a ${href('whatson.moreLink')} class="more wo-more" data-k="whatson.moreText">${esc(c('whatson.moreText'))}</a>` : ''}
-      <div class="rail-ctl"><button class="rl" aria-label="이전">${CHEV_L}</button><button class="rr" aria-label="다음">${CHEV_R}</button></div></div>
+      <div class="rail-ctl"><button class="rl" aria-label="이전">${CHEV_L}</button><button class="rr" aria-label="다음">${CHEV_R}</button></div>
     </div>
     ${list.length ? `
     <div class="tabs rv" role="group" aria-label="분류">
@@ -189,6 +188,7 @@ const SECTIONS = {
     <div class="rail rv">
       ${list.map((p, pi) => programCard(p, pi)).join('')}
     </div>` : sampleRail()}
+    ${filled(c('whatson.moreText')) || state.editing ? `<div class="wo-foot rv"><a ${href('whatson.moreLink')} class="more wo-more" data-k="whatson.moreText">${esc(c('whatson.moreText'))}</a></div>` : ''}
     ${state.editing ? `<p class="edit-hint">공연·행사 목록은 <a href="admin.html#programs">관리자 페이지 › 공연·행사</a>에서 등록·수정합니다.</p>` : ''}
   </div>
 </section>`;
