@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03f';
+const CSS_VER = '2026-11-03g';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -442,6 +442,21 @@ function floorsHtml() {
   </div>
 </section>`;
 }
+// 층별 안내 탭 아래 유관기관 — 푸터 '유관기관'(footer.orgs)과 같은 목록(가나다순). 글자·링크 편집은 푸터에서 함(같은 칸이 두 군데 있으면 편집이 꼬여서 여기는 보여주기만)
+function orgsHtml() {
+  const orgs = (c('footer.orgs') || []).filter(o => filled(o.label)).sort((a, b) => String(a.label).localeCompare(String(b.label), 'ko'));
+  if (!orgs.length && !state.editing) return '';
+  return `
+<section class="page-orgs" data-sec="page">
+  <div class="wrap">
+    <div class="sec-hd rv"><h2>${t('pages.about.orgsTitle')}<span class="h2sub" data-k="pages.about.orgsSub">${esc(c('pages.about.orgsSub'))}</span></h2></div>
+    <ul class="org-grid rv">${orgs.map(o => `<li>${filled(o.link)
+      ? `<a href="${esc(safeUrl(o.link))}" target="_blank" rel="noopener"><span>${esc(o.label)}</span><span class="og-ar" aria-hidden="true">↗</span></a>`
+      : `<span class="og-na">${esc(o.label)}</span>`}</li>`).join('')}</ul>
+    ${state.editing ? '<p class="edit-hint">유관기관 이름·링크는 페이지 맨 아래 푸터의 ‘유관기관’에서 고치면 여기에도 같이 바뀝니다.</p>' : ''}
+  </div>
+</section>`;
+}
 function pageBlocks(id) {
   const path = `pages.${id}.blocks`;
   const blocks = c(path) || [];
@@ -578,7 +593,7 @@ function textList(titlePath, listPath, kind = 'dot', enPath = '', enFb = '') {
     </div>`;
 }
 // 탭 위의 작은 영문 이름(편집 모드에서 pages.<id>.tabsEn.<키>로 고칠 수 있음)
-const TAB_EN = { apply: 'Apply Online', schedule: 'Schedule', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities · Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
+const TAB_EN = { apply: 'Apply Online', schedule: 'Schedule', aaron: 'Aaron Hall · 2F', sharon: 'Sharon Hall · 6F', way: 'Directions', parking: 'Parking', amenity: 'Amenities', intro: 'About', floors: 'Floors', wheel: 'Accessibility', hall: 'I AM Hall', seminar: 'Seminar Rooms' };
 // 탭: 버튼 줄 + 탭마다 내용(선택한 탭만 보임) — 주소에 &tab=… 이 있으면 그 탭부터
 function tabbed(id, panels) {
   const keys = Object.keys(panels);
@@ -653,8 +668,6 @@ const STORE_G = ['linear-gradient(135deg,#3a332b,#15120f)', 'linear-gradient(135
 function guideAmenity() {
   const A = `${G}.amenity.stores`;
   const st = c(A) || [];
-  // 층별 안내(2026-10-26 소개 페이지에서 이 탭으로 옮김) — 데이터는 그대로 pages.about.floor*에 두고 여기서 편집
-  const floors = floorsHtml();
   return `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
@@ -674,7 +687,7 @@ function guideAmenity() {
     </div>
   </div>
 </section>
-${floors ? DOTS + floors : ''}`;
+`;
 }
 function guideWheel() {
   return `
@@ -1129,7 +1142,8 @@ function noticeBody() {
 
 const PAGES = {
   notice: () => pageHead('notice') + noticeBody() + pageBlocks('notice'),
-  about: () => pageHead('about') + aboutVision() + pageBlocks('about') + valuesHtml(),
+  // 아이엠센터 소개: 탭 2개 — 소개(비전·본문·중심 가치) / 층별 안내(층별 표 + 푸터와 같은 유관기관 목록) (2026-11-03)
+  about: () => pageHead('about') + tabbed('about', { intro: () => aboutVision() + pageBlocks('about') + valuesHtml(), floors: () => (floorsHtml() || '') + orgsHtml() }),
   guide: () => pageHead('guide') + pageImg('guide', '건물 입구·주차장 등 · 가로 21:9')
     + tabbed('guide', { way: guideWay, parking: guideParking, amenity: guideAmenity, wheel: guideWheel }) + pageBlocks('guide'),
   aaron: () => pageHead('aaron') + spaceBody('aaron') + pageBlocks('aaron'),
@@ -1306,9 +1320,9 @@ export function applyCache() {
 function usePageData() {
   const spaceName = state.page && c(`pages.${state.page}.space`);
   state.space = spaceName ? (pageData.spaces[spaceName] ?? null) : null;
-  if (state.page === 'guide' && pageData.floors) state.floors = pageData.floors;
+  if (state.page === 'about' && pageData.floors) state.floors = pageData.floors;
 }
-const viewSig = () => JSON.stringify([state.content, state.programs, state.space, state.page === 'guide' ? state.floors : 0]);
+const viewSig = () => JSON.stringify([state.content, state.programs, state.space, state.page === 'about' ? state.floors : 0]);
 // 지금 페이지에만 필요한 데이터를 서버에서 받음 (공간 페이지·대관 일정·방문가이드 층별 안내)
 const fetching = new Map();   // 같은 데이터를 두 번 받지 않게(받는 중이면 그 결과를 같이 기다림)
 const once = (key, fn) => { if (!fetching.has(key)) fetching.set(key, fn().catch(e => { fetching.delete(key); console.warn(key, '불러오기 실패', e); })); return fetching.get(key); };
@@ -1325,7 +1339,7 @@ async function loadPageData() {
     S.month = S.month || S.sel.slice(0, 7);
     await loadSchedMonth(S.month);
   }
-  if (page === 'guide') await once('floors', async () => {
+  if (page === 'about') await once('floors', async () => {
     const fs = await getDoc(doc(db, 'siteContent', 'floors'));
     pageData.floors = fs.exists() ? (fs.data().floors || []) : [];
   });

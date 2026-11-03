@@ -42,6 +42,9 @@ export const DEFAULT_CONTENT = {
         { t: '가치 둘', d: '세부 설명을 입력하십시오' },
         { t: '가치 셋', d: '세부 설명을 입력하십시오' },
       ],
+      // 탭 2개(2026-11-03): 소개 / 층별 안내(층별 표 + 유관기관) — 주소 ./?page=about&tab=floors
+      tabs: { intro: '소개', floors: '층별 안내' },
+      orgsTitle: 'Partners', orgsSub: '유관기관',
       floorsTitle: 'Floors', floorsSub: '층별 안내',
       // 층별 바로가기 버튼(키 = 층 번호, 지하는 -1): [{label, link}] — 편집 모드에서 추가·수정·삭제.
       // 아직 홈페이지에서 손대지 않은 층은 예약 시스템 관리자 '층별 안내'의 links를 보여주고, 편집 모드를 열면 그 링크를 복사해 와서 고칠 수 있음
@@ -66,7 +69,7 @@ export const DEFAULT_CONTENT = {
       // 예전 임시 블록(주차·편의 시설·대중교통)은 아래 탭 내용으로 옮김 — 손대지 않은 예전 기본값은 LEGACY_DEFAULTS가 비움
       blocks: [],
       // 탭 4개(오시는 길·주차안내·편의시설·휠체어 이용안내) — 주소 ./?page=guide&tab=parking 처럼 바로 열 수 있음
-      tabs: { way: '오시는 길', parking: '주차안내', amenity: '편의시설/층별안내', wheel: '휠체어 이용안내' },
+      tabs: { way: '오시는 길', parking: '주차안내', amenity: '편의시설', wheel: '휠체어 이용안내' },   // 층별 안내는 2026-11-03 아이엠센터 소개 '층별 안내' 탭으로 옮김
       way: {
         mapImg: './map-route.svg',   // 약도(기본: 홈페이지 디자인으로 그린 home/map-route.svg — 편집 모드에서 다른 사진으로 바꿀 수 있음)
         kakaoLabel: '카카오채널 ‘아이엠센터’', kakaoLink: '',
@@ -470,7 +473,7 @@ const LEGACY_DEFAULTS = [
   ['spaces.items.0.link', '#'],
   ['visit.phone', '대표 전화 안내 예정'],
   ['pages.guide.way.mapImg', ''],
-  ['pages.guide.tabs.amenity', '편의시설'],
+  ['pages.guide.tabs.amenity', '편의시설'], ['pages.guide.tabs.amenity', '편의시설/층별안내'],
   // 2026-11-02 대관 안내 분리: 세미나실 메뉴의 '대관 일정'은 대관 안내 안의 탭으로, 대관신청 → 대관 안내
   ['nav.seminar', [{ label: '아론홀(2F)', link: './?page=aaron' }, { label: '샤론홀(6F)', link: './?page=sharon' }, { label: '대관 일정', link: './?page=schedule' }]],
   ['pages.rental.title', '대관신청'], ['pages.rental.lead', '아이엠홀과 세미나실의 대관 절차와 이용료를 안내합니다.'],
