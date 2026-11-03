@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03za';
+const CSS_VER = '2026-11-03zb';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -1304,7 +1304,7 @@ function renderNav() {
   const dda = document.getElementById('dd-ask');
   if (dda) dda.innerHTML = `<div class="dd-in">${ask}</div>`;
   const ma = document.getElementById('m-ask');
-  if (ma) ma.innerHTML = `<a href="./?page=faq" class="msub2">자주 묻는 질문</a><a href="./?page=rental" class="mcta">대관 안내</a>`;
+  if (ma) ma.innerHTML = `<a href="./?page=faq">자주 묻는 질문</a><a href="./?page=rental">대관 안내</a>`;   // 모바일 메뉴: '문의' 아래 하위 항목(행사·공간 안내와 같은 모양)
   const qt = document.querySelector('#quick [data-tip="전화 문의"]');
   if (qt && tel) qt.href = `tel:${tel}`;
   const qk = document.querySelector('#quick .kakao');
