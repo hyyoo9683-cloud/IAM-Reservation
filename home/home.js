@@ -36,7 +36,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03i';
+const CSS_VER = '2026-11-03j';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -611,12 +611,14 @@ const DOTS = '<div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>';
 const G = 'pages.guide';
 function guideWay() {
   const tr = c(`${G}.way.transport`) || [];
-  return SECTIONS.visit(true) + `
+  // 2026-11-03: 주소 표·카카오톡·지도(메인 Visit 섹션)는 빼고 'Getting Here' 제목 + 바로 아래 주소 한 줄로 시작
+  return `
 <section class="g-sec" data-sec="page">
   <div class="wrap narrow">
+    ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
+    ${t('visit.address', 'p', 'gh-addr rv')}
     ${imgSlot(`${G}.way.mapImg`, '약도', 'rv', true)}
     ${c(`${G}.way.qrImg`) || state.editing ? `<div class="kk-qr rv">${imgSlot(`${G}.way.qrImg`, 'QR')}${m(`${G}.way.qrNote`)}</div>` : ''}
-    ${secHd(`${G}.way.transportEn`, 'Getting Here', `${G}.way.transportTitle`, '', 'sm')}
     <div class="tboxes">
       ${tr.map((b, bi) => `
       <div class="tbox rv">
