@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03w";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03x";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -73,9 +73,7 @@ img{display:block;max-width:100%}
 /* 오른쪽 '문의' 버튼(2026-11-03, 예전 '대관 안내' 버튼): 누르거나 마우스를 올리면 대관 안내·전화 문의·카카오톡 문의 */
 
 .cta-dd .hd-cta{cursor:pointer;color:inherit;background:none;font-family:inherit}
-.cta-dd .dd{left:auto;right:0;transform:translate(0,6px);min-width:160px}
-.cta-dd:hover .dd,.cta-dd:focus-within .dd{transform:translate(0,0)}
-.cta-dd .dd a{text-align:left}
+.cta-dd .dd{min-width:150px}
 .cta-dd .dd-in{background:rgba(13,13,13,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:#fff;border-color:transparent}
 .cta-dd .dd a+a{border-top-color:rgba(255,255,255,.14)}
 .cta-dd .dd a:hover{background:rgba(255,255,255,.1)}
