@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03zb";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03zd";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -809,7 +809,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .cal-today:hover{border-color:var(--ink)}
 .cal-legend{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mute)}
 .cal-legend i{display:inline-block;width:10px;height:10px;margin-left:8px}
-.lg-res{background:var(--ink)}.lg-blk{background:repeating-linear-gradient(45deg,#cfccc5 0 2px,transparent 2px 5px);border:1px solid #cfccc5}
+.lg-res{background:#e4e0d9;border:1px solid #d3cec6}.lg-blk{background:repeating-linear-gradient(45deg,#cfccc5 0 2px,transparent 2px 5px);border:1px solid #cfccc5}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:2px solid var(--ink);border-left:1px solid var(--line)}
 .cal-grid.loading .cal-d{opacity:.45}
 .cal-w{padding:10px 0;text-align:center;font-size:12px;font-weight:700;color:var(--mute);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -823,7 +823,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .cal-d.sel{box-shadow:inset 0 0 0 2px var(--ink);z-index:1}
 .cal-d.blk{background:repeating-linear-gradient(45deg,#f1efea 0 6px,#fbfaf8 6px 12px)}
 .cal-chips{display:flex;flex-direction:column;gap:3px}
-.cal-chip{font-size:11.5px;font-weight:600;background:var(--ink);color:#fff;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-chip{font-size:11.5px;font-weight:600;background:#e6e1d9;color:#4f4a44;padding:2px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-more{font-size:11px;color:var(--mute);font-weight:600}
 .cal-blk{font-size:11px;color:var(--mute);font-weight:600}
 .cal-dot{display:none}
@@ -833,7 +833,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 .cd-hd strong{font-size:clamp(20px,2vw,26px);font-weight:800;letter-spacing:-.03em}
 .cd-hd span{font-size:14px;color:var(--mute)}
 .cd-bar{position:relative;height:30px;background:var(--soft);border:1px solid var(--line)}
-.cd-bar i{position:absolute;top:0;bottom:0;background:var(--ink)}
+.cd-bar i{position:absolute;top:0;bottom:0;background:#d9d4cc}
 .cd-ticks{position:relative;height:22px;margin-top:6px}
 .cd-ticks span{position:absolute;transform:translateX(-50%);font-size:11.5px;color:var(--mute)}
 .cd-ticks span:first-child{transform:none}.cd-ticks span:last-child{transform:translateX(-100%)}
@@ -846,7 +846,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
 @media (max-width:760px){
   .cal-d{min-height:58px;padding:6px 4px;align-items:center;text-align:center}
   .cal-chips{display:none}
-  .cal-dot{display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--ink);color:#fff;font-size:10.5px;font-style:normal;font-weight:700;margin:0 auto}
+  .cal-dot{display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e4e0d9;color:#5a554f;font-size:10.5px;font-style:normal;font-weight:700;margin:0 auto}
   .cal-d.past .cal-dot{opacity:.5}
   .cal-legend{width:100%;margin-left:0}
   .cal-hd strong{min-width:0}

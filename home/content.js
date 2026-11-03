@@ -146,6 +146,7 @@ export const DEFAULT_CONTENT = {
     aaron: {
       eyebrow: 'Seminar Room · 2F', title: '아론홀', lead: '세미나 · 강의 · 소모임',
       img: '', space: '아론홀', blocks: [],
+      schedLead: '아론홀 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.',   // 대관 안내 아론홀 탭 달력 위 안내(홀마다 따로, 2026-11-03)
       headline: '케이터링이 가능한 **소규모 세미나실**',
       intro: '아이엠센터 2층에 자리한 아론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.',
       ctaText: '대관하기', ctaLink: './?page=rental&tab=aaron',
@@ -169,6 +170,7 @@ export const DEFAULT_CONTENT = {
     sharon: {
       eyebrow: 'Seminar Room · 6F', title: '샤론홀', lead: '세미나 · 워크숍 · 모임',
       img: '', space: '샤론홀', blocks: [],
+      schedLead: '샤론홀 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.',   // 대관 안내 샤론홀 탭 달력 위 안내(홀마다 따로, 2026-11-03)
       headline: '**소규모 세미나실**',
       intro: '아이엠센터 6층에 자리한 샤론홀은 공동체 안에서\n영적인 기쁨을 나누고 교제하는 특별한 기독교 문화 공간입니다.\n세미나 · 강의 · 소규모 모임에 적합한 공간으로 케이터링 이용이 가능합니다.\n단, 카펫이 설치된 공간으로 홀 내부에는 생수를 제외한 음식·음료 반입이 제한됩니다.',
       ctaText: '대관하기', ctaLink: './?page=rental&tab=sharon',

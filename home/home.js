@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03zb';
+const CSS_VER = '2026-11-03zd';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -1102,18 +1102,38 @@ function gridDays(month) {
   return Array.from({ length: 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
 }
 // 그 달 달력 범위의 확정 예약을 공개 사본에서 읽음(날짜 범위만으로 조회하고 공간은 화면에서 거름 — 별도 색인 없이 동작)
-async function loadSchedMonth(month) {
+// 날짜 범위 조회라 5층 소그룹실까지 6주치(500건 이상)를 받아서 느림 → 아론홀·샤론홀만 골라 localStorage에 저장해 두고
+// 다음에는 저장본을 먼저 보여준 뒤 서버 최신 내용으로 바꿈(2026-11-03). 차단일도 같이 저장
+const SCHED_CACHE = 'iamSchedCache:v1';
+const schedRooms = () => ['aaron', 'sharon'].map(id => c(`pages.${id}.space`)).filter(Boolean);
+function schedCacheRead() { try { return JSON.parse(localStorage.getItem(SCHED_CACHE) || '{}') || {}; } catch (_) { return {}; } }
+function schedCacheWrite(fn) { try { const k = schedCacheRead(); fn(k); localStorage.setItem(SCHED_CACHE, JSON.stringify(k)); } catch (_) { /* 저장소를 못 쓰면 그냥 넘어감 */ } }
+// 저장본 먼저 채움(서버 응답 전 첫 화면부터 보이게 — 아래 loadSchedMonth가 최신으로 교체)
+function schedFromCache(month) {
   const S = state.sched;
-  if (S.res[month]) return;
-  const days = gridDays(month);
-  try {
-    const qs = await getDocs(query(collection(db, 'publicReservations'), where('date', '>=', ymd(days[0])), where('date', '<=', ymd(days[41]))));
-    S.res[month] = qs.docs.map(d => d.data()).filter(r => r.status === '확정');
-  } catch (e) { console.warn('대관 일정 불러오기 실패', e); S.res[month] = null; }
-  if (!S.blocked) {
-    try { S.blocked = (await getDocs(collection(db, 'blockedDates'))).docs.map(d => d.data()); }
-    catch (e) { S.blocked = []; }
-  }
+  if (S.res[month] !== undefined && S.blocked) return;
+  const cached = schedCacheRead();
+  if (S.res[month] === undefined && cached.months?.[month]) S.res[month] = cached.months[month];
+  if (!S.blocked && cached.blocked) S.blocked = cached.blocked;
+}
+const schedFresh = new Map();   // 이번 방문에 서버에서 받은(받는 중인) 달
+function loadSchedMonth(month) {
+  const S = state.sched;
+  schedFromCache(month);
+  if (schedFresh.has(month)) return schedFresh.get(month);
+  const days = gridDays(month), rooms = schedRooms();
+  const job = Promise.all([
+    getDocs(query(collection(db, 'publicReservations'), where('date', '>=', ymd(days[0])), where('date', '<=', ymd(days[41]))))
+      .then(qs => qs.docs.map(d => d.data()).filter(r => r.status === '확정' && (!rooms.length || rooms.includes(r.room)))
+        .map(r => ({ date: r.date, start: r.start, end: r.end, room: r.room, status: r.status }))),
+    schedFresh.size ? Promise.resolve(null) : getDocs(collection(db, 'blockedDates')).then(qs => qs.docs.map(d => d.data())),
+  ]).then(([res, blocked]) => {
+    S.res[month] = res;
+    if (blocked) S.blocked = blocked;
+    schedCacheWrite(k => { k.months = { ...(k.months || {}), [month]: res }; if (blocked) k.blocked = blocked; const keys = Object.keys(k.months).sort(); while (keys.length > 6) delete k.months[keys.shift()]; });
+  }).catch(e => { console.warn('대관 일정 불러오기 실패', e); if (S.res[month] === undefined) S.res[month] = null; if (!S.blocked) S.blocked = []; schedFresh.delete(month); });
+  schedFresh.set(month, job);
+  return job;
 }
 // 이용 불가한 날: 관리자 차단일(blockedDates) + 일요일(주일 — 세미나실은 월~토만 대관, 홈페이지 달력에만 적용)
 const isSunday = ds => new Date(ds + 'T00:00:00').getDay() === 0;
@@ -1124,7 +1144,11 @@ function schedBlocked(ds) {
 }
 function schedRoom(k) { return c(`pages.${k}.space`) || (k === 'aaron' ? '아론홀' : '샤론홀'); }
 function schedCal(k) {
-  const S = state.sched, room = schedRoom(k), month = S.month;
+  const S = state.sched, room = schedRoom(k);
+  if (!S.sel) S.sel = todayStr();
+  if (!S.month) S.month = S.sel.slice(0, 7);   // 저장본으로 먼저 그릴 때(서버 응답 전)도 이번 달로
+  const month = S.month;
+  schedFromCache(month);
   const list = S.res[month];
   const [y, m] = month.split('-').map(Number);
   const today = todayStr();
@@ -1187,7 +1211,7 @@ function roomSched(room) {
   const P = 'pages.schedule';
   return `
     ${secHd(`${P}.calEn`, 'Schedule', `${P}.calTitle`, '', 'sm')}
-    ${m(`${P}.lead`, 'p', 'sched-lead')}
+    ${m(`pages.${room}.schedLead`, 'p', 'sched-lead')}
     <div class="sched" data-sched="${room}" data-sched-fixed="1">${schedCal(room)}</div>
     ${c(`${P}.note`) || state.editing ? m(`${P}.note`, 'p', 'hall-note') : ''}`;
 }
@@ -1197,8 +1221,9 @@ function redrawSched() {
 }
 async function gotoSchedMonth(month) {
   state.sched.month = month;
+  const job = loadSchedMonth(month);   // 저장본이 있으면 바로 보이고, 서버 최신 내용이 오면 다시 그림
   redrawSched();
-  await loadSchedMonth(month);
+  await job;
   if (state.sched.month === month) redrawSched();
 }
 
@@ -1435,16 +1460,17 @@ async function loadPageData() {
     const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', spaceName)));
     pageData.spaces[spaceName] = sn.docs[0] ? sn.docs[0].data() : null;
   });
-  if (page === 'rental') await Promise.all(['aaron', 'sharon'].map(id => c(`pages.${id}.space`)).filter(Boolean).map(n => once('space:' + n, async () => {   // 대관 안내 아론홀·샤론홀 탭 사진
-    const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', n)));
-    pageData.spaces[n] = sn.docs[0] ? sn.docs[0].data() : null;
-  })));
   if (page === 'rental') {   // 대관 안내의 '대관 일정' 탭(탭은 화면 안에서 바뀌므로 페이지를 열 때 미리 받아 둠)
     const S = state.sched;
     S.sel = S.sel || todayStr();
     S.month = S.month || S.sel.slice(0, 7);
-    await loadSchedMonth(S.month);
+    const mo = S.month;   // 기다리지 않음: 페이지는 바로 그리고(저장본이 있으면 달력도 바로), 서버 내용이 오면 달력만 다시 그림
+    loadSchedMonth(mo).then(() => { if (state.page === 'rental' && state.sched.month === mo) redrawSched(); });
   }
+  if (page === 'rental') await Promise.all(['aaron', 'sharon'].map(id => c(`pages.${id}.space`)).filter(Boolean).map(n => once('space:' + n, async () => {   // 대관 안내 아론홀·샤론홀 탭 사진
+    const sn = await getDocs(query(collection(db, 'spaces'), where('name', '==', n)));
+    pageData.spaces[n] = sn.docs[0] ? sn.docs[0].data() : null;
+  })));
   if (page === 'about') await once('floors', async () => {
     const fs = await getDoc(doc(db, 'siteContent', 'floors'));
     pageData.floors = fs.exists() ? (fs.data().floors || []) : [];
