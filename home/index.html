@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03t";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03u";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -70,6 +70,16 @@ img{display:block;max-width:100%}
 .dd a:hover{background:var(--soft)}
 .dd a+a{border-top:1px solid var(--line)}
 .has-dd:hover .dd,.has-dd:focus-within .dd{opacity:1;visibility:visible;transform:translate(-50%,0)}
+/* 오른쪽 '문의' 버튼(2026-11-03, 예전 '대관 안내' 버튼): 누르거나 마우스를 올리면 대관 안내·전화 문의·카카오톡 문의 */
+
+.cta-dd .hd-cta{cursor:pointer;color:inherit;background:none;font-family:inherit}
+.cta-dd .dd{left:auto;right:0;transform:translate(0,6px);min-width:190px}
+.cta-dd:hover .dd,.cta-dd:focus-within .dd{transform:translate(0,0)}
+.cta-dd .dd a{text-align:left}
+.cta-dd .dd small{display:block;font-size:12px;color:var(--mute);font-weight:400;margin-top:2px}
+.m-ask{margin-top:28px;display:flex;flex-direction:column;gap:10px}
+.m-ask .mcta{margin-top:0}
+.m-ask .msub2{font-size:15px;font-weight:600;border:1px solid rgba(255,255,255,.4);border-radius:999px;text-align:center;padding:12px}
 .mnav .msub{display:flex;flex-direction:column;padding:2px 0 10px 18px;border-bottom:1px solid rgba(255,255,255,.12)}
 .mnav .msub:empty{display:none}
 /* ---------- 세부 페이지 (./?page=…) ---------- */
@@ -457,7 +467,7 @@ div.nitem .row:has(+.nb){border-bottom-color:transparent}
   .stats:not(.few) .stat:nth-child(n+3){border-top:1px solid rgba(255,255,255,.2);margin-top:28px}
 }
 @media (max-width:900px){
-  .gnb,.hd-cta{display:none}
+  .gnb,.hd-cta,.cta-dd{display:none}
   .burger{display:block}
   .split,.visit .grid{grid-template-columns:1fr}
   .page-space .split{grid-template-columns:1fr}
@@ -902,7 +912,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
       <div class="has-dd"><a href="./?page=hall" class="top">공간 안내</a><div class="dd" id="dd-seminar"></div></div>
       <a href="./?page=events">행사</a>
     </nav>
-    <a href="./?page=rental" class="hd-cta"><span>대관 안내</span></a>
+    <div class="has-dd cta-dd"><button type="button" class="hd-cta" aria-haspopup="true"><span>문의</span></button><div class="dd" id="dd-ask"></div></div>
     <button class="burger" id="burger" aria-label="메뉴 열기" aria-expanded="false"><i></i><i></i><i></i></button>
   </div>
 </header>
@@ -912,7 +922,7 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   <a href="./?page=hall">공간 안내</a>
   <div class="msub" id="mdd-seminar"></div>
   <a href="./?page=events">행사</a>
-  <a href="./?page=rental" class="mcta">대관 안내</a>
+  <div class="m-ask" id="m-ask"><a href="./?page=rental" class="mcta">대관 안내</a></div>
 </nav>
 
 

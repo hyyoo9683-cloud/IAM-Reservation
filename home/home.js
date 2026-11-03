@@ -37,7 +37,7 @@ export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '�
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03t';
+const CSS_VER = '2026-11-03u';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -1253,6 +1253,17 @@ function renderNav() {
   }
   // 오른쪽 아래 퀵바: 전화·카카오 버튼을 푸터의 대표 전화·카카오채널 링크로 연결
   const tel = String(c('footer.tel') || '').replace(/[^\d+]/g, '');
+  // 상단 '문의' 버튼의 펼침 목록(2026-11-03): 대관 안내 + 전화 문의(푸터 대표 전화) + 카카오톡 문의(푸터 카카오채널) — 번호·링크가 없으면 그 줄은 숨김
+  const kakao = c('footer.kakaoLink');
+  const ask = [
+    `<a href="./?page=rental">대관 안내<small>대관료 · 일정 · 온라인 신청</small></a>`,
+    tel ? `<a href="tel:${esc(tel)}">전화 문의<small>${esc(c('footer.tel'))}</small></a>` : '',
+    kakao ? `<a href="${esc(safeUrl(kakao))}" target="_blank" rel="noopener">카카오톡 문의<small>카카오채널 ‘아이엠센터’</small></a>` : '',
+  ].join('');
+  const dda = document.getElementById('dd-ask');
+  if (dda) dda.innerHTML = `<div class="dd-in">${ask}</div>`;
+  const ma = document.getElementById('m-ask');
+  if (ma) ma.innerHTML = `<a href="./?page=rental" class="mcta">대관 안내</a>${tel ? `<a href="tel:${esc(tel)}" class="msub2">전화 문의 · ${esc(c('footer.tel'))}</a>` : ''}${kakao ? `<a href="${esc(safeUrl(kakao))}" target="_blank" rel="noopener" class="msub2">카카오톡 문의</a>` : ''}`;
   const qt = document.querySelector('#quick [data-tip="전화 문의"]');
   if (qt && tel) qt.href = `tel:${tel}`;
   const qk = document.querySelector('#quick .kakao');
