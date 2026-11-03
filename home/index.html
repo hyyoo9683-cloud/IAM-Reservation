@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03z";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03za";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -262,6 +262,21 @@ section{padding:clamp(80px,11vw,160px) 0}
 .faq-btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 .faq-btns .btn{padding:12px 20px;font-size:14px}
 .rent-photos{padding-top:clamp(24px,3vw,40px)}
+/* 대관 안내 홀 탭(2026-11-03): 시설 안내는 촘촘하게, 문의는 작게 */
+.rent-facts{padding:clamp(40px,5vw,64px) 0}
+.rent-facts .wrap{gap:clamp(36px,4.5vw,56px)}
+.rent-facts .kv-h .kv-en{font-size:clamp(22px,2.2vw,30px)}
+.rent-facts .fact{padding:14px 0}
+.rent-facts .fact-items li{padding:6px 0}
+.rent-facts .tlist li{padding-top:10px;padding-bottom:10px}
+.rent-main .sched{margin-top:8px}
+.rent-main .sched-lead{margin-bottom:16px}
+.rent-main .r-contact{grid-template-columns:auto 1fr auto;gap:20px 40px;padding:24px clamp(20px,3vw,32px);margin-top:clamp(48px,6vw,72px)}
+.rent-main .rc-hd h2{font-size:clamp(20px,2vw,26px)}
+.rent-main .rc-hd .h2sub{margin-top:6px;font-size:13px}
+.rent-main .rc-l p{font-size:15px;margin-bottom:6px}
+.rent-main .rc-l .btn{margin-top:6px;padding:11px 20px;font-size:13.5px}
+@media (max-width:900px){.rent-main .r-contact{grid-template-columns:1fr}}
 .page-events{padding:clamp(24px,3vw,40px) 0 clamp(72px,9vw,120px)}
 .ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px 24px}
 .ev-past-hd{margin-top:clamp(72px,9vw,120px)}

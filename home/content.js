@@ -258,7 +258,8 @@ export const DEFAULT_CONTENT = {
       blocks: [],
     },
     schedule: {
-      eyebrow: 'Schedule', title: '대관 일정', lead: '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.',
+      eyebrow: 'Schedule', title: '대관 일정', lead: '예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.',
+      calEn: 'Schedule', calTitle: '대관 일정',   // 대관 안내 아론홀·샤론홀 탭 안 달력 제목(2026-11-03)
       blocks: [],
       tabs: { aaron: '아론홀', sharon: '샤론홀' },
       note: '표시된 시간은 확정된 예약입니다. 비어 있는 시간도 사정에 따라 대관이 어려울 수 있으니 신청 전 문의해 주십시오.',
@@ -271,7 +272,7 @@ export const DEFAULT_CONTENT = {
       img: '', blocks: [],
       // 대관 안내 아론홀·샤론홀 탭 맨 위 사진 묶음(비어 있으면 그 홀 페이지 대표 사진, 아이엠홀 탭은 pages.hall.imgs를 같이 씀)
       aaronImgs: [], sharonImgs: [],
-      tabs: { hall: '아이엠홀', aaron: '아론홀', sharon: '샤론홀', schedule: '대관 일정', apply: '온라인 신청' },
+      tabs: { hall: '아이엠홀', aaron: '아론홀', sharon: '샤론홀', apply: '온라인 신청' },   // 대관 일정 탭은 2026-11-03 없애고 각 홀 탭 안에 달력
       stepsEn: 'Process', stepsTitle: '대관 절차',
       contactEn: 'Contact', contactTitle: '대관 문의',
       email: 'iamspace@suwoncca.org', tel: '070-7018-1439',
@@ -495,6 +496,7 @@ export const DEFAULT_CONTENT = {
 // 예전 기본값 그대로 게시된 칸(한 번도 고치지 않은 칸)만 새 기본값으로 바꿔 보여줌 — 직접 고친 글은 그대로 둠
 // (게시하면 저장본 전체가 기록되므로, 예전 기본 문구가 저장본에 남아 있어도 새 안내가 보이게 하기 위함)
 const LEGACY_DEFAULTS = [
+  ['pages.schedule.lead', '아론홀·샤론홀의 예약 현황입니다. 날짜를 누르면 그날 예약된 시간을 볼 수 있습니다.'],
   // 2026-11-03 대관 안내 '세미나실' 탭을 아론홀·샤론홀 탭으로 나눔
   ['pages.aaron.ctaLink', './?page=rental&tab=seminar'], ['pages.sharon.ctaLink', './?page=rental&tab=seminar'],
   // 2026-11-03 푸터 FAQ를 새 자주 묻는 질문 페이지로

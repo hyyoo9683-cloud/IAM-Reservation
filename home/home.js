@@ -19,9 +19,9 @@ export const state = {
 // 대관 안내(?page=rental)의 '대관 일정' 탭으로 열림(예전에 공유된 링크도 그대로 동작)
 function applyRoute(search) {
   const q = new URLSearchParams(search), p = q.get('page'), tab = q.get('tab') || '';
-  if (p === 'schedule') {
-    state.page = 'rental'; state.tab = 'schedule';
-    if (tab === 'aaron' || tab === 'sharon') state.sched.room = tab;
+  if (p === 'schedule' || (p === 'rental' && tab === 'schedule')) {   // 2026-11-03 '대관 일정' 탭은 없애고 달력을 아론홀·샤론홀 탭 안에 넣음
+    if (p === 'schedule' && (tab === 'aaron' || tab === 'sharon')) state.sched.room = tab;
+    state.page = 'rental'; state.tab = state.sched.room === 'sharon' ? 'sharon' : 'aaron';
   } else {
     state.page = PAGE_IDS.includes(p) ? p : null;
     state.tab = p === 'rental' && tab === 'seminar' ? 'aaron' : tab;   // 2026-11-03 '세미나실' 탭을 아론홀·샤론홀로 나눔 — 예전 주소는 아론홀 탭으로
@@ -29,15 +29,15 @@ function applyRoute(search) {
 }
 applyRoute(location.search);
 // 예전 대관 일정 주소로 들어오면 주소창도 새 주소로 바꿔 둠(탭을 눌러도 대관 안내 기준으로 바뀌게)
-if (new URLSearchParams(location.search).get('page') === 'schedule') {
-  history.replaceState(history.state, '', `${location.pathname}?page=rental&tab=schedule${location.hash}`);
+if (new URLSearchParams(location.search).get('page') === 'schedule' || (state.page === 'rental' && new URLSearchParams(location.search).get('tab') === 'schedule')) {
+  history.replaceState(history.state, '', `${location.pathname}?page=rental&tab=${state.tab}${location.hash}`);
 }
 
 export const PROGRAM_CATS = ['공연', '예배·집회', '세미나·교육', '가족·어린이', '전시', '기타'];
 
 // 화면 뼈대·스타일(index.html)이 브라우저에 오래된 버전으로 남아 있으면(스크립트만 새것) 모양이 깨짐 →
 // index.html의 --css-ver와 다르면 한 번만 새로 불러옴. 스타일을 바꾸면 index.html의 --css-ver와 함께 올릴 것
-const CSS_VER = '2026-11-03z';
+const CSS_VER = '2026-11-03za';
 try {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').trim().replace(/["']/g, '');
   if (document.getElementById('hd') && v !== CSS_VER && sessionStorage.getItem('iamCssReload') !== CSS_VER) { sessionStorage.setItem('iamCssReload', CSS_VER); location.reload(); }
@@ -1064,7 +1064,7 @@ function bindApply() {
   form.querySelector('[data-ap-file]')?.addEventListener('change', e => { applyForm.file = e.target.files[0] || null; form.querySelector('.ap-file-name').textContent = applyForm.file ? applyForm.file.name : '선택 사항 · 방송·음향·진행 순서표 등'; });
 }
 
-// 대관 안내 탭(아이엠홀·아론홀·샤론홀) 순서(2026-11-03): 사진(여러 장) → 시설 안내(Facilities) → 대관 절차 → 대관료(Fees) → 문의 → 규약
+// 대관 안내 탭(아이엠홀·아론홀·샤론홀) 순서(2026-11-03): 사진(여러 장) → 시설 안내(Facilities)·이용 안내(Guidelines) → 대관 절차·대관료(Process & Fees) → 대관 일정 달력(아론홀·샤론홀만) → 문의(작게) → 규약
 // 아이엠홀 사진은 아이엠홀 페이지와 같은 묶음(pages.hall.imgs — 어느 쪽에서 고쳐도 같이 바뀜), 아론홀·샤론홀은 pages.rental.<id>Imgs(비어 있으면 그 홀 페이지 대표 사진 → 그것도 없으면 방문자 화면에 공간 관리(spaces) 사진 최대 8장)
 // 아론홀·샤론홀의 절차·문의·규약은 예전 '세미나실' 데이터(pages.rental.seminar.*)를 같이 씀, 대관료는 그 홀 카드만
 function rentPhotos(k) {
@@ -1076,11 +1076,12 @@ function rentPhotos(k) {
 function rentPanel(k) {
   const d = k === 'hall' ? 'hall' : 'seminar';
   return `${rentPhotos(k)}
-<section class="page-facts" data-sec="page"><div class="wrap">${k === 'hall' ? hallFacts() : seminarFacts(k)}</div></section>
-<section class="g-sec" data-sec="page">
+<section class="page-facts rent-facts" data-sec="page"><div class="wrap">${k === 'hall' ? hallFacts() : seminarFacts(k)}</div></section>
+<section class="g-sec rent-main" data-sec="page">
   <div class="wrap narrow">
     ${rentSteps(d)}
     ${k === 'hall' ? rentHallFees() : rentSeminarFees(k)}
+    ${k === 'hall' ? '' : roomSched(k)}
     ${rentContact(d)}
   </div>
 </section>${rentTerms(d)}`;
@@ -1181,6 +1182,15 @@ function scheduleBody() {
   </div>
 </section>`;
 }
+// 대관 안내 아론홀·샤론홀 탭 안의 달력(그 홀로 고정, 2026-11-03)
+function roomSched(room) {
+  const P = 'pages.schedule';
+  return `
+    ${secHd(`${P}.calEn`, 'Schedule', `${P}.calTitle`, '', 'sm')}
+    ${m(`${P}.lead`, 'p', 'sched-lead')}
+    <div class="sched" data-sched="${room}" data-sched-fixed="1">${schedCal(room)}</div>
+    ${c(`${P}.note`) || state.editing ? m(`${P}.note`, 'p', 'hall-note') : ''}`;
+}
 // 달력만 다시 그림(달 이동·날짜 선택 — 페이지 전체를 다시 그리지 않음)
 function redrawSched() {
   document.querySelectorAll('[data-sched]').forEach(el => { el.innerHTML = schedCal(el.dataset.sched); });
@@ -1230,7 +1240,7 @@ const PAGES = {
   sharon: () => pageHead('sharon') + spaceBody('sharon') + pageBlocks('sharon'),
   hall: () => pageHead('hall') + hallBody() + pageBlocks('hall'),
   schedule: () => PAGES.rental(),   // 예전 주소 — applyRoute()가 rental로 바꾸므로 보통 쓰이지 않음
-  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), aaron: () => rentPanel('aaron'), sharon: () => rentPanel('sharon'), schedule: scheduleBody, apply: applyPanel }) + pageBlocks('rental'),
+  rental: () => pageHead('rental') + tabbed('rental', { hall: () => rentPanel('hall'), aaron: () => rentPanel('aaron'), sharon: () => rentPanel('sharon'), apply: applyPanel }) + pageBlocks('rental'),
 };
 
 // 푸터 INFO 링크: 주소가 있으면 링크, 없으면 이름만 흐리게(편집 모드에서는 🔗로 주소 입력)
@@ -1466,10 +1476,10 @@ export async function loadAll() {
 // ── 홈페이지 안 이동: 페이지를 새로 열지 않고 받아 둔 내용으로 화면만 바꿈 (주소·뒤로가기는 그대로) ─────
 async function navigate(href, push = true) {
   const u = new URL(href, location.href);
-  if (u.searchParams.get('page') === 'schedule') {   // 예전 대관 일정 주소 → 대관 안내 '대관 일정' 탭(공간 선택은 유지)
+  if (u.searchParams.get('page') === 'schedule' || (u.searchParams.get('page') === 'rental' && u.searchParams.get('tab') === 'schedule')) {   // 예전 대관 일정 주소 → 그 홀 탭(달력이 탭 안에 있음)
     const room = u.searchParams.get('tab');
     if (room === 'aaron' || room === 'sharon') state.sched.room = room;
-    u.search = '?page=rental&tab=schedule';
+    u.search = `?page=rental&tab=${state.sched.room === 'sharon' ? 'sharon' : 'aaron'}`;
   }
   if (push) {
     history.replaceState({ ...(history.state || {}), y: scrollY }, '');
@@ -1569,7 +1579,7 @@ function setupBehaviors() {
   document.querySelectorAll('[data-sched-room]').forEach(b => b.addEventListener('click', () => {
     state.sched.room = b.dataset.schedRoom;
     document.querySelectorAll('[data-sched-room]').forEach(x => x.setAttribute('aria-pressed', x === b));
-    document.querySelectorAll('[data-sched]').forEach(el => { el.dataset.sched = state.sched.room; });
+    document.querySelectorAll('[data-sched]:not([data-sched-fixed])').forEach(el => { el.dataset.sched = state.sched.room; });
     redrawSched();
   }));
   // 대관 일정 달력: 이전·다음 달, 오늘, 날짜 누르기 (달력 안의 버튼은 다시 그려지므로 바깥에서 한 번에 받음)
