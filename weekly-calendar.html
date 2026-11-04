@@ -229,6 +229,7 @@
   .cat { margin: 22px 0 0 !important; max-width: none !important; background: #fff; border-radius: 0; box-shadow: none; border-top: 2px solid var(--text); overflow: visible; }
   .cat-hd { background: none; padding: 12px 0 !important; font-size: 17px !important; font-weight: 800; letter-spacing: -.03em; color: var(--text); }
   .item { padding: 13px 4px !important; }
+  .item[onclick] { cursor: pointer; } .item:not([onclick]) { cursor: default; }
   .item:hover { background: #F7F9F7; }
   .item-time { color: var(--brand); }
   .item-main-event { background: var(--blue-lt) !important; }
@@ -378,7 +379,10 @@ const DOWS = ['일','월','화','수','목','금','토'];
 // 관리자 "콘텐츠 편집 > 주간 캘린더"에서 등록한 목적 키워드 — 5층 소그룹실이어도 이 키워드가
 // 목적에 포함되면 주간 보기 좌측 메인 칸에 표시(예: 수요성경공부)
 let MAIN_KEYWORDS = [];
-const isMainEvent = (r) => MAIN_KEYWORDS.some(k => k && r.purpose && r.purpose.includes(k));
+const isMainEvent = (r) => viewerIsAdmin && MAIN_KEYWORDS.some(k => k && r.purpose && r.purpose.includes(k));
+// 관리자가 아니면 모임명·기관·인원은 보이지 않고 예약된 시간과 공간만 보임(예전 공개 캘린더와 같은 수준)
+const ttl = (r) => viewerIsAdmin ? (esc(r.purpose) || '(목적 미기재)') : '예약됨';
+const clickAttr = (r) => viewerIsAdmin ? ` onclick='showDetail(${JSON.stringify(r.id)})'` : '';
 // 5층 소그룹실은 같은 시간대일 때 505→511호 순으로 정렬(그 외 공간은 순서 영향 없음)
 const roomRank = (room) => { const i = FLOOR5_ROOMS.indexOf(room); return i === -1 ? 99 : i; };
 // 메인 행사로 지정된 예약을 항상 맨 위로, 그 다음 시간순, 같은 시간이면 실 순서(505~511호)
@@ -522,6 +526,7 @@ function renderOccupancy(ds) {
   const bar = document.getElementById('occupancy-bar');
   const detail = document.getElementById('occupancy-detail');
   if (!bar || !detail) return;
+  if (!viewerIsAdmin) { bar.style.display = 'none'; detail.classList.remove('open'); return; }
   const items = reservations.filter(r => r.date === ds && r.status === '확정' && parseInt(r.people) > 0);
   const oc = estimateOccupancy(items);
   if (!oc) {
@@ -643,9 +648,9 @@ function renderDay() {
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
+          <div class="item${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}"${clickAttr(r)}>
             <span class="item-time">${dispStart(r)}–${dispEnd(r)}</span>
-            <span class="item-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+            <span class="item-purpose">${ttl(r)}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
           </div>`).join('');
     return `<div class="cat"><div class="cat-hd">${cat.label}${rangeLabel}</div><div class="cat-body">${body}</div></div>`;
@@ -682,7 +687,7 @@ function renderMonth() {
     const hasMain = items.some(isMainEvent);
     const cls = ['mc-cell', d.getMonth() !== m ? 'out' : '', ds === todayS ? 'today' : '', bd ? 'blk' : '', d.getDay() === 0 ? 'su' : ''].filter(Boolean).join(' ');
     const chips = items.slice(0, MAXC).map(r =>
-      `<div class="mc-chip${isMainEvent(r) ? ' main' : ''}">${esc(dispStart(r))} ${esc(r.purpose || r.room)}</div>`).join('');
+      `<div class="mc-chip${isMainEvent(r) ? ' main' : ''}">${esc(dispStart(r))} ${viewerIsAdmin ? esc(r.purpose || r.room) : esc(r.room)}</div>`).join('');
     const more = items.length > MAXC ? `<div class="mc-more">+${items.length - MAXC}건 더</div>` : '';
     cells += `<div class="${cls}" onclick="jumpToDate('${ds}')"><span class="mc-d">${d.getDate()}</span>${bd ? '<div class="mc-more">🚫 불가</div>' : ''}${chips}${more}${items.length ? `<span class="mc-count${hasMain ? ' m' : ''}">${items.length}</span>` : ''}</div>`;
   }
@@ -712,8 +717,8 @@ function renderWeek() {
     const body = !items.length
       ? '<div class="empty-row">예약 없음</div>'
       : items.map(r => `
-          <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
-            <span class="item-purpose-main">${esc(r.purpose) || '(목적 미기재)'}</span>
+          <div class="item item-stack${r.room === '지혜홀' ? ' item-lodging' : ''}${isMainEvent(r) ? ' item-main-event' : ''}"${clickAttr(r)}>
+            <span class="item-purpose-main">${ttl(r)}</span>
             <span class="item-meta">${dispStart(r)}–${dispEnd(r)} · ${esc(r.room)}</span>
           </div>`).join('');
     const sgItems = reservations
@@ -722,12 +727,12 @@ function renderWeek() {
     const sgBody = !sgItems.length
       ? '<div class="empty-row">예약 없음</div>'
       : sgItems.map(r => `
-          <div class="item-5f${isMainEvent(r) ? ' item-main-event' : ''}" onclick='showDetail(${JSON.stringify(r.id)})'>
-            <span class="item-5f-purpose">${esc(r.purpose) || '(목적 미기재)'}</span>
+          <div class="item-5f${isMainEvent(r) ? ' item-main-event' : ''}"${clickAttr(r)}>
+            <span class="item-5f-purpose">${ttl(r)}</span>
             <span class="item-5f-meta">${dispStart(r)}–${dispEnd(r)} · ${esc(r.room)}</span>
           </div>`).join('');
     const dayItems = reservations.filter(r => r.date === ds && r.status === '확정' && parseInt(r.people) > 0);
-    const oc = estimateOccupancy(dayItems);
+    const oc = viewerIsAdmin ? estimateOccupancy(dayItems) : null;
     const occHtml = !oc ? '' : `
         <div class="occ-week-bar" id="occ-w-bar-${i}" onclick="toggleWeekOccupancy(${i})">
           <span>👥 예상 이용객 약 ${oc.total}명 (동시간대 최대 약 ${oc.peak}명)</span><span class="oc-arrow">▾</span>
@@ -754,6 +759,7 @@ function renderWeek() {
 }
 
 window.showDetail = (id) => {
+  if (!viewerIsAdmin) return;
   const r = reservations.find(x => x.id === id);
   if (!r) return;
   const iamRows = r.room === '아이엠홀' ? [
