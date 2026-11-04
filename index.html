@@ -3221,6 +3221,11 @@ onAuthStateChanged(auth, async user => {
       else if (window._deepLinkPage) { const p = window._deepLinkPage; window._deepLinkPage = null; go(p); }
       else if (!isAdmin) go('home');
       else go('dashboard');
+      // 다른 페이지(예약 현황 캘린더)의 하단 탭 '더보기'에서 넘어온 경우 메뉴 드로어를 바로 엶
+      try {
+        const u = new URL(location.href);
+        if (u.searchParams.get('menu') === '1') { setTimeout(() => { toggleSidebar(); }, 350); u.searchParams.delete('menu'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); }
+      } catch (_) {}
     }
   } else {
     await signOut(auth);
