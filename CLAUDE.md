@@ -33,8 +33,7 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 | `jihye-apply.html` | 지혜홀(숙박) 신청 페이지 (셀프 신청 아님, 상담 후 관리자가 링크 개별 전달) |
 | `guide.html` | 아이엠센터 이용 안내(예약 책임자·청지기 제도, 예약 방법, 아론홀·샤론홀 조건 등) — "예약 신청" 진입 시 거치는 동의 게이트 페이지(하단 체크박스 동의 후 `index.html?apply=1`로 이동, 로그인 안 되어 있으면 로그인 후 자동으로 신청 폼으로 이어짐). 직접 링크로도 공유 가능. 카카오톡 인앱 브라우저로 열면 페이지 진입 즉시 전체 화면 오버레이(`#kakao-overlay`)로 안내 내용 자체를 덮어서 Chrome/Safari로 나가기 전에는 아무것도 진행할 수 없게 막음(iOS는 자동 이동+실패 대비 수동 링크, Android는 "Chrome으로 열기" 버튼). 제목 바로 아래 접이식 안내(`<details class="first-time">`, 기본 닫힘)로 "예약이 처음이신가요?"를 두어 소속 외부 이용자를 `venue-spaces.html`로 안내(내부 이용자 평소 흐름에는 영향 없음). 05번 외부 대관 섹션에도 `venue-spaces.html` 링크 버튼 있음 |
 | `reservation-change.html` | 예약 변경·취소 신청 페이지 (누구나 제출 가능, `changeRequests` 컬렉션에 저장) — 공간은 5층 소그룹실(505~511호)·아론홀·샤론홀 중 select로만 선택 가능. 관리자 처리 화면은 `index.html`의 "예약 변경·취소 신청" 페이지(`renderChangeRequests()`) 참고 |
-| `venue-spaces.html` | (2026-11-04 닫음) 아이엠센터 홈페이지 대관 안내(`https://iamcenter.web.app/?page=rental`)로 이동하는 안내 페이지. 옛 공간 소개 기능·`siteContent/venueSpaces` 편집은 삭제됨(데이터는 남아 있음) |
-| `venue-apply.html` | (2026-11-04 닫음) 홈페이지 온라인 신청(`?page=rental&tab=apply`)으로 이동. 신청은 홈페이지가 `venue_requests`에 직접 저장하므로 관리자 알림·`venue.html` 관리는 그대로 동작 |
+| `venue-spaces.html` | 외부 대관 가능 공간 소개 페이지 (로그인 불필요, 공개) — `spaces` 컬렉션을 실시간으로 불러와 용도별(01 세미나실: 아론홀·샤론홀 / 02 소그룹실: 5층, 정원 기준 소형 10~16인·중형 20인 이상 소제목 분리 / 그 외는 "기타 공간")로 그룹핑해 사진·정원·비품 태그를 카드로 표시(카드에는 실별 설명 없음). 아이엠홀(별도 사이트 예정)·지혜홀(숙박 전용)·이름에 "로비"·"테라스"가 들어간 공간은 목록에서 제외. 카드는 900px 이상 화면에서 가로형(사진 왼쪽 42%, 이름·정원·비품 오른쪽)으로 한 줄에 2개, 그보다 좁으면 세로형. 각 섹션(세미나실/소그룹실/아이엠홀) 제목 아래에는 실별이 아니라 구분당 하나씩만 작성하는 소개 문구가 표시됨 — 관리자 "콘텐츠 편집 > 공간 안내" 탭에서 편집(Firestore `siteContent/venueSpaces`: `seminarDesc`/`groupRoomDesc`/`imhallDesc`). 공간 자체(사진·정원·비품)는 여전히 "공간 관리" 페이지에서 편집. 마지막 "아이엠홀" 섹션은 목록에는 없지만 "아이엠센터 소개 > 층별 안내 > B1/B2층"에 등록된 사진을 캐러셀로 가져와 보여줌. 모든 공간 사진(카드·캐러셀)은 클릭하면 라이트박스로 확대 |
 | `home/` | **센터 공개 홈페이지** (`/home/`) — 아래 "센터 홈페이지(home/)" 참고 |
 | `firestore.rules` | Firestore 보안 규칙 |
 | `functions/index.js`, `functions/lib/*.js` | Cloud Functions — 예약 승인 시 Resend로 이메일 발송 (아래 "예약 이메일 알림" 참고) |
@@ -51,11 +50,10 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 - **예약 현황(캘린더, 4단계 반영)**: `weekly-calendar.html` 하나로 통합(`cal.html`·`cal-public.html`은 이동 안내, 앱의 `go('public')`는 `redesign-nav` 래퍼가 이 페이지로 보냄). 앱 안 예전 공개 캘린더 코드(`#p-public`, `renderPubCal`)는 더는 쓰이지 않는 죽은 코드. index.html은 `?page=home|about|faq|spaces`(공개)와 `?page=mylist|dashboard|list|change-requests`(로그인 필요, 관리자 전용은 일반 사용자면 홈으로)를 딥링크로 받음 — 캘린더 페이지 메뉴가 이걸로 앱 화면으로 돌아옴
 - 시안 모양(모바일 시작 화면·신청 3단계·변경취소·캘린더 일/주/월, PC 신청·변경취소·캘린더 주간)은 대화에서 확정 — 신청은 ①언제·어디서(칩+가용성 즉시 확인) ②모임 정보 ③확인·제출, 변경·취소는 변경/취소 전환 + 입력 간소화(모임명·담당자 칸은 뺌), 캘린더는 cal/cal-public/weekly-calendar를 weekly-calendar 기반 하나로 통합
 
-## 앱 정리 (2026-11-04)
-- **삭제**: 앱 안 공개 캘린더(`#p-public`, 예약 현황은 `weekly-calendar.html`), 아이엠센터 소개(`#p-about`)·FAQ 페이지(`#p-faq`)·옛 홈(히어로·검색·카드·공지·지도)·외부 신청 팝업, 콘텐츠 편집의 홈 카드·소개·공지사항·공간 안내 탭과 관련 코드·CSS. `?page=about|faq` 딥링크는 `https://iamcenter.web.app/?page=…`로 이동
-- **새 홈(`#p-home`)**: "이용 안내 · 문의" 하나 — FAQ 아코디언(`siteContent/faq`, 없으면 `CE.defaultFaq`; 렌더 `CE.renderHomeFaq()`, 토글 `hm2Toggle()`) + 문의처(전화·이메일·카카오채널·오시는 길). 소개·메뉴·신청 이동은 상단 바/하단 탭이 담당
-- **콘텐츠 편집(`#p-content-editor`)**은 FAQ · 층별 소개(`siteContent/floors`, 홈페이지가 읽음) · 주간 캘린더(`mainKeywords`) 3개 탭만 남음. 앱의 `siteContent/about`·`homeCards`·`venueSpaces` 문서와 `notices` 컬렉션(홈 공지 표시용이었음)은 데이터만 남고 화면에서 안 씀. `notice.html`·`notices-public.html`은 그대로
-- 이 앱의 문구는 **'-(니)다'체**로 통일(해요체 사용 금지) — 사용자·관리자에게 보이는 모든 안내·오류·버튼 문구
+## 홈 화면·문체·외부 링크 규칙 (2026-11-04)
+- **홈(`#p-home`) 리디자인**: 큰 제목 "공간 예약" + 인사(`#hm-eyebrow-text`) + 큰 버튼(예약 신청하기 / 예약 현황 / 내 예약) + 공간 검색(`hm-search`, 검색·드롭다운 JS는 그대로) + 탭 2개 — **공간 & 예약**(소개·변경취소·현황·내 예약·외부 신청 행, 관리자 '홈 카드' 편집이 쓰는 `hmc-*-title/desc` id 유지) / **이용 안내 · 문의**(FAQ 행 + 공지사항 `#hm-notice-dynamic` + 문의처 4개, 지도는 뺌). 예전 그라데이션 히어로·아이콘 빠른 메뉴·문의 탭·지도는 삭제
+- **아이엠센터 홈페이지(`iamcenter.web.app`)는 아직 공개 전 — 예약 시스템에서 그쪽으로 링크하거나 옛 페이지를 이동시키지 말 것.** (한 번 소개·FAQ·대관 신청 페이지를 정리하며 연결했다가 되돌림. 공개되면 그때 `about`·`faq`·`venue-apply`·`venue-spaces`를 정리)
+- 이 앱의 문구는 **'-(니)다'체**로 통일 — 해요체('-요') 금지(사용자·관리자에게 보이는 안내·오류·버튼·안내 문자 템플릿 모두). 단 `home/`(아이엠센터 홈페이지)는 별도라 제외. Firestore에 저장된 FAQ·공지 본문은 관리자가 직접 고쳐야 반영됨(코드는 기본값만 바뀜)
 
 ## 모바일 시작 화면 (index.html `#iam-splash`, 2026-11-04)
 **모바일(폭 768px 이하)로 처음 들어올 때** 흰 배경에 로고(`home/logo-iam.png`를 CSS mask로 초록 `#4C7660`으로 칠함) + 작은 글씨 "IAM 공간예약", 아래에 큰 버튼 "예약 신청하기"(초록 채움+노란 점 → `guide.html` 이용 안내·동의 게이트를 거쳐 신청 폼으로 — 앱의 기존 "예약 신청" 진입과 같은 경로)·"예약 현황 보기"(테두리 버튼, 누르면 화면이 닫히고 홈), 맨 아래 작은 링크 "이미 예약하셨나요? 예약 변경·취소 →"(`reservation-change.html`). 큰 버튼은 2개만 둠 — "예약은 처음이신가요?" 링크는 신청 버튼이 이미 guide로 가서 뺌. **자동으로 넘어가지 않고 버튼을 눌러야만** 다음 화면으로 감. 세션당 1회(sessionStorage `iamSplashSeen`)라 새로고침·화면 이동·안내 페이지에서 "← 홈으로"로 돌아올 때는 안 뜸. PC, `?apply=`·`?page=` 딥링크는 건너뜀(PC에도 보이려면 맨 위 스크립트의 `mobile` 조건만 바꾸면 됨). 로고 파일이 `home/`에 있어서 이 폴더 배포가 빠지면 글씨만 보임. 브랜드 초록은 `#4C7660`(진한 `#3B5A47`과 연한 `#5E9276`의 중간, 리디자인 기준).
