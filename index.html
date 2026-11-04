@@ -832,13 +832,15 @@ textarea { resize: vertical; min-height: 60px; }
 
 <!-- 모바일 첫 진입 스플래시: 로고 + "IAM 공간예약" 잠깐 보여준 뒤 홈 화면 (세션당 1회, 모바일만) -->
 <style>
-#iam-splash{display:none;position:fixed;inset:0;z-index:99999;background:#F7F4EE;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:1;transition:opacity .45s ease}
+#iam-splash{display:none;position:fixed;inset:0;z-index:99999;background:#fff;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:1;transition:opacity .45s ease}
 html.show-splash #iam-splash{display:flex}
 #iam-splash.out{opacity:0;pointer-events:none}
 #iam-splash .sp-logo{width:min(46vw,190px);aspect-ratio:720/167;background:#3B5A47;-webkit-mask:url(home/logo-iam.png) center/contain no-repeat;mask:url(home/logo-iam.png) center/contain no-repeat;animation:spIn .7s ease both}
 #iam-splash .sp-txt{font-size:12px;letter-spacing:.18em;color:#6b6f6c;font-weight:500;animation:spIn .7s .15s ease both}
+#iam-splash .sp-first{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom,0px));text-align:center;font-size:13px;color:#6b6f6c;text-decoration:none;padding:10px;animation:spIn .7s .5s ease both}
+#iam-splash .sp-first b{color:#3B5A47;font-weight:700;border-bottom:1px solid #3B5A47;margin-left:6px;padding-bottom:1px}
 @keyframes spIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#iam-splash,#iam-splash .sp-logo,#iam-splash .sp-txt{animation:none;transition:none}}
+@media (prefers-reduced-motion:reduce){#iam-splash,#iam-splash .sp-logo,#iam-splash .sp-txt,#iam-splash .sp-first{animation:none;transition:none}}
 </style>
 <script>
 (function(){
@@ -852,9 +854,10 @@ html.show-splash #iam-splash{display:flex}
   } catch (e) {}
 })();
 </script>
-<div id="iam-splash" aria-hidden="true">
+<div id="iam-splash">
   <div class="sp-logo"></div>
   <div class="sp-txt">IAM 공간예약</div>
+  <a class="sp-first" href="guide.html">예약은 처음이신가요? <b>이용 안내 보기 →</b></a>
 </div>
 <script>
 (function(){
@@ -867,7 +870,7 @@ html.show-splash #iam-splash{display:flex}
     setTimeout(function(){ document.documentElement.classList.remove('show-splash'); el.remove(); }, 500);
   }
   el.addEventListener('click', hide);
-  setTimeout(hide, 1400);
+  setTimeout(hide, 2800);
 })();
 </script>
 
