@@ -1660,7 +1660,7 @@ textarea { resize: vertical; min-height: 60px; }
         <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
         <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
       </div>
-      <div class="card"><div class="card-title">준비물 확인 (TV·마이크·탕비실, 3일치)</div><div id="today-facility-list"></div></div>
+      <div class="card"><div class="card-title">준비물 확인 (TV·마이크·탕비실·칠판, 3일치)</div><div id="today-facility-list"></div></div>
       <div class="card"><div class="card-title">이번주 예약</div><div id="today-checklist-list"></div></div>
       <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
       <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
@@ -2456,6 +2456,10 @@ textarea { resize: vertical; min-height: 60px; }
           <div style="display:flex;align-items:center;gap:6px">
             <input type="checkbox" id="e-need-terrace" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
             <label for="e-need-terrace" style="font-size:13px;cursor:pointer;margin:0">야외테라스 사용</label>
+          </div>
+          <div id="e-board-wrap" style="display:none;align-items:center;gap:6px">
+            <input type="checkbox" id="e-need-board" style="width:14px;height:14px;flex-shrink:0;cursor:pointer">
+            <label for="e-need-board" style="font-size:13px;cursor:pointer;margin:0">칠판 사용 <span style="font-size:10.5px;color:var(--text3)">(관리자 전용)</span></label>
           </div>
         </div>
       </div>
@@ -6063,7 +6067,8 @@ window.openDetail = (id) => {
     r.needTV      ? 'TV 사용'      : null,
     r.needMic     ? '마이크 사용'   : null,
     r.needPantry  ? '탕비실 이용'   : null,
-    r.needTerrace ? '야외테라스 사용' : null
+    r.needTerrace ? '야외테라스 사용' : null,
+    r.needBoard   ? '칠판 사용'      : null
   ].filter(Boolean);
 
   // 정기 예약 시리즈 정보
@@ -6143,7 +6148,7 @@ window.openDetail = (id) => {
       const approveAction = r.recurGroup ? `approveGroup('${seriesIds}')` : `approve('${r.id}')`;
       btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
     }
-    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms',false)">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao',false)">💬 카카오</button>`;
+    if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#5E7468" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
     btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-ghost" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
@@ -7321,6 +7326,8 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-need-mic').checked     = !!r.needMic;
     document.getElementById('e-need-pantry').checked  = !!r.needPantry;
     document.getElementById('e-need-terrace').checked = !!r.needTerrace;
+    document.getElementById('e-need-board').checked   = !!r.needBoard;
+    document.getElementById('e-board-wrap').style.display = isAdmin ? 'flex' : 'none';
     initTimeSelects('e-start', 'e-end', r.start, r.end);
     if (isAdmin) document.getElementById('e-status').value = r.status || '대기';
     document.getElementById('e-iam-showname').value        = r.showName || '';
@@ -7357,7 +7364,8 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-jihye-checkin-time').value = '';
     document.getElementById('e-jihye-checkout-time').value = '';
     document.querySelectorAll('.e-jihye-room').forEach(cb => cb.checked = false);
-    ['e-need-tv', 'e-need-mic', 'e-need-pantry', 'e-need-terrace'].forEach(fid => { const el = document.getElementById(fid); if (el) el.checked = false; });
+    ['e-need-tv', 'e-need-mic', 'e-need-pantry', 'e-need-terrace', 'e-need-board'].forEach(fid => { const el = document.getElementById(fid); if (el) el.checked = false; });
+    document.getElementById('e-board-wrap').style.display = isAdmin ? 'flex' : 'none';
     applyRoomFieldVisibility('', true);
     document.getElementById('e-room').value = '';
     document.getElementById('e-is-recur').checked = false;
@@ -7439,7 +7447,8 @@ window.submitEdit = async () => {
     needTV:      document.getElementById('e-need-tv').checked,
     needMic:     document.getElementById('e-need-mic').checked,
     needPantry:  document.getElementById('e-need-pantry').checked,
-    needTerrace: document.getElementById('e-need-terrace').checked
+    needTerrace: document.getElementById('e-need-terrace').checked,
+    ...(isAdmin ? { needBoard: document.getElementById('e-need-board').checked } : {})
   };
   if (isIamHall) {
     data.showName        = iamShowName;
@@ -7812,9 +7821,10 @@ function renderDashboard() {
   const tvList     = facilityConfirmed.filter(r => r.needTV);
   const micList    = facilityConfirmed.filter(r => r.needMic);
   const pantryList = facilityConfirmed.filter(r => r.needPantry);
-  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('🎤 마이크 필요', micList) + facilityRow('☕ 탕비실 이용', pantryList);
+  const boardList  = facilityConfirmed.filter(r => r.needBoard);
+  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('🎤 마이크 필요', micList) + facilityRow('☕ 탕비실 이용', pantryList) + facilityRow('🖍 칠판 필요', boardList);
   document.getElementById('today-facility-list').innerHTML = facilityHtml
-    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">앞으로 3일간 TV·마이크·탕비실이 필요한 예약이 없습니다</div>';
+    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">앞으로 3일간 TV·마이크·탕비실·칠판이 필요한 예약이 없습니다</div>';
 
   // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
   const TODAY_CATS = [

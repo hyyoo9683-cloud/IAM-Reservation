@@ -5,6 +5,7 @@ const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 
 const { renderReservationEmail } = require('./lib/templates');
 const {
+  summarizeReservationGroup,
   renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
   renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
   renderNewReservationSmsText, renderChangeRequestSmsText, renderVenueRequestSmsText,
@@ -143,11 +144,49 @@ async function notifyAdmin({ eventKey, emailType, content, kakaoText, smsText })
 // 관리자가 "+ 예약 추가"로 직접 등록한 건(보통 바로 '확정')은 신청이 아니라 제외.
 // 정기 예약처럼 한 번의 신청으로 회차마다 문서가 여러 개 생성되는 경우 회차 수만큼 알림이
 // 가는 것은 onReservationUpdated의 승인 메일과 같은 알려진 범위 제한(시리즈 단위 묶음 미구현).
-exports.onReservationCreated = onDocumentCreated('reservations/{id}', async (event) => {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 같은 recurGroup 문서가 더 늘지 않을 때까지(4초 간격으로 2번 연속 같은 개수) 기다렸다가 전부 읽음 —
+// 클라이언트가 회차마다 문서를 하나씩 순서대로 만들기 때문에 첫 문서가 생긴 직후엔 아직 일부만 있음(최대 약 48초)
+async function collectSettledGroup(recurGroup) {
+  const col = getFirestore().collection('reservations');
+  let prev = -1, stable = 0, docs = [];
+  for (let i = 0; i < 12; i++) {
+    const snap = await col.where('recurGroup', '==', recurGroup).get();
+    docs = snap.docs.map((d) => d.data());
+    if (docs.length === prev) { stable += 1; if (stable >= 2) break; } else { stable = 0; prev = docs.length; }
+    await sleep(4000);
+  }
+  return docs;
+}
+
+exports.onReservationCreated = onDocumentCreated({ document: 'reservations/{id}', timeoutSeconds: 120 }, async (event) => {
   const data = event.data.data();
   if (data.status !== '대기') return;
 
   const reservationId = event.params.id;
+
+  // 정기·비정기 예약은 신청 한 번에 회차마다 문서가 만들어지므로, 가장 먼저 잠금을 잡은 문서 하나만
+  // 알림을 맡고(나머지는 그냥 종료) 전체 회차를 모아서 신청 단위로 한 번만 알림 — 이메일·카카오·문자·푸시 공통
+  if (data.recurGroup) {
+    const lock = await claimEmailEvent(`reservation_group_${data.recurGroup}_lock`, {
+      reservationId, emailType: 'new_reservation_group_lock', recipient: '-', recipientType: 'admin',
+    });
+    if (!lock) return;
+    try {
+      const summary = summarizeReservationGroup(await collectSettledGroup(data.recurGroup));
+      await notifyAdmin({
+        eventKey: `reservation_group_${data.recurGroup}_new`, emailType: 'new_reservation',
+        content: renderNewReservationEmail(summary), kakaoText: renderNewReservationKakaoText(summary),
+        smsText: renderNewReservationSmsText(summary),
+      });
+      await markSent(lock, null);
+    } catch (err) {
+      console.error('정기 예약 묶음 알림 실패:', err.message || err);
+      await markFailed(lock, err);
+    }
+    return;
+  }
   const eventKey = `reservation_${reservationId}_new_${event.id}`;
   await notifyAdmin({
     eventKey, emailType: 'new_reservation',

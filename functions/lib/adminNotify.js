@@ -49,16 +49,44 @@ function baseLayout({ title, intro, bodyHtml, bodyText, linkUrl, linkLabel }) {
   return { html, text };
 }
 
+// 정기·비정기 예약은 신청 한 번에 회차(·공간)마다 문서가 여러 개 생기므로, 알림은 신청 단위로 한 번만 보내려고
+// 같은 recurGroup 문서들을 하나의 요약 객체로 합침 — seriesDateCount가 2 이상이면 아래 렌더러가 묶음 형태로 표기함.
+function summarizeReservationGroup(docs) {
+  const sorted = [...docs].sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.start).localeCompare(String(b.start)));
+  const first = sorted[0] || {};
+  const rooms = [...new Set(sorted.map((d) => d.room).filter(Boolean))];
+  const dates = [...new Set(sorted.map((d) => d.date).filter(Boolean))].sort();
+  const timesUniform = sorted.every((d) => d.start === first.start && d.end === first.end);
+  return {
+    ...first,
+    room: rooms.join(', '),
+    seriesDocCount: sorted.length,
+    seriesDateCount: dates.length,
+    seriesFirstDate: dates[0] || first.date,
+    seriesLastDate: dates[dates.length - 1] || first.date,
+    seriesTimesUniform: timesUniform,
+  };
+}
+const isSeries = (r) => (r.seriesDateCount || 0) > 1;
+// "10월 5일(월) ~ 12월 28일(월) · 매 주 · 12회"
+function seriesLabel(r) {
+  const kind = r.recurType === '비정기' ? '비정기' : (r.recurType || '정기');
+  return `${formatKoreanDate(r.seriesFirstDate)} ~ ${formatKoreanDate(r.seriesLastDate)} · ${kind} ${r.seriesDateCount}회`;
+}
+
 // 새 예약 신청(대기) — index.html 셀프 예약 신청
 function renderNewReservationEmail(r) {
   const manager = r.managerName || r.stewardName || '신청자';
-  const subject = `[아이엠센터] 새 예약 신청 – ${r.room || ''} ${formatKoreanDate(r.date)}`;
+  const series = isSeries(r);
+  const subject = series
+    ? `[아이엠센터] 새 예약 신청 – ${r.room || ''} ${r.recurType === '비정기' ? '비정기' : '정기'} ${r.seriesDateCount}회`
+    : `[아이엠센터] 새 예약 신청 – ${r.room || ''} ${formatKoreanDate(r.date)}`;
   const intro = `<strong>${esc(manager)}</strong>님이 새 예약을 신청했습니다. 확인 후 승인해 주세요.`;
   const rows = [
     ['신청 기관/모임', r.type || r.subOrg || '-'],
     ['예약 공간', r.room || '-'],
-    ['사용 날짜', formatKoreanDate(r.date)],
-    ['이용 시간', formatTimeRange(r.start, r.end)],
+    ['사용 날짜', series ? seriesLabel(r) : formatKoreanDate(r.date)],
+    ['이용 시간', series && !r.seriesTimesUniform ? '회차마다 다름 (목록에서 확인)' : formatTimeRange(r.start, r.end)],
     ['반복 여부', r.recurType || '1회성'],
     ['이용 목적', r.purpose || r.showName || '-'],
     ['담당자', manager],
@@ -131,7 +159,9 @@ function renderVenueRequestEmail(r) {
 // 카카오톡 "나에게 보내기"용 — object_type: 'text' 템플릿은 길이 제한이 있어 짧게만 요약
 function renderNewReservationKakaoText(r) {
   const manager = r.managerName || r.stewardName || '신청자';
-  const text = `[새 예약 신청]\n${r.room || ''} · ${formatKoreanDate(r.date)} ${formatTimeRange(r.start, r.end)}\n신청자: ${manager}`;
+  const time = isSeries(r) && !r.seriesTimesUniform ? '' : ` ${formatTimeRange(r.start, r.end)}`;
+  const when = isSeries(r) ? seriesLabel(r) : formatKoreanDate(r.date);
+  const text = `[새 예약 신청${isSeries(r) ? ' · ' + (r.recurType === '비정기' ? '비정기' : '정기') : ''}]\n${r.room || ''} · ${when}${time}\n신청자: ${manager}`;
   return { text, linkUrl: BASE_URL };
 }
 
@@ -158,6 +188,9 @@ function shortDate(dateStr) {
 
 function renderNewReservationSmsText(r) {
   const manager = r.managerName || r.stewardName || '신청자';
+  if (isSeries(r)) {
+    return `[아이엠센터] 새 예약신청\n${r.room || ''} ${shortDate(r.seriesFirstDate)}~${shortDate(r.seriesLastDate)} ${r.seriesDateCount}회\n${manager}`;
+  }
   return `[아이엠센터] 새 예약신청\n${r.room || ''} ${shortDate(r.date)} ${r.start || ''}~${r.end || ''}\n${manager}`;
 }
 
@@ -172,6 +205,7 @@ function renderVenueRequestSmsText(r) {
 }
 
 module.exports = {
+  summarizeReservationGroup,
   renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
   renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
   renderNewReservationSmsText, renderChangeRequestSmsText, renderVenueRequestSmsText,
