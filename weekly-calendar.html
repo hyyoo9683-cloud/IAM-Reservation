@@ -274,6 +274,16 @@
     .rt-chip { padding: 9px 16px; font-size: 14.5px; }
     .u-wk { min-width: 640px; }
   }
+
+  /* index.html 과 같은 메뉴바 모양 (페이지를 옮겨도 메뉴바가 달라 보이지 않게) */
+  .topbar-strip { min-height: 46px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: 0 20px; background: #fff; font-size: 18px; color: var(--text); }
+  #appnav .an-badge, #tabbar .an-badge { background: var(--brand); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 7px; line-height: 1.5; margin-left: 6px; }
+  #appnav .an-pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--brand); color: var(--brand); background: #fff; border-radius: 999px; padding: 8px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none; }
+  #appnav .an-pill.f { background: var(--brand); color: #fff; }
+  #appnav .an-pill.f:before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #f2b705; }
+  #appnav .an-email { font-size: 13px; color: var(--text3); }
+  #appnav .an-more { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--border); background: #fff; color: var(--text); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  #appnav .an-right { gap: 14px; }
   /* 월간 */
   .mc-wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   .mc-dow, .mc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -292,6 +302,7 @@
   .mc-count { display: none; }
   @media (max-width: 640px) {
     #appnav { display: none; }
+    .topbar-strip { min-height: 48px; padding-top: max(10px, env(safe-area-inset-top)); font-size: 16px; }
     #page-scroll { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
     .pg-head { padding: 16px 16px 4px; }
     .pg-head h1 { font-size: 30px; margin-bottom: 10px; }
@@ -325,8 +336,9 @@
 <header id="appnav">
   <a class="an-logo" role="img" aria-label="IAM 공간예약" href="index.html"></a>
   <div class="an-links" id="an-links"></div>
-  <div class="an-right"><button type="button" id="admin-login-btn" onclick="toggleAdminLogin()" title="관리자 로그인 시 담당자·연락처도 함께 표시됩니다">관리자 로그인</button></div>
+  <div class="an-right" id="an-right"></div>
 </header>
+<div class="topbar-strip"><span id="strip-title">예약 현황</span></div>
 <div class="pg-head">
   <div class="pg-eb">SCHEDULE</div>
   <h1>예약 현황</h1>
@@ -366,11 +378,13 @@
 (function(){
   var h=function(k){try{return localStorage.getItem(k)==='1'}catch(e){return false}};
   window.__buildTabs=function(admin,login){
+    var bg={r:0,c:0}; try{bg=JSON.parse(localStorage.getItem('iamBadges')||'{}')||bg}catch(e){}
+    var bd=function(n){return n>0?'<b class="an-badge">'+n+'</b>':''};
     var ic={dash:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',list:'<line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.7" cy="7" r=".9"/><circle cx="4.7" cy="12" r=".9"/><circle cx="4.7" cy="17" r=".9"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',swap:'<path d="M5 9h13l-3-3"/><path d="M19 15H6l3 3"/>',home:'<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',user:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',menu:'<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'};
-    var its=admin?[["오늘","index.html?page=dashboard","dash"],["예약","index.html?page=list","list"],["캘린더","","cal",1],["변경·취소","index.html?page=change-requests","swap"]]:[["홈","index.html?page=home","home"],["현황","","cal",1],["신청","guide.html","plus"],["내 예약","index.html?page=mylist","user"]];
+    var its=admin?[["오늘","index.html?page=dashboard","dash"],["예약","index.html?page=list","list",0,bg.r],["캘린더","","cal",1],["변경·취소","index.html?page=change-requests","swap",0,bg.c]]:[["홈","index.html?page=home","home"],["현황","","cal",1],["신청","guide.html","plus"],["내 예약","index.html?page=mylist","user"]];
     if(login) its.push(["더보기",admin?"index.html?page=dashboard&menu=1":"index.html?page=home&menu=1","menu"]);
     var tb=document.getElementById("tabbar"); if(!tb) return;
-    tb.innerHTML=its.map(function(x){return '<a class="tb-i'+(x[3]?' on':'')+'" href="'+(x[1]||"weekly-calendar.html")+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic[x[2]]+'</svg><span>'+x[0]+'</span></a>';}).join("");
+    tb.innerHTML=its.map(function(x){return '<a class="tb-i'+(x[3]?' on':'')+'" href="'+(x[1]||"weekly-calendar.html")+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic[x[2]]+'</svg><span>'+x[0]+'</span>'+bd(x[4]||0)+'</a>';}).join("");
   };
   window.__buildTabs(h("iamAdminHint"),h("iamLoginHint"));
 })();
@@ -932,8 +946,19 @@ function renderAppNav() {
   ];
   const login = authSettled ? !!viewerUser : loginHint;
   const menuHref = admin ? 'index.html?page=dashboard&menu=1' : 'index.html?page=home&menu=1';
+  let bg = { r: 0, c: 0 }; try { bg = JSON.parse(localStorage.getItem('iamBadges') || '{}') || bg; } catch (_) {}
+  const badge = (n) => n > 0 ? `<b class="an-badge">${n}</b>` : '';
   const el = document.getElementById('an-links');
-  if (el) el.innerHTML = its.map(x => `<a class="an-link${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}">${x.t}</a>`).join('');
+  if (el) el.innerHTML = its.map(x => `<a class="an-link${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}">${x.t}${x.t === '예약' ? badge(bg.r) : x.t === '변경·취소' && admin ? badge(bg.c) : ''}</a>`).join('');
+  const right = document.getElementById('an-right');
+  if (right) {
+    let email = ''; try { email = localStorage.getItem('iamEmailHint') || ''; } catch (_) {}
+    if (authSettled && viewerUser) email = viewerUser.email || email;
+    const menuIc = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>';
+    right.innerHTML = login
+      ? `<span class="an-email">${esc(email)}</span>${admin ? '<a class="an-pill" href="portal.html">인트라넷</a>' : ''}<a class="an-more" aria-label="더보기" href="${menuHref}">${menuIc}</a>`
+      : `<button type="button" id="admin-login-btn" class="an-pill f" onclick="toggleAdminLogin()">로그인</button>`;
+  }
   if (window.__buildTabs) window.__buildTabs(admin, login);
 }
 renderAppNav();
@@ -1020,8 +1045,6 @@ onAuthStateChanged(auth, async user => {
   viewerIsAdmin = admin;
   if (changedAdmin) listenReservations(admin ? 'reservations' : 'publicReservations');
   if (changedAdmin || changedUser) { renderAppNav(); if (loaded.res) render(); }
-  const btn = document.getElementById('admin-login-btn');
-  if (btn) btn.textContent = user ? (admin ? '관리자 로그아웃' : '로그아웃 (관리자 아님)') : '관리자 로그인';
 });
 window.toggleAdminLogin = async () => {
   if (auth.currentUser) { await signOut(auth); return; }

@@ -10904,6 +10904,7 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     if(drawer) bot+='<button type="button" class="tb-i" data-k="more" onclick="toggleSidebar()">'+svg('menu')+'<span>더보기</span></button>';
     tb.innerHTML=bot;
     setActive(cur);
+    saveHints();
   }
   var NAVMAP={dashboard:'dashboard',list:'list',public:'public','change-requests':'change-requests',home:'home',mylist:'mylist',apply:'apply',spaces:'spaces'};
   function setActive(page){
@@ -10912,7 +10913,15 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     if(!known && cur && cur!=='login') k='more';
     document.querySelectorAll('#appnav .an-link,#tabbar .tb-i').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-k')===k);});
   }
+  function saveHints(){
+    try {
+      var r=document.getElementById('badge-cnt'), c=document.getElementById('badge-change-cnt');
+      localStorage.setItem('iamBadges', JSON.stringify({r:r?(parseInt(r.textContent,10)||0):0, c:c?(parseInt(c.textContent,10)||0):0}));
+      if (window.curUser && window.curUser.email) localStorage.setItem('iamEmailHint', window.curUser.email);
+    } catch(e){}
+  }
   function syncBadges(){
+    saveHints();
     document.querySelectorAll('.an-badge[data-src]').forEach(function(b){
       var e=document.getElementById(b.getAttribute('data-src')); var n=e?parseInt(e.textContent,10)||0:0;
       b.textContent=n; b.style.display=n?'':'none';
