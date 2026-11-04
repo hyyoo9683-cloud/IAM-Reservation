@@ -895,27 +895,52 @@ html.show-splash{overflow:hidden}
 <script>
 (function(){
   var ua = navigator.userAgent || '';
-  if (!/KAKAOTALK/i.test(ua)) return;
+  // 구글은 앱 안에 내장된 브라우저(WebView)에서의 로그인을 막음(403 disallowed_useragent) — 앱 종류를 감지해 안내
+  var named = '';
+  if (/KAKAOTALK/i.test(ua)) named = '카카오톡';
+  else if (/NAVER\(inapp|NAVER.*inapp/i.test(ua)) named = '네이버 앱';
+  else if (/DaumApps/i.test(ua)) named = '다음 앱';
+  else if (/BAND\//i.test(ua)) named = '밴드';
+  else if (/FBAN|FBAV|FB_IAB/i.test(ua)) named = '페이스북';
+  else if (/Instagram/i.test(ua)) named = '인스타그램';
+  else if (/\bLine\//i.test(ua)) named = '라인';
+  else if (/KAKAOSTORY/i.test(ua)) named = '카카오스토리';
   var isIOS = /iPhone|iPad|iPod/i.test(ua);
   var isAndroid = /Android/i.test(ua);
+  var guess = '';
+  if (!named) {
+    if (isAndroid && /; wv\)/.test(ua)) guess = '앱 내 브라우저';
+    else if (isIOS && !/Safari\//.test(ua) && !navigator.standalone) guess = '앱 내 브라우저';
+  }
+  window.__inApp = named || guess;          // 앱 이름(추정 포함)
+  window.__inAppStrict = !!named;           // 확실히 아는 앱 → 로그인 시도 전에 막고 안내
+  if (!window.__inApp) return;
+  var isKakao = named === '카카오톡';
   var banner = document.getElementById('kakao-browser-banner');
   var btn = document.getElementById('kakao-banner-btn');
   document.body.classList.add('has-kakao-banner');
   banner.style.display = 'flex';
-  document.getElementById('kakao-banner-text').textContent =
-    '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.';
-  if (isIOS) {
-    btn.textContent = 'Safari로 열기';
-    btn.style.display = '';
-    btn.onclick = function(){
-      location.href = 'x-safari-https://' + location.host + location.pathname + location.search;
-    };
-  } else if (isAndroid) {
+  document.getElementById('kakao-banner-text').textContent = isKakao
+    ? '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.'
+    : window.__inApp + '에서는 구글 로그인이 막힐 수 있어요. 크롬·사파리에서 열어 주세요.';
+  if (isAndroid) {
     btn.textContent = 'Chrome으로 열기';
     btn.style.display = '';
     btn.onclick = function(){
       var target = location.host + location.pathname + location.search;
       location.href = 'intent://' + target + '#Intent;scheme=https;package=com.android.chrome;end';
+    };
+  } else if (isIOS && isKakao) {
+    btn.textContent = 'Safari로 열기';
+    btn.style.display = '';
+    btn.onclick = function(){
+      location.href = 'x-safari-https://' + location.host + location.pathname + location.search;
+    };
+  } else {
+    btn.textContent = '링크 복사';
+    btn.style.display = '';
+    btn.onclick = function(){
+      try { navigator.clipboard.writeText(location.href).then(function(){ btn.textContent = '복사됨'; }); } catch (e) { btn.textContent = '복사 실패'; }
     };
   }
   document.documentElement.style.setProperty('--kakao-banner-h', banner.getBoundingClientRect().height + 'px');
@@ -3007,6 +3032,20 @@ function isMobileBrowser() {
          (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.userAgent));
 }
 
+// 로그인 오류 코드를 사용자가 이해할 수 있는 문구로 (구글 로그인이 '가끔 안 된다'는 문의 대응)
+function friendlyAuthError(e) {
+  const code = (e && e.code) || '';
+  const msg  = (e && e.message) || '';
+  if (code === 'auth/unauthorized-domain') return '이 주소는 로그인이 허용되지 않은 주소예요. 주소창이 iamreservation.web.app 인지 확인해 주세요.';
+  if (code === 'auth/network-request-failed') return '네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해 주세요.';
+  if (code === 'auth/web-storage-unsupported' || /initial state|storage/i.test(msg))
+    return '브라우저가 로그인 정보를 저장하지 못했어요. 시크릿(사생활 보호) 모드와 쿠키 차단을 끄고 크롬·사파리에서 다시 시도해 주세요.';
+  if (code === 'auth/operation-not-supported-in-this-environment') return '이 브라우저에서는 구글 로그인을 쓸 수 없어요. 크롬(안드로이드)·사파리(아이폰)로 열어 주세요.';
+  if (code === 'auth/too-many-requests') return '시도 횟수가 많아 잠시 막혔어요. 몇 분 뒤에 다시 시도해 주세요.';
+  if (code === 'auth/user-disabled') return '이 계정은 사용이 정지되었어요. 관리자에게 문의해 주세요.';
+  if (code === 'auth/internal-error' || code === 'auth/timeout') return '로그인 서버와 통신이 원활하지 않아요. 잠시 후 다시 시도해 주세요.';
+  return '로그인에 실패했어요. 잠시 후 다시 시도해 주세요. (' + (code || msg || '알 수 없는 오류') + ')';
+}
 window.googleLogin = async (fromModal = false) => {
   const ua = navigator.userAgent || '';
   const isKakao   = /KAKAOTALK/i.test(ua);
@@ -3019,6 +3058,13 @@ window.googleLogin = async (fromModal = false) => {
   if (isKakao && isIOS) {
     showLoginMsg('로그인을 위해 Safari로 이동합니다...');
     setTimeout(() => { location.href = 'x-safari-https://' + location.host + location.pathname + location.search; }, 800);
+    return;
+  }
+  // 네이버·밴드·인스타 등 앱 안 브라우저: 구글이 로그인을 막으므로 시도 전에 안내
+  if (!isKakao && window.__inAppStrict) {
+    try { navigator.clipboard && navigator.clipboard.writeText(location.href); } catch (_) {}
+    showLoginMsg(window.__inApp + ' 안에서는 구글 로그인이 막혀 있어요. 주소를 복사해 두었으니 ' + (isIOS ? '사파리' : '크롬') + '에 붙여넣어 열어 주세요.');
+    if (isAndroid) setTimeout(() => { location.href = 'intent://' + location.host + location.pathname + location.search + '#Intent;scheme=https;package=com.android.chrome;end'; }, 900);
     return;
   }
   // Android 카카오톡 → 외부 브라우저 안내
@@ -3053,7 +3099,7 @@ window.googleLogin = async (fromModal = false) => {
     } else if (e.code === 'auth/popup-blocked') {
       showLoginMsg('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해 주세요.');
     } else {
-      showLoginMsg('로그인 실패: ' + (e.message || e.code));
+      showLoginMsg(friendlyAuthError(e));
     }
   } finally {
     if (btn) {
@@ -3078,7 +3124,12 @@ window.enterPublic = () => {
 };
 
 // 리다이렉트 로그인 완료 처리
-getRedirectResult(auth).catch(() => { /* 잔존 리다이렉트 오류 모두 무시 */ });
+getRedirectResult(auth).catch(e => {
+  // 예전엔 오류를 모두 숨겨서 '로그인 버튼을 눌러도 아무 일도 안 일어난다'로 보였음 — 원인을 화면에 알림
+  if (!e || !e.code || e.code === 'auth/no-auth-event' || e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return;
+  try { go('login'); } catch (_) {}
+  showLoginMsg(friendlyAuthError(e));
+});
 // 도메인·허용 계정 판정은 onAuthStateChanged에서 일괄 처리 (위 popup 분기와 동일한 이유)
 
 onAuthStateChanged(auth, async user => {
@@ -3174,8 +3225,10 @@ onAuthStateChanged(auth, async user => {
   } else {
     await signOut(auth);
     const msg = document.getElementById('lm-msg');
-    if (msg) msg.textContent = '접근 권한이 없습니다. 관리자에게 문의하세요.';
-    showLoginMsg('접근 권한이 없습니다. 관리자에게 문의하세요.');
+    const rej = `${email} 계정은 사용할 수 없어요. 센터·교회 계정(@${ALLOWED_DOMAIN})으로 로그인해 주세요. 다른 계정을 쓰셔야 한다면 관리자에게 허용을 요청해 주세요.`;
+    if (msg) msg.textContent = rej;
+    try { go('login'); } catch (_) {}
+    showLoginMsg(rej);
   }
 });
 

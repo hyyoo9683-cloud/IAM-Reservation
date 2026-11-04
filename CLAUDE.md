@@ -398,6 +398,13 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - **firebase.json 헤더**: `nosniff`·`Referrer-Policy`·`Permissions-Policy` 전체, 관리·로그인 화면은 `X-Frame-Options: SAMEORIGIN`(공개 달력 cal-public 등은 외부 삽입 가능성 때문에 제외). CSP·App Check는 미적용(인라인 스크립트 다수, 콘솔 키 필요)
 - 콘솔에서 해야 할 것: Storage 규칙에서 `venue_requests/` 업로드 차단(큐시트 안 쓰는 중)
 
+### 구글 로그인 점검 (2026-11-04)
+간헐적 "로그인이 어렵다" 문의 대응으로 점검·보강한 내용(index.html `googleLogin()`·`friendlyAuthError()`·맨 위 앱 내 브라우저 배너):
+- **앱 내 브라우저**: 구글은 WebView 로그인을 403(`disallowed_useragent`)으로 막음. 카카오톡만 처리하던 것을 네이버·다음·밴드·페이스북·인스타그램·라인·카카오스토리까지 감지(`window.__inApp`/`__inAppStrict`)하고, 맨 위 배너 + 로그인 버튼에서 "크롬·사파리로 열어 달라"고 안내(안드로이드는 Chrome intent로 자동 이동, 주소 복사). WebView 추정(`; wv)`·iOS에서 Safari 토큰 없음)은 오탐 가능성이 있어 배너만 보이고 로그인은 막지 않음
+- **리다이렉트 로그인 오류 표시**: 안드로이드(크롬 등 비-Safari)는 `signInWithRedirect`를 쓰는데, 돌아와서 실패하면 예전엔 오류를 숨겨 "아무 일도 안 일어남"처럼 보였음 → `getRedirectResult` 오류를 `friendlyAuthError()` 문구로 로그인 화면에 표시
+- **허용되지 않은 계정**: 개인 Gmail 등을 고르면 예전엔 "접근 권한이 없습니다"만 나왔음 → 어떤 계정(이메일)이 안 되는지와 `@suwoncca.org`로 로그인하라는 안내를 표시
+- **남은 위험(콘솔 확인 필요, 코드로 못 고침)**: 모든 페이지의 Firebase `authDomain`이 `iamreservation.firebaseapp.com`이고 사이트는 `iamreservation.web.app`이라 서로 다른 도메인임. 크롬(115+)·사파리(16.1+)·파이어폭스가 제3자 저장소를 분리하면서 **리다이렉트 로그인이 "missing initial state"로 실패**할 수 있음(안드로이드 크롬이 이 경로). 근본 해결은 `authDomain`을 `iamreservation.web.app`으로 바꾸는 것이지만, 그 전에 Google Cloud 콘솔 → API 및 서비스 → 사용자 인증 정보 → 'Web client (auto created by Google Service)'의 **승인된 리디렉션 URI에 `https://iamreservation.web.app/__/auth/handler`가 있는지** 확인해야 함(없으면 바꾸는 순간 전원 로그인이 `redirect_uri_mismatch`로 막힘). Firebase Authentication → 설정 → 승인된 도메인에 `iamreservation.web.app`·`iamcenter.web.app`도 있어야 함. 확인되면 index.html과 위성 페이지·home/fb.js의 `authDomain`을 한 번에 교체
+
 ## 공개 페이지 개인정보 정책 (예약 원본/공개 사본 분리)
 - 원본 `reservations`(이름·연락처·이메일·메모 포함)는 **관리자와 본인만 읽기 가능** (firestore.rules)
   - 본인 = `userEmail`이 로그인 이메일과 같거나, `managerName`/`stewardName`이 로그인 계정 실명(`token.name`)과 같은 구성원 — `renderMyList()` 기준과 동일
