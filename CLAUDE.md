@@ -40,7 +40,7 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
 
 ## 모바일 시작 화면 (index.html `#iam-splash`, 2026-11-04)
-**모바일(폭 768px 이하)로 처음 들어올 때** 흰 배경에 로고(`home/logo-iam.png`를 CSS mask로 초록 `#4C7660`으로 칠함) + 작은 글씨 "IAM 공간예약", 아래에 큰 버튼 "예약 신청하기"(초록 채움+노란 점 → `index.html?apply=1`, 비로그인이면 로그인 후 신청 폼으로)·"예약 현황 보기"(테두리 버튼, 누르면 화면이 닫히고 홈), 맨 아래 "예약은 처음이신가요? 이용 안내 보기 →"(`guide.html`). **자동으로 넘어가지 않고 버튼을 눌러야만** 다음 화면으로 감. 세션당 1회(sessionStorage `iamSplashSeen`)라 새로고침·화면 이동·안내 페이지에서 홈으로 돌아올 때는 안 뜸. PC, `?apply=`·`?page=` 딥링크는 건너뜀(PC에도 보이려면 맨 위 스크립트의 `mobile` 조건만 바꾸면 됨). 로고 파일이 `home/`에 있어서 이 폴더 배포가 빠지면 글씨만 보임. 브랜드 초록은 `#4C7660`(진한 `#3B5A47`과 연한 `#5E9276`의 중간, 리디자인 기준).
+**모바일(폭 768px 이하)로 처음 들어올 때** 흰 배경에 로고(`home/logo-iam.png`를 CSS mask로 초록 `#4C7660`으로 칠함) + 작은 글씨 "IAM 공간예약", 아래에 큰 버튼 "예약 신청하기"(초록 채움+노란 점 → `guide.html` 이용 안내·동의 게이트를 거쳐 신청 폼으로 — 앱의 기존 "예약 신청" 진입과 같은 경로)·"예약 현황 보기"(테두리 버튼, 누르면 화면이 닫히고 홈). 버튼은 2개만 둠(변경·취소는 홈의 "예약 변경·취소"에서) — "예약은 처음이신가요?" 링크는 신청 버튼이 이미 guide로 가서 뺌. **자동으로 넘어가지 않고 버튼을 눌러야만** 다음 화면으로 감. 세션당 1회(sessionStorage `iamSplashSeen`)라 새로고침·화면 이동·안내 페이지에서 "← 홈으로"로 돌아올 때는 안 뜸. PC, `?apply=`·`?page=` 딥링크는 건너뜀(PC에도 보이려면 맨 위 스크립트의 `mobile` 조건만 바꾸면 됨). 로고 파일이 `home/`에 있어서 이 폴더 배포가 빠지면 글씨만 보임. 브랜드 초록은 `#4C7660`(진한 `#3B5A47`과 연한 `#5E9276`의 중간, 리디자인 기준).
 
 ## Firebase SDK
 CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에서 초기화 후 `window._fb`에 저장.
