@@ -830,6 +830,47 @@ textarea { resize: vertical; min-height: 60px; }
 </head>
 <body>
 
+<!-- 모바일 첫 진입 스플래시: 로고 + "IAM 공간예약" 잠깐 보여준 뒤 홈 화면 (세션당 1회, 모바일만) -->
+<style>
+#iam-splash{display:none;position:fixed;inset:0;z-index:99999;background:#F7F4EE;flex-direction:column;align-items:center;justify-content:center;gap:14px;opacity:1;transition:opacity .45s ease}
+html.show-splash #iam-splash{display:flex}
+#iam-splash.out{opacity:0;pointer-events:none}
+#iam-splash .sp-logo{width:min(46vw,190px);aspect-ratio:720/167;background:#3B5A47;-webkit-mask:url(home/logo-iam.png) center/contain no-repeat;mask:url(home/logo-iam.png) center/contain no-repeat;animation:spIn .7s ease both}
+#iam-splash .sp-txt{font-size:12px;letter-spacing:.18em;color:#6b6f6c;font-weight:500;animation:spIn .7s .15s ease both}
+@keyframes spIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#iam-splash,#iam-splash .sp-logo,#iam-splash .sp-txt{animation:none;transition:none}}
+</style>
+<script>
+(function(){
+  try {
+    var q = location.search;
+    var mobile = window.matchMedia && window.matchMedia('(max-width:768px)').matches;
+    var seen = sessionStorage.getItem('iamSplashSeen') === '1';
+    if (!mobile || seen || /[?&](apply|page)=/.test(q)) return;
+    sessionStorage.setItem('iamSplashSeen', '1');
+    document.documentElement.classList.add('show-splash');
+  } catch (e) {}
+})();
+</script>
+<div id="iam-splash" aria-hidden="true">
+  <div class="sp-logo"></div>
+  <div class="sp-txt">IAM 공간예약</div>
+</div>
+<script>
+(function(){
+  var el = document.getElementById('iam-splash');
+  if (!el || !document.documentElement.classList.contains('show-splash')) return;
+  var done = false;
+  function hide(){
+    if (done) return; done = true;
+    el.classList.add('out');
+    setTimeout(function(){ document.documentElement.classList.remove('show-splash'); el.remove(); }, 500);
+  }
+  el.addEventListener('click', hide);
+  setTimeout(hide, 1400);
+})();
+</script>
+
 <!-- 카카오톡 인앱 브라우저 안내 배너 -->
 <div id="kakao-browser-banner" style="display:none">
   <span id="kakao-banner-text">카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.</span>

@@ -39,6 +39,9 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 | `functions/index.js`, `functions/lib/*.js` | Cloud Functions — 예약 승인 시 Resend로 이메일 발송 (아래 "예약 이메일 알림" 참고) |
 | `.github/workflows/deploy.yml` | 자동 배포 워크플로우 (hosting + firestore rules + functions) |
 
+## 모바일 스플래시 (index.html, 2026-11-04)
+`<body>` 맨 위의 `#iam-splash` — **모바일(폭 768px 이하)로 처음 들어올 때** 로고(`home/logo-iam.png`를 CSS mask로 초록 #3B5A47 칠함) + 작은 글씨 "IAM 공간예약"을 베이지 배경에 약 1.4초 보여준 뒤 페이드아웃하며 홈 화면이 나옴(탭하면 바로 닫힘). 세션당 1회(sessionStorage `iamSplashSeen`)라 새로고침·화면 이동 땐 안 뜸. PC, `?apply=`·`?page=` 딥링크(guide.html에서 신청 폼으로 오는 경우 등)는 건너뜀. 동작 줄이기 설정이면 애니메이션 없음. 로고 파일은 `home/`에 있어서 이 폴더 배포가 빠지면 글씨만 보임.
+
 ## Firebase SDK
 CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에서 초기화 후 `window._fb`에 저장.
 두 번째 스크립트에서 `const fb = window._fb; const { auth, db, ... } = fb;` 로 사용.
