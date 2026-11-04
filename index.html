@@ -2347,7 +2347,7 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
     <div class="fl">
-      <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager"></div>
+      <div class="fg"><div class="lbl">예약 담당자 <span class="req">*</span></div><input id="e-manager" onchange="autoFillUserEmail()"></div>
       <div class="fg">
         <div class="lbl">실사용자 이름 <span class="req">*</span></div>
         <input id="e-steward-name" list="steward-name-list" oninput="onEditStewardNameInput()">
@@ -2355,6 +2355,11 @@ textarea { resize: vertical; min-height: 60px; }
       </div>
     </div>
     <div class="fg"><div class="lbl">실사용자 연락처 <span class="req">*</span></div><input id="e-steward-tel" oninput="formatTelInput(this)"></div>
+    <div class="fg" id="e-user-email-wrap" style="display:none">
+      <div class="lbl">신청자 계정 이메일 <span style="font-size:10px;color:var(--text3)">(선택 — 입력하면 그 사용자의 "내 예약"에 표시되고, 승인 메일도 그 주소로 갑니다)</span></div>
+      <input id="e-user-email" type="email" inputmode="email" list="user-email-list" placeholder="예: name@suwoncca.org" autocomplete="off" autocapitalize="off">
+      <datalist id="user-email-list"></datalist>
+    </div>
     <div id="e-recur-wrap" style="display:none;margin-bottom:10px">
       <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:8px">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin:0">
@@ -2827,6 +2832,9 @@ window.checkQAAvail = () => {
 };
 
 // ── 유틸 ───────────────────────────────────────────────────────
+// HTML에 사용자 입력을 끼워 넣을 때 쓰는 이스케이프(& < > " ' 모두) — 텍스트·속성 값 양쪽에 안전
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+window.esc = esc;
 function T(msg, col = '#5E7468') {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.background = col; t.style.opacity = 1;
@@ -7227,6 +7235,15 @@ function stewardDirectory() {
   });
   return map;
 }
+// 예약 담당자 이름이 로그인 이력(예약 책임자 관리)에 한 명만 있으면 신청자 이메일 칸을 자동으로 채움(비어 있을 때만)
+window.autoFillUserEmail = () => {
+  if (!isAdmin) return;
+  const emailEl = document.getElementById('e-user-email');
+  const name = document.getElementById('e-manager').value.trim();
+  if (!emailEl || emailEl.value.trim() || !name) return;
+  const hits = (loginUsersCache || []).filter(u => u.id && (u.name || '').trim() === name);
+  if (hits.length === 1) emailEl.value = hits[0].id;
+};
 window.onEditStewardNameInput = () => {
   const name = document.getElementById('e-steward-name').value.trim();
   const telInput = document.getElementById('e-steward-tel');
@@ -7236,7 +7253,7 @@ window.onEditStewardNameInput = () => {
 };
 window.reuseReservationInfo = (id) => {
   const r = reservations.find(x => x.id === id); if (!r) return;
-  openEditModal(null, { type: r.type, subOrg: r.subOrg, managerName: r.managerName, stewardName: r.stewardName, stewardTel: r.stewardTel });
+  openEditModal(null, { type: r.type, subOrg: r.subOrg, managerName: r.managerName, stewardName: r.stewardName, stewardTel: r.stewardTel, userEmail: r.userEmail });
 };
 window.openEditModal = (id, prefill) => {
   editId = id; editRoom = '';
@@ -7318,6 +7335,7 @@ window.openEditModal = (id, prefill) => {
     document.getElementById('e-manager').value      = r.managerName || '';
     document.getElementById('e-steward-name').value = r.stewardName || '';
     document.getElementById('e-steward-tel').value  = r.stewardTel || '';
+    document.getElementById('e-user-email').value   = r.userEmail || '';
     document.getElementById('e-date').value         = r.date || '';
     document.getElementById('e-people').value       = r.people || '';
     document.getElementById('e-purpose').value      = r.purpose || '';
@@ -7356,7 +7374,7 @@ window.openEditModal = (id, prefill) => {
   } else {
     document.getElementById('edit-modal-title').textContent = '예약 추가 (관리자)';
     document.getElementById('edit-submit-btn').textContent  = '추가';
-    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo',
+    ['e-type', 'e-manager', 'e-steward-name', 'e-steward-tel', 'e-user-email', 'e-date', 'e-end-date', 'e-people', 'e-purpose', 'e-memo',
      'e-iam-showname', 'e-iam-rehearsal-start', 'e-iam-rehearsal-end', 'e-iam-audience', 'e-iam-rooms-used', 'e-iam-parking', 'e-iam-etc']
       .forEach(fid => { const el = document.getElementById(fid); if (el) el.value = ''; });
     document.getElementById('e-jihye-nights').value = 1;
@@ -7386,8 +7404,14 @@ window.openEditModal = (id, prefill) => {
       document.getElementById('e-manager').value      = prefill.managerName || '';
       document.getElementById('e-steward-name').value = prefill.stewardName || '';
       document.getElementById('e-steward-tel').value  = prefill.stewardTel || '';
+      document.getElementById('e-user-email').value   = prefill.userEmail || '';
     }
   }
+  // 신청자 계정 이메일 칸은 관리자에게만 보이고, 로그인 이력(loginUsers)의 이름·이메일을 자동완성 목록으로 제공
+  document.getElementById('e-user-email-wrap').style.display = isAdmin ? '' : 'none';
+  document.getElementById('user-email-list').innerHTML = isAdmin
+    ? (loginUsersCache || []).filter(u => u.id).map(u => `<option value="${esc(u.id)}">${esc(u.name || '')}</option>`).join('')
+    : '';
   closeModal('modal-detail');
   openModal('modal-edit');
 };
@@ -7397,6 +7421,8 @@ window.submitEdit = async () => {
   const manager = document.getElementById('e-manager').value.trim();
   const sName   = document.getElementById('e-steward-name').value.trim();
   const sTel    = document.getElementById('e-steward-tel').value.trim();
+  const userEmailRaw = isAdmin ? (document.getElementById('e-user-email')?.value || '').trim().toLowerCase() : '';
+  if (userEmailRaw && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmailRaw)) { T('신청자 계정 이메일 형식이 올바르지 않습니다', '#A32D2D'); return; }
   const room    = document.getElementById('e-room').value;
   const date    = document.getElementById('e-date').value;
   let   start   = document.getElementById('e-start').value;
@@ -7450,6 +7476,11 @@ window.submitEdit = async () => {
     needTerrace: document.getElementById('e-need-terrace').checked,
     ...(isAdmin ? { needBoard: document.getElementById('e-need-board').checked } : {})
   };
+  // 신청자 계정 이메일: 신규 등록은 입력값 그대로(아래에서 처리), 수정은 관리자가 값을 바꿨을 때만 반영
+  if (isAdmin && editId) {
+    const _rUe = reservations.find(x => x.id === editId);
+    if (_rUe && userEmailRaw !== (_rUe.userEmail || '').toLowerCase()) data.userEmail = userEmailRaw;
+  }
   if (isIamHall) {
     data.showName        = iamShowName;
     data.rehearsalStart  = document.getElementById('e-iam-rehearsal-start').value;
@@ -7532,7 +7563,7 @@ window.submitEdit = async () => {
           for (const d of startCanAdd) {
             await addDoc(collection(db, 'reservations'), {
               ...data,
-              userEmail: r.userEmail || cu.email || '',
+              userEmail: ('userEmail' in data) ? data.userEmail : (r.userEmail || (isAdmin ? '' : cu.email) || ''),
               status: addStatus,
               date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
               ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
@@ -7542,7 +7573,7 @@ window.submitEdit = async () => {
           for (const d of endCanAdd) {
             await addDoc(collection(db, 'reservations'), {
               ...data,
-              userEmail: r.userEmail || cu.email || '',
+              userEmail: ('userEmail' in data) ? data.userEmail : (r.userEmail || (isAdmin ? '' : cu.email) || ''),
               status: addStatus,
               date: d, recurGroup: r.recurGroup, recurType: r.recurType, recurTotal: data.recurTotal,
               ...(r.recurWeekdays ? { recurWeekdays: r.recurWeekdays } : {}),
@@ -7771,7 +7802,7 @@ window.submitEdit = async () => {
       }
 
       data.status    = document.getElementById('e-status').value || '확정';
-      data.userEmail = ''; // 관리자가 대신 등록하는 예약이라 신청자 이메일이 없음 — 담당자 이름으로만 매칭
+      data.userEmail = userEmailRaw; // 관리자가 대신 등록 — 신청자 계정 이메일을 넣으면 그 사용자의 "내 예약"에 표시됨(비우면 담당자 이름으로만 매칭)
       data.createdAt = serverTimestamp();
       if (recurGroup) { data.recurGroup = recurGroup; data.recurType = recurLabel; data.recurTotal = items.length; }
       for (let i = 0; i < items.length; i++) {
