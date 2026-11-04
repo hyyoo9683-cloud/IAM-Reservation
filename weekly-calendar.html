@@ -5,6 +5,11 @@
 <link rel="apple-touch-icon" href="img/app-icon-cal.png">
 <link rel="icon" type="image/png" href="img/app-icon-cal.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js">
 <title>전체 예약 현황 — 아이엠센터</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -194,7 +199,9 @@
   }
 
   /* ── 리디자인: 흰 배경 + 초록, 상단 메뉴 / 모바일 하단 탭, 일·주·월 ── */
-  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; padding-bottom: 60px; }
+  html, body { height: 100%; }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; overflow: hidden; padding-bottom: 0 !important; height: 100vh; height: 100dvh; min-height: 0; }
+  #page-scroll { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 60px; }
   #appnav { display: flex; align-items: center; gap: 30px; height: 60px; padding: 0 32px; background: #fff; border-bottom: 1px solid var(--border2); }
   #appnav .an-logo { display: block; height: 22px; aspect-ratio: 720/167; background: var(--brand); -webkit-mask: url(home/logo-iam.png) left center/contain no-repeat; mask: url(home/logo-iam.png) left center/contain no-repeat; flex-shrink: 0; }
   #appnav .an-links { display: flex; align-items: stretch; gap: 28px; height: 100%; }
@@ -285,7 +292,7 @@
   .mc-count { display: none; }
   @media (max-width: 640px) {
     #appnav { display: none; }
-    body { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+    #page-scroll { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
     .pg-head { padding: 16px 16px 4px; }
     .pg-head h1 { font-size: 30px; margin-bottom: 10px; }
     .date-label { font-size: 17px; }
@@ -314,6 +321,7 @@
 </head>
 <body>
 
+<div id="page-scroll">
 <header id="appnav">
   <a class="an-logo" role="img" aria-label="IAM 공간예약" href="index.html"></a>
   <div class="an-links" id="an-links"></div>
@@ -350,8 +358,23 @@
   <span>›</span>
 </div>
 <div id="body"><div class="loading">불러오는 중…</div></div>
+</div><!-- /page-scroll -->
 
 <nav id="tabbar" aria-label="주 메뉴"></nav>
+<script>
+// 하단 탭을 모듈 로딩을 기다리지 않고 바로 그림(마지막 로그인 상태 기억값 사용) — 페이지 이동 시 바가 늦게 생기며 움직이는 현상 방지
+(function(){
+  var h=function(k){try{return localStorage.getItem(k)==='1'}catch(e){return false}};
+  window.__buildTabs=function(admin,login){
+    var ic={dash:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',list:'<line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.7" cy="7" r=".9"/><circle cx="4.7" cy="12" r=".9"/><circle cx="4.7" cy="17" r=".9"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',swap:'<path d="M5 9h13l-3-3"/><path d="M19 15H6l3 3"/>',home:'<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',user:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',menu:'<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'};
+    var its=admin?[["오늘","index.html?page=dashboard","dash"],["예약","index.html?page=list","list"],["캘린더","","cal",1],["변경·취소","index.html?page=change-requests","swap"]]:[["홈","index.html?page=home","home"],["현황","","cal",1],["신청","guide.html","plus"],["내 예약","index.html?page=mylist","user"]];
+    if(login) its.push(["더보기",admin?"index.html?page=dashboard&menu=1":"index.html?page=home&menu=1","menu"]);
+    var tb=document.getElementById("tabbar"); if(!tb) return;
+    tb.innerHTML=its.map(function(x){return '<a class="tb-i'+(x[3]?' on':'')+'" href="'+(x[1]||"weekly-calendar.html")+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic[x[2]]+'</svg><span>'+x[0]+'</span></a>';}).join("");
+  };
+  window.__buildTabs(h("iamAdminHint"),h("iamLoginHint"));
+})();
+</script>
 
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
@@ -508,9 +531,16 @@ window.jumpToDate = (dateStr) => {
   mode = 'day';
   syncVt();
   render();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const ps = document.getElementById('page-scroll'); if (ps) ps.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
+function viewLastDate() {
+  if (mode === 'day') return toDateStr(curDate());
+  if (mode === 'week') { const e = weekStart(); e.setDate(e.getDate() + 6); return toDateStr(e); }
+  const b = new Date(); b.setDate(1); b.setMonth(b.getMonth() + monthOffset);
+  const dim = new Date(b.getFullYear(), b.getMonth() + 1, 0).getDate();
+  return toDateStr(new Date(b.getFullYear(), b.getMonth(), dim + (6 - new Date(b.getFullYear(), b.getMonth(), dim).getDay())));
+}
 function viewFirstDate() {
   if (mode === 'day') return toDateStr(curDate());
   if (mode === 'week') return toDateStr(weekStart());
@@ -518,9 +548,9 @@ function viewFirstDate() {
   return toDateStr(new Date(b.getFullYear(), b.getMonth(), 1 - new Date(b.getFullYear(), b.getMonth(), 1).getDay()));
 }
 function render() {
-  if (!loaded.bd || !loaded.mk || !loaded.res) return;
-  const need = viewFirstDate();
-  if (need < minBound) { ensureBound(need); return; }
+  if (!loaded.res) return;
+  const needA = viewFirstDate(), needB = viewLastDate();
+  if (needA < minBound || needB > maxBound) { ensureBound(needA, needB); return; }
   renderNav();
   renderRoomTabs();
   if (mode === 'day') renderDay();
@@ -904,20 +934,7 @@ function renderAppNav() {
   const menuHref = admin ? 'index.html?page=dashboard&menu=1' : 'index.html?page=home&menu=1';
   const el = document.getElementById('an-links');
   if (el) el.innerHTML = its.map(x => `<a class="an-link${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}">${x.t}</a>`).join('');
-  const tb = document.getElementById('tabbar');
-  const ic = {
-    '오늘': '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
-    '예약': '<line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.7" cy="7" r=".9"/><circle cx="4.7" cy="12" r=".9"/><circle cx="4.7" cy="17" r=".9"/>',
-    '캘린더': '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',
-    '현황': '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',
-    '변경·취소': '<path d="M5 9h13l-3-3"/><path d="M19 15H6l3 3"/>',
-    '홈': '<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
-    '신청': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-    '내 예약': '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',
-    '더보기': '<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'
-  };
-  if (tb) tb.innerHTML = its.filter(x => !x.pc).concat(login ? [{ t: '더보기', h: menuHref, more: 1 }] : []).map(x =>
-    `<a class="tb-i${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic[x.t] || ''}</svg><span>${x.t}</span></a>`).join('');
+  if (window.__buildTabs) window.__buildTabs(admin, login);
 }
 renderAppNav();
 
@@ -927,12 +944,37 @@ renderAppNav();
 let resUnsub = null, curCol = null;
 const monthFirst = (y, m) => toDateStr(new Date(y, m, 1));
 let minBound = (() => { const t = new Date(); return monthFirst(t.getFullYear(), t.getMonth() - 1); })();
+// 끝은 '이번 달 + 3개월'까지만 받음(먼 미래의 정기 예약까지 전부 받으면 느림). 더 먼 날짜로 이동하면 다시 구독
+let maxBound = (() => { const t = new Date(); return monthFirst(t.getFullYear(), t.getMonth() + 4); })();
+
+// 직전에 받은 예약을 기기에 잠깐 저장해 두었다가 다음 방문 때 먼저 보여줌(그 사이 서버 최신 내용으로 바뀜).
+// 저장하는 것은 화면 표시에 필요한 항목뿐(이름·연락처 제외) — 공개 사본에도 있는 정보
+const CACHE_FIELDS = ['room','date','start','end','status','purpose','people','type','subOrg','checkinTime','checkoutTime','recurGroup'];
+const cacheKey = (admin) => 'iamCalCache:v1:' + (admin ? 'a' : 'p');
+function readCache(admin) {
+  try {
+    const c = JSON.parse(localStorage.getItem(cacheKey(admin)) || 'null');
+    if (c && Date.now() - c.t < 3 * 86400000 && Array.isArray(c.d)) return c;
+  } catch (_) {}
+  return null;
+}
+let cacheTimer = null;
+function writeCache(admin, docs) {
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(() => {
+    try {
+      const d = docs.map(r => { const o = { id: r.id }; CACHE_FIELDS.forEach(k => { if (r[k] != null && r[k] !== '') o[k] = r[k]; }); return o; });
+      localStorage.setItem(cacheKey(admin), JSON.stringify({ t: Date.now(), min: minBound, max: maxBound, d }));
+    } catch (_) {}
+  }, 400);
+}
 function listenReservations(col) {
   if (resUnsub) resUnsub();
   curCol = col;
-  resUnsub = onSnapshot(query(collection(db, col), where('date', '>=', minBound)), snap => {
+  resUnsub = onSnapshot(query(collection(db, col), where('date', '>=', minBound), where('date', '<=', maxBound)), snap => {
     reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     loaded.res = true; render();
+    writeCache(col === 'reservations', reservations);
   }, err => {
     console.warn('예약 불러오기 실패', err);
     // 관리자 힌트가 틀렸거나 권한이 없으면 공개 사본으로 되돌림
@@ -943,11 +985,11 @@ function listenReservations(col) {
     }
   });
 }
-// 보려는 기간의 첫 날짜가 구독 시작보다 앞이면 시작을 앞당겨 다시 구독
-function ensureBound(dateStr) {
-  if (!curCol || dateStr >= minBound) return;
-  const d = new Date(dateStr + 'T00:00:00');
-  minBound = monthFirst(d.getFullYear(), d.getMonth() - 1);
+// 보려는 기간이 구독 범위를 벗어나면 범위를 넓혀 다시 구독
+function ensureBound(a, b) {
+  if (!curCol) return;
+  if (a < minBound) { const d = new Date(a + 'T00:00:00'); minBound = monthFirst(d.getFullYear(), d.getMonth() - 1); }
+  if (b > maxBound) { const d = new Date(b + 'T00:00:00'); maxBound = monthFirst(d.getFullYear(), d.getMonth() + 4); }
   loaded.res = false;
   document.getElementById('body').innerHTML = '<div class="loading">불러오는 중…</div>';
   listenReservations(curCol);
@@ -956,6 +998,10 @@ function ensureBound(dateStr) {
 let adminHint = false;
 try { adminHint = localStorage.getItem('iamAdminHint') === '1'; } catch (_) {}
 if (adminHint) viewerIsAdmin = true;
+{
+  const c = readCache(adminHint);
+  if (c) { reservations = c.d; loaded.res = true; setTimeout(render, 0); }
+}
 listenReservations(adminHint ? 'reservations' : 'publicReservations');
 
 onAuthStateChanged(auth, async user => {

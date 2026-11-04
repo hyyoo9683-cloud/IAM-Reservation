@@ -14,6 +14,7 @@ window.esc = window.esc || function (s) { return String(s == null ? '' : s).repl
 })();
 </script>
 <link rel="apple-touch-icon" href="img/app-icon.png">
+<link rel="prefetch" href="weekly-calendar.html">
 <link rel="icon" type="image/png" href="img/app-icon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>공간 예약 시스템 — 아이엠센터</title>
@@ -1106,7 +1107,7 @@ html.show-splash{overflow:hidden}
         <button type="button" class="hm-tab" onclick="hmTab(this,'hm-guide')">이용 안내 · 문의</button>
       </div>
 
-      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-about-title">아이엠센터 소개</h3><p id="hmc-about-desc">아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-apply-title">예약 신청</h3><p id="hmc-apply-desc">원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="window.open('reservation-change.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-steward-title">예약 변경·취소 신청</h3><p id="hmc-steward-desc">예약 담당자가 아니어도 예약 변경·취소를 신청할 수 있습니다.</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-public-title">예약 현황</h3><p id="hmc-public-desc">날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-mylist-title">내 예약</h3><p id="hmc-mylist-desc">내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div></div>
+      <div class="hm-panel active" id="hm-space"><div class="hm-grid"><div class="hm-card" onclick="go('about')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-book"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-about-title">아이엠센터 소개</h3><p id="hmc-about-desc">아이엠센터와 각 층별 공간을 소개합니다.</p><span class="hm-more">자세히 보기 →</span></div></div><div class="hm-card hm-primary" onclick="iamOpenApplyPopup()"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-plus"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-apply-title">예약 신청</h3><p id="hmc-apply-desc">원하는 공간을 찾아 예약을 신청합니다.</p><span class="hm-more">공간 보기 →</span></div></div><div class="hm-card" onclick="window.open('reservation-change.html','_blank')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-cal-x"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-steward-title">예약 변경·취소 신청</h3><p id="hmc-steward-desc">예약 담당자가 아니어도 예약 변경·취소를 신청할 수 있습니다.</p><span class="hm-more">신청하기 →</span></div></div><div class="hm-card" onclick="go('public')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-calendar"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-public-title">예약 현황</h3><p id="hmc-public-desc">날짜별·공간별 예약 현황을 캘린더로 확인합니다.</p><span class="hm-more">현황 보기 →</span></div></div><div class="hm-card" onclick="go('mylist')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-clipboard"/></svg></div></div><div class="hm-cbody"><h3 id="hmc-mylist-title">내 예약</h3><p id="hmc-mylist-desc">내 예약 상태(대기·확정·취소)를 확인하고 관리합니다.</p><span class="hm-more">내 예약 보기 →</span></div></div></div></div>
       <div class="hm-panel" id="hm-guide">
         <div class="hm-grid hm-grid-guide">
           <div class="hm-card" onclick="go('faq')"><div class="hm-chead"><div class="hm-badge"><svg class="hm-ic"><use href="#hm-ic-chat-q"/></svg></div></div><div class="hm-cbody"><h3>FAQ</h3><p>공간 이용·예약 관련 자주 묻는 질문을 확인하십시오.</p><span class="hm-more">자세히 보기 →</span></div></div>
@@ -10957,6 +10958,8 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     window.apSetStep(n);
   };
   window.__renderNav = function(){ render(); };
+  // 문서가 다 읽히기 전에 바로 한 번 그려서(마지막 로그인 상태 기억값 사용) 하단 탭이 늦게 생기며 움직이지 않게 함
+  try { document.body.classList.add('has-appnav'); render(); } catch (e) {}
   document.addEventListener('DOMContentLoaded',function(){
     document.body.classList.add('has-appnav');
     render();
