@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
 // 예약 신청(?apply=1)이나 딥링크(?page=)로 들어온 경우, 실제 로그인/라우팅 확인이 끝나기 전까지
 // 홈 화면이 잠깐 보였다가 목표 페이지로 바뀌는 깜빡임을 막기 위해 홈을 먼저 숨겨둠
 (function() {
@@ -2851,7 +2852,7 @@ function oBadge(t, short = false) {
   const org = orgsList.find(o => o.name === t);
   const label = short ? (org?.shortName || t?.slice(0,3) || '?') : (t || '미분류');
   const bg = org?.bgColor || '#EFEFEF', fg = org?.color || '#777';
-  return `<span class="badge" style="background:${bg};color:${fg}" title="${t||''}">${label}</span>`;
+  return `<span class="badge" style="background:${esc(bg)};color:${esc(fg)}" title="${esc(t||'')}">${esc(label)}</span>`;
 }
 // toISOString()은 UTC 기준이라 UTC+9에서 날짜가 하루 밀림 → 로컬 날짜 문자열 사용
 const toDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -2878,7 +2879,7 @@ function applicantAccountHtml(r) {
   const realName = (lu?.name || '').trim();
   const mgr = (r.managerName || '').trim(), stw = (r.stewardName || '').trim();
   const mismatch = realName && realName !== mgr && realName !== stw;
-  let html = `<span style="color:var(--blue)">${r.userEmail}</span>`;
+  let html = `<span style="color:var(--blue)">${esc(r.userEmail)}</span>`;
   if (mismatch) {
     html += `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ 실제 로그인 계정 이름: ${realName}</div>`;
   } else if (realName) {
@@ -3146,6 +3147,16 @@ async function trackLoginUser(user, isAdminUser) {
   } catch (e) { /* 로그인 흐름을 막지 않도록 무시 */ }
 }
 
+// recurGroup은 화면의 inline 이벤트 속성·data 속성에 그대로 쓰이므로, 앱이 만드는 형식(영숫자·_ - : . 한글) 밖의
+// 문자는 읽어 들일 때 '_'로 바꿔 둠(직접 조작된 문서가 관리자 화면에서 코드를 실행하지 못하게 함)
+function resDoc(d) {
+  const o = { id: d.id, ...d.data() };
+  if (typeof o.recurGroup === 'string') o.recurGroup = o.recurGroup.replace(/[^\w가-힣:.\-]/g, '_');
+  return o;
+}
+// inline 이벤트 속성의 '...' 문자열 안에 값을 넣을 때: JS 문자열 이스케이프 후 HTML 이스케이프
+function jsq(x) { return esc(String(x ?? '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r?\n/g, '\\n')); }
+window.jsq = jsq;
 // ── 공개 데이터 로드 (로그인 불필요) ────────────────────────────
 function loadPublicData() {
   const spSnap = getDocs(collection(db, 'spaces'));
@@ -3157,7 +3168,7 @@ function loadPublicData() {
   // 비로그인: 개인정보가 빠진 공개 사본만 읽음 (원본 reservations는 관리자·본인만 읽기 가능)
   if (window._pubResUnsub) window._pubResUnsub();
   window._pubResUnsub = onSnapshot(collection(db, 'publicReservations'), snap => {
-    reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    reservations = snap.docs.map(resDoc);
     renderPubCal && renderPubCal();
   }, err => console.warn('공개 예약 불러오기 실패', err));
   onSnapshot(collection(db, 'blockedDates'), snap => {
@@ -3177,7 +3188,7 @@ function listenReservationsForUser() {
   _resUnsubs.forEach(u => u()); _resUnsubs = [];
   if (isAdmin) {
     _resUnsubs.push(onSnapshot(collection(db, 'reservations'), snap => {
-      reservations = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      reservations = snap.docs.map(resDoc);
       refresh();
     }));
     return;
@@ -3190,7 +3201,7 @@ function listenReservationsForUser() {
     reservations = [...all.values()];
     refresh();
   };
-  const toMap = snap => new Map(snap.docs.map(d => [d.id, { id: d.id, ...d.data() }]));
+  const toMap = snap => new Map(snap.docs.map(d => [d.id, resDoc(d)]));
   const warn = label => err => console.warn('예약 불러오기 실패(' + label + ')', err);
   _resUnsubs.push(onSnapshot(collection(db, 'publicReservations'), snap => { pub = toMap(snap); merge(); }, warn('공개')));
   const own = [['userEmail', curUser?.email]];
@@ -3550,7 +3561,7 @@ window.renderChangeRequests = () => {
         <span style="font-weight:700;font-size:13px">${(r.requesterName||'').replace(/</g,'&lt;')}</span>
         ${recent ? '<span style="font-size:10px;color:#A3730B;font-weight:700">NEW</span>' : ''}
       </div>
-      <div style="font-size:12px;color:var(--text2)">${r.date||''} ${time}</div>
+      <div style="font-size:12px;color:var(--text2)">${esc(r.date||'')} ${time}</div>
       <div class="cr-row-sub">
         <span style="font-size:11px;color:var(--text3)">${(r.room||'').replace(/</g,'&lt;')}</span>
         <span style="${done?'color:var(--green)':'color:var(--amber,#854F0B)'};font-weight:700">${done ? '✓ 완료' : '대기 중'}</span>
@@ -3587,7 +3598,7 @@ window.renderChangeReqDetail = () => {
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:12px;padding:3px 10px;border-radius:20px">${isCancel?'취소':'변경'} 신청</span>
         <span style="font-weight:700;font-size:14px">${(r.room||'').replace(/</g,'&lt;')}</span>
-        <span style="color:var(--text2);font-size:13px">${r.date||''} ${time}</span>
+        <span style="color:var(--text2);font-size:13px">${esc(r.date||'')} ${time}</span>
         ${done ? '<span style="color:var(--green);font-size:12px;font-weight:700">✓ 처리완료</span>' : '<span style="color:var(--amber,#854F0B);font-size:12px;font-weight:700">대기 중</span>'}
       </div>
       <div style="font-size:11px;color:var(--text3)">${r.createdAt?.toDate ? r.createdAt.toDate().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : ''}</div>
@@ -3608,7 +3619,7 @@ window.renderChangeReqDetail = () => {
         onclick="event.stopPropagation()" onchange="setChangeReqNote('${r.id}', this.value)">${(r.adminNote||'').replace(/</g,'&lt;')}</textarea>
       <button class="btn btn-ghost" style="margin-top:4px;padding:3px 10px;font-size:11px" onclick="event.stopPropagation();setChangeReqNote('${r.id}', document.getElementById('cr-note-${r.id}').value)">💾 메모 저장</button>
     </div>
-    <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${r.requesterTel||''}</div>
+    <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${esc(r.requesterTel||'')}</div>
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
       <button class="btn btn-ghost" style="color:#5E7468" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
@@ -3728,10 +3739,10 @@ window.showChangeReqBanner = (reqId) => {
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
         <div>
           <span style="color:${color};font-weight:800;font-size:13px">${isCancel?'✕ 예약 취소':'✏️ 예약 변경'} 요청${done ? ' (처리완료)' : ''}</span>
-          <div style="margin-top:4px;font-size:13px;color:var(--text)">${(r.room||'').replace(/</g,'&lt;')} · ${r.date||''} ${time}${r.purpose ? ' · ' + r.purpose.replace(/</g,'&lt;') : ''}</div>
+          <div style="margin-top:4px;font-size:13px;color:var(--text)">${(r.room||'').replace(/</g,'&lt;')} · ${esc(r.date||'')} ${time}${r.purpose ? ' · ' + r.purpose.replace(/</g,'&lt;') : ''}</div>
           ${r.detail ? `<div style="margin-top:6px;font-size:13px;color:var(--text2);white-space:pre-wrap">${r.detail.replace(/</g,'&lt;')}</div>` : ''}
           ${r.adminNote ? `<div style="margin-top:6px;font-size:12.5px;color:var(--text2);white-space:pre-wrap"><b>처리 메모:</b> ${r.adminNote.replace(/</g,'&lt;')}</div>` : ''}
-          <div style="margin-top:6px;font-size:12px;color:var(--text3)">신청자: ${(r.requesterName||'').replace(/</g,'&lt;')} · ${r.requesterTel||''}</div>
+          <div style="margin-top:6px;font-size:12px;color:var(--text3)">신청자: ${(r.requesterName||'').replace(/</g,'&lt;')} · ${esc(r.requesterTel||'')}</div>
         </div>
         <button class="btn btn-ghost" style="padding:2px 8px;font-size:12px" onclick="hideChangeReqBanner()">✕ 닫기</button>
       </div>
@@ -3789,7 +3800,7 @@ async function seedDefaultSpaces() {
 function buildOrgOptions(includeEmpty = true, selectedVal = '') {
   let html = includeEmpty ? '<option value="">선택</option>' : '';
   orgsList.filter(o => !o.parentId).forEach(o => {
-    html += `<option value="${o.name}" ${o.name===selectedVal?'selected':''}>${o.name}</option>`;
+    html += `<option value="${esc(o.name)}" ${o.name===selectedVal?'selected':''}>${esc(o.name)}</option>`;
   });
   return html;
 }
@@ -3798,13 +3809,13 @@ function buildSubOrgOptions(parentName, selectedVal = '') {
   const parent = orgsList.find(o => o.name === parentName && !o.parentId);
   if (!parent) return '';
   return orgsList.filter(c => c.parentId === parent.id)
-    .map(c => `<option value="${c.name}" ${c.name===selectedVal?'selected':''}>${c.name}</option>`).join('');
+    .map(c => `<option value="${esc(c.name)}" ${c.name===selectedVal?'selected':''}>${esc(c.name)}</option>`).join('');
 }
 
 function buildAllSubOrgOptions() {
   return orgsList.filter(o => o.parentId).map(c => {
     const p = orgsList.find(p => p.id === c.parentId);
-    return `<option value="${c.name}">${p ? p.name + ' > ' : ''}${c.name}</option>`;
+    return `<option value="${esc(c.name)}">${p ? p.name + ' > ' : ''}${esc(c.name)}</option>`;
   }).join('');
 }
 
@@ -3845,7 +3856,7 @@ function updateAllOrgSelects() {
   if (rOrg) rOrg.innerHTML = '<option value="">전체</option>' + buildOrgOptions(false);
   const fso = document.getElementById('f-suborg');
   if (fso) fso.innerHTML = '<option value="">전체</option><option value="__none__">세부기관 미지정</option>'
-    + orgsList.filter(o => o.parentId).map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    + orgsList.filter(o => o.parentId).map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
 }
 
 // ── 공간 칩 ─────────────────────────────────────────────────────
@@ -3881,7 +3892,7 @@ function buildRoomChips() {
       const sps = rooms.map(n => spaces.find(s => s.name === n)).filter(Boolean);
       if (!sps.length) return;
       html += `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px">${labelTag(label)}`;
-      sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')" style="margin:0">${lbl}</span>`; grouped.add(s.name); });
+      sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${esc(s.name)}" onclick="selApplyRoom('${esc(s.name)}')" style="margin:0">${lbl}</span>`; grouped.add(s.name); });
       html += '</div>';
     });
     // 그룹에 없는 공간(아론홀·샤론홀 등)은 층별로 (셀프 신청 제외 공간은 노출 안 함)
@@ -3890,7 +3901,7 @@ function buildRoomChips() {
     rest.forEach(s => { if (!floors[s.floor]) floors[s.floor] = []; floors[s.floor].push(s); });
     Object.entries(floors).forEach(([fl, sps]) => {
       html += labelTag(fl);
-      sps.forEach(s => { html += `<span class="rc" id="arc-${s.name}" onclick="selApplyRoom('${s.name}')">${s.name}</span>`; });
+      sps.forEach(s => { html += `<span class="rc" id="arc-${esc(s.name)}" onclick="selApplyRoom('${esc(s.name)}')">${esc(s.name)}</span>`; });
       html += '<br>';
     });
     return html;
@@ -3903,7 +3914,7 @@ function buildRoomChips() {
     let html = '';
     Object.entries(floors).forEach(([fl, sps]) => {
       html += labelTag(fl);
-      sps.forEach(s => { html += `<span class="rc" id="erc-${s.name}" onclick="selEditRoom('${s.name}')">${s.name}</span>`; });
+      sps.forEach(s => { html += `<span class="rc" id="erc-${esc(s.name)}" onclick="selEditRoom('${esc(s.name)}')">${esc(s.name)}</span>`; });
       html += '<br>';
     });
     return html;
@@ -3919,7 +3930,7 @@ function buildRoomChips() {
 
 function populateRoomFilter() {
   const sel = document.getElementById('fr'); if (!sel) return;
-  sel.innerHTML = '<option value="">전체 공간</option>' + spaceSort(spaces).map(s => `<option>${s.name}</option>`).join('');
+  sel.innerHTML = '<option value="">전체 공간</option>' + spaceSort(spaces).map(s => `<option>${esc(s.name)}</option>`).join('');
 }
 
 function buildReportYearSelect() {
@@ -4100,7 +4111,7 @@ function renderPubCal() {
     const capLabel = sp.cap ? ` · ${sp.cap}명` : '';
     let html = `<thead><tr>
       <th style="min-width:80px">날짜</th>
-      <th>${sp.name}${capLabel}</th>
+      <th>${esc(sp.name)}${capLabel}</th>
     </tr></thead><tbody>`;
     days.forEach((d, i) => {
       const ds = toDateStr(d);
@@ -4109,13 +4120,13 @@ function renderPubCal() {
       const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
       const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
       const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
-      const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
+      const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${esc(bd.reason)}</span>` : '';
       const clickable = curUser && !bd;
       html += `<tr>
         <td class="room-label" style="${dateBg};white-space:nowrap">
           ${dows[i]} · ${d.getMonth()+1}/${d.getDate()}${bdLabel}
         </td>
-        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${sp.name}','${ds}')"` : ''}>`;
+        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px">예약불가</div>`;
       } else if (res.length === 0) {
@@ -4127,7 +4138,7 @@ function renderPubCal() {
           const ok = r.status === '확정';
           const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</span></div>`;
+          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -4143,19 +4154,19 @@ function renderPubCal() {
     const isT = s === todayStr;
     const bd = blockedDates.find(b => b.date === s);
     const bdStyle = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
-    const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${bd.reason}</span>` : '';
+    const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${esc(bd.reason)}</span>` : '';
     return `<th style="${bdStyle}">${dows[i]}<br><span style="font-size:12px;font-weight:700">${d.getDate()}</span>${bdLabel}</th>`;
   }).join('')}</tr></thead><tbody>`;
 
   tabSpaces.forEach(sp => {
-    html += `<tr><td class="room-label">${sp.name}${sp.cap ? `<br><span style="font-size:9px;font-weight:400;color:var(--text3)">${sp.cap}명</span>` : ''}</td>`;
+    html += `<tr><td class="room-label">${esc(sp.name)}${sp.cap ? `<br><span style="font-size:9px;font-weight:400;color:var(--text3)">${sp.cap}명</span>` : ''}</td>`;
     days.forEach(d => {
       const ds = toDateStr(d);
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
       const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
       const clickable = curUser && !bd;
-      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${sp.name}','${ds}')"` : ''}>`;
+      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
       } else {
@@ -4166,7 +4177,7 @@ function renderPubCal() {
           const ok = r.status === '확정';
           const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${r.start}–${r.end} ${mine ? '내 예약' : '예약완료'}</div>`;
+          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</div>`;
         });
       }
       html += `</td>`;
@@ -4196,8 +4207,8 @@ function renderBlockedDates() {
     const typeLabel = b.type === 'holiday' ? '<span style="background:var(--amber-lt);color:var(--amber);border-radius:4px;padding:2px 6px;font-size:10px">공휴일</span>'
                                            : '<span style="background:var(--red-lt);color:var(--red);border-radius:4px;padding:2px 6px;font-size:10px">기타 차단</span>';
     return `<tr>
-      <td style="font-weight:600">${b.date}</td>
-      <td>${b.reason}</td>
+      <td style="font-weight:600">${esc(b.date)}</td>
+      <td>${esc(b.reason)}</td>
       <td>${typeLabel}</td>
       <td><button class="btn btn-ghost" style="font-size:11px;color:var(--red);padding:3px 8px" onclick="removeBlockedDate('${b.id}')">삭제</button></td>
     </tr>`;
@@ -4364,7 +4375,7 @@ window.applyRecurFix = async () => {
 // ── 공간 카드 ────────────────────────────────────────────────────
 function spaceCardHtml(sp, adminMode = false) {
   const imgHtml = sp.photos && sp.photos.length
-    ? `<div class="space-img"><img src="${sp.photos[0]}" alt="${sp.name}" loading="lazy"></div>`
+    ? `<div class="space-img"><img src="${sp.photos[0]}" alt="${esc(sp.name)}" loading="lazy"></div>`
     : `<div class="space-img">📷 사진 없음</div>`;
   const countTags = [
     sp.chairs > 0 ? `의자 ${sp.chairs}개` : null,
@@ -4375,11 +4386,11 @@ function spaceCardHtml(sp, adminMode = false) {
   const adminBtns = adminMode
     ? `<div class="space-actions">
         <button class="btn btn-ghost" style="font-size:11px" onclick="openSpaceModal('${sp.id}')">✏️ 편집</button>
-        <button class="btn btn-ghost" style="font-size:11px;color:var(--red)" onclick="deleteSpace('${sp.id}','${sp.name}')">🗑 삭제</button>
+        <button class="btn btn-ghost" style="font-size:11px;color:var(--red)" onclick="deleteSpace('${sp.id}','${esc(sp.name)}')">🗑 삭제</button>
        </div>`
     : `<div class="space-actions">
         <button class="btn btn-primary" style="font-size:12px;flex:1;justify-content:center${isUnavail ? ';opacity:0.35;pointer-events:none;cursor:not-allowed' : ''}"
-          ${isUnavail ? '' : `onclick="event.stopPropagation();goApply('${sp.name}')"`}>예약하기</button>
+          ${isUnavail ? '' : `onclick="event.stopPropagation();goApply('${esc(sp.name)}')"`}>예약하기</button>
        </div>`;
   const clickAttr = adminMode ? '' : `onclick="openSpaceDetail('${sp.id}')" style="cursor:pointer"`;
   let availBadge = '';
@@ -4407,7 +4418,7 @@ function spaceCardHtml(sp, adminMode = false) {
   return `<div class="space-card" ${clickAttr}>
     ${imgHtml}
     <div class="space-info">
-      <div class="space-name">${sp.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span>${getSpaceCategories(sp).map(c => `<span style="font-size:10.5px;font-weight:700;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--blue-lt);color:var(--blue);vertical-align:middle">${c}</span>`).join('')}</div>
+      <div class="space-name">${esc(sp.name)} <span style="font-size:10px;color:var(--text3);font-weight:400">${sp.floor || ''}</span>${getSpaceCategories(sp).map(c => `<span style="font-size:10.5px;font-weight:700;margin-left:6px;padding:2px 8px;border-radius:999px;background:var(--blue-lt);color:var(--blue);vertical-align:middle">${c}</span>`).join('')}</div>
       <div class="space-cap desk-only">최대 ${sp.cap || '-'}명 · ${sp.desc || ''}</div>
       <div class="mob-only">${mobBlock}</div>
       <div class="space-amenity desk-only">${tags}</div>
@@ -5213,7 +5224,7 @@ window.checkAvail = () => {
     }
     if (!applyMultiRooms.length || !start || !end) { el.innerHTML = ''; return; }
     const bd = getBlockedInfo(date);
-    if (bd) { el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${bd.reason})</div>`; return; }
+    if (bd) { el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${esc(bd.reason)})</div>`; return; }
     const conflictRooms = applyMultiRooms.filter(r => !noConflict(r, date, start, end));
     if (!conflictRooms.length) {
       el.innerHTML = `<div class="avail-ok">✓ 선택한 ${applyMultiRooms.length}개 실 모두 사용 가능합니다</div>`;
@@ -5233,7 +5244,7 @@ window.checkAvail = () => {
   // 차단일 확인 (단일 날짜)
   const bd = getBlockedInfo(date);
   if (bd) {
-    el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${bd.reason})</div>`;
+    el.innerHTML = `<div class="avail-no">🚫 ${date}은(는) 예약이 불가능한 날짜입니다 (${esc(bd.reason)})</div>`;
     return;
   }
 
@@ -5331,10 +5342,10 @@ window.checkAvail = () => {
       const tags = (sp.amenities || []).filter(a => ['TV','마이크/음향'].includes(a))
         .map(a => `<span style="font-size:10px;background:var(--green-lt);color:var(--green);border-radius:4px;padding:1px 5px">${a}</span>`).join('');
       html += `<div style="background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:8px 12px;font-size:12px">
-        <div style="font-weight:700">${sp.name}</div>
+        <div style="font-weight:700">${esc(sp.name)}</div>
         <div style="color:var(--text3);margin:2px 0">최대 ${sp.cap}명 ${sp.floor ? '· ' + sp.floor : ''}</div>
         ${tags ? `<div style="margin:4px 0">${tags}</div>` : ''}
-        <button class="btn btn-primary" style="margin-top:6px;font-size:11px;padding:3px 10px" onclick="selApplyRoom('${sp.name}')">이 공간으로 선택</button>
+        <button class="btn btn-primary" style="margin-top:6px;font-size:11px;padding:3px 10px" onclick="selApplyRoom('${esc(sp.name)}')">이 공간으로 선택</button>
       </div>`;
     });
     html += `</div>`;
@@ -5366,7 +5377,7 @@ window.updateApplySummary = () => {
     ['인원', g('m-people') ? g('m-people') + '명' : '–'], ['목적', g('m-purpose')]
   ];
   el.innerHTML = rows.map(([k, v]) =>
-    `<div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--text3);flex-shrink:0">${k}</span><span style="text-align:right;font-size:11px">${v || '–'}</span></div>`
+    `<div style="display:flex;justify-content:space-between;gap:8px"><span style="color:var(--text3);flex-shrink:0">${esc(k)}</span><span style="text-align:right;font-size:11px">${esc(v || '–')}</span></div>`
   ).join('');
 };
 window.resetApply = () => {
@@ -5830,11 +5841,11 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
     <thead><tr><th>날짜</th><th>공간</th><th>시작</th><th>종료</th><th>담당자</th><th>인원</th><th>목적</th><th>반복</th><th>상태</th></tr></thead><tbody>`;
   _importRows.slice(0, 10).forEach(r => {
     const sc = r.status === '확정' ? 'var(--green)' : (r.status === '반려' || r.status === '취소') ? 'var(--red)' : 'var(--amber)';
-    html += `<tr><td>${r.date}</td><td>${r.room}</td><td>${r.start}</td><td>${r.end}</td>
-      <td>${r.managerName}</td><td>${r.people}명</td>
-      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${r.purpose}</td>
-      <td style="color:var(--green);font-size:10px">${r.recurType || '–'}</td>
-      <td style="color:${sc};font-weight:600">${r.status}</td></tr>`;
+    html += `<tr><td>${esc(r.date)}</td><td>${esc(r.room)}</td><td>${esc(r.start)}</td><td>${esc(r.end)}</td>
+      <td>${esc(r.managerName)}</td><td>${esc(r.people)}명</td>
+      <td style="max-width:100px;overflow:hidden;text-overflow:ellipsis">${esc(r.purpose)}</td>
+      <td style="color:var(--green);font-size:10px">${esc(r.recurType || '–')}</td>
+      <td style="color:${sc};font-weight:600">${esc(r.status)}</td></tr>`;
   });
   html += `</tbody></table></div>`;
   if (total > 10) html += `<div style="font-size:11px;color:var(--text3);margin-top:6px">... 외 ${total - 10}건</div>`;
@@ -5972,8 +5983,8 @@ window.setImportMode = (mode) => {
 };
 
 function manualRowHtml() {
-  const roomOpts = spaceSort(spaces).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-  const orgOpts  = '<option value="">-</option>' + orgsList.filter(o => !o.parentId).map(o => `<option value="${o.name}">${o.name}</option>`).join('');
+  const roomOpts = spaceSort(spaces).map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
+  const orgOpts  = '<option value="">-</option>' + orgsList.filter(o => !o.parentId).map(o => `<option value="${esc(o.name)}">${esc(o.name)}</option>`).join('');
   const timeOpts = '<option value="">--:--</option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
   return `<tr>
     <td><select class="mi-room" style="width:90px"><option value="">선택</option>${roomOpts}</select></td>
@@ -6053,7 +6064,7 @@ function iamDetailHtml(r) {
   if (!rows.length) return '';
   return `<div style="grid-column:1/3;padding:10px 12px;background:var(--blue-lt);border-radius:7px">
     <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px">🎭 아이엠홀 세부사항</div>
-    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:90px;flex-shrink:0">${k}</span><span>${v}</span></div>`).join('')}
+    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:90px;flex-shrink:0">${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}
   </div>`;
 }
 // 지혜홀(숙박) 전용 세부사항 표시 — 상세 팝업에서 공통 사용
@@ -6065,7 +6076,7 @@ function jihyeDetailHtml(r) {
   if (!rows.length) return '';
   return `<div style="grid-column:1/3;padding:10px 12px;background:var(--blue-lt);border-radius:7px">
     <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px">🛏 지혜홀 세부사항</div>
-    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:120px;flex-shrink:0">${k}</span><span>${v}</span></div>`).join('')}
+    ${rows.map(([k,v]) => `<div style="display:flex;gap:8px;font-size:12px;padding:3px 0"><span style="color:var(--text3);width:120px;flex-shrink:0">${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}
   </div>`;
 }
 window.openDetail = (id) => {
@@ -6088,9 +6099,9 @@ window.openDetail = (id) => {
     seriesInfo = `<div style="background:var(--blue-lt);border:1px solid var(--border);border-radius:7px;padding:8px 12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div>
         <span style="font-size:11px;font-weight:700;color:var(--blue)">🔁 정기 예약</span>
-        <span style="font-size:11px;color:var(--text2);margin-left:6px">${r.recurType || ''} · ${idx}/${total}회차</span>
+        <span style="font-size:11px;color:var(--text2);margin-left:6px">${esc(r.recurType || '')} · ${idx}/${total}회차</span>
       </div>
-      ${isAdmin ? `<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="filterBySeries('${r.recurGroup}')">시리즈 전체 보기</button>` : ''}
+      ${isAdmin ? `<button class="btn btn-ghost" style="font-size:11px;padding:3px 10px" onclick="filterBySeries('${jsq(r.recurGroup)}')">시리즈 전체 보기</button>` : ''}
     </div>`;
   }
 
@@ -6099,20 +6110,20 @@ window.openDetail = (id) => {
 
   document.getElementById('detail-body').innerHTML = seriesInfo + `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}${r.subOrg ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">${r.subOrg}</span>` : ''}</div></div>
-      <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${r.room}</div></div>
-      ${curUser && r.managerName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${r.managerName}</div></div>` : ''}
+      <div><div style="font-size:10px;color:var(--text3)">기관 분류</div><div style="margin-top:3px">${oBadge(r.type)}${r.subOrg ? `<span style="font-size:11px;color:var(--text2);margin-left:4px">${esc(r.subOrg)}</span>` : ''}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">공간</div><div style="font-size:14px;font-weight:700;color:var(--blue);margin-top:3px">${esc(r.room)}</div></div>
+      ${curUser && r.managerName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">예약 담당자</div><div style="font-size:13px;margin-top:3px">${esc(r.managerName)}</div></div>` : ''}
       ${isAdmin ? `<div><div style="font-size:10px;color:var(--text3)">신청자 계정</div><div style="font-size:13px;margin-top:3px">${applicantAccountHtml(r)}</div></div>` : ''}
-      <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${r.date}</div></div>
-      ${curUser && r.stewardName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${r.stewardName}</div></div>` : ''}
-      <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.room === '지혜홀' ? '숙박(전일)' : `${r.start} – ${r.end}`}</div></div>
-      ${curUser && r.stewardTel !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자 연락처</div><div style="font-size:13px;color:var(--blue);margin-top:3px">${r.stewardTel}</div></div>` : ''}
-      <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${r.people}명</div></div>
-      <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${r.purpose}</div></div>
+      <div><div style="font-size:10px;color:var(--text3)">날짜</div><div style="font-size:13px;margin-top:3px">${esc(r.date)}</div></div>
+      ${curUser && r.stewardName !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자</div><div style="font-size:13px;margin-top:3px">${esc(r.stewardName)}</div></div>` : ''}
+      <div><div style="font-size:10px;color:var(--text3)">시간</div><div style="font-size:13px;margin-top:3px">${r.room === '지혜홀' ? '숙박(전일)' : `${esc(r.start)} – ${esc(r.end)}`}</div></div>
+      ${curUser && r.stewardTel !== undefined ? `<div><div style="font-size:10px;color:var(--text3)">실사용자 연락처</div><div style="font-size:13px;color:var(--blue);margin-top:3px">${esc(r.stewardTel)}</div></div>` : ''}
+      <div><div style="font-size:10px;color:var(--text3)">예상 인원</div><div style="font-size:13px;margin-top:3px">${esc(r.people)}명</div></div>
+      <div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">사용 목적</div><div style="font-size:13px;margin-top:3px">${esc(r.purpose)}</div></div>
       ${reqTags.length ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 시설 요청</div><div class="space-amenity" style="margin-top:4px">${reqTags.map(t => `<span class="amenity-tag">${t}</span>`).join('')}</div></div>` : ''}
       ${r.room === '아이엠홀' ? iamDetailHtml(r) : ''}
       ${r.room === '지혜홀' ? jihyeDetailHtml(r) : ''}
-      ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${r.memo}</div></div>` : ''}
+      ${r.memo ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--text3)">추가 요청사항</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--bg2);border-radius:7px">${esc(r.memo)}</div></div>` : ''}
       ${r.rejectReason ? `<div style="grid-column:1/3"><div style="font-size:10px;color:var(--red)">취소 사유</div><div style="font-size:12px;margin-top:3px;padding:8px;background:var(--red-lt);border-radius:7px;color:var(--red)">${r.rejectReason}</div></div>` : ''}
       ${isAdmin ? `<div style="grid-column:1/3">${dateContextHtml(r.date, r.id)}</div>` : ''}
     </div>
@@ -6122,14 +6133,14 @@ window.openDetail = (id) => {
       ${(r.history || []).map(h => `
         <div style="display:flex;gap:8px;align-items:flex-start">
           <div style="width:7px;height:7px;border-radius:50%;background:var(--blue-mid);flex-shrink:0;margin-top:3px"></div>
-          <div><div style="font-size:11px;font-weight:600">${h.msg}</div><div style="font-size:10px;color:var(--text3)">${h.time}</div></div>
+          <div><div style="font-size:11px;font-weight:600">${esc(h.msg)}</div><div style="font-size:10px;color:var(--text3)">${esc(h.time)}</div></div>
         </div>`).join('')}
     </div>`;
 
   // 공실 희망 → 관리자 배정 UI
   let assignHtml = '';
   if (isAdmin && r.room === '공실 희망') {
-    const roomOpts = assignRoomSort(spaces).map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+    const roomOpts = assignRoomSort(spaces).map(s => `<option value="${esc(s.name)}">${esc(s.name)}</option>`).join('');
     const series = r.recurGroup ? reservations.filter(x => x.recurGroup === r.recurGroup) : null;
     const seriesNote = series
       ? `<div style="font-size:11px;color:var(--text2);margin-bottom:8px">🔁 정기예약 ${series.length}건 — 공간을 선택하면 전체 회차의 배정 가능 여부를 확인합니다</div>`
@@ -6419,9 +6430,9 @@ function dateContextHtml(date, excludeId) {
     <div style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto">
       ${others.map(r => `
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:5px 8px;background:var(--bg);border-radius:6px;cursor:pointer" onclick="openDetail('${r.id}')">
-          <span style="font-weight:700;color:var(--blue);flex-shrink:0">${r.room}</span>
-          <span style="color:var(--text2);flex-shrink:0;white-space:nowrap">${r.start}–${r.end}</span>
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.purpose || ''}</span>
+          <span style="font-weight:700;color:var(--blue);flex-shrink:0">${esc(r.room)}</span>
+          <span style="color:var(--text2);flex-shrink:0;white-space:nowrap">${esc(r.start)}–${esc(r.end)}</span>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${esc(r.purpose || '')}</span>
           ${sBadge(r.status)}
         </div>`).join('')}
     </div>
@@ -6737,7 +6748,7 @@ window.searchOpsReservations = () => {
     const already = currentIds.has(r.id);
     const label = (r.room === '아이엠홀' && r.showName) ? r.showName : (r.purpose || '');
     return `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border2);font-size:14px">
-      <span style="min-width:110px;flex-shrink:0">${shortOpsDate(r.date)} ${r.start}~${r.end}</span>
+      <span style="min-width:110px;flex-shrink:0">${shortOpsDate(r.date)} ${esc(r.start)}~${esc(r.end)}</span>
       <span style="min-width:80px;flex-shrink:0;color:var(--blue);font-weight:600">${roomWithFloor(r.room)}</span>
       <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(label)}</span>
       <button class="btn btn-ghost" style="padding:3px 10px;font-size:12px;flex-shrink:0" ${already ? 'disabled' : ''} onclick="addOpsRow('${r.id}')">${already ? '추가됨' : '+ 추가'}</button>
@@ -6803,8 +6814,8 @@ function renderOpsNotesList() {
       <span style="font-size:14px;color:${isSundayWorship ? '#6B21A8' : 'var(--text2)'};min-width:120px">${escHtml(row.event)}</span>
       <input type="text" value="${(opsReportNotes[row.groupKey] || '').replace(/"/g, '&quot;')}"
         placeholder="예: 주차 혼잡 예상" style="flex:1;min-width:160px;font-size:14px;padding:5px 8px"
-        oninput="setOpsNote('${row.groupKey}', this.value)">
-      <button class="btn btn-ghost" style="padding:3px 8px;font-size:12px;color:var(--red)" onclick="removeOpsRow('${row.groupKey}')" title="표에서 제외">✕</button>
+        oninput="setOpsNote('${jsq(row.groupKey)}', this.value)">
+      <button class="btn btn-ghost" style="padding:3px 8px;font-size:12px;color:var(--red)" onclick="removeOpsRow('${jsq(row.groupKey)}')" title="표에서 제외">✕</button>
     </div>`;
   }).join('');
 }
@@ -7288,7 +7299,7 @@ window.openEditModal = (id, prefill) => {
       const firstDate = series[0].date;
       const lastDate = series[series.length - 1].date;
       recurBanner.style.display = '';
-      recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${r.recurType || ''} · ${r.date})
+      recurBanner.innerHTML = `🔁 <strong>정기 예약 ${idx}/${total}회차</strong> (${esc(r.recurType || '')} · ${esc(r.date)})
         <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none">
           <input type="checkbox" id="e-all-series" onchange="toggleAllSeriesOpts();checkEditAvail()" style="width:15px;height:15px;cursor:pointer;flex-shrink:0">
           <span style="font-size:12px;font-weight:700">전체 ${total}회 모두 수정</span>
@@ -7297,7 +7308,7 @@ window.openEditModal = (id, prefill) => {
           <div style="font-size:11px;color:var(--text2);margin-bottom:6px">날짜는 각 회차별로 유지됩니다. 시작·종료 날짜를 바꾸면 회차가 추가/삭제됩니다.</div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
             <span style="font-size:11px;font-weight:600;white-space:nowrap">적용 시작일</span>
-            <input type="date" id="e-series-from-date" value="${r.date}" onchange="checkEditAvail()" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
+            <input type="date" id="e-series-from-date" value="${esc(r.date)}" onchange="checkEditAvail()" style="flex:1;min-width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px">
             <span style="font-size:10px;color:var(--text3);white-space:nowrap">이전 회차는 그대로 유지</span>
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px">
@@ -7659,7 +7670,7 @@ window.submitEdit = async () => {
                   font-size:12px;padding:6px 10px;border-radius:6px;margin-bottom:4px;
                   background:${allFit ? 'var(--blue-lt)' : 'var(--bg2)'};
                   color:${allFit ? 'var(--blue)' : 'var(--text2)'}">
-                  <span>${allFit ? '✅' : '▸'} <b>${s.name}</b>${s.cap ? ` · ${s.cap}명` : ''}</span>
+                  <span>${allFit ? '✅' : '▸'} <b>${esc(s.name)}</b>${s.cap ? ` · ${s.cap}명` : ''}</span>
                   <span style="font-size:11px;font-weight:600">${allFit ? '전체 일정 가능' : `${s.fits}/${allSeriesDates.length}건 가능`}</span>
                 </div>`;
               }).join('')}
@@ -7844,9 +7855,9 @@ function renderDashboard() {
       ${list.map(r => `
         <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);margin-bottom:4px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
           <span style="font-weight:700;font-size:11px;color:var(--text2);flex-shrink:0;width:36px">${facilityDateLabel(r.date)}</span>
-          <span style="font-weight:700;font-size:12px;color:var(--blue);flex-shrink:0;width:52px">${r.start}</span>
-          <span style="font-size:11px;color:var(--text3);flex-shrink:0">${r.room}</span>
-          <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.purpose || ''}</span>
+          <span style="font-weight:700;font-size:12px;color:var(--blue);flex-shrink:0;width:52px">${esc(r.start)}</span>
+          <span style="font-size:11px;color:var(--text3);flex-shrink:0">${esc(r.room)}</span>
+          <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.purpose || '')}</span>
         </div>`).join('')}
     </div>`;
   const tvList     = facilityConfirmed.filter(r => r.needTV);
@@ -7874,14 +7885,14 @@ function renderDashboard() {
         ${items.map(r => `
           <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:5px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
             <div style="width:58px;text-align:center;flex-shrink:0">
-              <div style="font-weight:700;font-size:12px;color:var(--blue)">${r.start}</div>
-              <div style="font-size:10px;color:var(--text3)">~${r.end}</div>
+              <div style="font-weight:700;font-size:12px;color:var(--blue)">${esc(r.start)}</div>
+              <div style="font-size:10px;color:var(--text3)">~${esc(r.end)}</div>
             </div>
             <div style="width:1px;height:30px;background:var(--border2);flex-shrink:0"></div>
             <div style="flex:1;min-width:0">
-              ${cat.showRoom ? `<div style="font-size:10px;font-weight:700;color:${cat.color}">${r.room}</div>` : ''}
-              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.stewardName} · ${r.people}명</div>
-              <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.purpose}</div>
+              ${cat.showRoom ? `<div style="font-size:10px;font-weight:700;color:${cat.color}">${esc(r.room)}</div>` : ''}
+              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.stewardName)} · ${esc(r.people)}명</div>
+              <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.purpose)}</div>
             </div>
           </div>`).join('')}
       </div>`;
@@ -7903,10 +7914,10 @@ function renderDashboard() {
   const pendingSingleCard = r => `
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--amber-lt);border-radius:9px;border:1px solid #FAC775;margin-bottom:8px">
       ${oBadge(r.type)}
-      <span style="font-weight:700;font-size:12px">${r.managerName}</span>
-      <span style="font-weight:700;font-size:12px;color:var(--blue)">${r.purpose || ''}</span>
-      <span style="font-size:11px;color:var(--text2)">${r.room} · ${r.date} ${r.start}–${r.end} · ${r.people}명</span>
-      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${r.stewardName} ${r.stewardTel}</span>
+      <span style="font-weight:700;font-size:12px">${esc(r.managerName)}</span>
+      <span style="font-weight:700;font-size:12px;color:var(--blue)">${esc(r.purpose || '')}</span>
+      <span style="font-size:11px;color:var(--text2)">${esc(r.room)} · ${esc(r.date)} ${esc(r.start)}–${esc(r.end)} · ${esc(r.people)}명</span>
+      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${esc(r.stewardName)} ${esc(r.stewardTel)}</span>
       <button class="btn btn-green" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="approve('${r.id}')">승인</button>
       <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="rejectR('${r.id}')">취소</button>
       <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openDetail('${r.id}')">상세</button>
@@ -7920,8 +7931,8 @@ function renderDashboard() {
     <div style="margin:-2px 0 8px;padding-left:10px;border-left:2px solid #FAC775">
       ${rows.map(r => `
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 10px;background:#FFFBF2;border-radius:7px;margin-bottom:5px;font-size:11px">
-          <span style="color:var(--text2);font-weight:600">${r.date} ${r.start}–${r.end}</span>
-          <span style="color:var(--text3)">${r.people}명</span>
+          <span style="color:var(--text2);font-weight:600">${esc(r.date)} ${esc(r.start)}–${esc(r.end)}</span>
+          <span style="color:var(--text3)">${esc(r.people)}명</span>
           <button class="btn btn-green" style="padding:2px 8px;font-size:10px;margin-left:auto" onclick="event.stopPropagation();approve('${r.id}')">승인</button>
           <button class="btn btn-amber" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();rejectR('${r.id}')">취소</button>
           <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();openDetail('${r.id}')">상세</button>
@@ -7930,11 +7941,11 @@ function renderDashboard() {
     return `
     <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--amber-lt);border-radius:9px;border:1px solid #FAC775;margin-bottom:${isOpen ? '2' : '8'}px;cursor:pointer" onclick="toggleDashPending('${groupId}')">
       ${oBadge(first.type)}
-      <span style="font-weight:700;font-size:12px">${first.managerName}</span>
-      <span style="font-weight:700;font-size:12px;color:var(--blue)">${first.purpose || ''}</span>
+      <span style="font-weight:700;font-size:12px">${esc(first.managerName)}</span>
+      <span style="font-weight:700;font-size:12px;color:var(--blue)">${esc(first.purpose || '')}</span>
       <span style="background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🔁 ${rows.length}건 ${isOpen ? '▾' : '▸'}</span>
-      <span style="font-size:11px;color:var(--text2)">${first.room} · ${first.start}–${first.end} · ${first.people}명 · ${first.date} ~ ${last.date}</span>
-      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${first.stewardName} ${first.stewardTel}</span>
+      <span style="font-size:11px;color:var(--text2)">${esc(first.room)} · ${esc(first.start)}–${esc(first.end)} · ${esc(first.people)}명 · ${esc(first.date)} ~ ${esc(last.date)}</span>
+      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${esc(first.stewardName)} ${esc(first.stewardTel)}</span>
       <button class="btn btn-green" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="event.stopPropagation();approveGroup('${idsAttr}')">전체 승인</button>
       <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="event.stopPropagation();rejectGroup('${idsAttr}')">전체 취소</button>
       <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="event.stopPropagation();openDetail('${first.id}')">상세</button>
@@ -7960,8 +7971,8 @@ function renderDashboard() {
         return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:${badgeBg};border-radius:9px;border:1px solid ${badgeColor};margin-bottom:8px">
           <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px">${isCancel ? '취소' : '변경'}</span>
           <span style="font-weight:700;font-size:12px">${(r.room||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:11px;color:var(--text2)">${r.date||''} ${time}</span>
-          <span style="font-size:10px;color:var(--blue-mid)">신청자: ${r.requesterName||''} ${r.requesterTel||''}</span>
+          <span style="font-size:11px;color:var(--text2)">${esc(r.date||'')} ${time}</span>
+          <span style="font-size:10px;color:var(--blue-mid)">신청자: ${esc(r.requesterName||'')} ${esc(r.requesterTel||'')}</span>
           <button class="btn btn-primary" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="go('change-requests')">확인하기</button>
         </div>`;
       }).join('');
@@ -8035,7 +8046,7 @@ function renderDashboard() {
         <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('venue.html','_blank')">
           <span style="background:#E6F1FB;color:#185FA5;font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(v.space||'').replace(/</g,'&lt;')}</span>
           <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(v.orgName||'').replace(/</g,'&lt;')} · ${(v.eventName||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${v.eventDate || v.dateIn || ''}</span>
+          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${esc(v.eventDate || v.dateIn || '')}</span>
         </div>`).join('');
 
   const createdMs2 = c => c.submittedAt?.toDate ? c.submittedAt.toDate().getTime() : 0;
@@ -8061,9 +8072,9 @@ function renderDashboard() {
     ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">예약 데이터가 없습니다</div>'
     : [...reservations].sort((a, b) => createdMs(b) - createdMs(a)).slice(0, 6).map(r => `
         <div class="row" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border2);margin-bottom:5px;cursor:pointer" onclick="openDetail('${r.id}')">
-          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.managerName}</span>
-          <span style="font-size:11px;color:var(--text2);flex-shrink:0;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.room}</span>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${r.date}</span>
+          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.managerName)}</span>
+          <span style="font-size:11px;color:var(--text2);flex-shrink:0;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.room)}</span>
+          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${esc(r.date)}</span>
         </div>`).join('');
 }
 
@@ -8195,7 +8206,7 @@ window.renderList = function renderList() {
     const realName = (lu?.name || '').trim();
     const mgr = (r.managerName || '').trim(), stw = (r.stewardName || '').trim();
     const mismatch = realName && realName !== mgr && realName !== stw;
-    return `${r.managerName || ''}<span style="font-size:10px;color:${mismatch ? 'var(--amber)' : 'var(--text3)'};display:block;margin-top:1px" title="${r.userEmail}">${mismatch ? '⚠ ' : ''}${r.userEmail}</span>`;
+    return `${esc(r.managerName || '')}<span style="font-size:10px;color:${mismatch ? 'var(--amber)' : 'var(--text3)'};display:block;margin-top:1px" title="${esc(r.userEmail)}">${mismatch ? '⚠ ' : ''}${esc(r.userEmail)}</span>`;
   };
 
   const singleRow = r => `
@@ -8204,10 +8215,10 @@ window.renderList = function renderList() {
         <input type="checkbox" class="row-chk" value="${r.id}" onclick="onRowCheck(this)" style="cursor:pointer;width:14px;height:14px">
       </td>
       <td style="color:var(--text3);font-size:10px">${r.id?.slice(-4)}</td>
-      <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${r.subOrg}</span>` : ''}</td><td>${managerCellHtml(r)}</td>
-      <td>${r.stewardName || ''}</td>
-      <td>${r.room}</td><td>${r.date}${dowTag(r.date)} ${r.start}–${r.end}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td><td>${sBadge(r.status)}</td>
+      <td>${oBadge(r.type, true)}${r.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${esc(r.subOrg)}</span>` : ''}</td><td>${managerCellHtml(r)}</td>
+      <td>${esc(r.stewardName || '')}</td>
+      <td>${esc(r.room)}</td><td>${esc(r.date)}${dowTag(r.date)} ${esc(r.start)}–${esc(r.end)}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${esc(r.purpose)}</td><td>${sBadge(r.status)}</td>
       <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
       <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.processedAt)}</td>
       <td onclick="event.stopPropagation()" style="white-space:nowrap">
@@ -8231,12 +8242,12 @@ window.renderList = function renderList() {
           <input type="checkbox" class="group-sel-btn" data-group="${groupId}" data-ids="${allIds}" onclick="toggleGroupSel('${groupId}',this)" style="cursor:pointer;width:14px;height:14px;accent-color:var(--blue)" ${isSel ? 'checked' : ''}>
         </td>
         <td style="font-size:10px;color:var(--blue);font-weight:700;cursor:pointer" onclick="${tg}">${isOpen ? '▾' : '▸'} 🔁${rows.length}회</td>
-        <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}${first.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${first.subOrg}</span>` : ''}</td>
+        <td style="cursor:pointer" onclick="${tg}">${oBadge(first.type, true)}${first.subOrg ? `<span style="font-size:10px;color:var(--text3);display:block;margin-top:1px">${esc(first.subOrg)}</span>` : ''}</td>
         <td style="font-weight:600;cursor:pointer" onclick="${tg}">${managerCellHtml(first)}</td>
-        <td style="cursor:pointer" onclick="${tg}">${first.stewardName || ''}</td>
-        <td style="cursor:pointer" onclick="${tg}">${first.room}</td>
-        <td style="font-size:11px;cursor:pointer" onclick="${tg}">${first.recurType || '정기'}<br><span style="color:var(--text3)">${first.date}${dowTag(first.date)} ~ ${last.date}${dowTag(last.date)}</span></td>
-        <td style="font-size:11px;color:var(--text2);cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(first.purpose||'').replace(/"/g,'&quot;')}" onclick="${tg}">${first.purpose}</td>
+        <td style="cursor:pointer" onclick="${tg}">${esc(first.stewardName || '')}</td>
+        <td style="cursor:pointer" onclick="${tg}">${esc(first.room)}</td>
+        <td style="font-size:11px;cursor:pointer" onclick="${tg}">${esc(first.recurType || '정기')}<br><span style="color:var(--text3)">${esc(first.date)}${dowTag(first.date)} ~ ${esc(last.date)}${dowTag(last.date)}</span></td>
+        <td style="font-size:11px;color:var(--text2);cursor:pointer;max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(first.purpose||'').replace(/"/g,'&quot;')}" onclick="${tg}">${esc(first.purpose)}</td>
         <td style="cursor:pointer" onclick="${tg}">${statusSummary}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.createdAt)}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap;cursor:pointer" onclick="${tg}">${fmtCreatedAt(first.processedAt)}</td>
@@ -8254,10 +8265,10 @@ window.renderList = function renderList() {
         <td style="color:var(--text3);font-size:10px;padding-left:12px">└ ${r.id?.slice(-4)}</td>
         <td></td>
         <td style="font-size:11px;color:var(--text2)">${managerCellHtml(r)}</td>
-        <td style="font-size:11px;color:var(--text2)">${r.stewardName || ''}</td>
-        <td style="font-size:11px">${r.room}</td>
-        <td style="font-weight:600">${r.date}${dowTag(r.date)} ${r.start}–${r.end}</td>
-        <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${r.purpose}</td>
+        <td style="font-size:11px;color:var(--text2)">${esc(r.stewardName || '')}</td>
+        <td style="font-size:11px">${esc(r.room)}</td>
+        <td style="font-weight:600">${esc(r.date)}${dowTag(r.date)} ${esc(r.start)}–${esc(r.end)}</td>
+        <td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${esc(r.purpose)}</td>
         <td>${sBadge(r.status)}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.createdAt)}</td>
         <td style="font-size:10.5px;color:var(--text3);white-space:nowrap">${fmtCreatedAt(r.processedAt)}</td>
@@ -8319,8 +8330,8 @@ window.checkQuickEditAvail = () => {
   if (start >= end) { el.innerHTML = `<div class="avail-no">✗ 종료 시간이 시작 시간보다 늦어야 합니다</div>`; return; }
   const confirmedOk = noConflict(r.room, date, start, end, _quickEditId, true);
   el.innerHTML = confirmedOk
-    ? `<div class="avail-ok">✓ ${r.room} 사용 가능</div>`
-    : `<div class="avail-no">✗ ${r.room} 확정된 예약 있음</div>`;
+    ? `<div class="avail-ok">✓ ${esc(r.room)} 사용 가능</div>`
+    : `<div class="avail-no">✗ ${esc(r.room)} 확정된 예약 있음</div>`;
 };
 window.saveQuickEdit = async () => {
   if (!_quickEditId) return;
@@ -8478,7 +8489,7 @@ window.openBulkRescheduleModal = () => {
   document.getElementById('br-start').innerHTML = timeOpts;
   document.getElementById('br-end').innerHTML   = timeOpts;
   const roomSel = document.getElementById('br-room');
-  roomSel.innerHTML = '<option value="">변경 안 함</option>' + spaceSort(spaces).map(s => `<option>${s.name}</option>`).join('');
+  roomSel.innerHTML = '<option value="">변경 안 함</option>' + spaceSort(spaces).map(s => `<option>${esc(s.name)}</option>`).join('');
   document.getElementById('br-preview').innerHTML = '';
   openModal('modal-bulk-reschedule');
 };
@@ -8528,7 +8539,7 @@ window.checkBulkReschedule = () => {
     const ok = !conflictIds.has(t.id);
     const dow = DOWS_KR[new Date(t.date + 'T00:00:00').getDay()];
     return `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;color:${ok ? 'var(--text2)' : 'var(--red)'}">
-      <span>${t.date}(${dow}) ${t.start}-${t.end} · ${(t.room||'').replace(/</g,'&lt;')}</span>
+      <span>${esc(t.date)}(${dow}) ${esc(t.start)}-${esc(t.end)} · ${(t.room||'').replace(/</g,'&lt;')}</span>
       <span style="font-weight:700;white-space:nowrap">${ok ? '✓ 가능' : '✗ 충돌'}</span>
     </div>`;
   }).join('') + (conflictIds.size
@@ -8701,10 +8712,10 @@ function renderMyList() {
       : '';
     return `<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer" onclick="openDetail('${r.id}')">
       <div style="flex:1;min-width:0">
-        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${r.purpose || '(목적 미입력)'}</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:3px">${esc(r.purpose || '(목적 미입력)')}</div>
         <div style="font-size:13px;color:var(--text2);margin-bottom:2px">${scheduleLabel}</div>
-        <div style="font-size:13px;color:var(--text2);margin-bottom:2px">${r.start}–${r.end}</div>
-        <div style="font-size:11px;color:var(--text3)">${r.room}</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:2px">${esc(r.start)}–${esc(r.end)}</div>
+        <div style="font-size:11px;color:var(--text3)">${esc(r.room)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
         ${sBadge(r.status)}
@@ -8778,7 +8789,7 @@ function renderPurposeCatList() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <input value="${c.color}" style="width:32px;height:28px;padding:2px;border:1px solid var(--border);border-radius:4px;cursor:pointer;flex-shrink:0" type="color"
                oninput="purposeCatTmp[${i}].color=this.value">
-        <input value="${c.name}" placeholder="카테고리명" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600"
+        <input value="${esc(c.name)}" placeholder="카테고리명" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600"
                oninput="purposeCatTmp[${i}].name=this.value">
         <div style="margin-left:auto;display:flex;gap:2px;flex-shrink:0">
           ${i > 0 ? `<button onclick="movePurposeCatRow(${i},-1)" title="위로 (먼저 검사됨)" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;line-height:1">↑</button>` : ''}
@@ -8962,7 +8973,7 @@ function renderReport() {
         return `<tr style="background:var(--bg2)">
           <td style="font-size:11px;padding-left:24px;white-space:nowrap">
             └ <span style="cursor:pointer;color:var(--blue);text-decoration:underline;text-underline-offset:2px"
-                    onclick="goListFilter('${oKey}','${cKey}')">${c.name}</span>
+                    onclick="goListFilter('${oKey}','${cKey}')">${esc(c.name)}</span>
           </td>
           ${subTotals.map(n => `<td style="text-align:center;font-size:11px;color:${n?'var(--blue)':'var(--text3)'}">${n||'–'}</td>`).join('')}
           <td style="text-align:center;font-size:11px;font-weight:700;color:var(--text2)">${rowTotal||'–'}</td>
@@ -9105,7 +9116,7 @@ function renderReport() {
               const cnt = subOrgSummary.subCounts[c.name] || 0;
               const pct = Math.round(cnt / (orgData.length || 1) * 100);
               return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-                <div style="font-size:11px;min-width:80px;color:var(--text2)">${c.name}</div>
+                <div style="font-size:11px;min-width:80px;color:var(--text2)">${esc(c.name)}</div>
                 <div style="flex:1;height:6px;background:var(--bg2);border-radius:3px">
                   <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px"></div>
                 </div>
@@ -9136,7 +9147,7 @@ function renderReport() {
     ? catSorted.map(([cat, cnt]) => {
         const color = catColorMap[cat] || 'var(--blue)';
         const orgBreakdown = Object.entries(catByOrg[cat]||{}).sort((a,b)=>b[1]-a[1])
-          .map(([o,n])=>`<span style="font-size:10px;color:var(--text2);margin-right:8px">${o} ${n}건</span>`).join('');
+          .map(([o,n])=>`<span style="font-size:10px;color:var(--text2);margin-right:8px">${esc(o)} ${esc(n)}건</span>`).join('');
         return `<div style="margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:3px">
             <div style="font-size:13px;font-weight:700;min-width:100px;color:${color}">${cat}</div>
@@ -9215,7 +9226,7 @@ function renderReport() {
               return `<div style="display:flex;align-items:baseline;gap:5px;margin-bottom:3px;font-size:11px">
                 <span style="color:var(--text2);min-width:52px;white-space:nowrap">${sl.label.replace('\n',' ')}</span>
                 <span style="font-weight:700;color:${grp.color};min-width:24px">${sd[sl.key].count}건</span>
-                <span style="color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${top2.map(([o,n])=>`${o} ${n}`).join(' · ')}</span>
+                <span style="color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${top2.map(([o,n])=>`${esc(o)} ${esc(n)}`).join(' · ')}</span>
               </div>`;
             }).join('')}`
         }
@@ -9270,7 +9281,7 @@ function renderReport() {
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:12px">
           <span style="min-width:28px;font-weight:700;color:${color}">${d.label}요일</span>
           <span style="font-weight:700;color:${color};min-width:32px">${dayCount[d.key]}건</span>
-          <span style="color:var(--text3)">${Object.entries(dayByOrg[d.key]).sort((a,b)=>b[1]-a[1]).map(([o,n])=>`${o} ${n}건`).join(' · ')}</span>
+          <span style="color:var(--text3)">${Object.entries(dayByOrg[d.key]).sort((a,b)=>b[1]-a[1]).map(([o,n])=>`${esc(o)} ${esc(n)}건`).join(' · ')}</span>
         </div>`;
       }).join('')}
     </div>`;
@@ -9292,7 +9303,7 @@ function renderOrgs() {
       <div style="border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
         <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2)">
           <span class="badge" style="background:${org.bgColor};color:${org.color}">${org.shortName}</span>
-          <span style="font-weight:700;font-size:13px">${org.name}</span>
+          <span style="font-weight:700;font-size:13px">${esc(org.name)}</span>
           ${children.length > 0 ? '<span style="font-size:10px;background:#E0E7FF;color:#4338CA;padding:2px 7px;border-radius:8px;font-weight:600">하위기관 있음</span>' : ''}
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${org.id}')">수정</button>
@@ -9303,7 +9314,7 @@ function renderOrgs() {
         <div style="display:flex;align-items:center;gap:10px;padding:10px 14px 10px 28px;border-top:1px solid var(--border)">
           <span style="color:var(--text3);font-size:12px">└</span>
           <span class="badge" style="background:${c.bgColor};color:${c.color}">${c.shortName}</span>
-          <span style="font-size:13px">${c.name}</span>
+          <span style="font-size:13px">${esc(c.name)}</span>
           <div style="margin-left:auto;display:flex;gap:6px">
             <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openOrgModal('${c.id}')">수정</button>
             <button class="btn btn-red" style="padding:3px 10px;font-size:11px" onclick="deleteOrg('${c.id}')">삭제</button>
@@ -9326,7 +9337,7 @@ window.openOrgModal = (id) => {
   const parents = orgsList.filter(o => !o.parentId && o.id !== id);
   document.getElementById('org-parent').innerHTML =
     '<option value="">없음 (최상위)</option>' +
-    parents.map(p => `<option value="${p.id}" ${p.id===(org?.parentId||'')?'selected':''}>${p.name}</option>`).join('');
+    parents.map(p => `<option value="${p.id}" ${p.id===(org?.parentId||'')?'selected':''}>${esc(p.name)}</option>`).join('');
   openModal('modal-org');
 };
 
@@ -9370,7 +9381,7 @@ async function renderExtUsers() {
     : users.map(u =>
         `<tr>
           <td style="color:var(--blue);font-weight:500">${u.id}</td>
-          <td>${u.name || '–'}</td>
+          <td>${esc(u.name || '–')}</td>
           <td style="color:var(--text3);font-size:11px">${u.addedAt || '–'}</td>
           <td>
             <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeExtUser('${u.id}')">삭제</button>
@@ -9433,7 +9444,7 @@ async function renderLoginUsers() {
         const matches = nameOnlyMatches(u);
         return `<tr>
           <td style="color:var(--blue);font-weight:500">${u.id}${u.manual ? ' <span style="color:var(--text3);font-size:10px">(미로그인)</span>' : ''}</td>
-          <td>${u.name || '–'}</td>
+          <td>${esc(u.name || '–')}</td>
           <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.firstLoginAt)}</td>
           <td style="color:var(--text3);font-size:11px">${fmtLoginTs(u.lastLoginAt)}</td>
           <td style="text-align:center">${u.loginCount || 0}</td>
@@ -9497,7 +9508,7 @@ function renderNameMatchList(email) {
     nmGroupIds[r.id] = ids;
     return `<div style="border:1px solid var(--border2);border-radius:8px;padding:10px 12px">
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px">
-        ${dateLabel} · <b>${r.room}</b> · ${r.purpose || ''} ${sBadge(r.status)}
+        ${dateLabel} · <b>${esc(r.room)}</b> · ${esc(r.purpose || '')} ${sBadge(r.status)}
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <span style="font-size:11px;color:var(--text3);white-space:nowrap">${fieldLabel} 이름</span>
@@ -9598,7 +9609,7 @@ async function renderAdmins() {
   const extraRows = admins.map(a =>
     `<tr>
       <td style="color:var(--blue);font-weight:500">${a.id}</td>
-      <td>${a.name || '–'}</td>
+      <td>${esc(a.name || '–')}</td>
       <td style="color:var(--text3);font-size:11px">${a.addedAt || '–'}</td>
       <td>
         <button class="btn btn-red" style="padding:2px 10px;font-size:11px" onclick="removeAdminUser('${a.id}')">삭제</button>
@@ -10529,7 +10540,7 @@ async function hmLoadNotices() {
         ? '<span class="hm-nbadge hm-new">📌 중요</span>'
         : '<span class="hm-nbadge">안내</span>';
       const dateStr = n.createdAt ? (n.createdAt.toDate ? n.createdAt.toDate().toLocaleDateString('ko') : String(n.createdAt).slice(0,10)) : '';
-      return `<div class="hm-nitem" onclick="hmShowNotice(${JSON.stringify(d.id).replace(/'/g,"\\'")})">${badge}<span class="hm-t">${n.title||''}</span><span class="hm-d">${dateStr}</span></div>`;
+      return `<div class="hm-nitem" onclick="hmShowNotice(${JSON.stringify(d.id).replace(/'/g,"\\'")})">${badge}<span class="hm-t">${esc(n.title||'')}</span><span class="hm-d">${dateStr}</span></div>`;
     }).join('');
   } catch(e) {
     el.innerHTML = '<div class="hm-notice-empty">공지사항을 불러오지 못했습니다</div>';
@@ -10548,9 +10559,9 @@ window.hmShowNotice = async function(id) {
     modal.innerHTML=`<div style="background:#fff;border-radius:18px;max-width:600px;width:100%;padding:30px;max-height:80vh;overflow-y:auto;position:relative">
       <button onclick="this.closest('[style*=fixed]').remove()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#9A968E">×</button>
       ${n.pinned?'<span style="background:#FBEFD9;color:#A07030;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px">📌 중요</span><br><br>':''}
-      <h2 style="font-size:20px;font-weight:800;color:#26262A;margin:0 0 8px">${n.title||''}</h2>
+      <h2 style="font-size:20px;font-weight:800;color:#26262A;margin:0 0 8px">${esc(n.title||'')}</h2>
       <div style="font-size:13px;color:#9A968E;margin-bottom:18px">${dateStr}</div>
-      <div style="font-size:15px;color:#585A5C;line-height:1.8;white-space:pre-wrap">${n.content||n.body||''}</div>
+      <div style="font-size:15px;color:#585A5C;line-height:1.8;white-space:pre-wrap">${esc(n.content||n.body||'')}</div>
     </div>`;
     modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
     document.body.appendChild(modal);
@@ -10597,7 +10608,7 @@ function ceRenderNoticeList() {
         </div>
         <div>
           <label class="ce-label">내용</label>
-          <textarea class="ce-input" rows="4" oninput="ceNotices[${i}].content=this.value" placeholder="공지 내용">${n.content||n.body||''}</textarea>
+          <textarea class="ce-input" rows="4" oninput="ceNotices[${i}].content=this.value" placeholder="공지 내용">${esc(n.content||n.body||'')}</textarea>
         </div>
         <div style="display:flex;justify-content:flex-end">
           <button type="button" class="ce-btn ce-btn-primary ce-btn-sm" onclick="ceSaveOneNotice(${i})">💾 저장</button>
@@ -10716,7 +10727,7 @@ window.hmSearchInput = function(val) {
     <div class="hm-drop-item" onclick="${s.isCategory ? `hmSearchSelectCategory('${s.categoryValue.replace(/'/g,"\\'")}')` : s.isFloor ? `hmSearchSelectFloor('${s.floorValue}')` : `hmSearchSelect('${s.name.replace(/'/g,"\\'")}')`}">
       <div class="hm-drop-ico">${s.isCategory ? '🔍' : s.isFloor ? '🏢' : '🏠'}</div>
       <div class="hm-drop-mid">
-        <div class="hm-drop-name">${s.name}${(s.categories||[]).map(c => `<span class="hm-drop-cat">${c}</span>`).join('')}</div>
+        <div class="hm-drop-name">${esc(s.name)}${(s.categories||[]).map(c => `<span class="hm-drop-cat">${c}</span>`).join('')}</div>
         ${s.floor?`<div class="hm-drop-floor">${s.floor}</div>`:''}
       </div>
       <span class="hm-drop-badge">${s.isCategory ? '카테고리 보기' : s.isFloor ? '층 전체 보기' : '공간 보기'}</span>

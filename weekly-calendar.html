@@ -316,7 +316,7 @@ const dispEnd = r => {
   if (r.room !== '지혜홀' || !r.checkoutTime) return r.end;
   return r.date === jihyeGroupBounds(r).last ? r.checkoutTime : r.end;
 };
-const esc = s => String(s||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 function curDate() {
   const d = new Date();

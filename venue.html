@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>대관 신청 관리 — IAM 인트라넷</title>
 
@@ -88,10 +91,10 @@ function renderDateRows() {
   if (!el) return;
   el.innerHTML = formDates.map((d, i) => `
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:7px">
-      <input type="date" value="${d.date||''}" oninput="syncDR(${i},'date',this.value)" style="flex:1.2;min-width:0">
-      <input type="time" value="${d.timeStart||''}" oninput="syncDR(${i},'timeStart',this.value)" style="flex:1;min-width:0">
+      <input type="date" value="${esc(d.date||'')}" oninput="syncDR(${i},'date',this.value)" style="flex:1.2;min-width:0">
+      <input type="time" value="${esc(d.timeStart||'')}" oninput="syncDR(${i},'timeStart',this.value)" style="flex:1;min-width:0">
       <span style="color:var(--text3);font-size:12px;flex-shrink:0">~</span>
-      <input type="time" value="${d.timeEnd||''}" oninput="syncDR(${i},'timeEnd',this.value)" style="flex:1;min-width:0">
+      <input type="time" value="${esc(d.timeEnd||'')}" oninput="syncDR(${i},'timeEnd',this.value)" style="flex:1;min-width:0">
       ${formDates.length > 1
         ? `<button onclick="removeDR(${i})" style="flex-shrink:0;width:26px;height:26px;border-radius:50%;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;color:var(--text2)">×</button>`
         : '<span style="width:26px;flex-shrink:0"></span>'}
@@ -197,12 +200,12 @@ function renderList() {
     return `<div class="req-card${active}" onclick="openRequest('${r.id}')">
       <div class="req-card-top">
         <span class="req-org">${esc(r.orgName||'–')}</span>
-        <span class="status-chip" style="color:${st.color};background:${st.bg}">${st.label}</span>
+        <span class="status-chip" style="color:${st.color};background:${st.bg}">${esc(st.label)}</span>
       </div>
       <div class="req-card-mid">${esc(r.eventName||'(행사명 없음)')}</div>
       <div class="req-card-bot">
         <span>${esc((r.spaces?.length ? r.spaces : [r.space]).filter(Boolean).join(', ') || '–')}</span>
-        <span>${r.eventDate||'날짜 미정'}</span>
+        <span>${esc(r.eventDate||'날짜 미정')}</span>
         <span>${esc(r.managerName||'–')}</span>
       </div>
       ${quoteHtml}
@@ -409,7 +412,7 @@ function buildFormHTML(r) {
       ${Object.entries(STATUSES).map(([k,s]) =>
         `<button class="status-btn${r.status===k?' sel':''}"
           style="${r.status===k?`background:${s.bg};color:${s.color};border-color:${s.color}`:''}"
-          onclick="setStatus('${r.id}','${k}')">${s.label}</button>`
+          onclick="setStatus('${r.id}','${k}')">${esc(s.label)}</button>`
       ).join('')}
     </div>` : ''}
 
@@ -614,7 +617,7 @@ window.openQuotation = id => {
 };
 
 function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function comma(n) { return Math.round(n||0).toLocaleString('ko-KR'); }
 // toISOString()은 UTC 기준이라 UTC+9에서 날짜가 하루 밀림 → 로컬 날짜 문자열 사용 (index.html과 동일)

@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>체크리스트 — 아이엠센터</title>
 <style>
@@ -296,7 +299,7 @@ function renderChecklist() {
     const rows = checklist.map((it, i) => ({ it, i })).filter(({ it }) => (it.phase || 'before') === p.key);
     return `
       <div class="phase-group">
-        <div class="phase-label">${p.label}</div>
+        <div class="phase-label">${esc(p.label)}</div>
         ${rows.length ? rows.map(({ it, i }) => `
           <div class="check-item${it.checked ? ' checked' : ''}" onclick="toggleItem(${i})">
             <div class="chk-box">${it.checked ? '✓' : ''}</div>
@@ -305,7 +308,7 @@ function renderChecklist() {
             <button type="button" class="check-del" onclick="event.stopPropagation();removeItem(${i})">✕</button>
           </div>`).join('') : `<div class="phase-empty">등록된 항목이 없습니다</div>`}
         <div class="add-item-row">
-          <input id="new-item-${p.key}" placeholder="${p.label} 항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem('${p.key}');}">
+          <input id="new-item-${p.key}" placeholder="${esc(p.label)} 항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem('${p.key}');}">
           <button type="button" class="btn-add-item" onclick="addChecklistItem('${p.key}')">+ 추가</button>
         </div>
       </div>`;

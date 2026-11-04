@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>예약 현황</title>
 <style>
@@ -175,7 +178,7 @@ function render() {
     const sp = tabRooms[0];
     html = `<table><thead><tr>
       <th class="date-th">날짜</th>
-      <th>${sp.name}${sp.cap ? ' · ' + sp.cap + '명' : ''}</th>
+      <th>${esc(sp.name)}${sp.cap ? ' · ' + sp.cap + '명' : ''}</th>
     </tr></thead><tbody>`;
     days.forEach(d => {
       const ds  = toDateStr(d);
@@ -192,13 +195,13 @@ function render() {
         </td>
         <td style="${bd ? 'background:#F5F5F5' : bgT}">`;
       if (bd) {
-        html += `<div class="chip-blk">🚫 ${bd.reason}</div>`;
+        html += `<div class="chip-blk">🚫 ${esc(bd.reason)}</div>`;
       } else if (!res.length) {
         html += `<div class="chip-none">–</div>`;
       } else {
         res.forEach(r => {
           html += `<div class="chip chip-ok">
-            <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span style="font-weight:400">예약완료</span></div>
+            <div class="chip-l1"><span class="time">${esc(r.start)}–${esc(r.end)}</span> <span style="font-weight:400">예약완료</span></div>
           </div>`;
         });
       }
@@ -237,7 +240,7 @@ function render() {
         } else {
           res.forEach(r => {
             html += `<div class="chip chip-ok">
-              <div class="chip-l1"><span class="time">${r.start}–${r.end}</span> <span style="font-weight:400">예약완료</span></div>
+              <div class="chip-l1"><span class="time">${esc(r.start)}–${esc(r.end)}</span> <span style="font-weight:400">예약완료</span></div>
             </div>`;
           });
         }
@@ -253,7 +256,7 @@ function render() {
 
 // 탭 렌더링
 document.getElementById('tabs').innerHTML = TABS.map(t =>
-  `<button class="tab${t.key === curTab ? ' active' : ''}" onclick="setTab('${t.key}')">${t.label}</button>`
+  `<button class="tab${t.key === curTab ? ' active' : ''}" onclick="setTab('${t.key}')">${esc(t.label)}</button>`
 ).join('');
 
 window.setTab = (key) => {

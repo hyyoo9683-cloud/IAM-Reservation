@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>퇴실 체크 이력 — IAM 인트라넷</title>
 <style>
@@ -352,8 +355,8 @@ window.renderList = () => {
     const allOk  = allChecksOk(c);
     const sel    = c.id === selectedCheckoutId;
     const headHtml = isNew
-      ? `<span class="co-org">${c.name||'–'}</span><span class="co-date">${tsStrOf(c)}</span>`
-      : `<span class="co-space">${c.space||'–'}</span><span class="co-org">${c.org||'–'}</span><span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>`;
+      ? `<span class="co-org">${esc(c.name||'–')}</span><span class="co-date">${tsStrOf(c)}</span>`
+      : `<span class="co-space">${c.space||'–'}</span><span class="co-org">${esc(c.org||'–')}</span><span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>`;
     const subHtml = isNew ? `연락처 ${c.contact||'–'}` : `청지기 ${c.name||'–'}`;
     return `<div class="co-row${sel ? ' sel' : ''}" onclick="selectCheckout('${c.id}')">
       <div class="co-row-head">${headHtml}</div>
@@ -395,18 +398,18 @@ window.renderDetail = () => {
 
   const noteHtml = isNew
     ? [
-        c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${c.good}</div>` : '',
-        c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${c.bad}</div>` : '',
+        c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${esc(c.good)}</div>` : '',
+        c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${esc(c.bad)}</div>` : '',
       ].filter(Boolean).join('<div style="height:8px"></div>')
     : (c.note ? `
     <div class="note-box">
       <div class="note-label">특이사항</div>
-      ${c.note}
+      ${esc(c.note)}
     </div>` : '');
 
   const headHtml = isNew
-    ? `<span class="co-org">${c.name||'–'}</span><span class="co-date">${tsStrOf(c)}</span>`
-    : `<span class="co-space">${c.space||'–'}</span><span class="co-org">${c.org||'–'}</span><span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>`;
+    ? `<span class="co-org">${esc(c.name||'–')}</span><span class="co-date">${tsStrOf(c)}</span>`
+    : `<span class="co-space">${c.space||'–'}</span><span class="co-org">${esc(c.org||'–')}</span><span class="co-date">${(c.date||'').replace(/-/g,'.')}</span>`;
   const subHtml = isNew ? `연락처 ${c.contact||'–'}` : `청지기 ${c.name||'–'}`;
 
   el.innerHTML = `<div class="co-card">
@@ -461,10 +464,10 @@ window.renderComments = () => {
       const isNew = isNewSchema(c);
       const commentHtml = isNew
         ? [
-            c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${c.good}</div>` : '',
-            c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${c.bad}</div>` : '',
+            c.good ? `<div class="note-box" style="background:var(--green-lt);color:var(--green);border-color:#bfe0a0"><div class="note-label" style="color:var(--green)">만족한 점</div>${esc(c.good)}</div>` : '',
+            c.bad  ? `<div class="note-box"><div class="note-label">불편한 점</div>${esc(c.bad)}</div>` : '',
           ].filter(Boolean).join('')
-        : `<div class="note-box"><div class="note-label">특이사항</div>${c.note}</div>`;
+        : `<div class="note-box"><div class="note-label">특이사항</div>${esc(c.note)}</div>`;
       return `<div class="cmt-item" onclick="setView('list');selectCheckout('${c.id}')">${commentHtml}</div>`;
     }).join('');
     return `<div class="cmt-date-group">

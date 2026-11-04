@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>행사 체크리스트 — 아이엠센터</title>
 <style>
@@ -360,9 +363,9 @@ function renderDiagnostics(all, todayStr, existingIds) {
     <div class="saved-item">
       <div class="saved-item-top">
         <div class="saved-item-title">${(r.room === '아이엠홀' ? (r.showName || r.purpose) : r.purpose) || '(제목 없음)'}</div>
-        <div class="saved-item-room">${r.room || '(공간 없음)'}</div>
+        <div class="saved-item-room">${esc(r.room || '(공간 없음)')}</div>
       </div>
-      <div class="saved-item-meta"><span>📅 ${r.date} ${r.start || ''}${r.start || r.end ? '-' : ''}${r.end || ''}</span><span>${reason}</span></div>
+      <div class="saved-item-meta"><span>📅 ${esc(r.date)} ${esc(r.start || '')}${r.start || r.end ? '-' : ''}${esc(r.end || '')}</span><span>${reason}</span></div>
     </div>`;
   }).join('');
   card.style.display = '';
@@ -446,7 +449,7 @@ function renderChecklist() {
     const rows = checklist.map((it, i) => ({ it, i })).filter(({ it }) => (it.phase || 'before') === p.key);
     return `
       <div class="phase-group">
-        <div class="phase-label">${p.label}</div>
+        <div class="phase-label">${esc(p.label)}</div>
         ${rows.length ? rows.map(({ it, i }) => `
           <div class="check-item${it.checked ? ' checked' : ''}" onclick="toggleItem(${i})">
             <div class="chk-box">${it.checked ? '✓' : ''}</div>
@@ -455,7 +458,7 @@ function renderChecklist() {
             <button type="button" class="check-del" onclick="event.stopPropagation();removeItem(${i})">✕</button>
           </div>`).join('') : `<div class="phase-empty">등록된 항목이 없습니다</div>`}
         <div class="add-item-row">
-          <input id="new-item-${p.key}" placeholder="${p.label} 항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem('${p.key}');}">
+          <input id="new-item-${p.key}" placeholder="${esc(p.label)} 항목 추가하기" onkeydown="if(event.key==='Enter'){event.preventDefault();addChecklistItem('${p.key}');}">
           <button type="button" class="btn-add-item" onclick="addChecklistItem('${p.key}')">+ 추가</button>
         </div>
       </div>`;
@@ -587,11 +590,11 @@ async function loadSavedList() {
       const time = (c.start || c.end) ? ` ${c.start||''}${c.start||c.end?'-':''}${c.end||''}` : '';
       return `<div class="saved-item" onclick="openChecklist('${d.id}')">
         <div class="saved-item-top">
-          <div class="saved-item-title">${c.eventName || '(제목 없음)'}${c.isRecur ? ` <span style="font-size:11px;color:var(--blue);font-weight:700">🔁 ${RECUR_LABEL[c.recurType]||'정기'}</span>` : ''}${c.autoCreated ? ` <span style="font-size:11px;color:var(--green);font-weight:700">🔗 예약 연동</span>` : ''}</div>
-          <div class="saved-item-room">${c.room || ''}</div>
+          <div class="saved-item-title">${esc(c.eventName || '(제목 없음)')}${c.isRecur ? ` <span style="font-size:11px;color:var(--blue);font-weight:700">🔁 ${RECUR_LABEL[c.recurType]||'정기'}</span>` : ''}${c.autoCreated ? ` <span style="font-size:11px;color:var(--green);font-weight:700">🔗 예약 연동</span>` : ''}</div>
+          <div class="saved-item-room">${esc(c.room || '')}</div>
         </div>
         <div class="saved-item-meta">
-          <span>📅 ${c.date || ''}${time}${c.isRecur ? ` ~ ${c.endDate||''}` : ''}</span>
+          <span>📅 ${esc(c.date || '')}${time}${c.isRecur ? ` ~ ${c.endDate||''}` : ''}</span>
           <span>✓ ${doneCount}/${total}</span>
           <button type="button" class="btn-ghost-sm" style="margin-left:auto;padding:4px 10px;font-size:12px" onclick="event.stopPropagation();copyChecklist('${d.id}')">📋 복사해서 새로 만들기</button>
         </div>

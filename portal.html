@@ -2,6 +2,9 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IAM 인트라넷 — 아이엠센터</title>
 
@@ -122,10 +125,10 @@ async function loadDashboard() {
       } else {
         todayList.innerHTML = sorted.map(r =>
           `<div class="today-row">
-            <span class="tr-time">${r.start||'?'}–${r.end||'?'}</span>
-            <span class="tr-room">${r.room||'?'}</span>
-            <span class="tr-name">${r.stewardName||r.managerName||''}</span>
-            <span class="tr-purpose">${r.purpose||''}</span>
+            <span class="tr-time">${esc(r.start||'?')}–${esc(r.end||'?')}</span>
+            <span class="tr-room">${esc(r.room||'?')}</span>
+            <span class="tr-name">${esc(r.stewardName||r.managerName||'')}</span>
+            <span class="tr-purpose">${esc(r.purpose||'')}</span>
            </div>`
         ).join('');
       }

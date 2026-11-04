@@ -44,12 +44,15 @@ await t('구성원: 본인 예약 신청(대기)', addDoc(collection(as(KIM),'re
 await t('구성원: 확정 상태로 신청 차단', addDoc(collection(as(KIM),'reservations'),{userEmail:KIM,status:'확정'}), false);
 await t('구성원: 남의 이메일로 신청 차단', addDoc(collection(as(KIM),'reservations'),{userEmail:'lee@suwoncca.org',status:'대기'}), false);
 await t('구성원: 본인 예약 수정 (대소문자 달라도)', updateDoc(doc(as(KIM),'reservations','mine'),{room:'506호'}), true);
-await t('구성원: 확정된 본인 예약 내용 수정', updateDoc(doc(as(KIM),'reservations','conf'),{start:'10:00'}), true);
+await t('구성원: 확정된 본인 예약 내용 수정 차단', updateDoc(doc(as(KIM),'reservations','conf'),{start:'10:00'}), false);
+await t('구성원: 확정된 본인 예약 취소 외 필드 같이 바꾸기 차단', updateDoc(doc(as(KIM),'reservations','conf'),{status:'취소', room:'X'}), false);
 await t('구성원: 본인 예약 취소', updateDoc(doc(as(KIM),'reservations','mine'),{status:'취소'}), true);
 await t('구성원: 본인 예약 셀프 승인(확정) 차단', updateDoc(doc(as(KIM),'reservations','mine'),{status:'확정'}), false);
 await t('구성원: 신청자 이메일 바꾸기 차단', updateDoc(doc(as(KIM),'reservations','conf'),{userEmail:'lee@suwoncca.org'}), false);
 await t('구성원: 남의 예약 수정 차단', updateDoc(doc(as(KIM),'reservations','other'),{room:'X'}), false);
-await t('구성원: 본인 예약 삭제(시리즈 단축)', deleteDoc(doc(as(KIM),'reservations','conf')), true);
+await t('구성원: 확정된 본인 예약 삭제 차단', deleteDoc(doc(as(KIM),'reservations','conf')), false);
+await t('구성원: 확정된 본인 예약 취소(상태·이력만)', updateDoc(doc(as(KIM),'reservations','conf'),{status:'취소', history:[{time:'t',msg:'취소'}]}), true);
+await t('구성원: 취소된 본인 예약 삭제(시리즈 단축)', deleteDoc(doc(as(KIM),'reservations','conf')), true);
 await t('외부 허용 계정: 본인 예약 신청', addDoc(collection(as(EXT),'reservations'),{userEmail:EXT,status:'대기'}), true);
 await t('외부 허용 계정: 본인 예약 수정', updateDoc(doc(as(EXT),'reservations','extres'),{room:'507호'}), true);
 await t('주 관리자: 남의 예약 승인', updateDoc(doc(as(ADMIN),'reservations','other'),{status:'확정'}), true);
@@ -61,7 +64,8 @@ await t('외부인: 관리자 목록 조회 차단', getDocs(collection(as(RAND)
 await t('로그인 사용자: 본인 관리자 여부 확인', getDoc(doc(as(RAND),'admins',RAND)), true);
 await t('외부 허용 계정: 본인 허용 여부 확인', getDoc(doc(as(EXT),'allowedUsers',EXT)), true);
 await t('관리자: 허용 계정 목록 조회', getDocs(collection(as(SUB),'allowedUsers')), true);
-await t('구성원: 본인 로그인 기록 작성', setDoc(doc(as(KIM),'loginUsers',KIM),{n:1}), true);
+await t('구성원: 본인 로그인 기록 작성', setDoc(doc(as(KIM),'loginUsers',KIM),{email:KIM,name:'김',loginCount:1,isAdmin:false,manual:false}), true);
+await t('구성원: 로그인 기록에 임의 필드 차단', setDoc(doc(as(KIM),'loginUsers',KIM),{email:KIM,evil:'x'}), false);
 await t('구성원: 남의 로그인 기록 작성 차단', setDoc(doc(as(KIM),'loginUsers','lee@suwoncca.org'),{n:1}), false);
 // 콘텐츠
 await t('비로그인: 공지·사이트콘텐츠 읽기', getDoc(doc(as(null),'siteContent','home')), true);
@@ -75,6 +79,9 @@ await t('외부인: 공간 정보 수정 차단', setDoc(doc(as(RAND),'spaces','
 await t('비로그인: 대관 신청 제출', addDoc(collection(as(null),'venue_requests'),{a:1}), true);
 await t('비로그인: 퇴실 체크 제출', addDoc(collection(as(null),'checkouts'),{a:1}), true);
 await t('비로그인: 변경 신청 제출', addDoc(collection(as(null),'changeRequests'),{a:1}), true);
+await t('비로그인: 변경 신청을 처리완료 상태로 제출 차단', addDoc(collection(as(null),'changeRequests'),{status:'처리완료'}), false);
+await t('비로그인: 대관 신청을 승인 상태로 제출 차단', addDoc(collection(as(null),'venue_requests'),{status:'승인'}), false);
+await t('비로그인: 퇴실 체크에 필드 폭탄(21개) 차단', addDoc(collection(as(null),'checkouts'),Object.fromEntries(Array.from({length:21},(_,i)=>['k'+i,1]))), false);
 await t('외부인: 대관 신청 열람 차단', getDocs(collection(as(RAND),'venue_requests')), false);
 await t('구성원(비관리자): 대관 신청 열람 차단', getDocs(collection(as(KIM),'venue_requests')), false);
 await t('관리자: 대관 신청 열람', getDocs(collection(as(SUB),'venue_requests')), true);

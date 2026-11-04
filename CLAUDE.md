@@ -380,6 +380,12 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
   `kakao-auth.html`의 "테스트 문자 보내기"(`sendTestSmsMessage`, 실제 1건 발송·요금 발생)로 확인하고, 막히면 고정 IP
   (VPC 커넥터+Cloud NAT) 또는 IP 제한 없는 다른 문자 업체를 검토
 
+### 보안 강화 (2026-11-04)
+- **저장형 XSS 방어**: 공개 폼(`checkouts`·`changeRequests`·`venue_requests`)과 구성원이 쓰는 예약 필드는 관리자 화면에서 템플릿 문자열로 그려지므로, 값을 HTML에 넣을 때는 반드시 `esc()`(& < > " ' 이스케이프, 모든 HTML 페이지 상단에 `window.esc` 정의), inline 이벤트 핸들러 `'...'` 안에 넣을 때는 `jsq()`를 씀. 예약 문서를 읽어 들일 때는 `resDoc()`이 `recurGroup`의 특수문자를 `_`로 바꿈. **새 화면을 만들 때 사용자 입력값을 `${...}`로 바로 넣지 말 것**
+- **firestore.rules**: 일반 사용자는 '대기' 예약만 내용 수정 가능, '확정' 예약은 `status→취소`(+`history`·`processedAt`)만 가능하고 삭제 불가. `loginUsers` 본인 문서는 허용 필드만. 공개 제출 폼은 로그인 없이 제출 가능(의도)하되 초기 상태 고정(`접수`/`대기`)·필드 수 제한. 테스트는 `tests/`
+- **firebase.json 헤더**: `nosniff`·`Referrer-Policy`·`Permissions-Policy` 전체, 관리·로그인 화면은 `X-Frame-Options: SAMEORIGIN`(공개 달력 cal-public 등은 외부 삽입 가능성 때문에 제외). CSP·App Check는 미적용(인라인 스크립트 다수, 콘솔 키 필요)
+- 콘솔에서 해야 할 것: Storage 규칙에서 `venue_requests/` 업로드 차단(큐시트 안 쓰는 중)
+
 ## 공개 페이지 개인정보 정책 (예약 원본/공개 사본 분리)
 - 원본 `reservations`(이름·연락처·이메일·메모 포함)는 **관리자와 본인만 읽기 가능** (firestore.rules)
   - 본인 = `userEmail`이 로그인 이메일과 같거나, `managerName`/`stewardName`이 로그인 계정 실명(`token.name`)과 같은 구성원 — `renderMyList()` 기준과 동일
