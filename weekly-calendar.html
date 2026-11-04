@@ -235,6 +235,38 @@
   .item-main-event { background: var(--blue-lt) !important; }
   .cat-body-5f { background: #F7F9F7; }
   .occ-week-bar { background: var(--blue-lt); }
+
+  /* 사용자용: 공간 탭 + 5층 호실별 보기 */
+  .rt-tabs { display: none; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .rt-chip { border: 1px solid var(--brand); background: #fff; color: var(--brand); border-radius: 999px; padding: 9px 20px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: inherit; }
+  .rt-chip.on { background: var(--brand); color: #fff; }
+  .rm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
+  .rm { border-top: 2px solid var(--text); padding: 14px 2px 16px; margin-top: 18px; }
+  .rm h3 { font-size: 20px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px; }
+  .rm h3 small { font-size: 12.5px; font-weight: 600; color: var(--text3); letter-spacing: 0; }
+  .tm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tm { background: var(--blue-lt); color: #2F5A43; border-radius: 10px; padding: 8px 14px; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .tm-none { color: var(--text3); font-size: 14px; padding: 8px 2px; }
+  .u-wk { width: 100%; border-collapse: collapse; min-width: 700px; table-layout: fixed; }
+  .u-wk th:first-child, .u-wk td.rn { width: 64px; }
+  .u-wk th { font-size: 12.5px; font-weight: 800; color: var(--text3); letter-spacing: .06em; text-align: center; padding: 10px 4px; border-bottom: 2px solid var(--text); }
+  .u-wk th.today { color: var(--brand); }
+  .u-wk td { border-bottom: 1px solid var(--line); border-left: 1px solid var(--line); padding: 8px 4px; vertical-align: top; text-align: center; }
+  .u-wk td.rn { border-left: 0; font-weight: 800; font-size: 15px; text-align: left; white-space: nowrap; padding-left: 2px; }
+  .u-wk .tm { display: block; margin: 0 0 4px; padding: 5px 4px; font-size: 12.5px; border-radius: 8px; }
+  .u-wk .none { color: #c3c8c3; font-size: 12px; }
+  .u-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .u-day { border-top: 2px solid var(--text); margin-top: 18px; padding: 14px 2px 14px; }
+  .u-day h3 { font-size: 18px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px; }
+  .u-day h3.today { color: var(--brand); }
+  @media (max-width: 640px) {
+    .rm-grid { grid-template-columns: 1fr; }
+    .rm.empty { padding: 12px 2px; margin-top: 10px; }
+    .rm.empty h3 { margin-bottom: 0; }
+    .rm.empty .tm-none { display: none; }
+    .rt-chip { padding: 9px 16px; font-size: 14.5px; }
+    .u-wk { min-width: 640px; }
+  }
   /* 월간 */
   .mc-wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
   .mc-dow, .mc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -304,6 +336,7 @@
       </div>
     </div>
   </div>
+  <div class="rt-tabs" id="room-tabs"></div>
 </div>
 
 <div id="blocked-banner-wrap"></div>
@@ -489,6 +522,7 @@ function render() {
   const need = viewFirstDate();
   if (need < minBound) { ensureBound(need); return; }
   renderNav();
+  renderRoomTabs();
   if (mode === 'day') renderDay();
   else if (mode === 'week') renderWeek();
   else renderMonth();
@@ -619,6 +653,60 @@ window.copyDayText = async () => {
   msg.textContent = '복사되었습니다';
 };
 
+// ── 일반 사용자용 보기: 5층 소그룹실 / 아론홀 / 샤론홀만 (지혜홀·로비·아이엠홀은 숨김) ──
+const USER_TABS = [
+  { key: '5f', label: '5층 소그룹실', rooms: FLOOR5_ROOMS },
+  { key: 'aaron', label: '아론홀', rooms: ['아론홀'] },
+  { key: 'sharon', label: '샤론홀', rooms: ['샤론홀'] },
+];
+let userTab = '5f';
+try { const t = localStorage.getItem('iamCalTab'); if (USER_TABS.some(x => x.key === t)) userTab = t; } catch (_) {}
+const curUserTab = () => USER_TABS.find(t => t.key === userTab) || USER_TABS[0];
+const inUserTab = (r) => curUserTab().rooms.includes(r.room);
+window.setUserTab = (k) => { userTab = k; try { localStorage.setItem('iamCalTab', k); } catch (_) {} render(); };
+function renderRoomTabs() {
+  const el = document.getElementById('room-tabs'); if (!el) return;
+  if (viewerIsAdmin) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = USER_TABS.map(t => `<button type="button" class="rt-chip${t.key === userTab ? ' on' : ''}" onclick="setUserTab('${t.key}')">${t.label}</button>`).join('');
+}
+const confirmedOn = (ds, rooms) => reservations
+  .filter(r => rooms.includes(r.room) && r.date === ds && r.status === '확정')
+  .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
+const timeChip = (r) => `<span class="tm">${esc(dispStart(r))}–${esc(dispEnd(r))}</span>`;
+// 일간: 5층은 호실(505~511호)마다 그 방의 예약 시간을 바로 보여줌
+function userDayHtml(ds) {
+  const tab = curUserTab();
+  if (tab.key === '5f') {
+    return `<div class="rm-grid">` + tab.rooms.map(room => {
+      const items = confirmedOn(ds, [room]);
+      return `<div class="rm${items.length ? '' : ' empty'}"><h3>${room}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
+        (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
+    }).join('') + `</div>`;
+  }
+  const items = confirmedOn(ds, tab.rooms);
+  return `<div class="rm"><h3>${tab.label}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
+    (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
+}
+// 주간: 5층은 호실×요일 표, 홀은 요일별 목록
+function userWeekHtml(start, todayS) {
+  const tab = curUserTab();
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return d; });
+  if (tab.key === '5f') {
+    const head = days.map(d => { const ds = toDateStr(d); return `<th class="${ds === todayS ? 'today' : ''}">${DOWS[d.getDay()]}<br>${d.getMonth() + 1}/${d.getDate()}</th>`; }).join('');
+    const rows = tab.rooms.map(room => `<tr><td class="rn">${room}</td>` + days.map(d => {
+      const items = confirmedOn(toDateStr(d), [room]);
+      return `<td>${items.length ? items.map(timeChip).join('') : '<span class="none">–</span>'}</td>`;
+    }).join('') + `</tr>`).join('');
+    return `<div class="u-wrap" style="margin-top:18px"><table class="u-wk"><thead><tr><th style="text-align:left">호실</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  return days.map(d => {
+    const ds = toDateStr(d); const items = confirmedOn(ds, tab.rooms);
+    return `<div class="u-day"><h3 class="${ds === todayS ? 'today' : ''}">${d.getMonth() + 1}월 ${d.getDate()}일 (${DOWS[d.getDay()]})${ds === todayS ? ' · 오늘' : ''}</h3>` +
+      (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
+  }).join('');
+}
+
 function renderDay() {
   const d     = curDate();
   const ds    = toDateStr(d);
@@ -636,6 +724,7 @@ function renderDay() {
 
   renderOccupancy(ds);
   updateDayTextBar(ds);
+  if (!viewerIsAdmin) { document.getElementById('body').innerHTML = userDayHtml(ds); return; }
 
   const html = CATS.map(cat => {
     const inCat = cat.match ? cat.match : (room) => cat.rooms.includes(room);
@@ -676,7 +765,7 @@ function renderMonth() {
   const dtBar = document.getElementById('daytext-bar'); if (dtBar) dtBar.style.display = 'none';
 
   const byDate = {};
-  reservations.forEach(r => { if (r.status === '확정' && r.date) (byDate[r.date] = byDate[r.date] || []).push(r); });
+  reservations.forEach(r => { if (r.status === '확정' && r.date && (viewerIsAdmin || inUserTab(r))) (byDate[r.date] = byDate[r.date] || []).push(r); });
   const MAXC = 3;
   let cells = '';
   for (let i = 0; i < rows * 7; i++) {
@@ -707,6 +796,7 @@ function renderWeek() {
   document.getElementById('occupancy-detail').classList.remove('open');
   const dtBar = document.getElementById('daytext-bar'); if (dtBar) dtBar.style.display = 'none';
 
+  if (!viewerIsAdmin) { document.getElementById('body').innerHTML = userWeekHtml(start, todayS); return; }
   const html = Array.from({ length: 7 }, (_, i) => {
     const d  = new Date(start); d.setDate(d.getDate() + i);
     const ds = toDateStr(d);
