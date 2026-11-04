@@ -844,8 +844,10 @@ html.show-splash{overflow:hidden}
 #iam-splash .sp-btn.main{background:#4C7660;color:#fff;border:1px solid #4C7660}
 #iam-splash .sp-btn.main:before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:#f2b705}
 #iam-splash .sp-btn.sub{background:#fff;color:#4C7660;border:1px solid #4C7660;min-height:52px;font-size:15px;font-weight:700}
+#iam-splash .sp-chg{margin-top:14px;text-align:center;font-size:13px;color:#6b6f6c;text-decoration:none;padding:10px;animation:spIn .7s .45s ease both}
+#iam-splash .sp-chg b{color:#4C7660;font-weight:700;border-bottom:1px solid #4C7660;margin-left:6px;padding-bottom:1px}
 @keyframes spIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#iam-splash,#iam-splash .sp-logo,#iam-splash .sp-txt,#iam-splash .sp-btns{animation:none;transition:none}}
+@media (prefers-reduced-motion:reduce){#iam-splash,#iam-splash .sp-logo,#iam-splash .sp-txt,#iam-splash .sp-btns,#iam-splash .sp-chg{animation:none;transition:none}}
 </style>
 <script>
 (function(){
@@ -868,6 +870,7 @@ html.show-splash{overflow:hidden}
     <a class="sp-btn main" href="guide.html">예약 신청하기</a>
     <button type="button" class="sp-btn sub" id="sp-status">예약 현황 보기</button>
   </div>
+  <a class="sp-chg" href="reservation-change.html">이미 예약하셨나요? <b>예약 변경·취소 →</b></a>
 </div>
 <script>
 (function(){

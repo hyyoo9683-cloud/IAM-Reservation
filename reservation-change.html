@@ -7,93 +7,66 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --blue:#185FA5;--blue-lt:#EBF4FF;
-  --green:#3B6D11;--green-lt:#EAF3DE;
-  --red:#A32D2D;--red-lt:#FCEBEB;
-  --border:#D4E4F4;--border2:#E8EFF7;
-  --bg:#F8FAFD;--bg2:#fff;
-  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --brand:#4C7660;--brand-lt:#E8F0EA;
+  --green:#3B6D11;--red:#A32D2D;--red-lt:#FCEBEB;
+  --ink:#2B2E2C;--text:#2B2E2C;--text2:#585A5C;--text3:#9A968E;
+  --border:#DADFDB;--line:rgba(43,46,44,.13);
   --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
-
-.header{background:var(--blue);padding:calc(env(safe-area-inset-top) + 18px) 20px 16px;text-align:center;position:relative;}
-.home-btn{position:absolute;top:calc(env(safe-area-inset-top) + 16px);left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
-.home-btn:hover{background:rgba(255,255,255,.28);}
-.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
-.header-title{font-size:20px;font-weight:800;color:#fff;}
-.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
-
-.card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
-.sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
-.field{margin-bottom:14px;}
-.lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
+body{font-family:var(--font);background:#fff;color:var(--ink);min-height:100vh;word-break:keep-all;-webkit-font-smoothing:antialiased;}
+.topbar{display:flex;align-items:center;justify-content:space-between;height:56px;padding:env(safe-area-inset-top) 24px 0;border-bottom:1px solid var(--line);box-sizing:content-box;}
+.logo-mark{display:block;height:22px;aspect-ratio:720/167;background:var(--brand);-webkit-mask:url(home/logo-iam.png) left center/contain no-repeat;mask:url(home/logo-iam.png) left center/contain no-repeat;}
+.home-btn{font-size:14px;font-weight:700;color:var(--brand);text-decoration:none;}
+.wrap{max-width:760px;margin:0 auto;padding:34px 24px 120px;}
+.eb{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--text3);}
+h1{font-size:46px;font-weight:800;letter-spacing:-.045em;line-height:1.05;margin:8px 0 8px;}
+.lead{font-size:15px;color:var(--text2);line-height:1.6;margin-bottom:22px;}
+.card{margin:0 0 6px;padding:0;}
+.sec-label{font-size:12.5px;font-weight:800;color:var(--text3);letter-spacing:.14em;margin:26px 0 10px;padding-top:12px;border-top:2px solid var(--ink);}
+.field{margin-bottom:12px;}
+.lbl{font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:6px;}
 .req-mark{color:var(--red);}
-input,select,textarea{
-  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
-  font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
-  outline:none;transition:border .15s;-webkit-appearance:none;
-}
-input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
-textarea{min-height:80px;resize:vertical;line-height:1.6;}
-.fl{display:flex;gap:10px;flex-wrap:wrap;} .fl>.field{flex:1;min-width:140px;}
-
-/* 요청 유형 칩 */
-.type-chips{display:flex;gap:10px;}
-.type-chip{flex:1;padding:14px;border-radius:10px;border:2px solid var(--border);
-  background:#fff;font-size:15px;font-weight:700;font-family:var(--font);
-  cursor:pointer;color:var(--text2);transition:all .18s;text-align:center;}
-.type-chip.sel-change{border-color:var(--blue);background:var(--blue-lt);color:var(--blue);}
-.type-chip.sel-cancel{border-color:var(--red);background:var(--red-lt);color:var(--red);}
-
-.notice{font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 12px;}
-
-.submit-btn{
-  width:calc(100% - 32px);margin:4px 16px 0;
-  padding:16px;border-radius:12px;border:none;cursor:pointer;
-  background:var(--blue);color:#fff;font-size:17px;font-weight:700;
-  font-family:var(--font);transition:filter .15s,background .15s;
-}
+input,select,textarea{width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:12px;font-size:16px;font-family:var(--font);background:#fff;color:var(--ink);outline:none;transition:border .15s;-webkit-appearance:none;appearance:none;}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%239A968E' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(76,118,96,.15);}
+textarea{min-height:96px;resize:vertical;line-height:1.6;}
+.fl{display:flex;gap:12px;flex-wrap:wrap;}.fl>.field{flex:1;min-width:150px;}
+.type-chips{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--brand);border-radius:999px;overflow:hidden;}
+.type-chip{padding:13px;border:0;background:#fff;font-size:16px;font-weight:800;font-family:var(--font);cursor:pointer;color:var(--brand);text-align:center;transition:background .15s,color .15s;}
+.type-chip.sel-change{background:var(--brand);color:#fff;}
+.type-chip.sel-cancel{background:var(--red);color:#fff;}
+.notice{font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px;background:var(--brand-lt);border-radius:12px;padding:12px 14px;}
+.submit-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:22px;padding:17px;border-radius:999px;border:0;cursor:pointer;background:var(--brand);color:#fff;font-size:17px;font-weight:800;font-family:var(--font);transition:filter .15s;}
+.submit-btn:before{content:"";width:7px;height:7px;border-radius:50%;background:#f2b705;}
 .submit-btn.is-cancel{background:var(--red);}
-.submit-btn:hover{filter:brightness(.92);}
+.submit-btn:hover{filter:brightness(.93);}
 .submit-btn:disabled{background:var(--text3);cursor:not-allowed;filter:none;}
-
-#done-wrap{display:none;padding:56px 20px;text-align:center;}
-.done-icon{font-size:56px;margin-bottom:16px;}
-.done-title{font-size:22px;font-weight:800;color:var(--green);margin-bottom:8px;}
-.done-sub{font-size:15px;color:var(--text2);line-height:1.6;}
-.done-home-btn{display:inline-block;margin-top:20px;padding:12px 26px;border-radius:10px;background:var(--blue);color:#fff;font-weight:700;text-decoration:none;font-size:14px;}
-
-.err-msg{font-size:13px;color:var(--red);margin-top:6px;display:none;padding:8px 10px;background:var(--red-lt);border-radius:7px;}
-</style>
-<style id="pc-font-boost">
-/* PC 화면 폰트 확대 (모바일은 영향 없음) */
-@media (min-width: 768px) {
-  .home-btn{font-size:14.5px !important}
-  .header-logo{font-size:14.5px !important}
-  .header-title{font-size:22.5px !important}
-  .header-sub{font-size:14.5px !important}
-  .sec-label{font-size:13.5px !important}
-  .lbl{font-size:15.5px !important}
-  input,select,textarea{font-size:17px !important}
-  .type-chip{font-size:17px !important}
-  .notice{font-size:14px !important}
-  .submit-btn{font-size:19px !important}
-  .done-icon{font-size:62.5px !important}
-  .done-title{font-size:24.5px !important}
-  .done-sub{font-size:17px !important}
-  .done-home-btn{font-size:15.5px !important}
-  .err-msg{font-size:14.5px !important}
+.err-msg{font-size:13.5px;color:var(--red);margin-top:8px;display:none;padding:10px 12px;background:var(--red-lt);border-radius:10px;}
+#done-wrap{display:none;max-width:760px;margin:0 auto;padding:90px 24px;text-align:left;}
+.done-title{font-size:38px;font-weight:800;letter-spacing:-.04em;color:var(--brand);margin:8px 0 10px;}
+.done-sub{font-size:16px;color:var(--text2);line-height:1.7;}
+.done-home-btn{display:inline-flex;align-items:center;gap:9px;margin-top:26px;padding:15px 30px;border-radius:999px;background:var(--brand);color:#fff;font-weight:800;text-decoration:none;font-size:15px;}
+@media (max-width:640px){
+  .topbar{padding-left:18px;padding-right:18px;}
+  .wrap{padding:24px 18px calc(110px + env(safe-area-inset-bottom,0px));}
+  h1{font-size:32px;}
+  .submit-btn{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:auto;margin:0;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.18);}
+  #done-wrap{padding:60px 18px;}
+  .done-title{font-size:30px;}
 }
 </style>
 </head>
 <body>
 
-<div class="header">
+<div class="topbar">
+  <span class="logo-mark" role="img" aria-label="IAM"></span>
   <a class="home-btn" href="index.html">← 홈으로</a>
-  <div class="header-logo">IAM CENTER</div>
-  <div class="header-title">예약 변경·취소 신청</div>
 </div>
+
+<div class="wrap">
+<div class="eb">CHANGE · CANCEL</div>
+<h1>예약 변경·취소</h1>
+<p class="lead">예약 담당자가 아니어도 신청할 수 있어요. 로그인은 필요 없습니다.</p>
 
 <div id="form-wrap">
 
@@ -101,10 +74,10 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     <div class="notice">
       접수 후 담당자가 확인하여 처리하며, 처리가 완료되면 문자 또는 카카오톡으로 안내드립니다.
     </div>
-    <div class="sec-label">요청 유형</div>
+    <div class="sec-label" style="margin-top:14px">요청 유형</div>
     <div class="type-chips" id="type-chips">
-      <button type="button" class="type-chip sel-change" id="chip-change" onclick="selectType('변경')">✏️ 예약 변경</button>
-      <button type="button" class="type-chip" id="chip-cancel" onclick="selectType('취소')">✕ 예약 취소</button>
+      <button type="button" class="type-chip sel-change" id="chip-change" onclick="selectType('변경')">변경</button>
+      <button type="button" class="type-chip" id="chip-cancel" onclick="selectType('취소')">취소</button>
     </div>
   </div>
 
@@ -139,7 +112,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
       <div class="field"><div class="lbl">종료 시간</div>
         <select id="f-end"></select></div>
     </div>
-    <div class="field"><div class="lbl">모임명</div>
+    <div class="field"><div class="lbl">모임명 <span style="font-weight:400;color:var(--text3)">(선택)</span></div>
       <input id="f-purpose" placeholder="예약 시 등록한 모임명"></div>
   </div>
 
@@ -150,7 +123,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
     </div>
   </div>
 
-  <div class="card" style="margin-bottom:12px">
+  <div class="card">
     <div class="sec-label">신청자 정보 <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(예약 담당자가 아니어도 됩니다)</span></div>
     <div class="fl">
       <div class="field"><div class="lbl">신청자 이름 <span class="req-mark">*</span></div>
@@ -164,9 +137,10 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
   <button class="submit-btn" id="submit-btn" onclick="submitRequest()">신청서 제출하기</button>
 
 </div><!-- /form-wrap -->
+</div><!-- /wrap -->
 
 <div id="done-wrap">
-  <div class="done-icon">✅</div>
+  <div class="eb">DONE</div>
   <div class="done-title" id="done-title">신청 완료!</div>
   <div class="done-sub">접수해 주셔서 감사합니다.<br>확인 후 문자 또는 카카오톡으로 안내드리겠습니다.</div>
   <a class="done-home-btn" href="index.html">홈으로 돌아가기</a>
@@ -281,8 +255,9 @@ window.submitRequest = async () => {
   try {
     await addDoc(collection(db, 'changeRequests'), data);
     document.getElementById('done-title').textContent = curType === '취소' ? '취소 신청 완료!' : '변경 신청 완료!';
-    document.getElementById('form-wrap').style.display = 'none';
+    document.querySelector('.wrap').style.display = 'none';
     document.getElementById('done-wrap').style.display = 'block';
+    window.scrollTo(0, 0);
   } catch (e) {
     showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     btn.disabled = false; btn.textContent = curType === '취소' ? '취소 신청서 제출하기' : '변경 신청서 제출하기';
