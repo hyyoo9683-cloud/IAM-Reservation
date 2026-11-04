@@ -10809,7 +10809,8 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   #ap-cta #ap-next:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#f2b705;margin-right:9px}
   #p-apply[data-apstep="3"] #ap-cta{display:none}
 }
-@media (max-width:640px){body.on-apply #tabbar{display:none}}
+/* 신청 화면에서도 하단 탭은 그대로 두고, 이전/다음 바를 그 위에 얹음 */
+@media (max-width:640px){#p-apply{padding-bottom:calc(170px + env(safe-area-inset-bottom,0px))}#ap-cta{bottom:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:12px}}
 @media (max-width:640px){
   #appnav{display:none}
   body.has-appnav .topbar{min-height:48px;padding-top:max(10px,env(safe-area-inset-top)) !important}
