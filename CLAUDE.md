@@ -55,6 +55,9 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 - **아이엠센터 홈페이지(`iamcenter.web.app`)는 아직 공개 전 — 예약 시스템에서 그쪽으로 링크하거나 옛 페이지를 이동시키지 말 것.** (한 번 소개·FAQ·대관 신청 페이지를 정리하며 연결했다가 되돌림. 공개되면 그때 `about`·`faq`·`venue-apply`·`venue-spaces`를 정리)
 - 이 앱의 문구는 **'-(니)다'체**로 통일 — 해요체('-요') 금지(사용자·관리자에게 보이는 안내·오류·버튼·안내 문자 템플릿 모두). 단 `home/`(아이엠센터 홈페이지)는 별도라 제외. Firestore에 저장된 FAQ·공지 본문은 관리자가 직접 고쳐야 반영됨(코드는 기본값만 바뀜)
 
+## 이미지 파일 분리 (2026-11-04)
+index/portal/weekly-calendar에 base64로 박혀 있던 로고·아이콘을 `img/`로 뺌 — `img/app-icon.png`(앱 아이콘), `img/app-icon-cal.png`(캘린더), `img/logo-dark.png`(진회색 로고, 사이드바·로그인·인트라넷), `img/logo-light.png`(흰색 로고, 소개·FAQ 머리). 새 이미지는 base64로 넣지 말고 `img/`에 파일로 둘 것(index.html이 835KB→약 600KB)
+
 ## 모바일 시작 화면 (index.html `#iam-splash`, 2026-11-04)
 **모바일(폭 768px 이하)로 처음 들어올 때** 흰 배경에 로고(`home/logo-iam.png`를 CSS mask로 초록 `#4C7660`으로 칠함) + 작은 글씨 "IAM 공간예약", 아래에 큰 버튼 "예약 신청하기"(초록 채움+노란 점 → `guide.html` 이용 안내·동의 게이트를 거쳐 신청 폼으로 — 앱의 기존 "예약 신청" 진입과 같은 경로)·"예약 현황 보기"(테두리 버튼, 누르면 화면이 닫히고 홈), 맨 아래 작은 링크 "이미 예약하셨나요? 예약 변경·취소 →"(`reservation-change.html`). 큰 버튼은 2개만 둠 — "예약은 처음이신가요?" 링크는 신청 버튼이 이미 guide로 가서 뺌. **자동으로 넘어가지 않고 버튼을 눌러야만** 다음 화면으로 감. 세션당 1회(sessionStorage `iamSplashSeen`)라 새로고침·화면 이동·안내 페이지에서 "← 홈으로"로 돌아올 때는 안 뜸. PC, `?apply=`·`?page=` 딥링크는 건너뜀(PC에도 보이려면 맨 위 스크립트의 `mobile` 조건만 바꾸면 됨). 로고 파일이 `home/`에 있어서 이 폴더 배포가 빠지면 글씨만 보임. 브랜드 초록은 `#4C7660`(진한 `#3B5A47`과 연한 `#5E9276`의 중간, 리디자인 기준).
 
@@ -388,16 +391,10 @@ hourly의 `dates[]`와 전혀 달라 **항상 단독 선택으로 강제**됨(�
 - `onVenueRequestCreated`(`venue_requests` onCreate): `venue-apply.html` 제출 시
 - 수신 주소: `ADMIN_NOTIFY_EMAIL` 환경변수, 없으면 주 관리자 이메일(`ADMIN_EMAILS[0]`)로 감
 - `emailLogs`로 멱등 처리되는 것은 승인 메일과 동일(`eventKey` 접두사만 `reservation_..._new_`/`changereq_..._new_`/`venuereq_..._new_`로 구분)
-- **정기·비정기 예약은 신청 단위로 알림 한 번**(2026-11-04): 신청 한 번에 회차(·공간)마다 문서가 생기므로 `onReservationCreated`는 `recurGroup`이 있으면 `reservation_group_<그룹>_lock`(emailLogs)을 먼저 잡은 문서 하나만 알림을 맡고 나머지는 종료 — 잡은 문서가 `collectSettledGroup()`으로 문서 수가 4초 간격 2회 연속 같을 때까지(최대 약 48초, 트리거 `timeoutSeconds: 120`) 기다려 전부 읽은 뒤 `summarizeReservationGroup()`으로 합쳐 "정기 N회, 첫날~마지막날" 형태로 이메일·카카오·문자·푸시 모두 보냄. 복수 실 예약은 recurGroup이 없으면 실마다 따로 알림(범위 제한). 승인 메일(`onReservationUpdated`)은 여전히 회차별(시리즈 단위 묶음 미구현)
-- **알림 채널은 3개가 서로 독립**(`notifyAdmin()`): 이메일(Resend), 카카오톡 "나에게 보내기"(`lib/kakaoClient.js`,
-  `kakao-auth.html`에서 1회 연동 — 알림음 없음), 문자(알리고, `lib/smsClient.js`). 한 채널 실패가 다른 채널에 영향 없고,
-  채널마다 `emailLogs`에 `<eventKey>_kakao`/`_sms` 키로 따로 멱등 처리됨
-- **웹 푸시(FCM)**: `push.html`(관리자 전용, 아이폰은 홈 화면에 추가한 아이콘으로 열어야 함 — `push.webmanifest`·`push-icon.png`)에서 기기별로 "알림 켜기" → 기기 토큰이 `adminPushTokens`에 저장됨(`registerAdminPushToken`/`unregisterAdminPushToken` 콜러블, Admin SDK 전용이라 rules 없음). `notifyAdmin()`이 카카오 문구(`kakaoText`)를 제목+본문으로 나눠 `sendPushToAdmins()`(`functions/lib/pushClient.js`)로 발송하고 `<eventKey>_push` 키로 멱등 처리, 켠 기기가 없으면 `skipped`로 기록. 서비스 워커는 사이트 루트 `firebase-messaging-sw.js`(위치 고정). `push.html`의 `FCM_VAPID_KEY`는 비워 두면 Firebase 기본 키를 쓰며, 알림을 켤 때 오류가 나면 콘솔(프로젝트 설정 > Cloud Messaging > 웹 푸시 인증서)에서 키 쌍을 만들어 붙여 넣을 것. 카카오 알림은 알림음이 없어서 푸시가 정착하면 보조 채널로 둠
-- **문자(SMS)**: `ALIGO_KEY`·`ALIGO_USER_ID`·`ALIGO_SENDER`(사전 등록한 발신번호)·`ADMIN_NOTIFY_PHONE`(받을 번호)
-  GitHub Secret이 **모두** 있을 때만 발송(없으면 조용히 건너뜀). 90바이트(한글 약 45자) 이하는 SMS, 넘으면 LMS(요금↑)로
-  자동 전환. 알리고는 **호출 서버 IP를 미리 등록**해야 해서 고정 IP가 없는 Cloud Functions에서는 인증 오류가 날 수 있음 —
-  `kakao-auth.html`의 "테스트 문자 보내기"(`sendTestSmsMessage`, 실제 1건 발송·요금 발생)로 확인하고, 막히면 고정 IP
-  (VPC 커넥터+Cloud NAT) 또는 IP 제한 없는 다른 문자 업체를 검토
+- **정기·비정기 예약은 신청 단위로 알림 한 번**(2026-11-04): 신청 한 번에 회차(·공간)마다 문서가 생기므로 `onReservationCreated`는 `recurGroup`이 있으면 `reservation_group_<그룹>_lock`(emailLogs)을 먼저 잡은 문서 하나만 알림을 맡고 나머지는 종료 — 잡은 문서가 `collectSettledGroup()`으로 문서 수가 4초 간격 2회 연속 같을 때까지(최대 약 48초, 트리거 `timeoutSeconds: 120`) 기다려 전부 읽은 뒤 `summarizeReservationGroup()`으로 합쳐 "정기 N회, 첫날~마지막날" 형태로 이메일·푸시 모두 보냄. 복수 실 예약은 recurGroup이 없으면 실마다 따로 알림(범위 제한). 승인 메일(`onReservationUpdated`)은 여전히 회차별(시리즈 단위 묶음 미구현)
+- **알림 채널은 2개(이메일·웹 푸시)가 서로 독립**(`notifyAdmin()`): 이메일(Resend)과 웹 푸시(FCM). 카카오톡 "나에게 보내기"·문자(알리고)는 서비스 중단으로 **2026-11-04 코드·화면·함수를 삭제**함(`kakao-auth*.html`·`lib/kakaoClient.js`·`lib/smsClient.js`·관련 callable). 채널마다 `emailLogs`에 `<eventKey>`(메일)/`<eventKey>_push` 키로 따로 멱등 처리. (배포 워크플로우에는 `KAKAO_*`·`ALIGO_*`·`ADMIN_NOTIFY_PHONE` 시크릿을 `.env`로 쓰는 줄이 남아 있으나 값이 없으면 건너뛰므로 무해 — 워크플로 파일은 토큰 권한상 이번에 안 건드림)
+- **알림 설정 페이지**: `push.html`(관리자 전용, 드로어 '기타 관리 > 알림 설정') 하나 — 기기별 웹 푸시 켜기·테스트 알림·테스트 메일(`sendTestAdminEmail`)
+- **웹 푸시(FCM)**: `push.html`(아이폰은 홈 화면에 추가한 아이콘으로 열어야 함 — `push.webmanifest`·`push-icon.png`)에서 기기별로 "알림 켜기" → 기기 토큰이 `adminPushTokens`에 저장됨(`registerAdminPushToken`/`unregisterAdminPushToken` 콜러블, Admin SDK 전용이라 rules 없음). `notifyAdmin()`이 신청 알림 문구(`pushText`)를 제목+본문으로 나눠 `sendPushToAdmins()`(`functions/lib/pushClient.js`)로 발송, 켠 기기가 없으면 `skipped`로 기록. 서비스 워커는 사이트 루트 `firebase-messaging-sw.js`(위치 고정). `push.html`의 `FCM_VAPID_KEY`는 비워 두면 Firebase 기본 키를 씀
 
 ### 보안 강화 (2026-11-04)
 - **저장형 XSS 방어**: 공개 폼(`checkouts`·`changeRequests`·`venue_requests`)과 구성원이 쓰는 예약 필드는 관리자 화면에서 템플릿 문자열로 그려지므로, 값을 HTML에 넣을 때는 반드시 `esc()`(& < > " ' 이스케이프, 모든 HTML 페이지 상단에 `window.esc` 정의), inline 이벤트 핸들러 `'...'` 안에 넣을 때는 `jsq()`를 씀. 예약 문서를 읽어 들일 때는 `resDoc()`이 `recurGroup`의 특수문자를 `_`로 바꿈. **새 화면을 만들 때 사용자 입력값을 `${...}`로 바로 넣지 말 것**

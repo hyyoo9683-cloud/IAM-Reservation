@@ -66,9 +66,9 @@ async function sendPushToAdmins({ title, body, link }) {
 }
 
 // "[새 예약 신청]\n505호 · …\n신청자: …" 형식의 카카오 문구를 제목(첫 줄)+본문으로 나눔
-function splitKakaoText(text) {
+function splitPushText(text) {
   const lines = String(text || '').split('\n');
   return { title: lines[0] || '아이엠센터 알림', body: lines.slice(1).join('\n') || ' ' };
 }
 
-module.exports = { savePushToken, removePushToken, countPushTokens, sendPushToAdmins, splitKakaoText };
+module.exports = { savePushToken, removePushToken, countPushTokens, sendPushToAdmins, splitPushText };

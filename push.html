@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>웹 푸시 알림 — IAM 인트라넷</title>
+<title>알림 설정 — IAM 인트라넷</title>
 <link rel="manifest" href="/push.webmanifest">
 <link rel="apple-touch-icon" href="/push-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -61,7 +61,7 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
   <div class="login-card">
     <div class="login-emblem">🔔</div>
     <div class="login-title">IAM 인트라넷</div>
-    <div class="login-sub">관리자 전용 — 웹 푸시 알림</div>
+    <div class="login-sub">관리자 전용 — 알림 설정</div>
     <button class="login-btn" onclick="doLogin()">Google 계정으로 로그인</button>
     <div id="login-error" class="login-error"></div>
   </div>
@@ -69,12 +69,15 @@ body{font-family:var(--font);background:var(--bg2);color:var(--text);min-height:
 
 <div id="app-wrap">
   <div class="card">
-    <h1>🔔 웹 푸시 알림</h1>
+    <h1>🔔 알림 설정</h1>
     <div class="sub">새 예약·변경취소·대관 신청이 들어오면 이 기기에 알림(소리·진동)을 보냅니다. 알림을 받을 기기마다 한 번씩 켜 주시기 바랍니다.</div>
     <div id="status" class="status">확인 중…</div>
     <button class="btn" id="toggle-btn" onclick="toggleNotify()" disabled>알림 켜기</button>
     <button class="btn sec" id="test-btn" onclick="sendTest()" style="display:none">테스트 알림 보내기</button>
     <div id="result"></div>
+    <div class="sub" style="margin-top:22px">신청 알림 메일(이메일)이 정상적으로 도착하는지 확인합니다.</div>
+    <button class="btn sec" id="test-mail-btn" onclick="sendTestMail()" style="display:block">테스트 메일 보내기</button>
+    <div id="test-mail-result"></div>
     <div class="help">
       <b>안드로이드</b>: 크롬에서 이 페이지를 열고 "알림 켜기" → 허용.<br>
       <b>아이폰</b>: <b>사파리</b>로 이 페이지를 열고 공유 버튼 → <b>"홈 화면에 추가"</b> → 홈 화면에 생긴 <b>"IAM 알림" 아이콘으로 다시 열어서</b> 알림 켜기 (iOS 16.4 이상).<br>
@@ -246,6 +249,22 @@ onAuthStateChanged(auth, async user => {
   $('app-wrap').style.display = 'flex';
   await refresh();
 });
+
+window.sendTestMail = async () => {
+  const btn = document.getElementById('test-mail-btn');
+  const resultEl = document.getElementById('test-mail-result');
+  btn.disabled = true; btn.textContent = '보내는 중…';
+  resultEl.innerHTML = '';
+  try {
+    const { data } = await httpsCallable(fns, 'sendTestAdminEmail')();
+    resultEl.innerHTML = `<span style="color:#3B6D11;font-weight:600">✓ ${data.to} 로 발송했습니다. 메일함(스팸함 포함)을 확인해 주시기 바랍니다.</span>`;
+  } catch (e) {
+    console.error(e);
+    resultEl.innerHTML = `<span style="color:#A32D2D;font-weight:600">✗ ${(e.message || e)}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '테스트 메일 보내기';
+  }
+};
 </script>
 </body>
 </html>

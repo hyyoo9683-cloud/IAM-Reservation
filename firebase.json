@@ -61,7 +61,7 @@
           ]
         },
         {
-          "source": "**/@(index|portal|notice|venue|quotation|checkouts|event-checklist|checklist-view|manager-checklist|push|kakao-auth|kakao-auth-callback).html",
+          "source": "**/@(index|portal|notice|venue|quotation|checkouts|event-checklist|checklist-view|manager-checklist|push).html",
           "headers": [
             {
               "key": "X-Frame-Options",

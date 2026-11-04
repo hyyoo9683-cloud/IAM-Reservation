@@ -157,7 +157,7 @@ function renderVenueRequestEmail(r) {
 }
 
 // 카카오톡 "나에게 보내기"용 — object_type: 'text' 템플릿은 길이 제한이 있어 짧게만 요약
-function renderNewReservationKakaoText(r) {
+function renderNewReservationPushText(r) {
   const manager = r.managerName || r.stewardName || '신청자';
   const time = isSeries(r) && !r.seriesTimesUniform ? '' : ` ${formatTimeRange(r.start, r.end)}`;
   const when = isSeries(r) ? seriesLabel(r) : formatKoreanDate(r.date);
@@ -165,48 +165,20 @@ function renderNewReservationKakaoText(r) {
   return { text, linkUrl: BASE_URL };
 }
 
-function renderChangeRequestKakaoText(r) {
+function renderChangeRequestPushText(r) {
   const isCancel = r.requestType === '취소';
   const text = `[예약 ${isCancel ? '취소' : '변경'} 신청]\n${r.room || ''} · ${formatKoreanDate(r.date)}\n신청자: ${r.requesterName || '-'}`;
   return { text, linkUrl: BASE_URL };
 }
 
-function renderVenueRequestKakaoText(r) {
+function renderVenueRequestPushText(r) {
   const spaceLabel = (r.spaces && r.spaces.length ? r.spaces : [r.space]).filter(Boolean).join(', ');
   const text = `[대관 신청]\n${spaceLabel || '공간 미정'} · ${r.orgName || '-'}\n담당자: ${r.managerName || '-'}`;
   return { text, linkUrl: `${BASE_URL}/venue.html` };
 }
 
-// 문자(SMS)용 — 90바이트(한글 약 45자) 안쪽이면 단문이라 요금이 싸서 날짜·시간을 줄여서 씀
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-function shortDate(dateStr) {
-  const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return dateStr || '';
-  const dow = WEEKDAYS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
-  return `${+m[2]}/${+m[3]}(${dow})`;
-}
-
-function renderNewReservationSmsText(r) {
-  const manager = r.managerName || r.stewardName || '신청자';
-  if (isSeries(r)) {
-    return `[아이엠센터] 새 예약신청\n${r.room || ''} ${shortDate(r.seriesFirstDate)}~${shortDate(r.seriesLastDate)} ${r.seriesDateCount}회\n${manager}`;
-  }
-  return `[아이엠센터] 새 예약신청\n${r.room || ''} ${shortDate(r.date)} ${r.start || ''}~${r.end || ''}\n${manager}`;
-}
-
-function renderChangeRequestSmsText(r) {
-  const kind = r.requestType === '취소' ? '취소' : '변경';
-  return `[아이엠센터] 예약${kind} 신청\n${r.room || ''} ${shortDate(r.date)}\n${r.requesterName || '-'}`;
-}
-
-function renderVenueRequestSmsText(r) {
-  const spaceLabel = (r.spaces && r.spaces.length ? r.spaces : [r.space]).filter(Boolean).join(',');
-  return `[아이엠센터] 대관 신청\n${spaceLabel || '공간 미정'} ${r.orgName || '-'}\n${r.managerName || '-'}`;
-}
-
 module.exports = {
   summarizeReservationGroup,
   renderNewReservationEmail, renderChangeRequestEmail, renderVenueRequestEmail,
-  renderNewReservationKakaoText, renderChangeRequestKakaoText, renderVenueRequestKakaoText,
-  renderNewReservationSmsText, renderChangeRequestSmsText, renderVenueRequestSmsText,
+  renderNewReservationPushText, renderChangeRequestPushText, renderVenueRequestPushText,
 };
