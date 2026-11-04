@@ -1,140 +1,102 @@
 <!DOCTYPE html>
 <html lang="ko"><head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>퇴실 체크리스트 — 아이엠센터</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --blue:#185FA5;--blue-lt:#EBF4FF;
-  --green:#3B6D11;--green-lt:#EAF3DE;
-  --red:#A32D2D;--red-lt:#FCEBEB;
-  --border:#D4E4F4;--border2:#E8EFF7;
-  --bg:#F8FAFD;--bg2:#fff;
-  --text:#1A2533;--text2:#4A6078;--text3:#8AA3BC;
+  --brand:#4C7660;--brand-lt:#E8F0EA;
+  --green:#3B6D11;--red:#A32D2D;--red-lt:#FCEBEB;
+  --ink:#2B2E2C;--text:#2B2E2C;--text2:#585A5C;--text3:#9A968E;
+  --border:#DADFDB;--line:rgba(43,46,44,.13);
   --font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
 }
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 48px;}
-
-/* 헤더 */
-.header{background:var(--blue);padding:18px 20px 16px;text-align:center;position:relative;}
-.home-btn{position:absolute;top:16px;left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.16);color:#fff;font-weight:800;font-size:13px;padding:7px 14px;border-radius:999px;border:none;cursor:pointer;font-family:inherit;text-decoration:none;transition:background .15s;}
-.home-btn:hover{background:rgba(255,255,255,.28);}
-.header-logo{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px;margin-bottom:4px;}
-.header-title{font-size:20px;font-weight:800;color:#fff;}
-.header-sub{font-size:13px;color:rgba(255,255,255,.75);margin-top:4px;}
-
-/* 카드 */
-.card{background:var(--bg2);border-radius:14px;padding:22px 20px;margin:16px;box-shadow:0 2px 12px rgba(24,95,165,.07);}
-.sec-label{font-size:12px;font-weight:700;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
-.sec-note{font-size:13px;color:var(--red);background:var(--red-lt);border-radius:8px;padding:10px 12px;margin-bottom:14px;line-height:1.5;}
-.field{margin-bottom:14px;}
-.lbl{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:6px;}
-.lbl-help{font-size:12.5px;color:var(--text3);margin-bottom:8px;line-height:1.5;}
-input,select,textarea{
-  width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;
-  font-size:15px;font-family:var(--font);background:#fff;color:var(--text);
-  outline:none;transition:border .15s;-webkit-appearance:none;
-}
-input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1);}
-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238AA3BC' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 14px center;padding-right:36px;}
+body{font-family:var(--font);background:#fff;color:var(--ink);min-height:100vh;word-break:keep-all;-webkit-font-smoothing:antialiased;}
+.topbar{display:flex;align-items:center;justify-content:space-between;height:56px;padding:env(safe-area-inset-top) 24px 0;border-bottom:1px solid var(--line);box-sizing:content-box;}
+.logo-mark{display:block;height:22px;aspect-ratio:720/167;background:var(--brand);-webkit-mask:url(home/logo-iam.png) left center/contain no-repeat;mask:url(home/logo-iam.png) left center/contain no-repeat;}
+.home-btn{font-size:14px;font-weight:700;color:var(--brand);text-decoration:none;}
+.wrap{max-width:760px;margin:0 auto;padding:34px 24px 120px;}
+.eb{font-size:12px;font-weight:700;letter-spacing:.2em;color:var(--text3);}
+h1{font-size:46px;font-weight:800;letter-spacing:-.045em;line-height:1.05;margin:8px 0 8px;}
+.lead{font-size:15px;color:var(--text2);line-height:1.6;margin-bottom:10px;}
+.card{margin:0 0 6px;padding:0;}
+.sec-label{font-size:12.5px;font-weight:800;color:var(--text3);letter-spacing:.14em;margin:28px 0 10px;padding-top:12px;border-top:2px solid var(--ink);display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.sec-label em{font-style:normal;letter-spacing:0;font-size:13px;color:var(--brand);font-weight:800;}
+.field{margin-bottom:12px;}
+.lbl{font-size:13.5px;font-weight:700;color:var(--text2);margin-bottom:6px;}
+.lbl-help{font-size:13.5px;color:var(--text2);margin-bottom:12px;line-height:1.6;}
+input,select,textarea{width:100%;padding:13px 15px;border:1px solid var(--border);border-radius:12px;font-size:16px;font-family:var(--font);background:#fff;color:var(--ink);outline:none;transition:border .15s;-webkit-appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(76,118,96,.15);}
+textarea{min-height:96px;resize:vertical;line-height:1.6;}
+.fl{display:flex;gap:12px;flex-wrap:wrap;}.fl>.field{flex:1;min-width:200px;}
 
 /* 체크리스트 */
-.checklist{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
-.check-item{display:flex;align-items:center;gap:14px;padding:14px 16px;
-  border:1.5px solid var(--border2);border-radius:11px;cursor:pointer;
-  transition:all .15s;user-select:none;background:#fff;}
-.check-item:has(.chk-input:checked){border-color:var(--green);background:var(--green-lt);}
-/* 실제 input 숨기고 커스텀 박스 사용 */
+.checklist{display:flex;flex-direction:column;border-top:1px solid var(--line);}
+.check-item{display:flex;align-items:center;gap:16px;padding:18px 4px;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .15s;}
+.check-item:has(.chk-input:checked){background:var(--brand-lt);}
 .chk-input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
-.chk-box{
-  width:24px;height:24px;flex-shrink:0;border-radius:7px;
-  border:2px solid var(--border);background:#fff;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;font-size:15px;line-height:1;
-}
-.chk-input:checked ~ .chk-box{background:var(--green);border-color:var(--green);color:#fff;}
-.chk-input:checked ~ .chk-box::after{content:'✓';font-size:15px;font-weight:700;color:#fff;}
-.check-text{font-size:15px;color:var(--text);line-height:1.45;flex:1;}
+.chk-box{width:30px;height:30px;flex-shrink:0;border-radius:50%;border:2px solid #BFC8C2;background:#fff;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.chk-input:checked ~ .chk-box{background:var(--brand);border-color:var(--brand);}
+.chk-input:checked ~ .chk-box::after{content:'✓';font-size:17px;font-weight:800;color:#fff;line-height:1;}
+.chk-input:focus-visible ~ .chk-box{box-shadow:0 0 0 3px rgba(76,118,96,.25);}
+.check-text{font-size:17px;font-weight:600;color:var(--ink);line-height:1.5;flex:1;}
 
-/* 특이사항 */
-textarea{min-height:90px;resize:vertical;line-height:1.6;}
-
-/* 제출 버튼 */
-.submit-btn{
-  width:calc(100% - 32px);margin:4px 16px 0;
-  padding:16px;border-radius:12px;border:none;cursor:pointer;
-  background:var(--blue);color:#fff;font-size:17px;font-weight:700;
-  font-family:var(--font);transition:filter .15s;
-}
-.submit-btn:hover{filter:brightness(.92);}
+.submit-btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;margin-top:26px;padding:17px;border-radius:999px;border:0;cursor:pointer;background:var(--brand);color:#fff;font-size:17px;font-weight:800;font-family:var(--font);}
+.submit-btn:before{content:"";width:7px;height:7px;border-radius:50%;background:#f2b705;}
+.submit-btn:hover{filter:brightness(.93);}
 .submit-btn:disabled{background:var(--text3);cursor:not-allowed;filter:none;}
+.err-msg{font-size:13.5px;color:var(--red);margin-top:8px;display:none;padding:10px 12px;background:var(--red-lt);border-radius:10px;}
 
-/* 완료 화면 */
-#done-wrap{display:none;padding:48px 20px;text-align:center;}
-.done-icon{font-size:56px;margin-bottom:16px;}
-.done-title{font-size:22px;font-weight:800;color:var(--green);margin-bottom:8px;}
-.done-sub{font-size:15px;color:var(--text2);line-height:1.6;}
-
-/* 에러 */
-.err-msg{font-size:13px;color:var(--red);margin-top:6px;display:none;padding:8px 10px;background:var(--red-lt);border-radius:7px;}
-
-/* QR 코드 */
-.qr-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px;}
-.qr-img{width:150px;height:150px;padding:10px;background:#fff;border:1px solid var(--border2);border-radius:12px;}
-.qr-link{font-size:13px;font-weight:600;color:var(--blue);text-decoration:none;}
+.qr-box{display:flex;align-items:center;gap:20px;padding:16px 0 4px;}
+.qr-img{width:112px;height:112px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:12px;flex-shrink:0;}
+.qr-link{font-size:14px;font-weight:800;color:var(--brand);text-decoration:none;line-height:1.5;}
 .qr-link:hover{text-decoration:underline;}
-</style>
-<style id="pc-font-boost">
-/* PC 화면 폰트 확대 (모바일은 영향 없음) */
-@media (min-width: 768px) {
-  .home-btn{font-size:14.5px !important}
-  .header-logo{font-size:14.5px !important}
-  .header-title{font-size:22.5px !important}
-  .header-sub{font-size:14.5px !important}
-  .sec-label{font-size:13.5px !important}
-  .sec-note{font-size:14px !important}
-  .lbl{font-size:15.5px !important}
-  .lbl-help{font-size:13.5px !important}
-  input,select,textarea{font-size:17px !important}
-  .chk-box{font-size:17px !important}
-  .chk-input:checked ~ .chk-box::after{font-size:17px !important}
-  .check-text{font-size:17px !important}
-  .submit-btn{font-size:19px !important}
-  .done-icon{font-size:62.5px !important}
-  .done-title{font-size:24.5px !important}
-  .done-sub{font-size:17px !important}
-  .err-msg{font-size:14.5px !important}
+
+#done-wrap{display:none;max-width:760px;margin:0 auto;padding:90px 24px;text-align:left;}
+.done-title{font-size:38px;font-weight:800;letter-spacing:-.04em;color:var(--brand);margin:8px 0 10px;}
+.done-sub{font-size:16px;color:var(--text2);line-height:1.7;}
+.done-home-btn{display:inline-flex;align-items:center;gap:9px;margin-top:26px;padding:15px 30px;border-radius:999px;background:var(--brand);color:#fff;font-weight:800;text-decoration:none;font-size:15px;}
+.done-home-btn:before{content:"";width:7px;height:7px;border-radius:50%;background:#f2b705;}
+@media (max-width:640px){
+  .topbar{padding-left:18px;padding-right:18px;}
+  .wrap{padding:24px 18px calc(110px + env(safe-area-inset-bottom,0px));}
+  h1{font-size:32px;}
+  .check-text{font-size:16px;}
+  .submit-btn{position:fixed;left:16px;right:16px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:auto;margin:0;z-index:20;box-shadow:0 6px 20px rgba(0,0,0,.18);}
+  .qr-img{width:96px;height:96px;}
+  #done-wrap{padding:60px 18px;}
+  .done-title{font-size:30px;}
 }
 </style>
 </head>
 <body>
 
-<div class="header">
+<div class="topbar">
+  <span class="logo-mark" role="img" aria-label="IAM"></span>
   <a class="home-btn" href="index.html">← 홈으로</a>
-  <div class="header-logo">IAM CENTER</div>
-  <div class="header-title">청지기 퇴실 체크리스트</div>
-  <div class="header-sub">이용 후 아래 항목을 확인하고 제출해 주시기 바랍니다</div>
 </div>
+
+<div class="wrap">
+<div class="eb">CHECK-OUT</div>
+<h1>퇴실 체크리스트</h1>
+<p class="lead">이용 후 아래 항목을 확인하고 제출해 주시기 바랍니다.</p>
 
 <div id="form-wrap">
 
   <div class="card">
     <div class="sec-label">청지기 정보</div>
-    <div class="field">
-      <div class="lbl">청지기명</div>
-      <div class="lbl-help">장소 실제 사용자를 '청지기'라고 호칭합니다.</div>
-      <input id="co-name" type="text" placeholder="청지기 이름">
-    </div>
-    <div class="field" style="margin-bottom:0">
-      <div class="lbl">청지기 연락처</div>
-      <input id="co-contact" type="tel" placeholder="ex) 010-0000-0000">
+    <div class="lbl-help">장소 실제 사용자를 '청지기'라고 호칭합니다.</div>
+    <div class="fl">
+      <div class="field"><div class="lbl">청지기명</div>
+        <input id="co-name" type="text" placeholder="청지기 이름" autocomplete="name"></div>
+      <div class="field"><div class="lbl">청지기 연락처</div>
+        <input id="co-contact" type="tel" placeholder="ex) 010-0000-0000" autocomplete="tel"></div>
     </div>
   </div>
 
   <div class="card">
-    <div class="sec-label">퇴실 시 확인 후 표시해 주시기 바랍니다</div>
+    <div class="sec-label">퇴실 시 확인<em id="chk-count">0 / 4 확인</em></div>
     <div class="checklist">
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="power">
@@ -160,25 +122,23 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
   </div>
 
   <div class="card">
-    <div class="sec-label">장소 이용에 만족하셨던 점?</div>
-    <div class="lbl-help">청지님의 격려로 인해 IAM 센터는 더욱 빛날 것입니다. 소중한 의견 감사합니다.</div>
-    <textarea id="co-good" placeholder="내 답변"></textarea>
+    <div class="sec-label">만족하셨던 점</div>
+    <div class="lbl-help">청지기님의 격려로 인해 IAM 센터는 더욱 빛날 것입니다. 소중한 의견 감사합니다.</div>
+    <textarea id="co-good" placeholder="장소 이용에 만족하셨던 점 (선택)"></textarea>
   </div>
 
   <div class="card">
-    <div class="sec-label">장소 이용에 불편하셨던 점?</div>
+    <div class="sec-label">불편하셨던 점</div>
     <div class="lbl-help">청지기님의 의견으로 인해 IAM 센터가 한 걸음 더 나아갑니다. 소중한 의견 감사합니다.</div>
-    <textarea id="co-bad" placeholder="내 답변"></textarea>
+    <textarea id="co-bad" placeholder="장소 이용에 불편하셨던 점 (선택)"></textarea>
   </div>
 
-  <div class="card" style="margin-bottom:12px">
+  <div class="card">
     <div class="sec-label">퇴실 시 사진 전송</div>
-    <div class="lbl-help">* 퇴실 시 사진을 카카오채널(ID 아이엠센터)로 전송 부탁드립니다.</div>
-    <div class="qr-wrap">
-      <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener">
-        <img class="qr-img" alt="카카오톡 채널 QR코드" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAUoAAAFKAQAAAABTUiuoAAACZklEQVR4nO2bQWrkMBBFX0WCXsrQB8hR7KvlSHMD+yhzgIC1HJD5s5DUcTZDZ8ATwVQtTLf9Fh+Kkr7KZRNPxvbyLAmOOuroC2RrseQI5Hh63B/FKwU4+hU0SJIEqWBLKkA2Y5uAWZK0D6PVUWjVw2F6m46eqB1q5S2XC3D0qTgve+S7jBRkEIpBKNcLcPSv0cOYf5ox74dpTeUP6DUCHP1j1No62fhtArZXYSSAJCBfJ8DRL6JH9X1AEPMexPwzUi+bmZlNw2j9v9HYqgeADNpeC5B+mbYpnIvu+7U6irQHSXtQ//t4oHJG1m/X6mh38BNoJYjttZ6+ZDa1DPpKOAraimmW1A5YqdSLtEPLnNfWOGgQ7WAcpBXQmiO1tqpFnK4V4Oiz0arntEe1LetUW2uS19YgaDZjs9gNRirYkm+yhaBm7bN3dYdAuydU6Y3B1Nu4c720M5jX1gBoW/BW+vq3Jom5Ji8ICNKKZ2sINEIqkXm/F2u3jsg2vSPyYYLDRNpH0OroC+Rb84QrQZBv1bLbkiQzu8n3rVHQ6vrallX7hO1XO2UBvm+NgvZsdcte726p1NZGT5lnawj05DKqt3jc61XmfcJx0Mfp+JNvb9Fry7M1Dvox80RQPW+tSa2hu3D4XMYwaOQxfmG1oZvvxaDZedV3XlO4TICjX+5l8LCDdRpjVml72WN+zVfCAdBPM0+pRCOBNguyuS6GhzH/uJcBtDr6Ge1zGQBaOYxtCtLb9K8EOPoE+vHGpL3L4jBb8k21Q3+9AEefiggcPR/5XkSOBdJ7FPlhNrxPOAZq/kWQo45egv4GEqKULwalPdgAAAAASUVORK5CYII=">
-      </a>
-      <a class="qr-link" href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener">QR을 스캔하거나 눌러서 카카오톡 채널로 이동</a>
+    <div class="lbl-help" style="margin-bottom:0">퇴실 시 사진을 카카오채널(ID 아이엠센터)로 전송 부탁드립니다.</div>
+    <div class="qr-box">
+      <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener"><img class="qr-img" alt="카카오톡 채널 QR코드" src="img/kakao-qr.png"></a>
+      <a class="qr-link" href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener">QR을 스캔하거나 눌러서<br>카카오톡 채널로 이동 →</a>
     </div>
     <div class="err-msg" id="err-msg"></div>
   </div>
@@ -186,11 +146,13 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
   <button class="submit-btn" id="submit-btn" onclick="submitCheckout()">제출</button>
 
 </div><!-- /form-wrap -->
+</div>
 
 <div id="done-wrap">
-  <div class="done-icon">✅</div>
-  <div class="done-title">퇴실 체크 완료!</div>
+  <div class="eb">DONE</div>
+  <div class="done-title">퇴실 체크 완료</div>
   <div class="done-sub">제출해 주셔서 감사합니다.<br>담당자에게 전달되었습니다.</div>
+  <a class="done-home-btn" href="index.html">홈으로</a>
 </div>
 
 <script type="module">
@@ -248,6 +210,15 @@ window.submitCheckout = async () => {
     btn.disabled = false; btn.textContent = '제출';
   }
 };
+
+const updateProgress = () => {
+  const all = document.querySelectorAll('.chk-input[name="chk"]');
+  const n = [...all].filter(e => e.checked).length;
+  const el = document.getElementById('chk-count');
+  if (el) el.textContent = `${n} / ${all.length} 확인`;
+};
+document.querySelectorAll('.chk-input[name="chk"]').forEach(e => e.addEventListener('change', updateProgress));
+updateProgress();
 
 function showErr(msg) {
   const el = document.getElementById('err-msg');

@@ -19,7 +19,7 @@ Cloud Functions 런타임은 Node.js 22(`functions/package.json`의 `engines.nod
 | `index.html` | 메인 앱 (4500줄+, 관리자+일반 사용자 SPA) |
 | `cal.html` | (통합됨) `weekly-calendar.html`로 이동하는 안내 페이지 — 옛 링크 호환용 |
 | `cal-public.html` | (통합됨) `weekly-calendar.html`로 이동하는 안내 페이지 — 홈페이지 등 옛 공개 링크 호환용 |
-| `checkout.html` | 퇴실 체크리스트 (누구나 제출 가능) |
+| `checkout.html` | 퇴실 체크리스트 (누구나 제출 가능) — 2026-11-04 리디자인(흰 배경·초록, 2px 구분선 섹션, 원형 체크 목록 + "N / 4 확인", 모바일 하단 고정 제출 버튼). 입력 id·`checkouts` 저장 필드는 그대로, QR 이미지는 `img/kakao-qr.png` |
 | `checkouts.html` | 퇴실 체크 이력 (로그인 필요) — 왼쪽 목록/오른쪽 상세 2단 레이아웃. "💬 의견 모아보기" 탭에서 특이사항·만족한 점·불편한 점이 있는 건만 제출 날짜별로 묶어서 한 번에 확인 가능 |
 | `notice.html` | 공지사항 관리 (로그인 필요) |
 | `notices-public.html` | 공지사항 공개 페이지 |
