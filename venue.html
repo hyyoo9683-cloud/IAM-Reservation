@@ -142,7 +142,7 @@ window.doLogin = async () => {
     const p = new GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, p);
-  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
 };
 window.doLogout = async () => { await signOut(auth); };
 
@@ -327,7 +327,7 @@ function buildFormHTML(r) {
           <button id="btn-register-reservation" class="btn-ghost" onclick="registerAsReservation('${r.id}')">다시 등록</button>
         </div>`
       : `<div class="reg-banner">
-          <span>승인된 신청이에요 — 아직 실제 예약(reservations)으로는 등록되지 않았습니다</span>
+          <span>승인된 신청입니다 — 아직 실제 예약(reservations)으로는 등록되지 않았습니다</span>
           <button id="btn-register-reservation" class="btn-primary" onclick="registerAsReservation('${r.id}')">📅 예약으로 등록</button>
         </div>`
   ) : '';
@@ -523,7 +523,7 @@ function collectForm(id) {
 
 window.saveNew = async () => {
   const data = collectForm(null);
-  if (!data.spaces.length) { alert('공간을 하나 이상 선택해주세요.'); return; }
+  if (!data.spaces.length) { alert('공간을 하나 이상 선택해 주시기 바랍니다.'); return; }
   if (!data.orgName || !data.managerName || !data.tel) {
     alert('업체명, 담당자 이름, 연락처는 필수입니다.'); return;
   }
@@ -545,7 +545,7 @@ window.saveNew = async () => {
 
 window.saveEdit = async id => {
   const data = collectForm(id);
-  if (!data.spaces.length) { alert('공간을 하나 이상 선택해주세요.'); return; }
+  if (!data.spaces.length) { alert('공간을 하나 이상 선택해 주시기 바랍니다.'); return; }
   const btn = document.querySelector('.btn-primary');
   btn.disabled = true; btn.textContent = '저장 중...';
   try {
@@ -649,7 +649,7 @@ window.registerAsReservation = async (id) => {
 
   let items = [];
   if (isLodging) {
-    if (!r.dateIn || !r.nights) { alert('체크인 날짜·박수 정보가 없어 예약을 등록할 수 없습니다. 신청서를 먼저 채워주세요.'); return; }
+    if (!r.dateIn || !r.nights) { alert('체크인 날짜·박수 정보가 없어 예약을 등록할 수 없습니다. 신청서를 먼저 채워 주시기 바랍니다.'); return; }
     const d = new Date(r.dateIn + 'T00:00:00');
     for (let i = 0; i <= r.nights; i++) { // 체크아웃 당일도 실제 사용일로 보고 함께 차단 (index.html 지혜홀 규칙과 동일)
       items.push({ date: toDateStr(d), start: '00:00', end: '23:59' });
@@ -659,7 +659,7 @@ window.registerAsReservation = async (id) => {
     const src = (r.dates && r.dates.length) ? r.dates : [{ date: r.eventDate, timeStart: r.timeStart, timeEnd: r.timeEnd }];
     items = src.filter(x => x.date && x.timeStart && x.timeEnd).map(x => ({ date: x.date, start: x.timeStart, end: x.timeEnd }));
   }
-  if (!items.length) { alert('예약을 만들 날짜·시간 정보가 부족합니다. 신청서 내용을 확인해주세요.'); return; }
+  if (!items.length) { alert('예약을 만들 날짜·시간 정보가 부족합니다. 신청서 내용을 확인해 주시기 바랍니다.'); return; }
 
   // 선택된 공간이 여러 곳이면 같은 날짜·시간에 공간별로 각각 예약을 만들기 때문에, 공간별로 따로 충돌 확인
   const conflictsBySpace = await Promise.all(spaces.map(async sp => ({ sp, conflicts: await checkRoomConflicts(sp, items) })));
@@ -963,7 +963,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
 
     <div class="detail-panel" id="detail-panel">
       <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:14px">
-        왼쪽에서 신청서를 선택하거나 새 접수를 눌러주세요
+        왼쪽에서 신청서를 선택하거나 새 접수를 눌러 주시기 바랍니다
       </div>
     </div>
   </div>

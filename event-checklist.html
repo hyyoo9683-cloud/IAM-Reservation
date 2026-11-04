@@ -237,7 +237,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
 
   <div class="card" style="margin-bottom:12px;display:none" id="pending-card">
     <div class="sec-label">🔍 최근~이번 달 예약 연동 현황 (진단)</div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">아론홀·샤론홀·아이엠홀(또는 비슷한 이름) 예약이 자동으로 체크리스트가 되는지 확인하는 표입니다. 정상 생성된 건은 "저장된 체크리스트" 목록에서 확인하세요.</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">아론홀·샤론홀·아이엠홀(또는 비슷한 이름) 예약이 자동으로 체크리스트가 되는지 확인하는 표입니다. 정상 생성된 건은 "저장된 체크리스트" 목록에서 확인하십시오.</div>
     <div class="saved-list" id="pending-list"></div>
   </div>
 
@@ -529,10 +529,10 @@ window.saveChecklist = async () => {
   const recurType = g('f-recur-type').value;
   const recurEnd  = g('f-recur-end').value;
 
-  if (!date) { showErr('날짜를 입력해 주세요.'); return; }
-  if (!event) { showErr('행사명을 입력해 주세요.'); return; }
+  if (!date) { showErr('날짜를 입력해 주시기 바랍니다.'); return; }
+  if (!event) { showErr('행사명을 입력해 주시기 바랍니다.'); return; }
   if (start && end && start >= end) { showErr('종료 시간이 시작 시간보다 늦어야 합니다.'); return; }
-  if (isRecur && !recurEnd) { showErr('반복 종료일을 입력해 주세요.'); return; }
+  if (isRecur && !recurEnd) { showErr('반복 종료일을 입력해 주시기 바랍니다.'); return; }
   if (isRecur && recurEnd < date) { showErr('반복 종료일이 날짜보다 빠를 수 없습니다.'); return; }
 
   const btn = g('submit-btn');
@@ -651,7 +651,7 @@ window.copyChecklist = async (id) => {
   checklist = (c.items || []).map(it => ({ ...it, checked: false }));
   renderChecklist();
   document.querySelector('.card:nth-of-type(2)')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  showInfo('날짜(및 필요시 행사명)를 확인하고 저장하세요. "저장하기"를 누르면 새 체크리스트로 저장됩니다.');
+  showInfo('날짜(및 필요시 행사명)를 확인하고 저장하십시오. "저장하기"를 누르면 새 체크리스트로 저장됩니다.');
 };
 </script>
 </body>

@@ -66,7 +66,7 @@ textarea{min-height:96px;resize:vertical;line-height:1.6;}
 <div class="wrap">
 <div class="eb">CHANGE · CANCEL</div>
 <h1>예약 변경·취소</h1>
-<p class="lead">예약 담당자가 아니어도 신청할 수 있어요. 로그인은 필요 없습니다.</p>
+<p class="lead">예약 담당자가 아니어도 신청할 수 있습니다. 로그인은 필요 없습니다.</p>
 
 <div id="form-wrap">
 
@@ -86,7 +86,7 @@ textarea{min-height:96px;resize:vertical;line-height:1.6;}
     <div class="fl">
       <div class="field"><div class="lbl">공간 <span class="req-mark">*</span></div>
         <select id="f-room">
-          <option value="">선택해주세요</option>
+          <option value="">선택해 주시기 바랍니다</option>
           <optgroup label="5층 소그룹실">
             <option value="505호">505호</option>
             <option value="506호">506호</option>
@@ -104,7 +104,7 @@ textarea{min-height:96px;resize:vertical;line-height:1.6;}
     </div>
     <div class="notice" id="last-minute-notice" style="display:none;background:var(--red-lt);color:var(--red)">
       ⚠️ 변경·취소하려는 날짜가 하루 앞으로 다가와 담당자의 즉각적인 확인이 어려울 수 있습니다.<br>
-      빠른 확인을 위해 카카오톡 채널 <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener" style="color:var(--red);font-weight:700;text-decoration:underline">'아이엠센터'</a>로도 문의해 주세요.
+      빠른 확인을 위해 카카오톡 채널 <a href="http://pf.kakao.com/_Yvxaeb/chat" target="_blank" rel="noopener" style="color:var(--red);font-weight:700;text-decoration:underline">'아이엠센터'</a>로도 문의해 주시기 바랍니다.
     </div>
     <div class="fl">
       <div class="field"><div class="lbl">시작 시간</div>
@@ -230,10 +230,10 @@ window.submitRequest = async () => {
   const name = g('f-name').value.trim();
   const tel  = g('f-tel').value.trim();
 
-  if (!room) { showErr('공간을 선택해 주세요.'); return; }
-  if (!date) { showErr('예약 날짜를 입력해 주세요.'); return; }
-  if (!name) { showErr('신청자 이름을 입력해 주세요.'); return; }
-  if (!tel)  { showErr('신청자 연락처를 입력해 주세요.'); return; }
+  if (!room) { showErr('공간을 선택해 주시기 바랍니다.'); return; }
+  if (!date) { showErr('예약 날짜를 입력해 주시기 바랍니다.'); return; }
+  if (!name) { showErr('신청자 이름을 입력해 주시기 바랍니다.'); return; }
+  if (!tel)  { showErr('신청자 연락처를 입력해 주시기 바랍니다.'); return; }
 
   const data = {
     requestType: curType,
@@ -259,7 +259,7 @@ window.submitRequest = async () => {
     document.getElementById('done-wrap').style.display = 'block';
     window.scrollTo(0, 0);
   } catch (e) {
-    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주시기 바랍니다.');
     btn.disabled = false; btn.textContent = curType === '취소' ? '취소 신청서 제출하기' : '변경 신청서 제출하기';
   }
 };

@@ -78,7 +78,7 @@ async function showPortal(user) {
 
   // 인사말
   const h = new Date().getHours();
-  const greet = h < 6 ? '좋은 새벽이에요' : h < 12 ? '좋은 아침이에요' : h < 18 ? '안녕하세요' : '수고 많으셨어요';
+  const greet = h < 6 ? '좋은 새벽입니다' : h < 12 ? '좋은 아침입니다' : h < 18 ? '안녕하십니까' : '수고 많으셨습니다';
   const fname = user.displayName ? user.displayName.replace(/\s/g,'') + '님' : '';
   document.getElementById('greeting').textContent = `${greet}${fname ? ', ' + fname : ''} 👋`;
 
@@ -151,7 +151,7 @@ window.doLogin = async () => {
     await signInWithPopup(auth, provider);
   } catch(e) {
     if (e.code !== 'auth/popup-closed-by-user')
-      showLoginError('로그인에 실패했습니다. 다시 시도해주세요.');
+      showLoginError('로그인에 실패했습니다. 다시 시도해 주시기 바랍니다.');
   }
 };
 window.doLogout = async () => { await signOut(auth); };
@@ -440,7 +440,7 @@ body{font-family:var(--font);background:var(--paper);color:var(--ink);min-height
     <!-- 히어로 배너 -->
     <div class="hero-banner">
       <div class="hb-left">
-        <h1 id="greeting">안녕하세요 👋</h1>
+        <h1 id="greeting">안녕하십니까 👋</h1>
         <p id="today-date"></p>
       </div>
       <div class="hb-stats">

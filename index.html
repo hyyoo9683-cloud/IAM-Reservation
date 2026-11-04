@@ -553,7 +553,7 @@ html.show-splash{overflow:hidden}
     <a class="sp-btn main" href="guide.html">예약 신청하기</a>
     <button type="button" class="sp-btn sub" id="sp-status">예약 현황 보기</button>
   </div>
-  <a class="sp-chg" href="reservation-change.html">이미 예약하셨나요? <b>예약 변경·취소 →</b></a>
+  <a class="sp-chg" href="reservation-change.html">이미 예약하셨습니까? <b>예약 변경·취소 →</b></a>
 </div>
 <script>
 (function(){
@@ -569,7 +569,7 @@ html.show-splash{overflow:hidden}
 
 <!-- 카카오톡 인앱 브라우저 안내 배너 -->
 <div id="kakao-browser-banner" style="display:none">
-  <span id="kakao-banner-text">카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.</span>
+  <span id="kakao-banner-text">카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있습니다.</span>
   <button type="button" id="kakao-banner-btn" style="display:none">Safari로 열기</button>
 </div>
 <script>
@@ -601,8 +601,8 @@ html.show-splash{overflow:hidden}
   document.body.classList.add('has-kakao-banner');
   banner.style.display = 'flex';
   document.getElementById('kakao-banner-text').textContent = isKakao
-    ? '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있어요.'
-    : window.__inApp + '에서는 구글 로그인이 막힐 수 있어요. 크롬·사파리에서 열어 주세요.';
+    ? '카카오톡 브라우저에서는 일부 화면이 정상적으로 표시되지 않을 수 있습니다.'
+    : window.__inApp + '에서는 구글 로그인이 막힐 수 있습니다. 크롬·사파리에서 열어 주시기 바랍니다.';
   if (isAndroid) {
     btn.textContent = 'Chrome으로 열기';
     btn.style.display = '';
@@ -920,7 +920,7 @@ html.show-splash{overflow:hidden}
               <div id="m-multi-date-list"></div>
               <div style="margin-top:10px;font-size:11px;color:var(--text2);background:var(--bg2);border-radius:7px;padding:8px 10px;line-height:1.6">
                 💡 예약 상황에 따라 다른 실로 배정되실 수 있습니다.<br>
-                희망하시는 날짜에 특정 실을 원하실 경우 요청 사항에 남겨주세요.
+                희망하시는 날짜에 특정 실을 원하실 경우 요청 사항에 남겨 주시기 바랍니다.
               </div>
             </div>
             <div class="fl" id="m-date-row">
@@ -1051,7 +1051,7 @@ html.show-splash{overflow:hidden}
       <div style="max-width:380px;margin:40px auto 0;text-align:center">
         <div class="iam-logo-dark iam-login-logo" role="img" aria-label="IAM 센터" style="margin:0 auto 14px"></div>
         <div style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px" id="p-login-title">로그인이 필요합니다</div>
-        <div style="font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:26px">suwoncca.org 구글 계정으로<br>간편하게 로그인하세요</div>
+        <div style="font-size:13.5px;color:var(--text2);line-height:1.6;margin-bottom:26px">suwoncca.org 구글 계정으로<br>간편하게 로그인하십시오</div>
         <button class="btn-google" onclick="googleLogin(true)" style="width:100%;justify-content:center">
           <svg width="18" height="18" viewBox="0 0 48 48">
             <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.7 0 6.7 5.4 2.7 13.3l7.9 6.1C12.5 13 17.8 9.5 24 9.5z"/>
@@ -1270,7 +1270,7 @@ html.show-splash{overflow:hidden}
         <div class="card">
           <div class="card-title">예약 책임자 수동 추가</div>
           <div style="font-size:11px;color:var(--text2);margin-bottom:12px;background:var(--blue-lt);border-radius:7px;padding:8px 12px">
-            로그인한 계정은 이메일·로그인 시각과 함께 자동으로 이 목록에 추가됩니다. 아직 로그인하지 않은 예약 책임자를 미리 등록해두려면 아래에서 직접 추가하세요.
+            로그인한 계정은 이메일·로그인 시각과 함께 자동으로 이 목록에 추가됩니다. 아직 로그인하지 않은 예약 책임자를 미리 등록해두려면 아래에서 직접 추가하십시오.
           </div>
           <div class="fl" style="align-items:flex-end">
             <div class="fg" style="flex:2;margin-bottom:0">
@@ -1377,7 +1377,7 @@ html.show-splash{overflow:hidden}
     <div class="page" id="p-ops-report">
       <div style="font-size:13.5px;color:var(--text2);line-height:1.7;margin-bottom:14px;background:var(--blue-lt);border-radius:8px;padding:10px 14px">
         아론홀·샤론홀·지혜홀·아이엠홀·로비의 <b>확정</b> 예약을 기간별로 모아 이메일용 표 이미지 + 본문 텍스트를 만듭니다.
-        표는 이미지로 복사/다운로드해 이메일에 삽입하고, 나머지 안내문은 텍스트로 복사해 붙여넣으세요.
+        표는 이미지로 복사/다운로드해 이메일에 삽입하고, 나머지 안내문은 텍스트로 복사해 붙여넣으십시오.
         그 외 공간(소그룹실 등)과 특이사항은 직접 입력해야 합니다.
       </div>
       <div class="fl" style="align-items:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:14px">
@@ -1409,14 +1409,14 @@ html.show-splash{overflow:hidden}
 
       <div class="card">
         <div class="card-title">행사별 운영 참고사항 (직접 입력)</div>
-        <div style="font-size:12.5px;color:var(--text3);margin-bottom:10px">행사 옆에 표·본문에 들어갈 한 줄 메모를 입력하세요. (예: 주차 혼잡 예상)</div>
+        <div style="font-size:12.5px;color:var(--text3);margin-bottom:10px">행사 옆에 표·본문에 들어갈 한 줄 메모를 입력하십시오. (예: 주차 혼잡 예상)</div>
         <div id="ops-notes-list"></div>
       </div>
 
       <div class="card">
         <div class="card-title">이번 주 운영 체크 (직접 입력)</div>
         <div style="font-size:12.5px;color:var(--text2);background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:8px 10px;margin-bottom:10px">
-          📊 참고: 일별 전체 예약 인원 합계 (전 공간·모든 확정 예약 기준 — 주차 예측에 참고하세요)
+          📊 참고: 일별 전체 예약 인원 합계 (전 공간·모든 확정 예약 기준 — 주차 예측에 참고하십시오)
           <div id="ops-daily-headcount" style="margin-top:6px"></div>
         </div>
         <div class="fg"><div class="lbl">🚗 주차</div><textarea id="ops-note-parking" rows="2" placeholder="예: 수요일 오전 혼잡 예상" oninput="updateOpsBodyPreview()"></textarea></div>
@@ -1438,7 +1438,7 @@ html.show-splash{overflow:hidden}
         <div class="card">
           <div class="card-title">날짜 차단 추가</div>
           <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:12px;background:var(--amber-lt);border-radius:7px;padding:8px 12px">
-            차단된 날짜에는 <strong>예약 신청이 불가능</strong>합니다. 공휴일·교회 행사 등에 사용하세요.
+            차단된 날짜에는 <strong>예약 신청이 불가능</strong>합니다. 공휴일·교회 행사 등에 사용하십시오.
           </div>
           <div class="fl" style="align-items:flex-end;flex-wrap:wrap;gap:8px">
             <div class="fg" style="flex:0 0 140px;margin-bottom:0">
@@ -1476,7 +1476,7 @@ html.show-splash{overflow:hidden}
           <div class="card-title" style="color:#92400E">정기 예약 날짜 보정 (UTC → KST)</div>
           <div style="font-size:12px;color:#92400E;line-height:1.8;margin-bottom:12px">
             타임존 버그로 인해 정기 예약의 날짜가 <strong>하루 일찍</strong> 저장된 경우 일괄 보정합니다.<br>
-            <strong>수동으로 날짜를 이미 수정한 예약이 있다면 실행하지 마세요.</strong><br>
+            <strong>수동으로 날짜를 이미 수정한 예약이 있다면 실행하지 마십시오.</strong><br>
             대상: <code style="background:#fff;padding:1px 5px;border-radius:3px">recurGroup</code> 필드가 있는 정기 예약 전체를 +1일 처리합니다.
           </div>
           <div id="recur-fix-preview" style="font-size:12px;color:var(--text2);margin-bottom:10px"></div>
@@ -1493,7 +1493,7 @@ html.show-splash{overflow:hidden}
       <div style="max-width:680px">
         <div class="card">
           <div class="card-title">새 메모</div>
-          <textarea id="memo-input" rows="4" placeholder="공간 관련 메모를 입력하세요…"
+          <textarea id="memo-input" rows="4" placeholder="공간 관련 메모를 입력하십시오…"
             style="width:100%;box-sizing:border-box;resize:vertical;border:1px solid var(--border);
             border-radius:8px;padding:10px 12px;font-size:14px;font-family:var(--font);
             color:var(--text);background:var(--bg2);line-height:1.6"></textarea>
@@ -1579,7 +1579,7 @@ html.show-splash{overflow:hidden}
         style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:6px;padding:7px 8px;color:var(--text);background:var(--bg2);margin-bottom:10px">
       <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px">데이터 행 (시트에서 가져올 행 범위 선택 후 복사)</div>
       <textarea id="import-text" rows="6"
-        placeholder="데이터 행만 선택해서 붙여넣으세요 (헤더 행 제외 가능)"
+        placeholder="데이터 행만 선택해서 붙여넣으십시오 (헤더 행 제외 가능)"
         style="width:100%;box-sizing:border-box;font-size:11px;font-family:monospace;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);background:var(--bg2)"></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="previewImportText()">🔍 분석</button>
@@ -1594,7 +1594,7 @@ html.show-splash{overflow:hidden}
 
     <div id="import-manual-ui" style="display:none">
       <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:10px">
-        엑셀·구글시트처럼 <strong>행을 추가</strong>하며 셀에 바로 입력하고, 다 채우면 <strong>표 내용 저장</strong>을 누르세요.
+        엑셀·구글시트처럼 <strong>행을 추가</strong>하며 셀에 바로 입력하고, 다 채우면 <strong>표 내용 저장</strong>을 누르십시오.
       </div>
       <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px">
         <table class="tbl" id="manual-table" style="font-size:11px;white-space:nowrap">
@@ -1733,7 +1733,7 @@ html.show-splash{overflow:hidden}
         전체 시리즈 일정 포함 <span style="color:var(--text3)">(해제 시 이 회차 일정만 안내)</span>
       </label>
     </div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하세요.</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">내용을 수정한 뒤 복사하십시오.</div>
     <textarea id="sms-body" style="width:100%;height:220px;font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;font-family:inherit;background:var(--bg2)"></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="copySms()">복사</button>
@@ -2061,7 +2061,7 @@ html.show-splash{overflow:hidden}
   <div class="modal" style="max-width:520px;width:96%">
     <div class="modal-title">모임 목적 카테고리 편집</div>
     <div style="font-size:12px;color:var(--text3);margin-bottom:12px">카테고리 이름과 매칭 키워드(쉼표로 구분)를 설정합니다. 예약 목적 텍스트에 키워드가 포함되면 해당 카테고리로 분류됩니다.<br>
-      <b style="color:var(--text2)">위에 있는 카테고리가 먼저 검사됩니다</b> — 목적에 여러 키워드가 동시에 포함된 경우(예: "모임"과 "예배"가 같이 있는 경우), 더 우선하고 싶은 카테고리를 ↑ 버튼으로 위로 올려주세요.</div>
+      <b style="color:var(--text2)">위에 있는 카테고리가 먼저 검사됩니다</b> — 목적에 여러 키워드가 동시에 포함된 경우(예: "모임"과 "예배"가 같이 있는 경우), 더 우선하고 싶은 카테고리를 ↑ 버튼으로 위로 올려 주시기 바랍니다.</div>
     <div id="purpose-cat-list" style="max-height:400px;overflow-y:auto"></div>
     <button class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:12px" onclick="addPurposeCatRow()">+ 카테고리 추가</button>
     <div style="display:flex;gap:8px;margin-top:12px">
@@ -2340,15 +2340,15 @@ function isMobileBrowser() {
 function friendlyAuthError(e) {
   const code = (e && e.code) || '';
   const msg  = (e && e.message) || '';
-  if (code === 'auth/unauthorized-domain') return '이 주소는 로그인이 허용되지 않은 주소예요. 주소창이 iamreservation.web.app 인지 확인해 주세요.';
-  if (code === 'auth/network-request-failed') return '네트워크 연결이 불안정해요. 연결을 확인하고 다시 시도해 주세요.';
+  if (code === 'auth/unauthorized-domain') return '이 주소는 로그인이 허용되지 않은 주소입니다. 주소창이 iamreservation.web.app 인지 확인해 주시기 바랍니다.';
+  if (code === 'auth/network-request-failed') return '네트워크 연결이 불안정합니다. 연결을 확인하고 다시 시도해 주시기 바랍니다.';
   if (code === 'auth/web-storage-unsupported' || /initial state|storage/i.test(msg))
-    return '브라우저가 로그인 정보를 저장하지 못했어요. 시크릿(사생활 보호) 모드와 쿠키 차단을 끄고 크롬·사파리에서 다시 시도해 주세요.';
-  if (code === 'auth/operation-not-supported-in-this-environment') return '이 브라우저에서는 구글 로그인을 쓸 수 없어요. 크롬(안드로이드)·사파리(아이폰)로 열어 주세요.';
-  if (code === 'auth/too-many-requests') return '시도 횟수가 많아 잠시 막혔어요. 몇 분 뒤에 다시 시도해 주세요.';
-  if (code === 'auth/user-disabled') return '이 계정은 사용이 정지되었어요. 관리자에게 문의해 주세요.';
-  if (code === 'auth/internal-error' || code === 'auth/timeout') return '로그인 서버와 통신이 원활하지 않아요. 잠시 후 다시 시도해 주세요.';
-  return '로그인에 실패했어요. 잠시 후 다시 시도해 주세요. (' + (code || msg || '알 수 없는 오류') + ')';
+    return '브라우저가 로그인 정보를 저장하지 못했습니다. 시크릿(사생활 보호) 모드와 쿠키 차단을 끄고 크롬·사파리에서 다시 시도해 주시기 바랍니다.';
+  if (code === 'auth/operation-not-supported-in-this-environment') return '이 브라우저에서는 구글 로그인을 쓸 수 없습니다. 크롬(안드로이드)·사파리(아이폰)로 열어 주시기 바랍니다.';
+  if (code === 'auth/too-many-requests') return '시도 횟수가 많아 잠시 막혔습니다. 몇 분 뒤에 다시 시도해 주시기 바랍니다.';
+  if (code === 'auth/user-disabled') return '이 계정은 사용이 정지되었습니다. 관리자에게 문의해 주시기 바랍니다.';
+  if (code === 'auth/internal-error' || code === 'auth/timeout') return '로그인 서버와 통신이 원활하지 않습니다. 잠시 후 다시 시도해 주시기 바랍니다.';
+  return '로그인에 실패했습니다. 잠시 후 다시 시도해 주시기 바랍니다. (' + (code || msg || '알 수 없는 오류') + ')';
 }
 window.googleLogin = async (fromModal = false) => {
   const ua = navigator.userAgent || '';
@@ -2367,13 +2367,13 @@ window.googleLogin = async (fromModal = false) => {
   // 네이버·밴드·인스타 등 앱 안 브라우저: 구글이 로그인을 막으므로 시도 전에 안내
   if (!isKakao && window.__inAppStrict) {
     try { navigator.clipboard && navigator.clipboard.writeText(location.href); } catch (_) {}
-    showLoginMsg(window.__inApp + ' 안에서는 구글 로그인이 막혀 있어요. 주소를 복사해 두었으니 ' + (isIOS ? '사파리' : '크롬') + '에 붙여넣어 열어 주세요.');
+    showLoginMsg(window.__inApp + ' 안에서는 구글 로그인이 막혀 있습니다. 주소를 복사해 두었으니 ' + (isIOS ? '사파리' : '크롬') + '에 붙여넣어 열어 주시기 바랍니다.');
     if (isAndroid) setTimeout(() => { location.href = 'intent://' + location.host + location.pathname + location.search + '#Intent;scheme=https;package=com.android.chrome;end'; }, 900);
     return;
   }
   // Android 카카오톡 → 외부 브라우저 안내
   if (isKakao && isAndroid) {
-    showLoginMsg('카카오톡 내에서는 로그인이 제한됩니다. 우측 상단 ⋮ 메뉴 → 외부 브라우저로 열기를 눌러주세요.');
+    showLoginMsg('카카오톡 내에서는 로그인이 제한됩니다. 우측 상단 ⋮ 메뉴 → 외부 브라우저로 열기를 눌러 주시기 바랍니다.');
     return;
   }
 
@@ -2401,7 +2401,7 @@ window.googleLogin = async (fromModal = false) => {
     if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
       // 사용자가 직접 닫음
     } else if (e.code === 'auth/popup-blocked') {
-      showLoginMsg('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해 주세요.');
+      showLoginMsg('팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도해 주시기 바랍니다.');
     } else {
       showLoginMsg(friendlyAuthError(e));
     }
@@ -2500,7 +2500,7 @@ onAuthStateChanged(auth, async user => {
     const displayName = user.displayName || '';
     const firstName = displayName.split(' ')[0] || displayName || email.split('@')[0];
     const eyebrow = document.getElementById('hm-eyebrow-text');
-    if (eyebrow) eyebrow.textContent = '안녕하세요 ' + firstName + '님, 환영합니다.';
+    if (eyebrow) eyebrow.textContent = firstName + '님, 환영합니다.';
     // 사이드바 업데이트
     const sbLogin = document.getElementById('sb-login-btn');
     const sbUser  = document.getElementById('sb-user-area');
@@ -2539,7 +2539,7 @@ onAuthStateChanged(auth, async user => {
   } else {
     await signOut(auth);
     const msg = document.getElementById('lm-msg');
-    const rej = `${email} 계정은 사용할 수 없어요. 센터·교회 계정(@${ALLOWED_DOMAIN})으로 로그인해 주세요. 다른 계정을 쓰셔야 한다면 관리자에게 허용을 요청해 주세요.`;
+    const rej = `${email} 계정은 사용할 수 없습니다. 센터·교회 계정(@${ALLOWED_DOMAIN})으로 로그인해 주시기 바랍니다. 다른 계정을 쓰셔야 한다면 관리자에게 허용을 요청해 주시기 바랍니다.`;
     if (msg) msg.textContent = rej;
     try { go('login'); } catch (_) {}
     showLoginMsg(rej);
@@ -2725,7 +2725,7 @@ async function loadData() {
 
   window.addMemo = async () => {
     const content = document.getElementById('memo-input').value.trim();
-    if (!content) { T('메모 내용을 입력해주세요', '#A32D2D'); return; }
+    if (!content) { T('메모 내용을 입력해 주시기 바랍니다', '#A32D2D'); return; }
     const tag = document.getElementById('memo-tag').value.trim();
     await addDoc(collection(db, 'adminNotes'), {
       content, tag,
@@ -2738,7 +2738,7 @@ async function loadData() {
   };
 
   window.deleteMemo = async (id) => {
-    if (!confirm('이 메모를 삭제할까요?')) return;
+    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
     await deleteDoc(doc(db, 'adminNotes', id));
   };
 
@@ -2779,7 +2779,7 @@ window.renderStorageCleanup = async () => {
       const d = raw.toDate ? raw.toDate() : new Date(raw);
       const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
       el.textContent = `마지막 실행: ${d.toLocaleDateString('ko-KR')} (${daysAgo}일 전)` +
-        (daysAgo >= 180 ? ' — 6개월이 지났어요. 다시 실행해 주세요.' : '');
+        (daysAgo >= 180 ? ' — 6개월이 지났습니다. 다시 실행해 주시기 바랍니다.' : '');
     } else {
       el.textContent = '아직 실행한 적이 없습니다.';
     }
@@ -2897,7 +2897,7 @@ window.renderHistoryCleanup = async () => {
       const d = raw.toDate ? raw.toDate() : new Date(raw);
       const daysAgo = Math.floor((Date.now() - d.getTime()) / 86400000);
       el.textContent = `마지막 실행: ${d.toLocaleDateString('ko-KR')} (${daysAgo}일 전)` +
-        (daysAgo >= 180 ? ' — 6개월이 지났어요. 다시 실행해 주세요.' : '');
+        (daysAgo >= 180 ? ' — 6개월이 지났습니다. 다시 실행해 주시기 바랍니다.' : '');
     } else {
       el.textContent = '아직 실행한 적이 없습니다.';
     }
@@ -2911,7 +2911,7 @@ window.runHistoryCleanup = async () => {
   const resultCard = document.getElementById('hc-result-card');
   const resultEl = document.getElementById('hc-result');
   if (!btn) return;
-  if (!confirm('예약 날짜가 6개월보다 지난 예약들의 처리 이력(history)만 한 줄로 축약합니다.\n예약 자체의 정보는 바뀌지 않고 문서도 삭제되지 않습니다. 계속할까요?')) return;
+  if (!confirm('예약 날짜가 6개월보다 지난 예약들의 처리 이력(history)만 한 줄로 축약합니다.\n예약 자체의 정보는 바뀌지 않고 문서도 삭제되지 않습니다. 계속하시겠습니까?')) return;
   btn.disabled = true; btn.textContent = '축약 진행 중…';
   resultCard.style.display = 'none';
 
@@ -3517,7 +3517,7 @@ window.filterBySeries = (recurGroup) => {
       setTimeout(() => {
         const banner = document.createElement('tr');
         banner.innerHTML = `<td colspan="8" style="background:var(--blue-lt);color:var(--blue);font-size:11px;font-weight:600;padding:8px 12px">
-          🔁 정기 예약 시리즈 전체 (${seriesIds.size}회) — 아래 목록에서 수정할 회차를 클릭하세요
+          🔁 정기 예약 시리즈 전체 (${seriesIds.size}회) — 아래 목록에서 수정할 회차를 클릭하십시오
           <button class="btn btn-ghost" style="font-size:10px;padding:2px 8px;margin-left:8px" onclick="document.getElementById('fname').value='';renderList()">필터 해제</button>
         </td>`;
         if (tbody.firstChild) tbody.insertBefore(banner, tbody.firstChild);
@@ -3558,7 +3558,7 @@ window.addBlockedDate = async () => {
   const date   = document.getElementById('bd-date').value;
   const reason = document.getElementById('bd-reason').value.trim();
   const type   = document.getElementById('bd-type').value;
-  if (!date || !reason) { T('날짜와 사유를 입력해주세요', '#A32D2D'); return; }
+  if (!date || !reason) { T('날짜와 사유를 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (blockedDates.some(b => b.date === date)) { T('이미 등록된 날짜입니다', '#A32D2D'); return; }
   try {
     await setDoc(doc(db, 'blockedDates', date), { date, reason, type, createdAt: serverTimestamp() });
@@ -3653,7 +3653,7 @@ window.previewRecurFix = () => {
     <div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 14px;line-height:1.9">
       <div>대상 예약: <strong>${targets.length}건</strong> (${groupCount}개 시리즈)</div>
       <div>날짜 범위: <strong>${dates[0]}</strong> ~ <strong>${dates[dates.length-1]}</strong></div>
-      <div style="font-size:11px;color:#92400E;margin-top:4px">위 예약들의 날짜가 모두 하루씩 앞당겨집니다. 신중히 확인 후 실행하세요.</div>
+      <div style="font-size:11px;color:#92400E;margin-top:4px">위 예약들의 날짜가 모두 하루씩 앞당겨집니다. 신중히 확인 후 실행하십시오.</div>
       <div style="margin-top:8px;max-height:150px;overflow-y:auto">
         ${Object.entries(byGroup).map(([g, rows]) => {
           const sorted = [...rows].sort((a,b) => a.date.localeCompare(b.date));
@@ -3683,7 +3683,7 @@ window.applyRecurFix = async () => {
 
   if (btn)     { btn.disabled = true; btn.textContent = `처리 중… (0/${targets.length})`; }
   if (prevBtn) prevBtn.disabled = true;
-  preview.innerHTML = `<div style="font-size:13px;color:#92400E;padding:4px 0">⏳ 보정 진행 중입니다. 잠시만 기다려주세요…</div>`;
+  preview.innerHTML = `<div style="font-size:13px;color:#92400E;padding:4px 0">⏳ 보정 진행 중입니다. 잠시만 기다려 주시기 바랍니다…</div>`;
 
   let done = 0, failed = 0;
   for (const r of targets) {
@@ -4005,7 +4005,7 @@ window.runAvailSearch = () => {
   const st    = document.getElementById('avail-s-time').value;
   const et    = document.getElementById('avail-e-time').value;
   const isOnce = recur === 'once';
-  if (!sd || (!isOnce && !ed) || !st || !et) { T('날짜와 시간을 모두 입력해주세요', '#A32D2D'); return; }
+  if (!sd || (!isOnce && !ed) || !st || !et) { T('날짜와 시간을 모두 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (!isOnce && sd > ed) { T('시작 날짜가 종료 날짜보다 늦습니다', '#A32D2D'); return; }
   if (st >= et) { T('시작 시간이 종료 시간보다 늦습니다', '#A32D2D'); return; }
   const effectiveEd = isOnce ? sd : ed;
@@ -4184,7 +4184,7 @@ window.previewPhotos = async (input) => {
 };
 window.submitSpace = async () => {
   const name = document.getElementById('sp-name').value.trim();
-  if (!name) { T('공간 이름을 입력해주세요', '#A32D2D'); return; }
+  if (!name) { T('공간 이름을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   const floor  = document.getElementById('sp-floor').value.trim();
   const cap    = parseInt(document.getElementById('sp-cap').value) || 0;
   const categories = document.getElementById('sp-category').value.split(',').map(c => c.trim()).filter(Boolean);
@@ -4195,7 +4195,7 @@ window.submitSpace = async () => {
   const amenities = Object.entries(aMap).filter(([k]) => document.getElementById(k).checked).map(([, v]) => v);
 
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
 
   const btn = document.getElementById('space-submit-btn');
   btn.disabled = true; btn.textContent = '저장 중...';
@@ -4273,10 +4273,10 @@ window.goApply = (name) => {
 };
 // 공간별 안내 메시지 — 공간 선택뿐 아니라 기관 분류가 바뀔 때도(학교 조건 등) 다시 계산해야 해서 별도 함수로 분리
 const ROOM_NOTICES = {
-  '505호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해주세요.' },
-  '507호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해주세요.' },
-  '508호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해주세요.' },
-  '509호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해주세요.' },
+  '505호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해 주시기 바랍니다.' },
+  '507호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해 주시기 바랍니다.' },
+  '508호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해 주시기 바랍니다.' },
+  '509호':   { color: 'blue', icon: '📺', msg: 'TV 사용을 희망하실 경우 꼭 체크해 주시기 바랍니다.' },
   '506호':   { color: 'amber', icon: '⚠️', msg: '506호는 활동 공간으로 평상시 의자·책상이 없습니다. 내부에 스태킹된 의자·책상을 사용 전 직접 세우고, 사용 후 원상복구(스태킹) 해주셔야 합니다.' },
   '아론홀':  { color: 'blue',  icon: '📞', msg: '아론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다. (최소 20명)' },
   '샤론홀':  { color: 'blue',  icon: '📞', msg: '샤론홀은 예약관리자와 상담 후 예약이 확정됩니다. 신청 후 담당자가 별도로 연락드립니다. (최소 50명)' },
@@ -4435,7 +4435,7 @@ window.addEditMultiDate = () => {
   const val   = input.value;
   const start = document.getElementById('e-multi-start-input').value;
   const end   = document.getElementById('e-multi-end-input').value;
-  if (!val) { T('날짜를 선택해주세요', '#A32D2D'); return; }
+  if (!val) { T('날짜를 선택해 주시기 바랍니다', '#A32D2D'); return; }
   if (!start || !end || start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
   if (editMultiDates.some(d => d.date === val && d.start === start && d.end === end)) { T('이미 추가된 날짜·시간입니다', '#A32D2D'); return; }
   editMultiDates.push({ date: val, start, end });
@@ -4536,7 +4536,7 @@ window.addMultiDate = () => {
   const val   = input.value;
   const start = document.getElementById('m-multi-start-input').value;
   const end   = document.getElementById('m-multi-end-input').value;
-  if (!val) { T('날짜를 선택해주세요', '#A32D2D'); return; }
+  if (!val) { T('날짜를 선택해 주시기 바랍니다', '#A32D2D'); return; }
   if (!start || !end || start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
   if (multiDates.some(d => d.date === val && d.start === start && d.end === end)) { T('이미 추가된 날짜·시간입니다', '#A32D2D'); return; }
   multiDates.push({ date: val, start, end });
@@ -4778,17 +4778,17 @@ window.submitApply = async () => {
   const recur   = document.getElementById('m-recur')?.value || 'weekly';
 
   if (!type || !manager || !sName || !sTel || !rooms.length || (!isMulti && !date) || !people || !purpose) {
-    T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
+    T('필수 항목을 모두 입력해 주시기 바랍니다', '#A32D2D'); return;
   }
   if (!isMulti && start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
-  if (isMulti && multiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
+  if (isMulti && multiDates.length === 0) { T('날짜를 하나 이상 추가해 주시기 바랍니다', '#A32D2D'); return; }
   if (isMulti && multiDates.length > 0) {
     const multiDateOnly = multiDates.map(d => d.date).sort();
     if (recurSpanTooLong(multiDateOnly[0], multiDateOnly[multiDateOnly.length - 1])) {
       T('비정기 예약은 첫 날짜부터 마지막 날짜까지 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return;
     }
   }
-  if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+  if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
   if (isRecur && recurSpanTooLong(date, endDate)) { T('정기 예약은 시작일로부터 최대 4개월(20주)까지만 신청 가능합니다', '#A32D2D'); return; }
 
@@ -4803,7 +4803,7 @@ window.submitApply = async () => {
     ? multiDates.map(d => ({ date: d.date, start: d.start, end: d.end }))
     : (isRecur ? generateAvailDates(date, endDate, recur, activeRecurWeekdays(recur)).filter(d => !recurExcludedDates.has(d)) : [date]).map(d => ({ date: d, start, end }));
 
-  if (isRecur && items.length === 0) { T('제외 날짜를 확인해주세요 (신청 가능한 날짜가 없습니다)', '#A32D2D'); return; }
+  if (isRecur && items.length === 0) { T('제외 날짜를 확인해 주시기 바랍니다 (신청 가능한 날짜가 없습니다)', '#A32D2D'); return; }
 
   const lastMinuteItems = items.filter(it => isLastMinuteDate(it.date));
   if (lastMinuteItems.length > 0) {
@@ -4820,7 +4820,7 @@ window.submitApply = async () => {
     if (blocked.length > 0) {
       const skippedReasons = [...new Set(blocked.map(it => getBlockedInfo(it.date)?.reason || '차단'))].join(', ');
       items = items.filter(it => !isBlockedDate(it.date));
-      if (items.length === 0) { T('모든 날짜가 차단일입니다. 날짜를 다시 확인해주세요.', '#A32D2D'); return; }
+      if (items.length === 0) { T('모든 날짜가 차단일입니다. 날짜를 다시 확인해 주시기 바랍니다.', '#A32D2D'); return; }
       if (!confirm(`공휴일·차단일 ${blocked.length}건(${skippedReasons})은 자동으로 제외됩니다.\n나머지 ${items.length}건으로 신청하시겠습니까?`)) return;
     }
   }
@@ -4883,12 +4883,12 @@ window.submitApply = async () => {
       openModal('modal-info');
     } else {
       T(isRecur
-        ? `정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
+        ? `정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려 주시기 바랍니다`
         : isMulti
-          ? `비정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려주세요`
+          ? `비정기 예약 ${items.length}건 신청 완료! 관리자 승인을 기다려 주시기 바랍니다`
           : isMultiRoom
-            ? `${rooms.length}개 실 예약 신청 완료! 관리자 승인을 기다려주세요`
-            : '신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+            ? `${rooms.length}개 실 예약 신청 완료! 관리자 승인을 기다려 주시기 바랍니다`
+            : '신청 완료! 관리자 승인을 기다려 주시기 바랍니다', '#3B6D11');
     }
   } catch(e) {
     console.error('submitApply error:', e);
@@ -4929,7 +4929,7 @@ window.submitQuickApply = async () => {
   const purpose = document.getElementById('qa-purpose').value.trim();
 
   if (!type || !manager || !sName || !sTel || !people || !purpose) {
-    T('필수 항목을 모두 입력해주세요', '#A32D2D'); return;
+    T('필수 항목을 모두 입력해 주시기 바랍니다', '#A32D2D'); return;
   }
   if (start >= end) { T('종료 시간이 시작보다 늦어야 합니다', '#A32D2D'); return; }
 
@@ -4962,7 +4962,7 @@ window.submitQuickApply = async () => {
       history: [{ time: nowStr(), msg: '예약 신청 접수 (캘린더 빠른 신청)' }]
     });
     closeModal('modal-quick-apply');
-    T('신청 완료! 관리자 승인을 기다려주세요', '#3B6D11');
+    T('신청 완료! 관리자 승인을 기다려 주시기 바랍니다', '#3B6D11');
   } catch(e) {
     console.error('submitQuickApply error:', e);
     T('신청 실패: ' + e.message, '#A32D2D');
@@ -5094,7 +5094,7 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
   const previewEl = document.getElementById('import-preview');
   const btn = document.getElementById('import-submit-btn');
   btn.style.display = 'none'; _importRows = [];
-  previewEl.innerHTML = '<div style="font-size:12px;color:var(--text2)">⏳ 분석 중... 잠시 기다려주세요</div>';
+  previewEl.innerHTML = '<div style="font-size:12px;color:var(--text2)">⏳ 분석 중... 잠시 기다려 주시기 바랍니다</div>';
   await new Promise(r => setTimeout(r, 50));
 
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
@@ -5164,7 +5164,7 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
   }
 
   if (!_importRows.length) {
-    previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">파싱된 데이터가 없습니다. 날짜·시간·장소 컬럼을 확인해주세요.</div>';
+    previewEl.innerHTML = '<div style="color:var(--red);font-size:12px">파싱된 데이터가 없습니다. 날짜·시간·장소 컬럼을 확인해 주시기 바랍니다.</div>';
     return;
   }
 
@@ -5196,7 +5196,7 @@ async function _runPreviewFromText(text, headerIsFirst = false) {
 window.previewImportText = async () => {
   const header = document.getElementById('import-header').value.trim();
   const data   = document.getElementById('import-text').value.trim();
-  if (!data) { T('데이터를 붙여넣어 주세요', '#A32D2D'); return; }
+  if (!data) { T('데이터를 붙여넣어 주시기 바랍니다', '#A32D2D'); return; }
   // 헤더 칸이 채워진 경우 헤더+데이터 합치기, 아니면 데이터만 (내부에서 자동 탐지)
   const text = header ? header + '\n' + data : data;
   await _runPreviewFromText(text, !!header);
@@ -5543,7 +5543,7 @@ window.checkFlexAssignSeries = (id) => {
 };
 window.assignRoom = async (id) => {
   const newRoom = document.getElementById('assign-room-sel')?.value;
-  if (!newRoom) { T('배정할 공간을 선택해주세요', '#A32D2D'); return; }
+  if (!newRoom) { T('배정할 공간을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
@@ -5577,9 +5577,9 @@ window.assignRoom = async (id) => {
 // ── 승인 / 취소 / 삭제 ───────────────────────────────────────────
 window.approve = async (id) => {
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
-  if (r.room === '공실 희망') { T('먼저 공간을 배정해주세요 (상세보기 → 공실 배정)', '#A32D2D'); return; }
+  if (r.room === '공실 희망') { T('먼저 공간을 배정해 주시기 바랍니다 (상세보기 → 공실 배정)', '#A32D2D'); return; }
   try {
     await updateDoc(doc(db, 'reservations', id), {
       status: '확정',
@@ -5603,11 +5603,11 @@ window.toggleDashPending = (groupId) => {
 window.approveGroup = async (idsCsv) => {
   const ids = idsCsv.split(',');
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const targets = ids.map(id => reservations.find(x => x.id === id)).filter(Boolean);
   const unassigned = targets.filter(r => r.room === '공실 희망');
   const toApprove  = targets.filter(r => r.room !== '공실 희망');
-  if (!toApprove.length) { T('공간이 배정되지 않아 승인할 수 없습니다. 먼저 공실 배정을 해주세요.', '#A32D2D'); return; }
+  if (!toApprove.length) { T('공간이 배정되지 않아 승인할 수 없습니다. 먼저 공실 배정을 해 주시기 바랍니다.', '#A32D2D'); return; }
   const confirmMsg = unassigned.length
     ? `총 ${toApprove.length}건을 승인하시겠습니까? (공간 미배정 ${unassigned.length}건은 제외되고 공실 희망 상태로 남습니다)`
     : `총 ${toApprove.length}건을 모두 승인하시겠습니까?`;
@@ -5633,7 +5633,7 @@ window.rejectGroup = async (idsCsv) => {
   const reason = prompt(`취소 사유 (총 ${ids.length}건 전체 적용):`, '');
   if (reason === null) return;
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   try {
     await Promise.all(ids.map(id => {
       const r = reservations.find(x => x.id === id); if (!r) return Promise.resolve();
@@ -5652,7 +5652,7 @@ window.rejectR = async (id) => {
   const reason = prompt('취소 사유:', '');
   if (reason === null) return;
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   try {
     await updateDoc(doc(db, 'reservations', id), {
@@ -5681,7 +5681,7 @@ window.cancelR = async (id, fromDetail = false) => {
 window.deleteR = async (id, fromDetail = false) => {
   if (!confirm('예약을 삭제하시겠습니까?')) return;
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   try {
     await deleteDoc(doc(db, 'reservations', id));
     if (fromDetail) closeModal('modal-detail');
@@ -6198,9 +6198,9 @@ window.updateOpsBodyPreview = () => {
 `아이엠센터 주요 운영 일정
 기간: ${period}
 
-안녕하세요. 다음 주 아이엠센터 운영에 참고하실 주요 일정과 특이사항을 안내드립니다.
+안녕하십니까. 다음 주 아이엠센터 운영에 참고하실 주요 일정과 특이사항을 안내드립니다.
 
-(※ 주요 일정 요약 표는 이미지로 복사해 여기에 삽입해주세요)
+(※ 주요 일정 요약 표는 이미지로 복사해 여기에 삽입해 주시기 바랍니다)
 ${worshipRows.length ? `
 1) 주일예배 안내
 
@@ -6246,16 +6246,16 @@ function ensureHtml2Canvas() {
 
 window.copyOpsTableImage = async () => {
   const el = document.getElementById('ops-table-capture');
-  if (!el) { T('먼저 리포트를 생성하세요 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
+  if (!el) { T('먼저 리포트를 생성하십시오 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
   try {
     await ensureHtml2Canvas();
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
     canvas.toBlob(async (blob) => {
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-        T('표 이미지가 복사되었습니다. 이메일 본문에 붙여넣기(Ctrl+V) 하세요');
+        T('표 이미지가 복사되었습니다. 이메일 본문에 붙여넣기(Ctrl+V) 하십시오');
       } catch (e) {
-        T('이 브라우저는 이미지 클립보드 복사를 지원하지 않습니다. "이미지 다운로드"를 이용해주세요', '#A32D2D');
+        T('이 브라우저는 이미지 클립보드 복사를 지원하지 않습니다. "이미지 다운로드"를 이용해 주시기 바랍니다', '#A32D2D');
       }
     });
   } catch (e) {
@@ -6265,7 +6265,7 @@ window.copyOpsTableImage = async () => {
 
 window.downloadOpsTableImage = async () => {
   const el = document.getElementById('ops-table-capture');
-  if (!el) { T('먼저 리포트를 생성하세요 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
+  if (!el) { T('먼저 리포트를 생성하십시오 (기간에 확정된 예약이 있어야 합니다)', '#A32D2D'); return; }
   try {
     await ensureHtml2Canvas();
     const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
@@ -6796,14 +6796,14 @@ window.submitEdit = async () => {
   const isMulti = !editId && !!document.getElementById('e-is-multi')?.checked;
 
   if (!type || !manager || !sName || !sTel || !room || (!isMulti && !date)) {
-    T('필수 항목을 입력해주세요', '#A32D2D'); return;
+    T('필수 항목을 입력해 주시기 바랍니다', '#A32D2D'); return;
   }
   if (isIamHall) {
-    if (!iamShowName) { T('공연명 / 행사명을 입력해주세요', '#A32D2D'); return; }
+    if (!iamShowName) { T('공연명 / 행사명을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   } else if (!people || !purpose) {
-    T('필수 항목을 입력해주세요', '#A32D2D'); return;
+    T('필수 항목을 입력해 주시기 바랍니다', '#A32D2D'); return;
   }
-  if (isMulti && editMultiDates.length === 0) { T('날짜를 하나 이상 추가해주세요', '#A32D2D'); return; }
+  if (isMulti && editMultiDates.length === 0) { T('날짜를 하나 이상 추가해 주시기 바랍니다', '#A32D2D'); return; }
   if (!isMulti && start >= end) { T('종료 시간이 더 늦어야 합니다', '#A32D2D'); return; }
   // 전체 시리즈 수정 모드, 신규 정기 예약, 지혜홀 기존 예약 수정(회차별 충돌 체크를 아래에서 별도로 수행)에서는 여기서 스킵
   const _editAllSeries = !!document.getElementById('e-all-series')?.checked;
@@ -6847,7 +6847,7 @@ window.submitEdit = async () => {
     data.checkoutTime = jihyeCheckoutTime;
   }
   const cu = curUser;
-  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해주세요.', '#A32D2D'); return; }
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   try {
     if (editId) {
       const r = reservations.find(x => x.id === editId); if (!r) return;
@@ -7018,7 +7018,7 @@ window.submitEdit = async () => {
 
           document.getElementById('info-body').innerHTML =
             (toUpdate.length ? `<div style="color:#3B6D11;margin-bottom:8px">✅ ${toUpdate.length}건이 수정됐습니다.</div>` : '') +
-            `<div style="color:#A32D2D;margin-bottom:8px;font-size:12px">⚠️ 아래 날짜는 다른 예약과 시간이 겹쳐 수정되지 않았습니다.<br>클릭해서 바로 조정하세요.</div>` +
+            `<div style="color:#A32D2D;margin-bottom:8px;font-size:12px">⚠️ 아래 날짜는 다른 예약과 시간이 겹쳐 수정되지 않았습니다.<br>클릭해서 바로 조정하십시오.</div>` +
             conflictBtns + cantAddInfo + altHtml;
           openModal('modal-info');
         } else {
@@ -7031,7 +7031,7 @@ window.submitEdit = async () => {
         // 새로 추가되는 회차는 승인 메일 대상이 아님(문서가 '확정'으로 생성되므로 상태 변경 트리거 없음).
         const endDate   = document.getElementById('e-end-date')?.value;
         const recurType = document.getElementById('e-recur')?.value || 'weekly';
-        if (!endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+        if (!endDate) { T('정기 예약의 종료 날짜를 입력해 주시기 바랍니다', '#A32D2D'); return; }
         if (endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
         const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
         const recurLabel = recurLabelMap[recurType];
@@ -7116,7 +7116,7 @@ window.submitEdit = async () => {
       const isRecur  = document.getElementById('e-is-recur')?.checked;
       const endDate  = document.getElementById('e-end-date')?.value;
       const recurType = document.getElementById('e-recur')?.value || 'weekly';
-      if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해주세요', '#A32D2D'); return; }
+      if (isRecur && !endDate) { T('정기 예약의 종료 날짜를 입력해 주시기 바랍니다', '#A32D2D'); return; }
       if (isRecur && endDate < date) { T('종료 날짜가 시작 날짜보다 빨라서는 안 됩니다', '#A32D2D'); return; }
       const recurLabelMap = { weekly:'매 주', biweekly:'격 주', monthly:'매 달 동일 요일' };
 
@@ -7680,7 +7680,7 @@ window.saveQuickEdit = async () => {
   const date  = document.getElementById('qe-date').value;
   const start = document.getElementById('qe-start').value;
   const end   = document.getElementById('qe-end').value;
-  if (!date || !start || !end) { T('날짜와 시간을 모두 입력해주세요', '#A32D2D'); return; }
+  if (!date || !start || !end) { T('날짜와 시간을 모두 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (start >= end) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
   if (!noConflict(r.room, date, start, end, _quickEditId, true)) {
     T(`${r.room}에 이미 확정된 예약이 있어 저장할 수 없습니다`, '#A32D2D');
@@ -7781,8 +7781,8 @@ window.bulkDelete = async () => {
 window.bulkChangeType = async () => {
   const ids = getSelectedIds();
   const type = document.getElementById('bulk-type-sel').value;
-  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
-  if (!type) { T('변경할 기관을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
+  if (!type) { T('변경할 기관을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   if (!confirm(`선택한 ${ids.length}건의 기관을 "${type}"으로 변경하시겠습니까?\n(세부기관은 초기화됩니다)`)) return;
   try {
     await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { type, subOrg: '' })));
@@ -7796,8 +7796,8 @@ window.bulkChangeSubOrg = async () => {
   const ids = getSelectedIds();
   const type   = document.getElementById('bulk-type-sel').value;
   const subOrg = document.getElementById('bulk-subtype-sel').value;
-  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
-  if (!subOrg) { T('변경할 세부기관을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
+  if (!subOrg) { T('변경할 세부기관을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   const updateData = { subOrg };
   if (type) updateData.type = type;
   const msg = type ? `기관 "${type}" + 세부기관 "${subOrg}"` : `세부기관 "${subOrg}"`;
@@ -7814,7 +7814,7 @@ window.bulkChangeSubOrg = async () => {
 // (기존 rejectGroup과 동일한 로직 재사용 — 취소 사유 입력 후 상태만 '취소'로 변경, 문서는 삭제하지 않음)
 window.bulkCancelSelected = async () => {
   const ids = getSelectedIds();
-  if (!ids.length) { T('취소할 항목을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('취소할 항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   await rejectGroup(ids.join(','));
   clearBulkSelect();
 };
@@ -7822,7 +7822,7 @@ window.bulkCancelSelected = async () => {
 // 한꺼번에 바꿀 때 사용 (예: 화·목 중 화요일 회차만 수요일로 옮기기 등 회차별 예외 대응)
 window.openBulkRescheduleModal = () => {
   const ids = getSelectedIds();
-  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('일정을 변경할 항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   document.getElementById('bulk-resched-count').textContent = `${ids.length}건 선택됨`;
   document.getElementById('br-weekday').value = '';
   const timeOpts = '<option value="">변경 안 함</option>' + SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -7889,12 +7889,12 @@ window.checkBulkReschedule = () => {
 
 window.submitBulkReschedule = async () => {
   const ids = getSelectedIds();
-  if (!ids.length) { T('일정을 변경할 항목을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('일정을 변경할 항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   const { weekdayVal, newStart, newEnd, newRoom, rows, targets } = computeBulkRescheduleTargets(ids);
   if (weekdayVal === '' && !newStart && !newEnd && !newRoom) {
-    T('요일·시간·공간 중 하나 이상 변경할 값을 선택해주세요', '#A32D2D'); return;
+    T('요일·시간·공간 중 하나 이상 변경할 값을 선택해 주시기 바랍니다', '#A32D2D'); return;
   }
-  if ((newStart && !newEnd) || (!newStart && newEnd)) { T('시작·종료 시간은 함께 선택해주세요', '#A32D2D'); return; }
+  if ((newStart && !newEnd) || (!newStart && newEnd)) { T('시작·종료 시간은 함께 선택해 주시기 바랍니다', '#A32D2D'); return; }
   if (newStart && newEnd && newStart >= newEnd) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
 
   const idSet = new Set(ids);
@@ -7948,7 +7948,7 @@ window.bulkGroupRecur = async () => {
   const typeLabel = prompt(
     `선택한 ${ids.length}건을 정기 예약 시리즈로 묶습니다.\n` +
     `날짜: ${datePreview}\n\n` +
-    `반복 유형을 입력하세요:\n1 = 매 주\n2 = 격 주\n3 = 매 달\n4 = 기타\n\n번호 입력:`
+    `반복 유형을 입력하십시오:\n1 = 매 주\n2 = 격 주\n3 = 매 달\n4 = 기타\n\n번호 입력:`
   );
   if (typeLabel === null) return;
   const recurTypeMap = { '1': '매 주', '2': '격 주', '3': '매 달 동일 요일', '4': '기타' };
@@ -7976,7 +7976,7 @@ window.bulkGroupRecur = async () => {
 // 같은 그룹의 나머지 예약은 그대로 유지하고 recurTotal만 남은 건수로 갱신함
 window.bulkUngroupRecur = async () => {
   const ids = getSelectedIds();
-  if (!ids.length) { T('항목을 선택해주세요', '#A32D2D'); return; }
+  if (!ids.length) { T('항목을 선택해 주시기 바랍니다', '#A32D2D'); return; }
   const targets = ids.map(id => reservations.find(r => r.id === id)).filter(Boolean).filter(r => r.recurGroup);
   if (!targets.length) { T('선택한 항목 중 그룹(정기/비정기)에 속한 예약이 없습니다', '#A32D2D'); return; }
   const datePreview = targets.map(r => `${r.date} ${r.room}`).join(', ');
@@ -8689,7 +8689,7 @@ window.saveOrg = async () => {
   const bgColor  = document.getElementById('org-bgcolor').value;
   const parentId = document.getElementById('org-parent').value || null;
   const isGroup  = false; // 하위기관 여부는 parentId로만 판단
-  if (!name || !shortName) { T('기관명과 약칭을 입력해주세요', '#A32D2D'); return; }
+  if (!name || !shortName) { T('기관명과 약칭을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   const data = { name, shortName, color, bgColor, isGroup, parentId,
     order: id ? (orgsList.find(o=>o.id===id)?.order||99) : (orgsList.length + 1) };
   try {
@@ -8703,7 +8703,7 @@ window.saveOrg = async () => {
 window.deleteOrg = async (id) => {
   const org = orgsList.find(o => o.id === id);
   const hasChildren = orgsList.some(o => o.parentId === id);
-  if (hasChildren) { T('하위 기관을 먼저 삭제해주세요', '#A32D2D'); return; }
+  if (hasChildren) { T('하위 기관을 먼저 삭제해 주시기 바랍니다', '#A32D2D'); return; }
   if (!confirm(`"${org?.name}" 기관을 삭제하시겠습니까?\n이미 등록된 예약의 기관 분류는 변경되지 않습니다.`)) return;
   try {
     await deleteDoc(doc(db, 'orgs', id));
@@ -8733,7 +8733,7 @@ async function renderExtUsers() {
 window.addExtUser = async () => {
   const email = document.getElementById('ext-email').value.trim().toLowerCase();
   const name  = document.getElementById('ext-name').value.trim();
-  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (email.endsWith('@' + ALLOWED_DOMAIN)) { T('suwoncca.org 계정은 기본 허용됩니다', '#854F0B'); return; }
   if (ADMIN_EMAILS.includes(email)) { T('관리자 계정은 이미 허용되어 있습니다', '#854F0B'); return; }
   await setDoc(doc(db, 'allowedUsers', email), { name, addedBy: curUser.email, addedAt: nowStr() });
@@ -8861,7 +8861,7 @@ function renderNameMatchList(email) {
 window.reassignReservationName = async (primaryId, field, email) => {
   const input = document.getElementById(`nm-input-${primaryId}`);
   const newName = input?.value.trim();
-  if (!newName) { T('이름을 입력해주세요', '#A32D2D'); return; }
+  if (!newName) { T('이름을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   const ids = nmGroupIds[primaryId] || [primaryId];
   try {
     await Promise.all(ids.map(id => updateDoc(doc(db, 'reservations', id), { [field]: newName })));
@@ -8875,7 +8875,7 @@ window.reassignReservationName = async (primaryId, field, email) => {
 window.addLoginUserManual = async () => {
   const email = document.getElementById('lu-email').value.trim().toLowerCase();
   const name  = document.getElementById('lu-name').value.trim();
-  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   const ref = doc(db, 'loginUsers', email);
   const existing = await getDoc(ref);
   if (existing.exists()) { T('이미 등록된 사용자입니다', '#854F0B'); return; }
@@ -8962,7 +8962,7 @@ async function renderAdmins() {
 window.addAdminUser = async () => {
   const email = document.getElementById('admin-email').value.trim().toLowerCase();
   const name  = document.getElementById('admin-name').value.trim();
-  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해주세요', '#A32D2D'); return; }
+  if (!email || !email.includes('@')) { T('올바른 이메일을 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (ADMIN_EMAILS.includes(email)) { T('이미 주 관리자로 등록된 계정입니다', '#854F0B'); return; }
   await setDoc(doc(db, 'admins', email), { name, addedBy: curUser.email, addedAt: nowStr() });
   document.getElementById('admin-email').value = '';
@@ -8996,17 +8996,17 @@ window.fqToggle = function(i){
 const CE = {
   // ── 기본 FAQ 데이터 (Firestore에 없을 때 사용) ──
   defaultFaq: [
-    {q:"예약신청서 작성은 누가 할 수 있나요?", a:"공동체 내의 건강한 모임이 이루어지는 것을 점검하기 위해 <b>예약책임자(담당교회 목회자, 학교장(교장, 교감), 목양간사)</b>를 통해 예약할 수 있습니다.", note:"취소 및 변경은 <b>청지기(실제 이용자)</b>도 가능합니다."},
-    {q:"모임에 맞는 실을 어떻게 예약하나요?", a:"<b>[공간안내]</b> 메뉴에서 실 이미지를 보실 수 있으며, 현장을 보기 원하실 경우 미리 연락주시면 친절히 안내해 드리겠습니다.", note:""},
-    {q:"음식물 반입이 되나요?", a:"<b>I-607(샤론홀) / I-604, I-606(창문 없는 실)</b>은 음식물 반입 및 섭취가 어렵습니다.<br>그 외 다른 실은 냄새나지 않는 음식(쿠키, 파이, 간단한 다과류) 섭취가 가능합니다.", note:"음식물 쓰레기는 모두 수거해서 가져가 주셔야 하며, 드시고 난 후 테이블을 꼭 닦아 주시기 바랍니다."},
-    {q:"테이블, 의자 이동이 되나요?", a:"<b>예약한 실 내에서</b> 모임에 맞게 자리 변경은 가능하지만 (퇴실 시 원위치).", note:"실 간 혹은 층 간 이동은 엘리베이터가 화물용이 아니므로 어렵습니다."},
-    {q:"체크리스트는 어디로 제출하나요?", a:"수기로 작성하거나 <b>QR 중 선택</b>하여 제출합니다. 수기 작성은 실 보드게시판에 붙이고 그대로 퇴실하시면 됩니다.", note:""},
-    {q:"체크리스트는 언제까지 제출하나요?", a:"퇴실 즉시 혹은 <b>익일 내</b>로 사진 전송과 함께 제출 부탁드립니다.", note:""},
-    {q:"자녀 동반 가능한가요?", a:"<b>6·7F</b>은 출입문과 벽면이 모두 통유리로 되어 있어 <b>중학생 미만의 자녀 출입이 어렵습니다.</b>", note:"자녀를 동반한 모임을 원하시는 경우 신관, 본관을 이용해 주시기 바랍니다."},
-    {q:"야외테라스도 예약해야 하나요?", a:"네, <b>야외테라스와 파라솔까지 예약</b> 후 이용해 주시기 바랍니다.", note:""},
-    {q:"어떤 모임이 예약 가능한가요?", a:"소그룹 모임, 기도모임, 소회의, 교회 행사 등 여러가지 모임으로 이용 가능하나 <b>포도원 모임의 용도로는 예약을 받지 않습니다.</b>", note:"가정에서 삶을 나눔이 원천교회 포도원의 가치이므로 포도원 모임은 가정에서 지켜주시기 바랍니다."},
+    {q:"예약신청서 작성은 누가 할 수 있습니까?", a:"공동체 내의 건강한 모임이 이루어지는 것을 점검하기 위해 <b>예약책임자(담당교회 목회자, 학교장(교장, 교감), 목양간사)</b>를 통해 예약할 수 있습니다.", note:"취소 및 변경은 <b>청지기(실제 이용자)</b>도 가능합니다."},
+    {q:"모임에 맞는 실을 어떻게 예약합니까?", a:"<b>[공간안내]</b> 메뉴에서 실 이미지를 보실 수 있으며, 현장을 보기 원하실 경우 미리 연락주시면 친절히 안내해 드리겠습니다.", note:""},
+    {q:"음식물 반입이 됩니까?", a:"<b>I-607(샤론홀) / I-604, I-606(창문 없는 실)</b>은 음식물 반입 및 섭취가 어렵습니다.<br>그 외 다른 실은 냄새나지 않는 음식(쿠키, 파이, 간단한 다과류) 섭취가 가능합니다.", note:"음식물 쓰레기는 모두 수거해서 가져가 주셔야 하며, 드시고 난 후 테이블을 꼭 닦아 주시기 바랍니다."},
+    {q:"테이블, 의자 이동이 됩니까?", a:"<b>예약한 실 내에서</b> 모임에 맞게 자리 변경은 가능하지만 (퇴실 시 원위치).", note:"실 간 혹은 층 간 이동은 엘리베이터가 화물용이 아니므로 어렵습니다."},
+    {q:"체크리스트는 어디로 제출합니까?", a:"수기로 작성하거나 <b>QR 중 선택</b>하여 제출합니다. 수기 작성은 실 보드게시판에 붙이고 그대로 퇴실하시면 됩니다.", note:""},
+    {q:"체크리스트는 언제까지 제출합니까?", a:"퇴실 즉시 혹은 <b>익일 내</b>로 사진 전송과 함께 제출 부탁드립니다.", note:""},
+    {q:"자녀 동반 가능합니까?", a:"<b>6·7F</b>은 출입문과 벽면이 모두 통유리로 되어 있어 <b>중학생 미만의 자녀 출입이 어렵습니다.</b>", note:"자녀를 동반한 모임을 원하시는 경우 신관, 본관을 이용해 주시기 바랍니다."},
+    {q:"야외테라스도 예약해야 합니까?", a:"네, <b>야외테라스와 파라솔까지 예약</b> 후 이용해 주시기 바랍니다.", note:""},
+    {q:"어떤 모임이 예약 가능합니까?", a:"소그룹 모임, 기도모임, 소회의, 교회 행사 등 여러가지 모임으로 이용 가능하나 <b>포도원 모임의 용도로는 예약을 받지 않습니다.</b>", note:"가정에서 삶을 나눔이 원천교회 포도원의 가치이므로 포도원 모임은 가정에서 지켜주시기 바랍니다."},
     {q:"예약과 동시에 방송기술 지원도 필요합니다.", a:"IAM 센터 내의 모든 음향·방송 기술지원은 <b>Bridge Media Services</b>를 통해 유료로 이루어집니다.", note:""},
-    {q:"기타 문의는 어디로 하면 되나요?", a:"<b>카카오톡 채널(ID: 아이엠센터)</b> 친구 추가 하시면 바로 소통이 가능합니다.", note:"유선은 <b>070-7018-1439</b> (월화목금 9:00–16:00)로 문의 주시기 바랍니다."}
+    {q:"기타 문의는 어디로 하면 됩니까?", a:"<b>카카오톡 채널(ID: 아이엠센터)</b> 친구 추가 하시면 바로 소통이 가능합니다.", note:"유선은 <b>070-7018-1439</b> (월화목금 9:00–16:00)로 문의 주시기 바랍니다."}
   ],
   defaultFloors: [
     {name:'B1/B2층', mainTitle:'', body:'', photos:[], links:[], fontSize:'md'},
@@ -9361,7 +9361,7 @@ window.ceFloorBold = (i) => {
   const ta = document.getElementById(`ce-floor-body-${i}`);
   if (!ta) return;
   const start = ta.selectionStart, end = ta.selectionEnd;
-  if (start === end) { window.T('굵게 표시할 텍스트를 먼저 선택해주세요', '#854F0B'); return; }
+  if (start === end) { window.T('굵게 표시할 텍스트를 먼저 선택해 주시기 바랍니다', '#854F0B'); return; }
   const val = ta.value;
   const newVal = val.slice(0,start) + '<b>' + val.slice(start,end) + '</b>' + val.slice(end);
   ta.value = newVal;
@@ -9615,14 +9615,14 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     if(step>=1){
       if(chk('m-is-multi')){
         var l=document.getElementById('m-multi-date-list');
-        if(!l||!l.textContent.trim()){warn('날짜를 하나 이상 추가해 주세요');return 1;}
+        if(!l||!l.textContent.trim()){warn('날짜를 하나 이상 추가해 주시기 바랍니다');return 1;}
       } else {
-        if(!val('m-date')){warn('날짜를 선택해 주세요');return 1;}
+        if(!val('m-date')){warn('날짜를 선택해 주시기 바랍니다');return 1;}
         if(val('m-start')>=val('m-end')){warn('종료 시간이 시작보다 늦어야 합니다');return 1;}
       }
     }
     if(step>=2){
-      if(!val('m-type')||!val('m-manager')||!val('m-steward-name')||!val('m-steward-tel')||!val('m-people')||!val('m-purpose')){warn('필수 항목(*)을 모두 입력해 주세요');return 2;}
+      if(!val('m-type')||!val('m-manager')||!val('m-steward-name')||!val('m-steward-tel')||!val('m-people')||!val('m-purpose')){warn('필수 항목(*)을 모두 입력해 주시기 바랍니다');return 2;}
     }
     return 0;
   };

@@ -146,7 +146,7 @@ window.doLogin = async () => {
     const p = new GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, p);
-  } catch (e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+  } catch (e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
 };
 
 window.connectKakao = () => {
@@ -186,7 +186,7 @@ window.sendTestMail = async () => {
   try {
     const sendMail = httpsCallable(fns, 'sendTestAdminEmail');
     const { data } = await sendMail();
-    resultEl.innerHTML = `<span class="ok">✓ ${data.to} 로 발송했습니다. 메일함(스팸함 포함)을 확인해 주세요.</span>`;
+    resultEl.innerHTML = `<span class="ok">✓ ${data.to} 로 발송했습니다. 메일함(스팸함 포함)을 확인해 주시기 바랍니다.</span>`;
   } catch (e) {
     console.error(e);
     resultEl.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;
@@ -203,7 +203,7 @@ window.sendTestSms = async () => {
   try {
     const sendSmsFn = httpsCallable(fns, 'sendTestSmsMessage');
     const { data } = await sendSmsFn();
-    resultEl.innerHTML = `<span class="ok">✓ ${data.to} 로 발송했습니다. 문자를 확인해 주세요.</span>`;
+    resultEl.innerHTML = `<span class="ok">✓ ${data.to} 로 발송했습니다. 문자를 확인해 주시기 바랍니다.</span>`;
   } catch (e) {
     console.error(e);
     resultEl.innerHTML = `<span class="err">✗ ${(e.message || e)}</span>`;
@@ -220,7 +220,7 @@ window.sendTest = async () => {
   try {
     const sendTestMsg = httpsCallable(fns, 'sendTestKakaoMessage');
     await sendTestMsg();
-    resultEl.innerHTML = '<span class="ok">✓ 발송했습니다. 카카오톡을 확인해 주세요.</span>';
+    resultEl.innerHTML = '<span class="ok">✓ 발송했습니다. 카카오톡을 확인해 주시기 바랍니다.</span>';
   } catch (e) {
     console.error(e);
     resultEl.innerHTML = `<span class="err">✗ 발송 실패 — ${(e.message || e)}</span>`;

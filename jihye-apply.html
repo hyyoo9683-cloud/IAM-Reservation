@@ -88,7 +88,7 @@ textarea{min-height:80px;resize:vertical;line-height:1.6;}
   <a class="home-btn" href="index.html">← 홈으로</a>
   <div class="header-logo">IAM CENTER</div>
   <div class="header-title">지혜홀 숙박 신청</div>
-  <div class="header-sub">상담 후 안내받으신 분만 신청해 주세요</div>
+  <div class="header-sub">상담 후 안내받으신 분만 신청해 주시기 바랍니다</div>
 </div>
 
 <div id="form-wrap">
@@ -187,11 +187,11 @@ window.submitRequest = async () => {
   const dateIn      = g('f-date-in').value;
   const nights      = parseInt(g('f-nights').value) || 0;
 
-  if (!orgName)     { showErr('단체·기관명을 입력해 주세요.'); return; }
-  if (!managerName) { showErr('담당자 이름을 입력해 주세요.'); return; }
-  if (!tel)         { showErr('연락처를 입력해 주세요.'); return; }
-  if (!dateIn)      { showErr('체크인 날짜를 입력해 주세요.'); return; }
-  if (!nights)      { showErr('박수를 입력해 주세요.'); return; }
+  if (!orgName)     { showErr('단체·기관명을 입력해 주시기 바랍니다.'); return; }
+  if (!managerName) { showErr('담당자 이름을 입력해 주시기 바랍니다.'); return; }
+  if (!tel)         { showErr('연락처를 입력해 주시기 바랍니다.'); return; }
+  if (!dateIn)      { showErr('체크인 날짜를 입력해 주시기 바랍니다.'); return; }
+  if (!nights)      { showErr('박수를 입력해 주시기 바랍니다.'); return; }
 
   const rooms = [...document.querySelectorAll('input[name="f-rooms"]:checked')].map(c => c.value);
 
@@ -216,7 +216,7 @@ window.submitRequest = async () => {
     document.getElementById('form-wrap').style.display = 'none';
     document.getElementById('done-wrap').style.display = 'block';
   } catch (e) {
-    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주시기 바랍니다.');
     btn.disabled = false; btn.textContent = '신청서 제출하기';
   }
 };

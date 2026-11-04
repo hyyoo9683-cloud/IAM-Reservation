@@ -56,7 +56,7 @@ async function refreshAccessToken(refreshToken) {
 
 async function getValidAccessToken() {
   const snap = await authDocRef().get();
-  if (!snap.exists) throw new Error('카카오 계정이 연결되어 있지 않습니다. kakao-auth.html에서 먼저 연동해 주세요.');
+  if (!snap.exists) throw new Error('카카오 계정이 연결되어 있지 않습니다. kakao-auth.html에서 먼저 연동해 주시기 바랍니다.');
   const d = snap.data();
   if (d.expiresAt && Date.now() < d.expiresAt) return d.accessToken;
   return refreshAccessToken(d.refreshToken);

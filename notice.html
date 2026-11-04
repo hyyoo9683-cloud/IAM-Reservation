@@ -235,7 +235,7 @@ window.doLogin = async () => {
     const p = new GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, p);
-  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
 };
 window.doLogout = async () => { await signOut(auth); };
 
@@ -395,7 +395,7 @@ window.saveNotice  = async () => {
   const venue   = document.getElementById('ed-venue').value.trim();
   const content = document.getElementById('ed-content').value.trim();
   const pinned  = document.getElementById('ed-pinned').checked;
-  if (!title || !content) { alert('제목과 내용을 입력해 주세요.'); return; }
+  if (!title || !content) { alert('제목과 내용을 입력해 주시기 바랍니다.'); return; }
 
   const data = { title, category: cat, venue, content, pinned,
     updatedAt: serverTimestamp(), createdBy: curUser?.email || '' };
@@ -645,7 +645,7 @@ textarea{resize:vertical;min-height:260px;}
 <div class="modal-bg" id="ed-modal">
   <div class="modal">
     <div class="modal-title" id="ed-modal-title">새 공지 작성</div>
-    <div class="fg"><div class="lbl">제목 *</div><input id="ed-title" placeholder="공지 제목을 입력하세요"></div>
+    <div class="fg"><div class="lbl">제목 *</div><input id="ed-title" placeholder="공지 제목을 입력하십시오"></div>
     <div style="display:flex;gap:12px">
       <div class="fg" style="flex:1"><div class="lbl">분류 *</div>
         <select id="ed-cat">
@@ -662,7 +662,7 @@ textarea{resize:vertical;min-height:260px;}
         </select>
       </div>
     </div>
-    <div class="fg"><div class="lbl">내용 *</div><textarea id="ed-content" placeholder="내용을 입력하세요 (줄바꿈 그대로 표시됩니다)"></textarea></div>
+    <div class="fg"><div class="lbl">내용 *</div><textarea id="ed-content" placeholder="내용을 입력하십시오 (줄바꿈 그대로 표시됩니다)"></textarea></div>
     <div class="fg" style="display:flex;align-items:center;gap:8px">
       <input type="checkbox" id="ed-pinned" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
       <label for="ed-pinned" style="font-size:13px;cursor:pointer;color:var(--text2)">상단 고정 (📌)</label>

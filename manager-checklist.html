@@ -165,7 +165,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
     <a class="home-btn" href="portal.html">← 인트라넷</a>
     <div class="header-logo">IAM CENTER</div>
     <div class="header-title">체크리스트</div>
-    <div class="header-sub">담당 행사를 선택해 나만의 체크리스트를 작성하세요</div>
+    <div class="header-sub">담당 행사를 선택해 나만의 체크리스트를 작성하십시오</div>
   </div>
 
   <div class="layout">
@@ -193,7 +193,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div class="sec-label">다른 담당자 체크리스트</div>
         <div id="other-lists"></div>
       </div>
-      <div id="cl-empty" class="empty">왼쪽에서 예약 건을 선택하세요.</div>
+      <div id="cl-empty" class="empty">왼쪽에서 예약 건을 선택하십시오.</div>
     </div>
 
   </div>
@@ -269,7 +269,7 @@ window.doLogin = async () => {
     const p = new GoogleAuthProvider();
     p.setCustomParameters({ prompt: 'select_account' });
     await signInWithPopup(auth, p);
-  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해주세요.'); }
+  } catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginError('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
 };
 window.doLogout = async () => { await signOut(auth); location.href = 'portal.html'; };
 

@@ -81,7 +81,7 @@ function renderNewReservationEmail(r) {
   const subject = series
     ? `[아이엠센터] 새 예약 신청 – ${r.room || ''} ${r.recurType === '비정기' ? '비정기' : '정기'} ${r.seriesDateCount}회`
     : `[아이엠센터] 새 예약 신청 – ${r.room || ''} ${formatKoreanDate(r.date)}`;
-  const intro = `<strong>${esc(manager)}</strong>님이 새 예약을 신청했습니다. 확인 후 승인해 주세요.`;
+  const intro = `<strong>${esc(manager)}</strong>님이 새 예약을 신청했습니다. 확인 후 승인해 주시기 바랍니다.`;
   const rows = [
     ['신청 기관/모임', r.type || r.subOrg || '-'],
     ['예약 공간', r.room || '-'],

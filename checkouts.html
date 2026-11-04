@@ -289,7 +289,7 @@ function showLoginErr(msg) {
 window.doLogin = async () => {
   document.getElementById('login-err').style.display = 'none';
   try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginErr('로그인 실패. 다시 시도해 주세요.'); }
+  catch(e) { if (e.code !== 'auth/popup-closed-by-user') showLoginErr('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
 };
 window.doLogout = async () => { await signOut(auth); };
 

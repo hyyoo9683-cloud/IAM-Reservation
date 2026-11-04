@@ -115,7 +115,7 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
   <a class="home-btn" href="index.html">← 홈으로</a>
   <div class="header-logo">IAM CENTER</div>
   <div class="header-title">청지기 퇴실 체크리스트</div>
-  <div class="header-sub">이용 후 아래 항목을 확인하고 제출해 주세요</div>
+  <div class="header-sub">이용 후 아래 항목을 확인하고 제출해 주시기 바랍니다</div>
 </div>
 
 <div id="form-wrap">
@@ -134,27 +134,27 @@ textarea{min-height:90px;resize:vertical;line-height:1.6;}
   </div>
 
   <div class="card">
-    <div class="sec-label">퇴실 시 확인 후 표시해 주세요</div>
+    <div class="sec-label">퇴실 시 확인 후 표시해 주시기 바랍니다</div>
     <div class="checklist">
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="power">
         <span class="chk-box"></span>
-        <span class="check-text">조명과 냉난방 시스템 전원 off 해 주셨나요?</span>
+        <span class="check-text">조명과 냉난방 시스템 전원 off 해 주셨습니까?</span>
       </label>
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="furniture">
         <span class="chk-box"></span>
-        <span class="check-text">테이블·의자 원 위치 해 주셨나요?</span>
+        <span class="check-text">테이블·의자 원 위치 해 주셨습니까?</span>
       </label>
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="trash">
         <span class="chk-box"></span>
-        <span class="check-text">쓰레기 수거해 주셨나요?</span>
+        <span class="check-text">쓰레기 수거해 주셨습니까?</span>
       </label>
       <label class="check-item">
         <input class="chk-input" type="checkbox" name="chk" value="event_items">
         <span class="chk-box"></span>
-        <span class="check-text">행사를 위해 부착하시거나 설치한 물품은 정리하셨나요?</span>
+        <span class="check-text">행사를 위해 부착하시거나 설치한 물품은 정리하셨습니까?</span>
       </label>
     </div>
   </div>
@@ -209,10 +209,10 @@ const app = initializeApp({
 const db = getFirestore(app);
 
 const CHK_LABELS = {
-  power:       '조명과 냉난방 시스템 전원 off 해 주셨나요?',
-  furniture:   '테이블·의자 원 위치 해 주셨나요?',
-  trash:       '쓰레기 수거해 주셨나요?',
-  event_items: '행사를 위해 부착하시거나 설치한 물품은 정리하셨나요?'
+  power:       '조명과 냉난방 시스템 전원 off 해 주셨습니까?',
+  furniture:   '테이블·의자 원 위치 해 주셨습니까?',
+  trash:       '쓰레기 수거해 주셨습니까?',
+  event_items: '행사를 위해 부착하시거나 설치한 물품은 정리하셨습니까?'
 };
 
 window.submitCheckout = async () => {
@@ -226,9 +226,9 @@ window.submitCheckout = async () => {
 
   errEl.style.display = 'none';
 
-  if (!name)     { showErr('청지기명을 입력해 주세요.'); return; }
-  if (!contact)  { showErr('청지기 연락처를 입력해 주세요.'); return; }
-  if (checked.length === 0) { showErr('퇴실 시 확인 항목을 하나 이상 선택해 주세요.'); return; }
+  if (!name)     { showErr('청지기명을 입력해 주시기 바랍니다.'); return; }
+  if (!contact)  { showErr('청지기 연락처를 입력해 주시기 바랍니다.'); return; }
+  if (checked.length === 0) { showErr('퇴실 시 확인 항목을 하나 이상 선택해 주시기 바랍니다.'); return; }
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '제출 중…';
@@ -244,7 +244,7 @@ window.submitCheckout = async () => {
     document.getElementById('form-wrap').style.display = 'none';
     document.getElementById('done-wrap').style.display = 'block';
   } catch(e) {
-    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+    showErr('제출에 실패했습니다. 잠시 후 다시 시도해 주시기 바랍니다.');
     btn.disabled = false; btn.textContent = '제출';
   }
 };
