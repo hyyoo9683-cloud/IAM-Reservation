@@ -786,7 +786,9 @@ document.getElementById('modal-detail').addEventListener('click', e => {
 
 
 // 앱 공통 메뉴(상단 바 / 모바일 하단 탭) — index.html과 같은 항목, 이 페이지가 '현황/캘린더' 탭
-let viewerUser = null;
+let viewerUser = null, authSettled = false;
+let loginHint = false;
+try { loginHint = localStorage.getItem('iamLoginHint') === '1'; } catch (_) {}
 function renderAppNav() {
   const admin = viewerIsAdmin;
   const its = admin ? [
@@ -802,7 +804,7 @@ function renderAppNav() {
     { t: '내 예약', h: 'index.html?page=mylist' },
     { t: '변경·취소', h: 'reservation-change.html', pc: 1 }
   ];
-  const login = !!viewerUser;
+  const login = authSettled ? !!viewerUser : loginHint;
   const menuHref = admin ? 'index.html?page=dashboard&menu=1' : 'index.html?page=home&menu=1';
   const el = document.getElementById('an-links');
   if (el) el.innerHTML = its.map(x => `<a class="an-link${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}">${x.t}</a>`).join('');
@@ -868,9 +870,10 @@ onAuthStateChanged(auth, async user => {
       try { admin = (await getDoc(doc(db, 'admins', user.email))).exists(); } catch (_) {}
     }
   }
-  try { localStorage.setItem('iamAdminHint', admin ? '1' : '0'); } catch (_) {}
+  try { localStorage.setItem('iamAdminHint', admin ? '1' : '0'); localStorage.setItem('iamLoginHint', user ? '1' : '0'); } catch (_) {}
+  const firstSettle = !authSettled; authSettled = true;
   const changedAdmin = admin !== viewerIsAdmin || (admin && curCol !== 'reservations') || (!admin && curCol !== 'publicReservations');
-  const changedUser = (!!user) !== (!!viewerUser);
+  const changedUser = firstSettle ? (!!user) !== loginHint : (!!user) !== (!!viewerUser);
   viewerUser = user;
   viewerIsAdmin = admin;
   if (changedAdmin) listenReservations(admin ? 'reservations' : 'publicReservations');

@@ -204,22 +204,6 @@ textarea { resize: vertical; min-height: 60px; }
 .public-link { margin-top: 16px; font-size: 13px; color: var(--blue-mid); cursor: pointer; text-decoration: underline; }
 
 /* ── 공개 캘린더 ── */
-#p-public { padding: 0; }
-.pub-header  { background: var(--blue); color: #fff; padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
-.pub-nav     { display: flex; gap: 6px; }
-.pub-nav button { background: rgba(255,255,255,.2); border: none; border-radius: 6px; color: #fff; padding: 5px 12px; cursor: pointer; font-size: 12px; font-weight: 600; font-family: var(--font); }
-.pub-nav button:hover { background: rgba(255,255,255,.35); }
-.cal-wrap    { padding: 16px; }
-.cal-grid    { overflow-x: auto; }
-.cal-table   { width: 100%; border-collapse: collapse; min-width: 620px; }
-.cal-table th { padding: 9px 6px; font-size: 12px; font-weight: 700; border-bottom: 1px solid var(--border); background: var(--bg2); text-align: center; color: var(--text2); }
-.cal-table td { padding: 5px 5px; border-right: 1px solid var(--border2); border-bottom: 1px solid var(--border2); vertical-align: top; min-height: 60px; }
-.cal-table td.room-label { font-size: 13px; font-weight: 700; color: var(--blue); background: var(--bg2); border-right: 1px solid var(--border); padding: 7px 10px; white-space: nowrap; }
-.cal-bar { border-radius: 5px; padding: 4px 7px; font-size: 11px; font-weight: 600; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
-.cal-bar.confirmed { background: var(--green-lt); color: var(--green); }
-.cal-bar.pending   { background: var(--amber-lt); color: var(--amber); }
-.cal-bar.mine      { background: var(--red-lt); color: var(--red); border: 1.5px solid var(--red); font-weight: 700; }
-.cal-bar.locked    { cursor: default; }
 .legend { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border2); }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
 .legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
@@ -324,16 +308,6 @@ textarea { resize: vertical; min-height: 60px; }
   #mobile-hamburger { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: none; background: var(--blue-lt); border-radius: 10px; cursor: pointer; font-size: 22px; color: var(--blue); padding: 0; flex-shrink: 0; }
 
   /* 공개 캘린더 모바일 */
-  .pub-header { padding: 12px 14px; gap: 8px; flex-wrap: wrap; }
-  .pub-nav button { padding: 5px 10px; font-size: 12px; }
-  .cal-wrap { padding: 6px 4px; }
-  .cal-grid { -webkit-overflow-scrolling: touch; }
-  .cal-table { min-width: 460px; }
-  .cal-table th { padding: 6px 3px; font-size: 11px; }
-  .cal-table td { padding: 3px 2px; min-height: 40px; }
-  .cal-table td.room-label { font-size: 12px; padding: 5px 6px; }
-  .cal-bar { font-size: 10px; padding: 3px 4px; }
-  #p-public .filter-chip { padding: 5px 12px; font-size: 12px; }
 
   /* 로그인 카드 모바일 */
   .login-card { padding: 28px 20px; margin: 0 16px; }
@@ -728,10 +702,6 @@ textarea { resize: vertical; min-height: 60px; }
   .login-sub{font-size:15.5px !important}
   .btn-google{font-size:17px !important}
   .public-link{font-size:14.5px !important}
-  .pub-nav button{font-size:13.5px !important}
-  .cal-table th{font-size:13.5px !important}
-  .cal-table td.room-label{font-size:14.5px !important}
-  .cal-bar{font-size:12.5px !important}
   .legend-item{font-size:14.5px !important}
   .space-img{font-size:13.5px !important}
   .space-name{font-size:17px !important}
@@ -1524,38 +1494,12 @@ html.show-splash{overflow:hidden}
     </div>
 
     <!-- 예약 현황 (공개 캘린더) -->
-    <div class="page" id="p-public">
-      <div class="pub-header">
-        <div>
-          <div style="font-size:16px;font-weight:700" id="pub-cal-title">5층 예약 현황</div>
-          <div style="font-size:11px;opacity:.8;margin-top:2px" id="pub-week-label"></div>
-        </div>
-        <div class="pub-nav" style="margin-left:auto">
-          <button onclick="pubWeek(-1)">◀ 이전</button>
-          <button onclick="pubWeek(0)">오늘</button>
-          <button onclick="pubWeek(1)">다음 ▶</button>
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:14px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="filter-chip active" id="pub-tab-5f"   onclick="setPubTab('5f')">5층 (505–511호)</button>
-        <button class="filter-chip"        id="pub-tab-aaron" onclick="setPubTab('aaron')">아론홀</button>
-        <button class="filter-chip"        id="pub-tab-sharon" onclick="setPubTab('sharon')">샤론홀</button>
-      </div>
-      <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#EAF3DE;border:1px solid #3B6D11"></div>확정</div>
-      </div>
-      <div class="cal-wrap">
-        <div class="cal-grid">
-          <table class="cal-table" id="pub-cal-table"></table>
-        </div>
-      </div>
-    </div>
-
     <!-- 예약 신청 -->
     <div class="page" id="p-apply" data-apstep="1">
       <div class="ap-wrap">
         <div class="ap-main">
           <div class="ap-head">
+            <button type="button" class="ap-home" onclick="apExit()">← 홈으로</button>
             <div class="ap-eb">RESERVE</div>
             <h1>예약 신청</h1>
             <div class="ap-steps" role="tablist">
@@ -1566,20 +1510,18 @@ html.show-splash{overflow:hidden}
           </div>
           <div id="m-room-notice" style="display:none;margin-top:14px"></div>
           <section class="ap-step" data-step="1">
-            <h2 class="ap-h">① 언제 · 어디서</h2>
           <div class="card">
-            <div class="card-title">공간 선택 <span class="req">*</span></div>
+            <div class="card-title">공간 <span class="req">*</span></div>
             <label style="display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;margin-bottom:10px">
               <input type="checkbox" id="m-multi-room" onchange="toggleApplyMultiRoom()" style="width:15px;height:15px;flex-shrink:0;cursor:pointer">
-              <span style="font-size:13px;font-weight:600;color:var(--green)">복수 실 예약 (5층 소그룹실만 해당)</span>
+              <span style="font-size:13px;font-weight:600;color:var(--green)">복수 실 예약</span>
             </label>
             <div id="apply-room-chips"></div>
             <input type="hidden" id="m-room">
           </div>
 
           <div class="card">
-            <div class="card-title">일정</div>
-            <div style="font-size:11px;color:var(--text3);margin:-4px 0 12px;background:var(--bg2);border-radius:7px;padding:8px 10px">
+            <div id="m-recur-hint" style="font-size:11px;color:var(--text3);margin:-4px 0 12px;background:var(--bg2);border-radius:7px;padding:8px 10px">
               📅 복수 예약(정기·비정기)은 첫 날짜부터 마지막 날짜까지 최대 4개월(20주)까지만 가능합니다.
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
@@ -1646,9 +1588,8 @@ html.show-splash{overflow:hidden}
 
           </section>
           <section class="ap-step" data-step="2">
-            <h2 class="ap-h">② 모임 정보</h2>
           <div class="card">
-            <div class="card-title">기관 분류 &amp; 담당자</div>
+            <div class="card-title">기관 · 담당자</div>
             <div class="fl">
               <div class="fg">
                 <div class="lbl">기관 분류 <span class="req">*</span></div>
@@ -1667,10 +1608,8 @@ html.show-splash{overflow:hidden}
                 <input id="m-manager" placeholder="홍길동" oninput="updateApplySummary()">
               </div>
             </div>
-            <div style="font-size:11px;color:var(--text3);margin-top:-4px;margin-bottom:12px">예약 책임자는 각 기관의 예약을 진행하고 담당하시는 분입니다.</div>
             <div class="divider"></div>
-            <div style="font-size:11px;font-weight:700;color:var(--text2);margin-bottom:4px">청지기(실사용자)</div>
-            <div style="font-size:11px;color:var(--text3);margin-bottom:10px">청지기는 실제로 예약 공간을 사용하시는 분입니다.</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:2px">청지기 <span style="font-weight:400;color:var(--text3)">(실제 사용하시는 분)</span></div>
             <div class="fl">
               <div class="fg"><div class="lbl">성함 <span class="req">*</span></div><input id="m-steward-name" placeholder="김철수" oninput="updateApplySummary()"></div>
               <div class="fg"><div class="lbl">연락처 <span class="req">*</span></div><input id="m-steward-tel" placeholder="010-0000-0000" oninput="formatTelInput(this);updateApplySummary()"></div>
@@ -1678,7 +1617,7 @@ html.show-splash{overflow:hidden}
           </div>
 
           <div class="card">
-            <div class="card-title">사용 목적 &amp; 인원</div>
+            <div class="card-title">모임 정보</div>
             <div class="fl">
               <div class="fg"><div class="lbl">예상 인원 <span class="req">*</span></div><input type="number" id="m-people" placeholder="명" min="1" oninput="updateApplySummary();checkAvail()"></div>
               <div class="fg"><div class="lbl">사용 목적 <span class="req">*</span></div><input id="m-purpose" placeholder="소모임, 제자훈련 등" oninput="updateApplySummary()"></div>
@@ -1724,7 +1663,7 @@ html.show-splash{overflow:hidden}
 
         </aside>
       </div>
-      <div id="ap-cta"><button type="button" class="btn btn-ghost" id="ap-prev" onclick="apSetStep(+document.getElementById('p-apply').dataset.apstep-1)">← 이전</button><button type="button" class="btn btn-primary" id="ap-next" onclick="apNext()">다음 →</button></div>
+      <div id="ap-cta"><button type="button" class="btn btn-ghost" id="ap-prev" onclick="apPrev()">홈으로</button><button type="button" class="btn btn-primary" id="ap-next" onclick="apNext()">다음 →</button></div>
     </div>
 
     <!-- 내 예약 -->
@@ -2797,7 +2736,6 @@ let spaceEditId = null;
 let spaceFilterCap = false, spaceFilterTV = false, spaceAvailResult = null, spaceNameFilter = '', spaceFloorFilter = '', spaceCategoryFilter = '';
 let applyRoom = '', editRoom = '';
 let applyMultiRooms = []; // 복수 실 예약(5층 소그룹실만) 시 선택된 실 목록
-let pubWeekOffset = 0, pubTab = '5f';
 let listStatusTab = '', listWeekFilter = false;
 let listSortCol = 'createdAt', listSortDir = -1; // 기본: 신청일(createdAt) 내림차순 — 최근 신청 건이 최상단
 function createdAtMillis(c) {
@@ -2841,12 +2779,6 @@ const searchSpaceSort = makeSorter(SEARCH_SPACE_ORDER);
 // 공실 배정 드롭다운 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀
 const ASSIGN_ROOM_ORDER = [...SPACE_ORDER, '아이엠홀'];
 const assignRoomSort = makeSorter(ASSIGN_ROOM_ORDER);
-// 탭별 공간 목록
-const PUB_TABS = {
-  '5f':     { label: '5층 예약 현황',  rooms: ['505호','506호','507호','508호','509호','510호','511호'] },
-  'aaron':  { label: '아론홀 예약 현황', rooms: ['아론홀'] },
-  'sharon': { label: '샤론홀 예약 현황', rooms: ['샤론홀'] },
-};
 
 // ── 시간 슬롯 (07:00 ~ 22:00, 30분 단위) ──────────────────────
 const SLOTS = [];
@@ -3133,11 +3065,14 @@ getRedirectResult(auth).catch(e => {
 // 도메인·허용 계정 판정은 onAuthStateChanged에서 일괄 처리 (위 popup 분기와 동일한 이유)
 
 onAuthStateChanged(auth, async user => {
+  window.__authSettled = true;
   if (!user) {
+    try { localStorage.setItem('iamLoginHint', '0'); localStorage.setItem('iamAdminHint', '0'); } catch (_) {}
     // 미로그인: 사이드바 숨김 + 환영 문구 초기화
     // 다음 로그인 때 최초 1회 라우팅(홈/신청폼 등)이 다시 이루어지도록 플래그 초기화
     window._initialRouteDone = false;
     curUser = window.curUser = null; isAdmin = window.isAdmin = false;
+    if (window.__renderNav) window.__renderNav();
     document.querySelector('.shell').classList.add('no-sidebar');
     const sbLogin = document.getElementById('sb-login-btn');
     const sbUser  = document.getElementById('sb-user-area');
@@ -3184,6 +3119,8 @@ onAuthStateChanged(auth, async user => {
 
   if (isDomainUser || isAdminUser || isExtAllowed) {
     curUser = window.curUser = user; isAdmin = window.isAdmin = isAdminUser;
+    try { localStorage.setItem('iamLoginHint', '1'); localStorage.setItem('iamAdminHint', isAdminUser ? '1' : '0'); } catch (_) {}
+    if (window.__renderNav) window.__renderNav();
     trackLoginUser(user, isAdminUser);
     // 사이드바 복원
     document.querySelector('.shell').classList.remove('no-sidebar');
@@ -3307,7 +3244,6 @@ function loadPublicData() {
   if (window._pubResUnsub) window._pubResUnsub();
   window._pubResUnsub = onSnapshot(collection(db, 'publicReservations'), snap => {
     reservations = snap.docs.map(resDoc);
-    renderPubCal && renderPubCal();
   }, err => console.warn('공개 예약 불러오기 실패', err));
   onSnapshot(collection(db, 'blockedDates'), snap => {
     window._blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -3394,7 +3330,6 @@ async function loadData() {
     blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     blockedDates.sort((a, b) => a.date.localeCompare(b.date));
     if (curPage === 'blocked') renderBlockedDates();
-    renderPubCal();
   });
 
   onSnapshot(collection(db, 'orgs'), snap => {
@@ -4029,7 +3964,7 @@ function buildRoomChips() {
     APPLY_ROOM_GROUPS.forEach(({ label, rooms }) => {
       const sps = rooms.map(n => spaces.find(s => s.name === n)).filter(Boolean);
       if (!sps.length) return;
-      html += `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px">${labelTag(label)}`;
+      html += `<div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:8px"><span class="rc-grp">${label}</span>`;
       sps.forEach(s => { const lbl = ROOM_CHIP_LABEL[s.name] || s.name; html += `<span class="rc" id="arc-${esc(s.name)}" onclick="selApplyRoom('${esc(s.name)}')" style="margin:0">${lbl}</span>`; grouped.add(s.name); });
       html += '</div>';
     });
@@ -4147,7 +4082,6 @@ window.go = (page) => {
       st.value = '09:00'; document.getElementById('avail-e-time').value = '10:00';
     }
   }
-  if (page === 'public')        { pubWeekOffset = 0; renderPubCal(); }
   if (page === 'apply')         { resetApply(); initTimeSelects('m-start', 'm-end'); buildRoomChips(); }
   if (page === 'mylist') renderMyList();
   if (page === 'dashboard')      renderDashboard();
@@ -4166,7 +4100,7 @@ window.go = (page) => {
 };
 
 function refresh() {
-  const map = { dashboard: renderDashboard, list: renderList, mylist: renderMyList, public: renderPubCal, report: renderReport, orgs: renderOrgs };
+  const map = { dashboard: renderDashboard, list: renderList, mylist: renderMyList, report: renderReport, orgs: renderOrgs };
   if (map[curPage]) map[curPage]();
 
   // 뱃지 업데이트 (항상)
@@ -4176,18 +4110,6 @@ function refresh() {
 }
 
 // ── 공개 캘린더 ─────────────────────────────────────────────────
-function getWeekDays(offset = 0) {
-  const today = new Date(); today.setDate(today.getDate() + offset * 7);
-  const day = today.getDay();
-  const monday = new Date(today); monday.setDate(today.getDate() - day + (day === 0 ? -6 : 1));
-  return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
-}
-window.pubWeek = (dir) => { pubWeekOffset = dir === 0 ? 0 : pubWeekOffset + dir; renderPubCal(); };
-window.setPubTab = (tab) => {
-  pubTab = tab;
-  Object.keys(PUB_TABS).forEach(k => document.getElementById('pub-tab-' + k)?.classList.toggle('active', k === tab));
-  renderPubCal();
-};
 window.setListTab = (tab) => {
   listWeekFilter = (tab === 'week');
   listStatusTab  = (tab === 'week' ? '' : tab);
@@ -4232,99 +4154,6 @@ window.filterBySeries = (recurGroup) => {
   }, 100);
 };
 
-function renderPubCal() {
-  const tabCfg  = PUB_TABS[pubTab] || PUB_TABS['5f'];
-  document.getElementById('pub-cal-title').textContent = tabCfg.label;
-
-  const tabSpaces = tabCfg.rooms.map(name => spaces.find(s => s.name === name) || { name, cap: '' });
-  const days = getWeekDays(pubWeekOffset);
-  const fmt = d => d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-  document.getElementById('pub-week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
-  const dows = ['월', '화', '수', '목', '금', '토', '일'];
-  const todayStr = tsToday();
-
-  // 단일 홀(아론홀·샤론홀) — 날짜를 세로(행)로 표시
-  if (tabSpaces.length === 1) {
-    const sp = tabSpaces[0];
-    const capLabel = sp.cap ? ` · ${sp.cap}명` : '';
-    let html = `<thead><tr>
-      <th style="min-width:80px">날짜</th>
-      <th>${esc(sp.name)}${capLabel}</th>
-    </tr></thead><tbody>`;
-    days.forEach((d, i) => {
-      const ds = toDateStr(d);
-      const isT = ds === todayStr;
-      const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
-      const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
-      const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
-      const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${esc(bd.reason)}</span>` : '';
-      const clickable = curUser && !bd;
-      html += `<tr>
-        <td class="room-label" style="${dateBg};white-space:nowrap">
-          ${dows[i]} · ${d.getMonth()+1}/${d.getDate()}${bdLabel}
-        </td>
-        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
-      if (bd) {
-        html += `<div style="font-size:9px;color:#999;padding:3px 2px">예약불가</div>`;
-      } else if (res.length === 0) {
-        html += clickable
-          ? `<div style="font-size:10px;color:var(--text3);padding:4px 2px">탭하여 예약</div>`
-          : `<div style="font-size:10px;color:var(--text3);padding:4px 2px">없음</div>`;
-      } else {
-        res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
-          const ok = r.status === '확정';
-          const mine = curUser && sameEmail(r.userEmail, curUser.email);
-          const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</span></div>`;
-        });
-      }
-      html += `</td></tr>`;
-    });
-    html += '</tbody>';
-    document.getElementById('pub-cal-table').innerHTML = html;
-    return;
-  }
-
-  // 다중 공간(5층) — 기존 가로 레이아웃
-  let html = `<thead><tr><th style="min-width:72px">공간</th>${days.map((d, i) => {
-    const s = toDateStr(d);
-    const isT = s === todayStr;
-    const bd = blockedDates.find(b => b.date === s);
-    const bdStyle = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
-    const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${esc(bd.reason)}</span>` : '';
-    return `<th style="${bdStyle}">${dows[i]}<br><span style="font-size:12px;font-weight:700">${d.getDate()}</span>${bdLabel}</th>`;
-  }).join('')}</tr></thead><tbody>`;
-
-  tabSpaces.forEach(sp => {
-    html += `<tr><td class="room-label">${esc(sp.name)}${sp.cap ? `<br><span style="font-size:9px;font-weight:400;color:var(--text3)">${sp.cap}명</span>` : ''}</td>`;
-    days.forEach(d => {
-      const ds = toDateStr(d);
-      const isT = ds === todayStr;
-      const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
-      const clickable = curUser && !bd;
-      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
-      if (bd) {
-        html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
-      } else {
-        if (res.length === 0 && clickable) {
-          html += `<div style="font-size:9px;color:var(--text3);padding:3px 2px;text-align:center">탭하여 예약</div>`;
-        }
-        res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
-          const ok = r.status === '확정';
-          const mine = curUser && sameEmail(r.userEmail, curUser.email);
-          const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</div>`;
-        });
-      }
-      html += `</td>`;
-    });
-    html += `</tr>`;
-  });
-  html += '</tbody>';
-  document.getElementById('pub-cal-table').innerHTML = html;
-}
 
 // ── 차단일 ────────────────────────────────────────────────────────
 function isBlockedDate(dateStr) {
@@ -10997,6 +10826,15 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
 #p-apply #submit-apply-btn{border-radius:999px !important;background:var(--brand)}
 #p-apply #submit-apply-btn:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#f2b705;margin-right:9px;vertical-align:1px}
 #p-apply .ap-back{display:none !important}
+
+#p-apply .ap-home{border:0;background:none;color:var(--brand);font-weight:700;font-size:14px;padding:0 0 10px;cursor:pointer;font-family:inherit}
+#p-apply .rc-grp{font-size:12px;color:var(--text3);min-width:92px;margin-right:2px}
+#p-apply #m-recur-hint{display:none}
+#p-apply:has(#m-is-recur:checked) #m-recur-hint,#p-apply:has(#m-is-multi:checked) #m-recur-hint,#p-apply:has(#m-multi-room:checked) #m-recur-hint{display:block}
+#p-apply .ap-h{display:none !important}
+#p-apply input[type=date]{display:block;width:100%;min-width:0;max-width:100%;-webkit-appearance:none;appearance:none;box-sizing:border-box;text-align:left}
+#p-apply input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.2em}
+#p-apply .fl>*,#p-apply .fl>.fg{min-width:0}
 #ap-cta{display:none}
 @media (max-width:1000px){#p-apply .ap-wrap{grid-template-columns:minmax(0,1fr) 320px;gap:32px}}
 @media (max-width:760px){
@@ -11009,13 +10847,15 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   #p-apply[data-apstep="1"] .ap-step[data-step="1"],#p-apply[data-apstep="2"] .ap-step[data-step="2"],#p-apply[data-apstep="3"] .ap-step[data-step="3"]{display:block}
   #p-apply .ap-side .card{position:static;border-top:0;padding-top:4px}
   #p-apply .ap-back{display:flex !important}
-  #p-apply .fl{flex-wrap:wrap}
-  #p-apply .fl>*{min-width:130px}
+  #p-apply .fl{flex-wrap:nowrap;gap:10px}
+  #p-apply .fl>*{min-width:0}
+  #p-apply #m-date-row{flex-direction:column;gap:0}
+  #p-apply .rc-grp{width:100%;min-width:0}
+  #p-apply .rc{padding:7px 14px;font-size:13.5px}
   #ap-cta{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:140;gap:10px;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--border2)}
   #ap-cta .btn{flex:1;justify-content:center;border-radius:999px;padding:15px;font-size:16px !important;font-weight:800}
   #ap-cta #ap-next{flex:2;background:var(--brand);color:#fff}
   #ap-cta #ap-next:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#f2b705;margin-right:9px}
-  #p-apply[data-apstep="1"] #ap-prev{display:none}
   #p-apply[data-apstep="3"] #ap-cta{display:none}
 }
 @media (max-width:640px){body.on-apply #tabbar{display:none}}
@@ -11045,8 +10885,13 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   };
   function svg(n){return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+IC[n]+'</svg>';}
   var cur='';
+  // 로그인 상태가 확정되기 전(새 페이지로 막 이동한 직후)에도 같은 탭을 그리도록 마지막 상태를 기억해 사용 — 탭이 나중에 바뀌며 움직이는 현상 방지
+  function hint(k){ try { return localStorage.getItem(k)==='1'; } catch(e){ return false; } }
+  function known(){ return window.__authSettled===true; }
+  function curAdmin(){ return known() ? !!window.isAdmin : hint('iamAdminHint'); }
+  function curLogin(){ return known() ? !!window.curUser : hint('iamLoginHint'); }
   function items(){
-    if (window.isAdmin) return [
+    if (curAdmin()) return [
       {k:'dashboard',t:'오늘',i:'grid',c:"go('dashboard')"},
       {k:'list',t:'예약',i:'list',c:"go('list')",b:'badge-cnt'},
       {k:'public',t:'캘린더',i:'cal',c:"go('public')"},
@@ -11061,7 +10906,7 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
       {k:'chg',t:'변경·취소',i:'swap',h:'reservation-change.html',pc:1}
     ];
   }
-  function hasDrawer(){var sh=document.querySelector('.shell');return sh && !sh.classList.contains('no-sidebar');}
+  function hasDrawer(){ if(!known()) return curLogin(); var sh=document.querySelector('.shell'); return !!sh && !sh.classList.contains('no-sidebar'); }
   function badgeHtml(src){
     if(!src) return '';
     var e=document.getElementById(src); var n=e?parseInt(e.textContent,10)||0:0;
@@ -11069,14 +10914,14 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   }
   function render(){
     var nav=document.getElementById('appnav'), tb=document.getElementById('tabbar'); if(!nav||!tb) return;
-    var its=items(), admin=!!window.isAdmin, login=!!window.curUser, drawer=hasDrawer();
+    var its=items(), admin=curAdmin(), login=curLogin(), drawer=hasDrawer();
     var top='<a class="an-logo" role="img" aria-label="IAM 공간예약" onclick="go(\'home\')"></a><div class="an-links">';
     its.forEach(function(x){
       top+= x.h ? '<a class="an-link" data-k="'+x.k+'" href="'+x.h+'" target="_blank" rel="noopener">'+x.t+'</a>'
                 : '<button type="button" class="an-link" data-k="'+x.k+'" onclick="'+x.c+'">'+x.t+badgeHtml(x.b)+'</button>';
     });
     top+='</div><div class="an-right">';
-    if(login){ top+='<span>'+((window.curUser.email)||'').replace(/[<>&"]/g,'')+'</span>'; if(admin) top+='<a class="an-pill" href="portal.html">인트라넷</a>'; }
+    if(login){ top+='<span>'+((window.curUser&&window.curUser.email)||'').replace(/[<>&"]/g,'')+'</span>'; if(admin) top+='<a class="an-pill" href="portal.html">인트라넷</a>'; }
     else top+='<button type="button" class="an-pill f" onclick="go(\'login\')">로그인</button>';
     if(drawer) top+='<button type="button" class="an-more" aria-label="더보기" onclick="toggleSidebar()">'+svg('menu')+'</button>';
     top+='</div>';
@@ -11091,7 +10936,7 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   }
   var NAVMAP={dashboard:'dashboard',list:'list',public:'public','change-requests':'change-requests',home:'home',mylist:'mylist',apply:'apply',spaces:'spaces'};
   function setActive(page){
-    cur=page||cur; var k=NAVMAP[cur]; var admin=!!window.isAdmin;
+    cur=page||cur; var k=NAVMAP[cur]; var admin=curAdmin();
     var known=items().some(function(x){return x.k===k;});
     if(!known && cur && cur!=='login') k='more';
     document.querySelectorAll('#appnav .an-link,#tabbar .tb-i').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-k')===k);});
@@ -11109,6 +10954,7 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     n=Math.max(1,Math.min(3,n||1)); p.dataset.apstep=n;
     p.querySelectorAll('.ap-steps button').forEach(function(b){var s=+b.dataset.s;b.classList.toggle('on',s===n);b.classList.toggle('done',s<n);});
     var nx=document.getElementById('ap-next'); if(nx) nx.textContent='다음 →';
+    var pv=document.getElementById('ap-prev'); if(pv) pv.textContent = n===1 ? '홈으로' : '← 이전';
     var sc=document.getElementById('p-apply'); if(sc) sc.scrollTop=0;
   };
   function val(id){var e=document.getElementById(id);return e?String(e.value||'').trim():'';}
@@ -11129,6 +10975,8 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     }
     return 0;
   };
+  window.apExit=function(){ if (window.isAdmin) go('dashboard'); else go('home'); };
+  window.apPrev=function(){ var p=document.getElementById('p-apply'); var n=+p.dataset.apstep; if(n<=1) window.apExit(); else window.apSetStep(n-1); };
   window.apNext=function(){
     var p=document.getElementById('p-apply'); var s=+p.dataset.apstep;
     var bad=window.apValidate(s); if(bad){ if(s!==bad) window.apSetStep(bad); return; }
@@ -11138,6 +10986,7 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
     var bad=window.apValidate(n-1); if(bad){ window.apSetStep(bad); return; }
     window.apSetStep(n);
   };
+  window.__renderNav = function(){ render(); };
   document.addEventListener('DOMContentLoaded',function(){
     document.body.classList.add('has-appnav');
     render();
