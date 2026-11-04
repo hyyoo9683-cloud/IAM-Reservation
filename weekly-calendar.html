@@ -9,12 +9,13 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --blue: #185FA5; --blue-lt: #EBF4FF;
+    --blue: #4C7660; --blue-lt: #E8F0EA;
     --green: #3B6D11; --green-lt: #EAF3DE;
     --red: #A32D2D; --red-lt: #FCEBEB;
-    --bg: #F8FAFD; --bg2: #fff;
-    --border: #D4E4F4; --border2: #E8EFF7;
-    --text: #1A2533; --text2: #4A6078; --text3: #8AA3BC;
+    --bg: #FFFFFF; --bg2: #fff;
+    --border: #DADFDB; --border2: #EDF0ED;
+    --text: #2B2E2C; --text2: #585A5C; --text3: #9A968E;
+    --brand: #4C7660; --line: rgba(43,46,44,.13);
   }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Noto Sans KR', sans-serif;
          background: var(--bg); color: var(--text); font-size: 15px; min-height: 100vh; padding-bottom: 40px; }
@@ -109,12 +110,12 @@
   .item-lodging:hover { background: #F5E3C4; }
   .item-lodging .item-time { color: #854F0B; }
   .item-lodging .item-purpose-main { color: #854F0B; }
-  .item-main-event { background: #E8F5E9; }
-  .item-main-event:hover { background: #D7ECD9; }
-  .item-main-event .item-time { color: #1B5E20; }
-  .item-main-event .item-purpose, .item-main-event .item-purpose-main { color: #1B5E20; font-weight: 700; }
-  .item-5f.item-main-event:hover { background: #D7ECD9; }
-  .item-5f.item-main-event .item-5f-purpose { color: #1B5E20; }
+  .item-main-event { background: #DDEBE1; }
+  .item-main-event:hover { background: #CFE3D5; }
+  .item-main-event .item-time { color: #2F5A43; }
+  .item-main-event .item-purpose, .item-main-event .item-purpose-main { color: #2F5A43; font-weight: 700; }
+  .item-5f.item-main-event:hover { background: #CFE3D5; }
+  .item-5f.item-main-event .item-5f-purpose { color: #2F5A43; }
   /* 시간/장소·목적을 줄바꿈해 좁은 컬럼에서도 텍스트가 잘리지 않게 하는 2줄 레이아웃 */
   /* 예약 목적을 첫 줄에 볼드로, 시간·장소는 둘째 줄에 보조 텍스트로 표시 */
   .item-stack { flex-direction: column; align-items: flex-start; gap: 3px; }
@@ -136,13 +137,13 @@
   }
   .cat-body-main { flex: 1; min-width: 0; max-height: 280px; }
   .cat-body-5f { flex: 1; min-width: 0; max-height: 280px;
-                 border-left: 1px solid var(--border2); background: #F6FAFD; }
+                 border-left: 1px solid var(--border2); background: #F7F9F7; }
   .cat-5f-hd { padding: 8px 10px 4px; font-size: 10.5px; font-weight: 700; color: var(--text3);
-               position: sticky; top: 0; background: #F6FAFD; }
+               position: sticky; top: 0; background: #F7F9F7; }
   .item-5f { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px;
              border-top: 1px solid var(--border2); cursor: pointer; transition: background .12s; }
   .item-5f:first-child { border-top: none; }
-  .item-5f:hover { background: #EAF3FA; }
+  .item-5f:hover { background: #EEF3EF; }
   .item-5f-purpose { font-size: 12px; font-weight: 700; color: var(--text); }
   .item-5f-meta { font-size: 11.5px; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .cat-body-5f .empty-row { padding: 14px 10px; font-size: 12px; }
@@ -191,22 +192,116 @@
     .item-5f-purpose { font-size: 14px; }
     .item-5f-meta { font-size: 13px; }
   }
+
+  /* ── 리디자인: 흰 배경 + 초록, 상단 메뉴 / 모바일 하단 탭, 일·주·월 ── */
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; padding-bottom: 60px; }
+  #appnav { display: flex; align-items: center; gap: 30px; height: 60px; padding: 0 32px; background: #fff; border-bottom: 1px solid var(--border2); }
+  #appnav .an-logo { display: block; height: 22px; aspect-ratio: 720/167; background: var(--brand); -webkit-mask: url(home/logo-iam.png) left center/contain no-repeat; mask: url(home/logo-iam.png) left center/contain no-repeat; flex-shrink: 0; }
+  #appnav .an-links { display: flex; align-items: stretch; gap: 28px; height: 100%; }
+  #appnav .an-link { display: flex; align-items: center; position: relative; font-size: 15px; font-weight: 600; color: var(--text2); text-decoration: none; white-space: nowrap; }
+  #appnav .an-link:hover { color: var(--brand); }
+  #appnav .an-link.on { color: var(--brand); font-weight: 800; }
+  #appnav .an-link.on:after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: var(--brand); }
+  #appnav .an-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  #admin-login-btn { font-size: 13px !important; padding: 7px 16px !important; border: 1px solid var(--brand) !important; color: var(--brand) !important; background: #fff !important; border-radius: 999px !important; font-weight: 700; cursor: pointer; font-family: inherit; }
+  #tabbar { display: none; }
+  .pg-head { max-width: 1040px; margin: 0 auto; padding: 30px 24px 6px; }
+  .pg-eb { font-size: 12px; font-weight: 700; letter-spacing: .2em; color: var(--text3); }
+  .pg-head h1 { font-size: 46px; font-weight: 800; letter-spacing: -.045em; line-height: 1.05; margin: 6px 0 14px; color: var(--text); }
+  .pg-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 2px solid var(--text); }
+  .pg-date { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .date-label { font-size: 20px; font-weight: 800; letter-spacing: -.03em; color: var(--text); text-align: left; flex: none; }
+  .nav-btns button { background: #fff; border: 1px solid var(--brand); color: var(--brand); padding: 7px 14px; border-radius: 999px; font-size: 13.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .nav-btns button:hover { background: var(--blue-lt); }
+  .pg-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .date-jump-wrap { background: #fff; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; gap: 6px; }
+  .date-jump-wrap:hover { background: var(--blue-lt); }
+  .date-jump-label { color: var(--text2); font-size: 13.5px; }
+  .date-jump-wrap input[type=date] { color: var(--text); width: auto; font-size: 13.5px; }
+  .date-jump-wrap input[type=date]::-webkit-calendar-picker-indicator { filter: none; }
+  .view-toggle { display: inline-grid; grid-template-columns: repeat(3, auto); width: auto; padding: 0; gap: 0; border: 1px solid var(--brand); border-radius: 999px; overflow: hidden; }
+  .vt-btn { background: #fff; border: 0; color: var(--brand); padding: 9px 22px; border-radius: 0; font-size: 14px; font-weight: 800; font-family: inherit; }
+  .vt-btn.active { background: var(--brand); color: #fff; }
+  .blocked-banner, .occupancy-bar, .daytext-bar { max-width: 1000px; margin-left: auto; margin-right: auto; }
+  .occupancy-bar, .daytext-bar { border-radius: 12px; }
+  .occupancy-detail { max-width: 1000px; margin-left: auto; margin-right: auto; }
+  #body { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  .cat { margin: 22px 0 0 !important; max-width: none !important; background: #fff; border-radius: 0; box-shadow: none; border-top: 2px solid var(--text); overflow: visible; }
+  .cat-hd { background: none; padding: 12px 0 !important; font-size: 17px !important; font-weight: 800; letter-spacing: -.03em; color: var(--text); }
+  .item { padding: 13px 4px !important; }
+  .item:hover { background: #F7F9F7; }
+  .item-time { color: var(--brand); }
+  .item-main-event { background: var(--blue-lt) !important; }
+  .cat-body-5f { background: #F7F9F7; }
+  .occ-week-bar { background: var(--blue-lt); }
+  /* 월간 */
+  .mc-wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  .mc-dow, .mc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .mc-dow div { text-align: center; padding: 10px 0; font-size: 12.5px; font-weight: 800; color: var(--text3); letter-spacing: .08em; }
+  .mc-dow .su, .mc-cell.su .mc-d { color: #D04F7B; }
+  .mc-grid { border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .mc-cell { min-height: 112px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 6px 8px; cursor: pointer; display: flex; flex-direction: column; gap: 3px; transition: background .12s; }
+  .mc-cell:hover { background: #F7F9F7; }
+  .mc-cell.out { background: #FAFBFA; } .mc-cell.out .mc-d { color: #C4C8C4; }
+  .mc-cell.blk { background: #F4F4F2; }
+  .mc-d { font-size: 14px; font-weight: 700; color: var(--text); display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; border-radius: 999px; align-self: flex-start; }
+  .mc-cell.today .mc-d { background: var(--brand); color: #fff; }
+  .mc-chip { font-size: 11.5px; line-height: 1.3; padding: 2px 6px; border-radius: 6px; background: #F1F4F2; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mc-chip.main { background: var(--brand); color: #fff; font-weight: 700; }
+  .mc-more { font-size: 11px; color: var(--text3); padding-left: 4px; }
+  .mc-count { display: none; }
+  @media (max-width: 640px) {
+    #appnav { display: none; }
+    body { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+    .pg-head { padding: 16px 16px 4px; }
+    .pg-head h1 { font-size: 30px; margin-bottom: 10px; }
+    .date-label { font-size: 17px; }
+    .pg-bar { gap: 10px; }
+    .pg-right { order: -1; width: 100%; justify-content: space-between; flex-wrap: nowrap; }
+    .date-jump-label { display: none; }
+    .date-jump-wrap { padding: 5px 12px; }
+    .pg-date { width: 100%; justify-content: space-between; }
+    .nav-btns { display: flex; gap: 4px; }
+    .nav-btns button { padding: 6px 10px; font-size: 12.5px; }
+    .vt-btn { padding: 8px 18px; }
+    .blocked-banner, .occupancy-bar, .daytext-bar, .occupancy-detail { margin-left: 16px !important; margin-right: 16px !important; }
+    #body { padding: 0 16px; }
+    .mc-wrap { padding: 0 8px; }
+    .mc-cell { min-height: 58px; padding: 4px 2px; align-items: center; }
+    .mc-chip, .mc-more { display: none; }
+    .mc-count { display: inline-flex; font-size: 11px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 0 7px; line-height: 17px; }
+    .mc-count.m { background: #2F5A43; }
+    #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 150; height: calc(62px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--brand); justify-content: space-around; align-items: center; }
+    #tabbar .tb-i { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: rgba(255,255,255,.66); font-size: 11px; font-weight: 700; text-decoration: none; padding: 6px 0; position: relative; }
+    #tabbar .tb-i.on { color: #fff; }
+    #tabbar .tb-i.on:after { content: ""; position: absolute; left: 30%; right: 30%; bottom: 1px; height: 2px; background: #fff; }
+    .modal-bg { z-index: 999; }
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>📅 전체 예약 현황</h1>
-  <button type="button" id="admin-login-btn" onclick="toggleAdminLogin()" style="font-size:12px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer" title="관리자로 로그인하면 담당자·연락처가 보입니다">관리자 로그인</button>
-  <span class="date-label" id="date-label"></span>
-  <div class="nav-btns" id="nav-btns"></div>
-  <label class="date-jump-wrap" for="date-jump">
-    <span class="date-jump-label">📅 날짜 검색</span>
-    <input type="date" id="date-jump" onchange="jumpToDate(this.value)" title="날짜로 바로 보기">
-  </label>
-  <div class="view-toggle">
-    <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일간 (전체 공간)</button>
-    <button class="vt-btn" id="vt-week" onclick="setMode('week')">주간 (5층 요약)</button>
+<header id="appnav">
+  <a class="an-logo" role="img" aria-label="IAM 공간예약" href="index.html"></a>
+  <div class="an-links" id="an-links"></div>
+  <div class="an-right"><button type="button" id="admin-login-btn" onclick="toggleAdminLogin()" title="관리자 로그인 시 담당자·연락처도 함께 표시됩니다">관리자 로그인</button></div>
+</header>
+<div class="pg-head">
+  <div class="pg-eb">SCHEDULE</div>
+  <h1>예약 현황</h1>
+  <div class="pg-bar">
+    <div class="pg-date"><span class="date-label" id="date-label"></span><div class="nav-btns" id="nav-btns"></div></div>
+    <div class="pg-right">
+      <label class="date-jump-wrap" for="date-jump">
+        <span class="date-jump-label">날짜 검색</span>
+        <input type="date" id="date-jump" onchange="jumpToDate(this.value)" title="날짜로 바로 보기">
+      </label>
+      <div class="view-toggle">
+        <button class="vt-btn active" id="vt-day" onclick="setMode('day')">일</button>
+        <button class="vt-btn" id="vt-week" onclick="setMode('week')">주</button>
+        <button class="vt-btn" id="vt-month" onclick="setMode('month')">월</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -221,6 +316,8 @@
   <span>›</span>
 </div>
 <div id="body"><div class="loading">불러오는 중…</div></div>
+
+<nav id="tabbar" aria-label="주 메뉴"></nav>
 
 <div class="modal-bg" id="modal-detail">
   <div class="modal">
@@ -295,6 +392,7 @@ let reservations = [], blockedDates = [];
 let mode = 'day';
 let dayOffset = 0;
 let weekOffset = 0;
+let monthOffset = 0;
 let loaded = { res: false, bd: false, mk: false };
 
 const toDateStr = d =>
@@ -330,10 +428,12 @@ function weekStart() {
   return d;
 }
 
+function syncVt() {
+  ['day', 'week', 'month'].forEach(k => document.getElementById('vt-' + k).classList.toggle('active', mode === k));
+}
 window.setMode = (m) => {
   mode = m;
-  document.getElementById('vt-day').classList.toggle('active', m === 'day');
-  document.getElementById('vt-week').classList.toggle('active', m === 'week');
+  syncVt();
   render();
 };
 
@@ -346,16 +446,22 @@ function renderNav() {
       <button onclick="changeDay(0)">오늘</button>
       <button onclick="changeDay(1)">▶</button>
       <button onclick="changeDay(7)" title="1주 후">▶▶</button>`;
-  } else {
+  } else if (mode === 'week') {
     navEl.innerHTML = `
       <button onclick="changeWeek(-1)">◀ 이전주</button>
       <button onclick="changeWeek(0)">이번주</button>
       <button onclick="changeWeek(1)">다음주 ▶</button>`;
+  } else {
+    navEl.innerHTML = `
+      <button onclick="changeMonth(-1)">◀ 이전달</button>
+      <button onclick="changeMonth(0)">이번달</button>
+      <button onclick="changeMonth(1)">다음달 ▶</button>`;
   }
 }
 
 window.changeDay = (dir) => { dayOffset = dir === 0 ? 0 : dayOffset + dir; render(); };
 window.changeWeek = (dir) => { weekOffset = dir === 0 ? 0 : weekOffset + dir; render(); };
+window.changeMonth = (dir) => { monthOffset = dir === 0 ? 0 : monthOffset + dir; render(); };
 
 window.jumpToDate = (dateStr) => {
   if (!dateStr) return;
@@ -363,16 +469,17 @@ window.jumpToDate = (dateStr) => {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   dayOffset = Math.round((target - today) / 86400000);
   mode = 'day';
-  document.getElementById('vt-day').classList.add('active');
-  document.getElementById('vt-week').classList.remove('active');
+  syncVt();
   render();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 function render() {
   if (!loaded.res || !loaded.bd || !loaded.mk) return;
   renderNav();
   if (mode === 'day') renderDay();
-  else renderWeek();
+  else if (mode === 'week') renderWeek();
+  else renderMonth();
 }
 
 // 그날 확정 예약들의 인원(people)을 시간대별로 겹쳐서 더해 대략적인 동시간대 이용객 수를 추정
@@ -539,6 +646,42 @@ function renderDay() {
   document.getElementById('body').innerHTML = html;
 }
 
+
+// 월간 보기: 날짜 칸에 그날 확정 예약을 요약해서 보여주고, 칸을 누르면 그 날짜의 일간 보기로 이동
+function renderMonth() {
+  const base = new Date(); base.setDate(1); base.setMonth(base.getMonth() + monthOffset);
+  const y = base.getFullYear(), m = base.getMonth();
+  const startDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const rows = Math.ceil((startDay + daysInMonth) / 7);
+  const gridStart = new Date(y, m, 1 - startDay);
+  const todayS = tsToday();
+  document.getElementById('date-label').textContent = `${y}년 ${m + 1}월${monthOffset === 0 ? ' · 이번달' : ''}`;
+  document.getElementById('blocked-banner-wrap').innerHTML = '';
+  document.getElementById('occupancy-bar').style.display = 'none';
+  document.getElementById('occupancy-detail').classList.remove('open');
+  const dtBar = document.getElementById('daytext-bar'); if (dtBar) dtBar.style.display = 'none';
+
+  const byDate = {};
+  reservations.forEach(r => { if (r.status === '확정' && r.date) (byDate[r.date] = byDate[r.date] || []).push(r); });
+  const MAXC = 3;
+  let cells = '';
+  for (let i = 0; i < rows * 7; i++) {
+    const d = new Date(gridStart); d.setDate(gridStart.getDate() + i);
+    const ds = toDateStr(d);
+    const items = (byDate[ds] || []).slice().sort(byMainThenTime);
+    const bd = blockedDates.find(b => b.date === ds);
+    const hasMain = items.some(isMainEvent);
+    const cls = ['mc-cell', d.getMonth() !== m ? 'out' : '', ds === todayS ? 'today' : '', bd ? 'blk' : '', d.getDay() === 0 ? 'su' : ''].filter(Boolean).join(' ');
+    const chips = items.slice(0, MAXC).map(r =>
+      `<div class="mc-chip${isMainEvent(r) ? ' main' : ''}">${esc(dispStart(r))} ${esc(r.purpose || r.room)}</div>`).join('');
+    const more = items.length > MAXC ? `<div class="mc-more">+${items.length - MAXC}건 더</div>` : '';
+    cells += `<div class="${cls}" onclick="jumpToDate('${ds}')"><span class="mc-d">${d.getDate()}</span>${bd ? '<div class="mc-more">🚫 불가</div>' : ''}${chips}${more}${items.length ? `<span class="mc-count${hasMain ? ' m' : ''}">${items.length}</span>` : ''}</div>`;
+  }
+  document.getElementById('body').innerHTML =
+    `<div class="mc-wrap" style="padding:0"><div class="mc-dow">${DOWS.map((w, i) => `<div class="${i === 0 ? 'su' : ''}">${w}</div>`).join('')}</div><div class="mc-grid">${cells}</div></div>`;
+}
+
 function renderWeek() {
   const start = weekStart();
   const todayS = tsToday();
@@ -633,6 +776,42 @@ document.getElementById('modal-detail').addEventListener('click', e => {
   if (e.target.id === 'modal-detail') closeDetail();
 });
 
+
+// 앱 공통 메뉴(상단 바 / 모바일 하단 탭) — index.html과 같은 항목, 이 페이지가 '현황/캘린더' 탭
+let viewerUser = null;
+function renderAppNav() {
+  const admin = viewerIsAdmin;
+  const its = admin ? [
+    { t: '오늘', h: 'index.html?page=dashboard' },
+    { t: '예약', h: 'index.html?page=list' },
+    { t: '캘린더', on: 1 },
+    { t: '변경·취소', h: 'index.html?page=change-requests' }
+  ] : [
+    { t: '홈', h: 'index.html?page=home' },
+    { t: '현황', on: 1 },
+    { t: '공간 안내', h: 'index.html?page=spaces', pc: 1 },
+    { t: '신청', h: 'guide.html' },
+    { t: '내 예약', h: 'index.html?page=mylist' },
+    { t: '변경·취소', h: 'reservation-change.html', pc: 1 }
+  ];
+  const el = document.getElementById('an-links');
+  if (el) el.innerHTML = its.map(x => `<a class="an-link${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}">${x.t}</a>`).join('');
+  const tb = document.getElementById('tabbar');
+  const ic = {
+    '오늘': '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+    '예약': '<line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.7" cy="7" r=".9"/><circle cx="4.7" cy="12" r=".9"/><circle cx="4.7" cy="17" r=".9"/>',
+    '캘린더': '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',
+    '현황': '<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',
+    '변경·취소': '<path d="M5 9h13l-3-3"/><path d="M19 15H6l3 3"/>',
+    '홈': '<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',
+    '신청': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    '내 예약': '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>'
+  };
+  if (tb) tb.innerHTML = its.filter(x => !x.pc).map(x =>
+    `<a class="tb-i${x.on ? ' on' : ''}" href="${x.h || 'weekly-calendar.html'}"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ic[x.t] || ''}</svg><span>${x.t}</span></a>`).join('');
+}
+renderAppNav();
+
 // 예약 데이터: 기본은 개인정보가 빠진 공개 사본, 관리자가 로그인하면 원본으로 전환
 let resUnsub = null;
 function listenReservations(col) {
@@ -652,9 +831,11 @@ onAuthStateChanged(auth, async user => {
       try { admin = (await getDoc(doc(db, 'admins', user.email))).exists(); } catch (_) {}
     }
   }
+  viewerUser = user;
   if (admin !== viewerIsAdmin) {
     viewerIsAdmin = admin;
     listenReservations(admin ? 'reservations' : 'publicReservations');
+    renderAppNav();
   }
   const btn = document.getElementById('admin-login-btn');
   if (btn) btn.textContent = user ? (admin ? '관리자 로그아웃' : '로그아웃 (관리자 아님)') : '관리자 로그인';
