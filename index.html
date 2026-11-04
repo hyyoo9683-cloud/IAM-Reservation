@@ -1672,19 +1672,31 @@ html.show-splash{overflow:hidden}
 
     <!-- 관리자: 대시보드 -->
     <div class="page" id="p-dashboard">
-      <div style="display:flex;gap:12px;margin-bottom:16px">
-        <div class="stat-box"><div class="stat-lbl">오늘 예약</div><div class="stat-num" id="d-today">0</div></div>
-        <div class="stat-box"><div class="stat-lbl">승인 대기</div><div class="stat-num" id="d-wait" style="color:var(--amber)">0</div></div>
-        <div class="stat-box"><div class="stat-lbl">전체</div><div class="stat-num"   id="d-total">0</div></div>
+      <div class="dh-head">
+        <div class="dh-eb" id="dh-date">TODAY</div>
+        <h1>오늘</h1>
+        <div class="dh-sub">전체 예약 <span id="d-total">0</span>건</div>
       </div>
-      <div class="card"><div class="card-title">준비물 확인 (TV·마이크·탕비실·칠판, 3일치)</div><div id="today-facility-list"></div></div>
-      <div class="card"><div class="card-title">이번주 예약</div><div id="today-checklist-list"></div></div>
-      <div class="card"><div class="card-title">오늘 예약 일정</div><div id="today-list"></div></div>
-      <div class="card"><div class="card-title">승인 대기</div><div id="pending-list"></div></div>
-      <div class="card"><div class="card-title">변경·취소 신청 대기</div><div id="pending-change-list"></div></div>
-      <div class="card"><div class="card-title">대관 신청</div><div id="venue-request-list"></div></div>
-      <div class="card"><div class="card-title">청지기 퇴실 체크</div><div id="checkout-list"></div></div>
-      <div class="card"><div class="card-title">최근 예약</div><div id="recent-list"></div></div>
+      <div class="dh-stats">
+        <button class="dh-stat" onclick="dashJump('dc-today')"><b id="d-today">0</b><span>오늘 확정</span></button>
+        <button class="dh-stat warn" onclick="dashJump('ds-pending')"><b id="d-wait">0</b><span>승인 대기</span></button>
+        <button class="dh-stat warn" onclick="dashJump('ds-change')"><b id="d-change">0</b><span>변경·취소</span></button>
+        <button class="dh-stat" onclick="dashJump('ds-venue')"><b id="d-venue">0</b><span>대관 신청</span></button>
+      </div>
+      <div class="dh-grid">
+        <div class="dh-col">
+          <section class="dh-sec o1" id="dc-today"><h2>오늘 일정</h2><div id="today-list"></div></section>
+          <section class="dh-sec o6" id="dc-week"><h2>이번 주 예약</h2><div id="today-checklist-list"></div></section>
+          <section class="dh-sec o8" id="dc-recent"><h2>최근 예약</h2><div id="recent-list"></div></section>
+        </div>
+        <div class="dh-col">
+          <section class="dh-sec o2" id="ds-pending"><h2>승인 대기</h2><div id="pending-list"></div></section>
+          <section class="dh-sec o3" id="ds-change"><h2>변경·취소 신청</h2><div id="pending-change-list"></div></section>
+          <section class="dh-sec o4" id="ds-prep"><h2>준비물 확인<small>TV·마이크·탕비실·칠판 · 3일치</small></h2><div id="today-facility-list"></div></section>
+          <section class="dh-sec o5" id="ds-venue"><h2>대관 신청</h2><div id="venue-request-list"></div></section>
+          <section class="dh-sec o7" id="dc-checkout"><h2>청지기 퇴실 체크</h2><div id="checkout-list"></div></section>
+        </div>
+      </div>
     </div>
 
     <!-- 관리자: 예약 목록 -->
@@ -4018,7 +4030,7 @@ window.go = (page) => {
 
   const titles = {
     home: '홈', about: '아이엠센터 소개', faq: 'FAQ', 'content-editor': '콘텐츠 편집', spaces: '공간 안내', public: '예약 현황', apply: '예약 신청', mylist: '내 예약 현황',
-    dashboard: '대시보드', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트', 'ops-report': '주간 운영 리포트',
+    dashboard: '오늘', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트', 'ops-report': '주간 운영 리포트',
     'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
     'login-users': '예약 책임자 관리',
     'storage-cleanup': '저장공간 정리', 'change-requests': '예약 변경·취소 신청', login: '로그인'
@@ -7781,91 +7793,82 @@ window.submitEdit = async () => {
 // ── 페이지 렌더링 ────────────────────────────────────────────────
 function renderDashboard() {
   const today = tsToday();
-  const waitR        = reservations.filter(r => r.status === '대기');
+  const EMPTY = t => `<div class="dh-empty">${t}</div>`;
+  const setN = (id, n) => { const e = document.getElementById(id); if (e) e.textContent = n; };
+  const waitR = reservations.filter(r => r.status === '대기');
   const todayConfirmed = reservations.filter(r => r.date === today && r.status === '확정')
-                           .sort((a, b) => a.start.localeCompare(b.start));
-  document.getElementById('d-today').textContent = todayConfirmed.length;
-  document.getElementById('d-wait').textContent  = waitR.length;
-  document.getElementById('d-total').textContent = reservations.length;
+                           .sort((a, b) => a.start.localeCompare(b.start) || a.room.localeCompare(b.room));
+  const DOWS = ['일','월','화','수','목','금','토'];
+  const nd = new Date();
+  setN('dh-date', `${nd.getFullYear()}년 ${nd.getMonth()+1}월 ${nd.getDate()}일 ${DOWS[nd.getDay()]}요일`);
+  setN('d-today', todayConfirmed.length);
+  setN('d-wait', waitR.length);
+  setN('d-total', reservations.length);
+  // 처리할 일이 있는 칸은 강조(숫자 0이면 연하게)
+  document.querySelectorAll('#p-dashboard .dh-stat').forEach(b => b.classList.toggle('zero', b.querySelector('b').textContent === '0'));
 
-  // 준비물 확인 — TV·마이크 필요 / 탕비실 이용 체크된 예약을 오늘부터 3일치(오늘+이틀) 모아서 최상단에 표시
+  // ── 오늘 일정: 시간순 한 줄 목록(지금 진행 중인 건 강조, 끝난 건 연하게) ──
+  const nowHM = `${String(nd.getHours()).padStart(2,'0')}:${String(nd.getMinutes()).padStart(2,'0')}`;
+  const roomColor = room => room === '아이엠홀' ? '#7B4FD0' : room === '아론홀' ? '#7B4FD0' : room === '샤론홀' ? '#3B9B6F' : '#4C7660';
+  const needTags = r => [r.needTV && 'TV', r.needMic && '마이크', r.needPantry && '탕비실', r.needBoard && '칠판'].filter(Boolean)
+    .map(t => `<span class="dh-tag">${t}</span>`).join('');
+  document.getElementById('today-list').innerHTML = !todayConfirmed.length ? EMPTY('오늘 확정된 예약이 없습니다') :
+    todayConfirmed.map(r => {
+      const st = r.end <= nowHM ? 'past' : (r.start <= nowHM ? 'now' : '');
+      const who = [r.stewardName, r.people ? r.people + '명' : ''].filter(Boolean).map(esc).join(' · ');
+      return `<div class="dh-row ${st}" onclick="openDetail('${r.id}')">
+        <div class="dh-time"><b>${esc(r.start)}</b><span>~${esc(r.end)}</span></div>
+        <div class="dh-body">
+          <div class="dh-ttl">${esc(r.purpose || '(목적 없음)')}${st === 'now' ? '<i class="dh-live">진행 중</i>' : ''}</div>
+          <div class="dh-meta">${who}${needTags(r)}</div>
+        </div>
+        <span class="dh-room" style="--c:${roomColor(r.room)}">${esc(r.room)}</span>
+      </div>`;
+    }).join('');
+
+  // ── 준비물 확인(오늘부터 3일치) ──
   const facilityEndD = new Date(today + 'T00:00:00'); facilityEndD.setDate(facilityEndD.getDate() + 2);
   const facilityEnd = toDateStr(facilityEndD);
   const facilityConfirmed = reservations.filter(r => r.date >= today && r.date <= facilityEnd && r.status === '확정')
                               .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
-  const facilityDateLabel = (d) => d === today ? '오늘' : d.slice(5).replace('-', '/');
+  const facilityDateLabel = d => d === today ? '오늘' : d.slice(5).replace('-', '/');
   const facilityRow = (label, list) => !list.length ? '' : `
-    <div style="margin-bottom:10px">
-      <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px">${label} (${list.length}건)</div>
+    <div class="dh-prep">
+      <div class="dh-prep-h">${label}<em>${list.length}</em></div>
       ${list.map(r => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;border:1px solid var(--border);margin-bottom:4px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
-          <span style="font-weight:700;font-size:11px;color:var(--text2);flex-shrink:0;width:36px">${facilityDateLabel(r.date)}</span>
-          <span style="font-weight:700;font-size:12px;color:var(--blue);flex-shrink:0;width:52px">${esc(r.start)}</span>
-          <span style="font-size:11px;color:var(--text3);flex-shrink:0">${esc(r.room)}</span>
-          <span style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.purpose || '')}</span>
+        <div class="dh-mini" onclick="openDetail('${r.id}')">
+          <span class="d">${facilityDateLabel(r.date)}</span>
+          <span class="t">${esc(r.start)}</span>
+          <span class="r">${esc(r.room)}</span>
+          <span class="p">${esc(r.purpose || '')}</span>
         </div>`).join('')}
     </div>`;
-  const tvList     = facilityConfirmed.filter(r => r.needTV);
-  const micList    = facilityConfirmed.filter(r => r.needMic);
-  const pantryList = facilityConfirmed.filter(r => r.needPantry);
-  const boardList  = facilityConfirmed.filter(r => r.needBoard);
-  const facilityHtml = facilityRow('📺 TV 필요', tvList) + facilityRow('🎤 마이크 필요', micList) + facilityRow('☕ 탕비실 이용', pantryList) + facilityRow('🖍 칠판 필요', boardList);
-  document.getElementById('today-facility-list').innerHTML = facilityHtml
-    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">앞으로 3일간 TV·마이크·탕비실·칠판이 필요한 예약이 없습니다</div>';
+  document.getElementById('today-facility-list').innerHTML =
+    facilityRow('📺 TV 필요', facilityConfirmed.filter(r => r.needTV)) +
+    facilityRow('🎤 마이크 필요', facilityConfirmed.filter(r => r.needMic)) +
+    facilityRow('☕ 탕비실 이용', facilityConfirmed.filter(r => r.needPantry)) +
+    facilityRow('🖍 칠판 필요', facilityConfirmed.filter(r => r.needBoard))
+    || EMPTY('앞으로 3일간 필요한 준비물이 없습니다');
 
-  // 오늘 예약 일정 — 확정만, 아론홀→샤론홀→소그룹실 순 카테고리
-  const TODAY_CATS = [
-    { label: '아론홀',      rooms: ['아론홀'],                                                  color: '#7B4FD0', showRoom: false },
-    { label: '샤론홀',      rooms: ['샤론홀'],                                                  color: '#3B9B6F', showRoom: false },
-    { label: '5층 소그룹실', rooms: ['505호','506호','507호','508호','509호','510호','511호'], color: '#2563C4', showRoom: true  },
-  ];
-  let todayHtml = '';
-  TODAY_CATS.forEach(cat => {
-    const items = todayConfirmed.filter(r => cat.rooms.includes(r.room))
-      .sort((a, b) => cat.rooms.indexOf(a.room) - cat.rooms.indexOf(b.room) || a.start.localeCompare(b.start));
-    if (!items.length) return;
-    todayHtml += `
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:${cat.color};padding:3px 8px;border-left:3px solid ${cat.color};margin-bottom:6px">${cat.label}</div>
-        ${items.map(r => `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:5px;background:var(--bg);cursor:pointer" onclick="openDetail('${r.id}')">
-            <div style="width:58px;text-align:center;flex-shrink:0">
-              <div style="font-weight:700;font-size:12px;color:var(--blue)">${esc(r.start)}</div>
-              <div style="font-size:10px;color:var(--text3)">~${esc(r.end)}</div>
-            </div>
-            <div style="width:1px;height:30px;background:var(--border2);flex-shrink:0"></div>
-            <div style="flex:1;min-width:0">
-              ${cat.showRoom ? `<div style="font-size:10px;font-weight:700;color:${cat.color}">${esc(r.room)}</div>` : ''}
-              <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.stewardName)} · ${esc(r.people)}명</div>
-              <div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.purpose)}</div>
-            </div>
-          </div>`).join('')}
-      </div>`;
-  });
-  document.getElementById('today-list').innerHTML = todayHtml
-    || '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">오늘 확정된 예약이 없습니다</div>';
-
-  // 정기/다건 예약(recurGroup)은 대시보드에서 한 카드로 묶어서 표시
+  // ── 승인 대기: 정기/다건(recurGroup)은 한 카드로 묶음 ──
   const waitGroups = new Map();
   const waitSingles = [];
   waitR.forEach(r => {
     if (r.recurGroup) {
       if (!waitGroups.has(r.recurGroup)) waitGroups.set(r.recurGroup, []);
       waitGroups.get(r.recurGroup).push(r);
-    } else {
-      waitSingles.push(r);
-    }
+    } else waitSingles.push(r);
   });
   const pendingSingleCard = r => `
-    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--amber-lt);border-radius:9px;border:1px solid #FAC775;margin-bottom:8px">
-      ${oBadge(r.type)}
-      <span style="font-weight:700;font-size:12px">${esc(r.managerName)}</span>
-      <span style="font-weight:700;font-size:12px;color:var(--blue)">${esc(r.purpose || '')}</span>
-      <span style="font-size:11px;color:var(--text2)">${esc(r.room)} · ${esc(r.date)} ${esc(r.start)}–${esc(r.end)} · ${esc(r.people)}명</span>
-      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${esc(r.stewardName)} ${esc(r.stewardTel)}</span>
-      <button class="btn btn-green" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="approve('${r.id}')">승인</button>
-      <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="rejectR('${r.id}')">취소</button>
-      <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="openDetail('${r.id}')">상세</button>
+    <div class="dh-pend">
+      <div class="dh-pend-top" onclick="openDetail('${r.id}')">${oBadge(r.type)}<b>${esc(r.purpose || '(목적 없음)')}</b></div>
+      <div class="dh-pend-meta">${esc(r.room)} · ${esc(r.date)} ${esc(r.start)}–${esc(r.end)} · ${esc(r.people)}명</div>
+      <div class="dh-pend-who">담당 ${esc(r.managerName)}${r.stewardName ? ' · 청지기 ' + esc(r.stewardName) + ' ' + esc(r.stewardTel) : ''}</div>
+      <div class="dh-acts">
+        <button class="dh-btn ok" onclick="approve('${r.id}')">승인</button>
+        <button class="dh-btn no" onclick="rejectR('${r.id}')">취소</button>
+        <button class="dh-btn" onclick="openDetail('${r.id}')">상세</button>
+      </div>
     </div>`;
   const pendingGroupCard = (groupId, rows) => {
     rows.sort((a, b) => a.date.localeCompare(b.date));
@@ -7873,155 +7876,132 @@ function renderDashboard() {
     const idsAttr = rows.map(r => r.id).join(',');
     const isOpen = dashPendingExpanded.has(groupId);
     const expandedHtml = isOpen ? `
-    <div style="margin:-2px 0 8px;padding-left:10px;border-left:2px solid #FAC775">
-      ${rows.map(r => `
-        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:7px 10px;background:#FFFBF2;border-radius:7px;margin-bottom:5px;font-size:11px">
-          <span style="color:var(--text2);font-weight:600">${esc(r.date)} ${esc(r.start)}–${esc(r.end)}</span>
-          <span style="color:var(--text3)">${esc(r.people)}명</span>
-          <button class="btn btn-green" style="padding:2px 8px;font-size:10px;margin-left:auto" onclick="event.stopPropagation();approve('${r.id}')">승인</button>
-          <button class="btn btn-amber" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();rejectR('${r.id}')">취소</button>
-          <button class="btn btn-ghost" style="padding:2px 8px;font-size:10px" onclick="event.stopPropagation();openDetail('${r.id}')">상세</button>
-        </div>`).join('')}
-    </div>` : '';
+      <div class="dh-sub-list">
+        ${rows.map(r => `
+          <div class="dh-sub-row">
+            <span>${esc(r.date)} ${esc(r.start)}–${esc(r.end)}</span><em>${esc(r.people)}명</em>
+            <button class="dh-btn ok sm" onclick="event.stopPropagation();approve('${r.id}')">승인</button>
+            <button class="dh-btn no sm" onclick="event.stopPropagation();rejectR('${r.id}')">취소</button>
+            <button class="dh-btn sm" onclick="event.stopPropagation();openDetail('${r.id}')">상세</button>
+          </div>`).join('')}
+      </div>` : '';
     return `
-    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:var(--amber-lt);border-radius:9px;border:1px solid #FAC775;margin-bottom:${isOpen ? '2' : '8'}px;cursor:pointer" onclick="toggleDashPending('${groupId}')">
-      ${oBadge(first.type)}
-      <span style="font-weight:700;font-size:12px">${esc(first.managerName)}</span>
-      <span style="font-weight:700;font-size:12px;color:var(--blue)">${esc(first.purpose || '')}</span>
-      <span style="background:var(--blue);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">🔁 ${rows.length}건 ${isOpen ? '▾' : '▸'}</span>
-      <span style="font-size:11px;color:var(--text2)">${esc(first.room)} · ${esc(first.start)}–${esc(first.end)} · ${esc(first.people)}명 · ${esc(first.date)} ~ ${esc(last.date)}</span>
-      <span style="font-size:10px;color:var(--blue-mid)">실사용자: ${esc(first.stewardName)} ${esc(first.stewardTel)}</span>
-      <button class="btn btn-green" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="event.stopPropagation();approveGroup('${idsAttr}')">전체 승인</button>
-      <button class="btn btn-amber" style="padding:3px 10px;font-size:11px" onclick="event.stopPropagation();rejectGroup('${idsAttr}')">전체 취소</button>
-      <button class="btn btn-ghost" style="padding:3px 10px;font-size:11px" onclick="event.stopPropagation();openDetail('${first.id}')">상세</button>
-    </div>${expandedHtml}`;
+    <div class="dh-pend">
+      <div class="dh-pend-top" onclick="toggleDashPending('${groupId}')">${oBadge(first.type)}<b>${esc(first.purpose || '(목적 없음)')}</b><span class="dh-grp">🔁 ${rows.length}건 ${isOpen ? '▾' : '▸'}</span></div>
+      <div class="dh-pend-meta">${esc(first.room)} · ${esc(first.start)}–${esc(first.end)} · ${esc(first.people)}명 · ${esc(first.date)} ~ ${esc(last.date)}</div>
+      <div class="dh-pend-who">담당 ${esc(first.managerName)}${first.stewardName ? ' · 청지기 ' + esc(first.stewardName) + ' ' + esc(first.stewardTel) : ''}</div>
+      <div class="dh-acts">
+        <button class="dh-btn ok" onclick="approveGroup('${idsAttr}')">전체 승인</button>
+        <button class="dh-btn no" onclick="rejectGroup('${idsAttr}')">전체 취소</button>
+        <button class="dh-btn" onclick="openDetail('${first.id}')">상세</button>
+      </div>
+      ${expandedHtml}
+    </div>`;
   };
-  // 신청한 순서대로(가장 최근 신청 건이 최상단) 정렬
   const pendingEntries = [
     ...[...waitGroups.entries()].map(([id, rows]) => ({ sortCreatedAt: Math.min(...rows.map(r => createdAtMillis(r.createdAt))), html: pendingGroupCard(id, rows) })),
     ...waitSingles.map(r => ({ sortCreatedAt: createdAtMillis(r.createdAt), html: pendingSingleCard(r) })),
   ].sort((a, b) => b.sortCreatedAt - a.sortCreatedAt);
   document.getElementById('pending-list').innerHTML = !pendingEntries.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">대기 중인 예약이 없습니다</div>'
-    : pendingEntries.map(e => e.html).join('');
+    ? EMPTY('대기 중인 예약이 없습니다') : pendingEntries.map(e => e.html).join('');
 
+  // ── 변경·취소 신청 ──
   const waitC = changeRequests.filter(r => (r.status || '대기') !== '완료');
+  setN('d-change', waitC.length);
   document.getElementById('pending-change-list').innerHTML = !waitC.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">대기 중인 변경·취소 신청이 없습니다</div>'
+    ? EMPTY('대기 중인 변경·취소 신청이 없습니다')
     : waitC.map(r => {
         const isCancel = r.requestType === '취소';
-        const badgeColor = isCancel ? 'var(--red)' : 'var(--blue)';
-        const badgeBg    = isCancel ? 'var(--red-lt)' : 'var(--blue-lt)';
         const time = (r.start || r.end) ? `${r.start||''}${r.start||r.end?'–':''}${r.end||''}` : '';
-        return `<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:${badgeBg};border-radius:9px;border:1px solid ${badgeColor};margin-bottom:8px">
-          <span style="background:${badgeBg};color:${badgeColor};font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px">${isCancel ? '취소' : '변경'}</span>
-          <span style="font-weight:700;font-size:12px">${(r.room||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:11px;color:var(--text2)">${esc(r.date||'')} ${time}</span>
-          <span style="font-size:10px;color:var(--blue-mid)">신청자: ${esc(r.requesterName||'')} ${esc(r.requesterTel||'')}</span>
-          <button class="btn btn-primary" style="padding:3px 10px;font-size:11px;margin-left:auto" onclick="go('change-requests')">확인하기</button>
+        return `<div class="dh-pend chg" onclick="go('change-requests')">
+          <div class="dh-pend-top"><span class="dh-kind ${isCancel ? 'c' : ''}">${isCancel ? '취소' : '변경'}</span><b>${esc(r.room||'')}</b><span class="dh-pend-meta inl">${esc(r.date||'')} ${esc(time)}</span></div>
+          <div class="dh-pend-who">신청자 ${esc(r.requesterName||'')} ${esc(r.requesterTel||'')}<span class="dh-go">확인하기 →</span></div>
         </div>`;
       }).join('');
 
-  // 이번 주(오늘~이번 주 일요일)에 해당하는 확정 예약만 노출 — 지난 날짜는 자연히 빠짐.
-  // 예전엔 eventChecklists(체크리스트 자동생성 문서)를 기준으로 목록을 만들었는데, 그러면
-  // (1) 예약이 삭제돼도 체크리스트 문서가 안 지워져 계속 남아 보이고, (2) event-checklist.html을
-  // 아무도 안 열어서 체크리스트가 아직 자동생성 안 된 새 예약(예: venue.html "예약으로 등록")은
-  // 누락되는 문제가 있었음 — reservations를 직접 조회하도록 바꿔서 둘 다 해결함
+  // ── 이번 주(오늘~일요일) 예약: 아이엠홀·아론홀·샤론홀 + TV·마이크 필요한 다른 공간 ──
   const weekDow = new Date().getDay();
   const weekSunday = new Date(); weekSunday.setDate(weekSunday.getDate() + (7 - weekDow) % 7);
   const weekEnd = toDateStr(weekSunday);
-
-  // 아이엠홀·아론홀·샤론홀은 "메인" 예약으로 우선 노출, 그 외 공간은 TV·마이크 요청이 체크된
-  // 확정 예약만 준비가 필요하니 함께 보여줌 (중복 방지로 위 공간들은 제외)
   const WEEK_MAIN_ROOMS = ['아이엠홀', '아론홀', '샤론홀'];
   const weekMainReservations = reservations.filter(r =>
-    r.status === '확정' && WEEK_MAIN_ROOMS.includes(r.room) &&
-    r.date >= today && r.date <= weekEnd);
+    r.status === '확정' && WEEK_MAIN_ROOMS.includes(r.room) && r.date >= today && r.date <= weekEnd);
   const weekAvReservations = reservations.filter(r =>
-    r.status === '확정' && (r.needTV || r.needMic) &&
-    !WEEK_MAIN_ROOMS.includes(r.room) &&
+    r.status === '확정' && (r.needTV || r.needMic) && !WEEK_MAIN_ROOMS.includes(r.room) &&
     r.date >= today && r.date <= weekEnd);
-
-  // 아이엠홀 → 아론홀 → 샤론홀 → 그 외 순으로 묶어서 정렬
-  const weekRoomRank = (room) => { const i = WEEK_MAIN_ROOMS.indexOf(room); return i === -1 ? 99 : i; };
-  const weekItems = [...weekMainReservations, ...weekAvReservations]
-    .sort((a, b) => weekRoomRank(a.room) - weekRoomRank(b.room));
-
-  // 일주일 캘린더처럼 오늘~이번 주 일요일까지 요일별 칸으로 나눠서, 제목만 보이는 칩으로 표시
-  // (클릭하면 해당 예약 상세가 열림)
+  const weekRoomRank = room => { const i = WEEK_MAIN_ROOMS.indexOf(room); return i === -1 ? 99 : i; };
+  const weekItems = [...weekMainReservations, ...weekAvReservations].sort((a, b) => weekRoomRank(a.room) - weekRoomRank(b.room));
   const weekDayList = [];
-  for (let d = new Date(today + 'T00:00:00'); toDateStr(d) <= weekEnd; d.setDate(d.getDate() + 1)) {
-    weekDayList.push(toDateStr(d));
-  }
-  const DOWS_KR = ['일','월','화','수','목','금','토'];
-  const weekChipHtml = (r) => {
+  for (let d = new Date(today + 'T00:00:00'); toDateStr(d) <= weekEnd; d.setDate(d.getDate() + 1)) weekDayList.push(toDateStr(d));
+  const weekChipHtml = r => {
     const isIam = r.room === '아이엠홀';
-    const title = (r.purpose || '(제목 없음)').replace(/</g, '&lt;');
-    return `<div class="wk-chip${isIam ? ' wk-chip-iam' : ''}" onclick="openDetail('${r.id}')" title="${(r.purpose||'').replace(/"/g,'&quot;')}">${title}</div>`;
+    return `<div class="wk-chip${isIam ? ' wk-chip-iam' : ''}" onclick="openDetail('${r.id}')" title="${esc(r.purpose || '')}">${esc(r.purpose || '(제목 없음)')}</div>`;
   };
-  // 주일(일요일)에는 예배 관련 예약이 여러 건 몰리는 경우가 많아, 그 날짜가 일요일이면 칩 하나로 축약해서 보여줌
-  const dayChipsHtml = (dayItems, isSunday) => {
-    if (isSunday && dayItems.length > 1) {
-      return [`<div class="wk-chip" style="cursor:default">주일예배 (${dayItems.length}건)</div>`];
-    }
-    return dayItems.map(weekChipHtml);
-  };
-
+  // 주일(일요일)에 예약이 여러 건이면 칩 하나로 축약
+  const dayChipsHtml = (dayItems, isSunday) => (isSunday && dayItems.length > 1)
+    ? [`<div class="wk-chip" style="cursor:default">주일예배 (${dayItems.length}건)</div>`]
+    : dayItems.map(weekChipHtml);
   document.getElementById('today-checklist-list').innerHTML = !weekItems.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">이번 주에 등록된 예약이 없습니다</div>'
+    ? EMPTY('이번 주에 등록된 예약이 없습니다')
     : `<div class="wk-grid">
         ${weekDayList.map(ds => {
           const dow = new Date(ds + 'T00:00:00').getDay();
           const dayLabel = ds === today ? '오늘' : ds.slice(5).replace('-', '/');
-          const dayItems = weekItems.filter(r => r.date === ds);
-          const chips = dayChipsHtml(dayItems, dow === 0);
+          const chips = dayChipsHtml(weekItems.filter(r => r.date === ds), dow === 0);
           return `<div class="wk-day-col">
-            <div class="wk-day-hd">${dayLabel}<span class="wk-day-dow">(${DOWS_KR[dow]})</span></div>
+            <div class="wk-day-hd">${dayLabel}<span class="wk-day-dow">(${DOWS[dow]})</span></div>
             <div class="wk-day-body">${chips.length ? chips.join('') : '<div class="wk-empty">-</div>'}</div>
           </div>`;
         }).join('')}
       </div>`;
 
+  // ── 대관 신청 ──
   const createdMs = r => r.createdAt?.toDate ? r.createdAt.toDate().getTime() : 0;
-
   const newVenueReqs = venueRequests.filter(v => v.status === '접수').sort((a, b) => createdMs(b) - createdMs(a));
+  setN('d-venue', newVenueReqs.length);
   document.getElementById('venue-request-list').innerHTML = !newVenueReqs.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">새로 접수된 대관 신청이 없습니다</div>'
+    ? EMPTY('새로 접수된 대관 신청이 없습니다')
     : newVenueReqs.map(v => `
-        <div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('venue.html','_blank')">
-          <span style="background:#E6F1FB;color:#185FA5;font-weight:700;font-size:11px;padding:2px 9px;border-radius:20px;flex-shrink:0">${(v.space||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(v.orgName||'').replace(/</g,'&lt;')} · ${(v.eventName||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${esc(v.eventDate || v.dateIn || '')}</span>
+        <div class="dh-line" onclick="window.open('venue.html','_blank')">
+          <span class="dh-chip">${esc(v.space||'')}</span>
+          <span class="dh-line-t">${esc(v.orgName||'')} · ${esc(v.eventName||'')}</span>
+          <span class="dh-line-d">${esc(v.eventDate || v.dateIn || '')}</span>
         </div>`).join('');
 
+  // ── 청지기 퇴실 체크(최근 6건, 공간 순) ──
   const createdMs2 = c => c.submittedAt?.toDate ? c.submittedAt.toDate().getTime() : 0;
   const CHECKOUT_ROOM_ORDER = ['505호','506호','507호','508호','509호','510호','511호','아론홀','샤론홀'];
   const checkoutRoomRank = s => (CHECKOUT_ROOM_ORDER.indexOf(s) + 1) || 999;
   const recentCheckouts = [...checkouts]
-    .sort((a, b) => createdMs2(b) - createdMs2(a))
-    .slice(0, 6)
+    .sort((a, b) => createdMs2(b) - createdMs2(a)).slice(0, 6)
     .sort((a, b) => checkoutRoomRank(a.space) - checkoutRoomRank(b.space));
   document.getElementById('checkout-list').innerHTML = !recentCheckouts.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">제출된 퇴실 체크가 없습니다</div>'
+    ? EMPTY('제출된 퇴실 체크가 없습니다')
     : recentCheckouts.map(c => {
         const allOk = CHECKOUT_KEYS.every(k => (c.checked || []).includes(k));
-        return `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;cursor:pointer" onclick="window.open('checkouts.html','_blank')">
-          <span style="font-size:12px;font-weight:700;flex-shrink:0">${(c.space||'').replace(/</g,'&lt;')}</span>
-          <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.org||'').replace(/</g,'&lt;')} · ${(c.name||'').replace(/</g,'&lt;')}</span>
-          ${c.note ? '<span style="font-size:10px;color:var(--red);flex-shrink:0">⚠️ 특이사항</span>' : ''}
-          <span style="font-size:11px;font-weight:700;color:${allOk ? 'var(--green)' : 'var(--amber)'};flex-shrink:0;white-space:nowrap">${allOk ? '✓ 완료' : '미완료 항목'}</span>
+        return `<div class="dh-line" onclick="window.open('checkouts.html','_blank')">
+          <span class="dh-chip">${esc(c.space||'')}</span>
+          <span class="dh-line-t">${esc(c.org||'')} · ${esc(c.name||'')}</span>
+          ${c.note ? '<span class="dh-flag">특이사항</span>' : ''}
+          <span class="dh-ok ${allOk ? '' : 'bad'}">${allOk ? '✓ 완료' : '미완료'}</span>
         </div>`;
       }).join('');
 
+  // ── 최근 예약(신청 순 6건) ──
   document.getElementById('recent-list').innerHTML = !reservations.length
-    ? '<div style="font-size:12px;color:var(--text3);text-align:center;padding:16px">예약 데이터가 없습니다</div>'
+    ? EMPTY('예약 데이터가 없습니다')
     : [...reservations].sort((a, b) => createdMs(b) - createdMs(a)).slice(0, 6).map(r => `
-        <div class="row" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border2);margin-bottom:5px;cursor:pointer" onclick="openDetail('${r.id}')">
-          <span style="font-size:12px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.managerName)}</span>
-          <span style="font-size:11px;color:var(--text2);flex-shrink:0;max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.room)}</span>
-          <span style="font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap">${esc(r.date)}</span>
+        <div class="dh-line" onclick="openDetail('${r.id}')">
+          <span class="dh-line-t">${esc(r.managerName)}</span>
+          <span class="dh-line-r">${esc(r.room)}</span>
+          <span class="dh-line-d">${esc(r.date)}</span>
+          <span class="dh-st ${r.status === '확정' ? 'ok' : r.status === '대기' ? 'w' : ''}">${esc(r.status === '확정' ? '승인' : r.status || '')}</span>
         </div>`).join('');
 }
+window.dashJump = id => {
+  const e = document.getElementById(id); if (!e) return;
+  e.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 window.toggleRecurGroup = (groupId) => {
   if (expandedGroups.has(groupId)) expandedGroups.delete(groupId);
@@ -10840,6 +10820,107 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
   #tabbar .an-badge{position:absolute;top:0;left:calc(50% + 6px);background:#fff;color:var(--brand);font-size:9.5px;padding:0 6px}
   .page{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px)) !important}
   .toast{bottom:84px !important}
+}
+
+/* ── 오늘(관리자 대시보드): 업무용 2단(PC) / 1단(모바일) ── */
+#p-dashboard{padding-top:22px}
+#p-dashboard .dh-head{max-width:1180px;margin:0 auto 4px}
+#p-dashboard .dh-eb{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--text3)}
+#p-dashboard .dh-head h1{font-size:44px;font-weight:800;letter-spacing:-.045em;line-height:1.05;margin:4px 0 2px;color:var(--ink)}
+#p-dashboard .dh-sub{font-size:13px;color:var(--text3)}
+#p-dashboard .dh-stats{max-width:1180px;margin:16px auto 22px;display:grid;grid-template-columns:repeat(4,1fr);border-top:2px solid var(--ink);border-bottom:1px solid var(--border)}
+#p-dashboard .dh-stat{background:none;border:0;border-left:1px solid var(--border2);padding:14px 16px 12px;text-align:left;font-family:inherit;cursor:pointer;display:flex;align-items:baseline;gap:10px}
+#p-dashboard .dh-stat:first-child{border-left:0;padding-left:2px}
+#p-dashboard .dh-stat b{font-size:34px;font-weight:800;letter-spacing:-.04em;color:var(--brand);line-height:1}
+#p-dashboard .dh-stat span{font-size:13px;font-weight:700;color:var(--text2)}
+#p-dashboard .dh-stat.warn b{color:var(--amber)}
+#p-dashboard .dh-stat.zero b{color:#c4cbc6}
+#p-dashboard .dh-stat:hover span{color:var(--brand)}
+#p-dashboard .dh-grid{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:36px;align-items:start}
+#p-dashboard .dh-col{min-width:0}
+#p-dashboard .dh-sec{margin-bottom:30px;scroll-margin-top:12px;min-width:0;max-width:100%}
+#p-dashboard .dh-sec h2{font-size:15px;font-weight:800;color:var(--ink);margin:0 0 10px;padding-top:10px;border-top:2px solid var(--ink);display:flex;align-items:baseline;gap:10px}
+#p-dashboard .dh-sec h2 small{font-size:11.5px;font-weight:600;color:var(--text3)}
+#p-dashboard .dh-empty{font-size:13px;color:var(--text3);padding:14px 2px;border-bottom:1px solid var(--border2)}
+/* 오늘 일정 */
+#p-dashboard .dh-row{display:flex;align-items:center;gap:14px;padding:12px 4px;border-bottom:1px solid var(--border2);cursor:pointer}
+#p-dashboard .dh-row:hover{background:#F8FAF8}
+#p-dashboard .dh-row.past{opacity:.5}
+#p-dashboard .dh-row.now{background:#EEF4EF;box-shadow:inset 3px 0 0 var(--brand);padding-left:12px}
+#p-dashboard .dh-time{width:56px;flex-shrink:0}
+#p-dashboard .dh-time b{display:block;font-size:16px;font-weight:800;color:var(--brand);letter-spacing:-.02em}
+#p-dashboard .dh-time span{font-size:11.5px;color:var(--text3)}
+#p-dashboard .dh-body{flex:1;min-width:0}
+#p-dashboard .dh-ttl{font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#p-dashboard .dh-live{font-style:normal;font-size:11px;font-weight:700;background:var(--brand);color:#fff;border-radius:999px;padding:1px 8px;margin-left:8px;vertical-align:1px}
+#p-dashboard .dh-meta{font-size:12.5px;color:var(--text2);margin-top:2px;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center}
+#p-dashboard .dh-tag{font-size:11px;font-weight:700;color:var(--brand);border:1px solid #BFD3C7;border-radius:999px;padding:0 8px;line-height:1.7}
+#p-dashboard .dh-room{flex-shrink:0;font-size:12.5px;font-weight:800;color:var(--c);border:1px solid var(--c);border-radius:999px;padding:3px 11px;background:#fff}
+/* 승인 대기·변경취소 */
+#p-dashboard .dh-pend{border:1px solid #F0D9A8;border-left:4px solid #E3A53A;border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#FFFCF5}
+#p-dashboard .dh-pend.chg{cursor:pointer;border-color:var(--border);border-left-color:var(--brand);background:#fff}
+#p-dashboard .dh-pend-top{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0}
+#p-dashboard .dh-pend-top b{font-size:15px;font-weight:800;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#p-dashboard .dh-pend-meta{font-size:13px;color:var(--text2);margin-top:5px}
+#p-dashboard .dh-pend-meta.inl{margin:0;font-size:12.5px;color:var(--text3);flex-shrink:0}
+#p-dashboard .dh-pend-who{font-size:12px;color:var(--text3);margin-top:2px}
+#p-dashboard .dh-go{float:right;font-weight:700;color:var(--brand)}
+#p-dashboard .dh-grp{margin-left:auto;flex-shrink:0;font-size:11.5px;font-weight:700;background:var(--brand);color:#fff;border-radius:999px;padding:2px 10px}
+#p-dashboard .dh-acts{display:flex;gap:8px;margin-top:10px}
+#p-dashboard .dh-btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:999px;padding:7px 18px;border:1px solid var(--border);background:#fff;color:var(--text2);cursor:pointer}
+#p-dashboard .dh-btn.ok{background:var(--brand);border-color:var(--brand);color:#fff}
+#p-dashboard .dh-btn.no{border-color:#E4B8B8;color:var(--red)}
+#p-dashboard .dh-btn.sm{padding:3px 11px;font-size:12px}
+#p-dashboard .dh-btn:active{transform:scale(.97)}
+#p-dashboard .dh-sub-list{margin-top:10px;border-top:1px dashed #E8D5A8;padding-top:6px}
+#p-dashboard .dh-sub-row{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:5px 0}
+#p-dashboard .dh-sub-row span{font-weight:700;color:var(--text2)}
+#p-dashboard .dh-sub-row em{font-style:normal;color:var(--text3);margin-right:auto}
+#p-dashboard .dh-kind{font-size:11.5px;font-weight:800;color:var(--brand);background:var(--blue-lt);border-radius:999px;padding:2px 10px;flex-shrink:0}
+#p-dashboard .dh-kind.c{color:var(--red);background:var(--red-lt)}
+/* 준비물 */
+#p-dashboard .dh-prep{margin-bottom:12px}
+#p-dashboard .dh-prep-h{font-size:12.5px;font-weight:800;color:var(--brand);margin-bottom:2px}
+#p-dashboard .dh-prep-h em{font-style:normal;color:var(--text3);font-weight:600;margin-left:6px}
+#p-dashboard .dh-mini{display:flex;align-items:center;gap:8px;padding:7px 2px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer}
+#p-dashboard .dh-mini:hover{background:#F8FAF8}
+#p-dashboard .dh-mini .d{width:38px;font-weight:700;color:var(--text2);flex-shrink:0;font-size:12px}
+#p-dashboard .dh-mini .t{width:46px;font-weight:800;color:var(--brand);flex-shrink:0}
+#p-dashboard .dh-mini .r{color:var(--text3);flex-shrink:0;font-size:12px}
+#p-dashboard .dh-mini .p{font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 한 줄 목록(대관·퇴실·최근) */
+#p-dashboard .dh-line{display:flex;align-items:center;gap:8px;padding:9px 2px;border-bottom:1px solid var(--border2);font-size:13px;cursor:pointer}
+#p-dashboard .dh-line:hover{background:#F8FAF8}
+#p-dashboard .dh-line-t{flex:1;min-width:0;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#p-dashboard .dh-line-r{flex-shrink:0;color:var(--text2);max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#p-dashboard .dh-line-d{flex-shrink:0;font-size:12px;color:var(--text3);white-space:nowrap}
+#p-dashboard .dh-chip{flex-shrink:0;font-size:11.5px;font-weight:700;color:var(--brand);background:var(--blue-lt);border-radius:999px;padding:2px 10px}
+#p-dashboard .dh-flag{flex-shrink:0;font-size:11px;font-weight:700;color:var(--red)}
+#p-dashboard .dh-ok{flex-shrink:0;font-size:12px;font-weight:800;color:var(--green)}
+#p-dashboard .dh-ok.bad{color:var(--amber)}
+#p-dashboard .dh-st{flex-shrink:0;font-size:11.5px;font-weight:700;color:var(--text3);width:34px;text-align:right}
+#p-dashboard .dh-st.ok{color:var(--green)}
+#p-dashboard .dh-st.w{color:var(--amber)}
+/* 이번 주 칸 */
+#p-dashboard .wk-day-col{border-radius:10px;border-color:var(--border)}
+#p-dashboard .wk-chip{background:var(--blue-lt);color:var(--brand);font-weight:700}
+@media (max-width:900px){
+  #p-dashboard .dh-grid{display:flex;flex-direction:column;gap:0;width:100%}
+  #p-dashboard .dh-col{display:contents}
+  #p-dashboard .o1{order:1}#p-dashboard .o2{order:2}#p-dashboard .o3{order:3}#p-dashboard .o4{order:4}
+  #p-dashboard .o5{order:5}#p-dashboard .o6{order:6}#p-dashboard .o7{order:7}#p-dashboard .o8{order:8}
+}
+@media (max-width:640px){
+  #p-dashboard{padding-top:14px}
+  #p-dashboard .dh-head h1{font-size:34px}
+  #p-dashboard .dh-stats{grid-template-columns:repeat(2,1fr);margin:12px auto 18px}
+  #p-dashboard .dh-stat{padding:11px 12px 10px;border-bottom:1px solid var(--border2)}
+  #p-dashboard .dh-stat:nth-child(odd){border-left:0;padding-left:2px}
+  #p-dashboard .dh-stat b{font-size:28px}
+  #p-dashboard .dh-row{gap:10px}
+  #p-dashboard .dh-btn{flex:1;padding:10px 0;font-size:14px}
+  #p-dashboard .dh-btn.sm{flex:none;padding:5px 12px}
+  #p-dashboard .wk-grid{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 <script id="redesign-nav">
