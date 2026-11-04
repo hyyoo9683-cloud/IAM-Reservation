@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="apple-touch-icon" href="img/app-icon-cal.png">
 <link rel="icon" type="image/png" href="img/app-icon-cal.png">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js">
@@ -250,6 +250,10 @@
   .rm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 32px; }
   .rm { border-top: 1px solid #E3E7E3; padding: 14px 2px 16px; margin-top: 18px; }
   .rm h3 { font-size: 20px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px; }
+  .rm-sub { font-size: 12.5px; font-weight: 600; color: var(--text3); letter-spacing: 0; margin-left: 6px; }
+  .u-wk td.rn .rm-sub { display: block; margin: 1px 0 0; font-size: 11px; font-weight: 600; }
+  .u-hall { font-size: 20px; font-weight: 800; letter-spacing: -.03em; margin: 18px 0 4px; }
+  .cat-hd .rm-sub { margin-left: 8px; }
   .rm h3 small { font-size: 12.5px; font-weight: 600; color: var(--text3); letter-spacing: 0; }
   .tm-row { display: flex; flex-wrap: wrap; gap: 8px; }
   .tm { background: var(--blue-lt); color: #2F5A43; border-radius: 10px; padding: 8px 14px; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
@@ -697,6 +701,19 @@ window.copyDayText = async () => {
   msg.textContent = '복사되었습니다';
 };
 
+// ── 공간 정보(정원·층): spaces 컬렉션에서 받아 호실 이름 옆에 작게 표시 ──
+let spaceMeta = {};
+const FLOOR_FALLBACK = { '아론홀': '2층', '샤론홀': '6층' };
+const roomSub = (room) => {                       // 5층 소그룹실: "24인실"
+  const c = spaceMeta[room] && Number(spaceMeta[room].cap);
+  return c ? `<small class="rm-sub">${c}인실</small>` : '';
+};
+const hallFloor = (room) => {                     // 아론홀·샤론홀: "2층"
+  const f = (spaceMeta[room] && spaceMeta[room].floor) || FLOOR_FALLBACK[room] || '';
+  return f ? `<small class="rm-sub">${esc(f)}</small>` : '';
+};
+const catSub = (cat) => (cat.key === 'aaron' || cat.key === 'sharon') ? hallFloor(cat.rooms[0]) : '';
+
 // ── 일반 사용자용 보기: 5층 소그룹실 / 아론홀 / 샤론홀만 (지혜홀·로비·아이엠홀은 숨김) ──
 const USER_TABS = [
   { key: '5f', label: '5층 소그룹실', rooms: FLOOR5_ROOMS },
@@ -724,12 +741,12 @@ function userDayHtml(ds) {
   if (tab.key === '5f') {
     return `<div class="rm-grid">` + tab.rooms.map(room => {
       const items = confirmedOn(ds, [room]);
-      return `<div class="rm${items.length ? '' : ' empty'}"><h3>${room}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
+      return `<div class="rm${items.length ? '' : ' empty'}"><h3>${room}${roomSub(room)}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
         (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
     }).join('') + `</div>`;
   }
   const items = confirmedOn(ds, tab.rooms);
-  return `<div class="rm"><h3>${tab.label}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
+  return `<div class="rm"><h3>${tab.label}${hallFloor(tab.rooms[0])}<small>${items.length ? items.length + '건' : '비어 있음'}</small></h3>` +
     (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
 }
 // 주간: 5층은 호실×요일 표, 홀은 요일별 목록
@@ -738,13 +755,13 @@ function userWeekHtml(start, todayS) {
   const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(d.getDate() + i); return d; });
   if (tab.key === '5f') {
     const head = days.map(d => { const ds = toDateStr(d); return `<th class="${ds === todayS ? 'today' : ''}">${DOWS[d.getDay()]}<br>${d.getMonth() + 1}/${d.getDate()}</th>`; }).join('');
-    const rows = tab.rooms.map(room => `<tr><td class="rn">${room}</td>` + days.map(d => {
+    const rows = tab.rooms.map(room => `<tr><td class="rn">${room}${roomSub(room)}</td>` + days.map(d => {
       const items = confirmedOn(toDateStr(d), [room]);
       return `<td>${items.length ? items.map(timeChip).join('') : '<span class="none">–</span>'}</td>`;
     }).join('') + `</tr>`).join('');
     return `<div class="u-wrap" style="margin-top:18px"><table class="u-wk"><thead><tr><th style="text-align:left">호실</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
   }
-  return days.map(d => {
+  return `<h3 class="u-hall">${tab.label}${hallFloor(tab.rooms[0])}</h3>` + days.map(d => {
     const ds = toDateStr(d); const items = confirmedOn(ds, tab.rooms);
     return `<div class="u-day"><h3 class="${ds === todayS ? 'today' : ''}">${d.getMonth() + 1}월 ${d.getDate()}일 (${DOWS[d.getDay()]})${ds === todayS ? ' · 오늘' : ''}</h3>` +
       (items.length ? `<div class="tm-row">${items.map(timeChip).join('')}</div>` : `<div class="tm-none">예약 없음</div>`) + `</div>`;
@@ -786,7 +803,7 @@ function renderDay() {
             <span class="item-purpose">${ttl(r)}</span>
             ${cat.showRoom ? `<span class="item-room">${esc(r.room)}</span>` : ''}
           </div>`).join('');
-    return `<div class="cat"><div class="cat-hd">${cat.label}${rangeLabel}</div><div class="cat-body">${body}</div></div>`;
+    return `<div class="cat"><div class="cat-hd">${cat.label}${catSub(cat)}${rangeLabel}</div><div class="cat-body">${body}</div></div>`;
   }).join('');
 
   document.getElementById('body').innerHTML = html;
@@ -1053,6 +1070,10 @@ window.toggleAdminLogin = async () => {
     await signInWithPopup(auth, p);
   } catch (e) { if (e.code !== 'auth/popup-closed-by-user') alert('로그인에 실패했습니다.'); }
 };
+onSnapshot(collection(db, 'spaces'), snap => {
+  const m = {}; snap.docs.forEach(d => { const x = d.data(); if (x && x.name) m[x.name] = { cap: x.cap, floor: x.floor }; });
+  spaceMeta = m; render();
+}, () => {});
 onSnapshot(collection(db, 'blockedDates'), snap => {
   blockedDates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   loaded.bd = true; render();
