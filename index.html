@@ -3228,6 +3228,7 @@ function loadPublicData() {
     spaces = window.spaces = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     renderSpaceChips();
     populateRoomFilter();
+    if (curPage === 'spaces') renderSpaces();   // 공간 안내 화면을 먼저 열었다면 공간이 도착한 뒤 다시 그림(안 그러면 '공실 희망' 카드만 보였음)
   }).catch(() => {});
   // 비로그인: 개인정보가 빠진 공개 사본만 읽음 (원본 reservations는 관리자·본인만 읽기 가능)
   if (window._pubResUnsub) window._pubResUnsub();
@@ -3282,6 +3283,7 @@ async function loadData() {
   const spSnap = await getDocs(collection(db, 'spaces'));
   spaces = window.spaces = spSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   if (spaces.length === 0) await seedDefaultSpaces();
+  if (curPage === 'spaces') renderSpaces();
 
   listenReservationsForUser();
 

@@ -946,6 +946,11 @@ document.getElementById('modal-detail').addEventListener('click', e => {
 let viewerUser = null, authSettled = false;
 let loginHint = false;
 try { loginHint = localStorage.getItem('iamLoginHint') === '1'; } catch (_) {}
+// 마지막으로 관리자였던 기기는 처음부터 관리자 메뉴로 그림 — 이걸 메뉴를 그리기 전에 적용하지 않으면
+// 처음 그릴 때 이용자 메뉴로 덮어써지고, 로그인이 확정돼도 '바뀐 게 없다'고 보아 다시 그리지 않아 이용자 메뉴가 그대로 남았음
+let adminHint = false;
+try { adminHint = localStorage.getItem('iamAdminHint') === '1'; } catch (_) {}
+if (adminHint) viewerIsAdmin = true;
 function renderAppNav() {
   const admin = viewerIsAdmin;
   const its = admin ? [
@@ -1023,6 +1028,7 @@ function listenReservations(col) {
     if (col !== 'publicReservations') {
       try { localStorage.removeItem('iamAdminHint'); } catch (_) {}
       viewerIsAdmin = false;
+      if (authSettled) renderAppNav();
       listenReservations('publicReservations');
     }
   });
@@ -1037,9 +1043,6 @@ function ensureBound(a, b) {
   listenReservations(curCol);
 }
 // 마지막으로 관리자였던 기기는 처음부터 원본을 구독(공개 사본 → 원본 두 번 불러오는 지연 방지)
-let adminHint = false;
-try { adminHint = localStorage.getItem('iamAdminHint') === '1'; } catch (_) {}
-if (adminHint) viewerIsAdmin = true;
 {
   const c = readCache(adminHint);
   if (c) { reservations = c.d; loaded.res = true; setTimeout(render, 0); }
@@ -1061,7 +1064,7 @@ onAuthStateChanged(auth, async user => {
   viewerUser = user;
   viewerIsAdmin = admin;
   if (changedAdmin) listenReservations(admin ? 'reservations' : 'publicReservations');
-  if (changedAdmin || changedUser) { renderAppNav(); if (loaded.res) render(); }
+  if (changedAdmin || changedUser || firstSettle) { renderAppNav(); if (loaded.res) render(); }
 });
 window.toggleAdminLogin = async () => {
   if (auth.currentUser) { await signOut(auth); return; }
