@@ -110,7 +110,7 @@ const STR = {
     discountMission: '선교사 할인 50%',
     discountRelated: '유관기관 할인 20%',
     discountCustom: pct => `할인 ${pct}%`,
-    roomDiscount: (pct, list) => `할인 ${pct}% 적용 (정가 ${comma(list)}원)`,
+    roomDiscount: (pct, list, note) => note ? `할인: ${note} (정가 ${comma(list)}원)` : `할인 ${pct}% 적용 (정가 ${comma(list)}원)`,
     shortTerm: base => `단시간(90분) ${comma(base)}원`,
     baseHours: base => `기본 3시간 ${comma(base)}원`,
     extraHours: (h, amt) => `추가 ${h}시간 ${comma(amt)}원`,
@@ -144,7 +144,7 @@ const STR = {
     discountMission: 'Missionary Discount 50%',
     discountRelated: 'Partner Organization Discount 20%',
     discountCustom: pct => `Discount ${pct}%`,
-    roomDiscount: (pct, list) => `${pct}% off (list price ${comma(list)})`,
+    roomDiscount: (pct, list, note) => note ? `Discount: ${note} (list price ${comma(list)})` : `${pct}% off (list price ${comma(list)})`,
     shortTerm: base => `Short-term (90min) KRW ${comma(base)}`,
     baseHours: base => `Base 3 hours KRW ${comma(base)}`,
     extraHours: (h, amt) => `Extra ${h}hr KRW ${comma(amt)}`,
@@ -218,6 +218,8 @@ function roomDiscPct(inputId) {
   return Math.max(0, Math.min(100, isNaN(v) ? 0 : v));
 }
 const applyRoomDisc = (cost, pct) => Math.round(cost * (1 - pct / 100));
+// 할인 명목(왜 할인했는지) — 견적서 목록 비고에 퍼센트 대신 이 문구가 표시됨
+const roomDiscNote = (inputId) => (document.getElementById(inputId)?.value || '').trim();
 
 // 5층 소그룹실: 방마다 한 줄(버튼 + 그 방만의 시작~종료 시간) — 페이지 로드 시 한 번만 그림
 function renderSgRooms() {
@@ -231,6 +233,7 @@ function renderSgRooms() {
         <span>~</span>
         <select id="sg-end-${id}" onchange="updateCalc()">${timeSlotOpts('')}</select>
         <label class="room-disc">할인 <input type="number" id="sg-disc-${id}" min="0" max="100" placeholder="0" oninput="updateCalc()"> %</label>
+        <input type="text" id="sg-discnote-${id}" placeholder="할인 명목 (예: 선교사 할인)" style="flex:1 1 100%;min-width:140px">
         <input type="text" id="sg-memo-${id}" placeholder="세부 내용 (선택)" style="flex:1;min-width:100px">
       </div>
     </div>`).join('');
@@ -585,21 +588,21 @@ window.printQuote = async () => {
     const aronOn    = g('cb-aron').checked;
     const aronStart = g('aron-start').value, aronEnd = g('aron-end').value;
     const aronMemo  = g('aron-memo').value.trim();
-    const aronDisc  = roomDiscPct('aron-disc');
+    const aronDisc  = roomDiscPct('aron-disc'), aronDiscNote = roomDiscNote('aron-discnote');
     const sharonOn    = g('cb-sharon').checked;
     const sharonStart = g('sharon-start').value, sharonEnd = g('sharon-end').value;
     const sharonMemo   = g('sharon-memo').value.trim();
-    const sharonDisc   = roomDiscPct('sharon-disc');
+    const sharonDisc   = roomDiscPct('sharon-disc'), sharonDiscNote = roomDiscNote('sharon-discnote');
     const joshuaOn    = g('cb-joshua').checked;
     const joshuaStart = g('joshua-start').value, joshuaEnd = g('joshua-end').value;
     const joshuaMemo  = g('joshua-memo').value.trim();
-    const joshuaDisc  = roomDiscPct('joshua-disc');
+    const joshuaDisc  = roomDiscPct('joshua-disc'), joshuaDiscNote = roomDiscNote('joshua-discnote');
     const sgSelected = SG_ROOM_IDS
       .filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
       .sort((a, b) => sgPrintRank(a) - sgPrintRank(b))
       .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value,
         hours: billableHours(timeDiffHours(g(`sg-start-${id}`).value, g(`sg-end-${id}`).value)),
-        memo: g(`sg-memo-${id}`).value.trim(), disc: roomDiscPct(`sg-disc-${id}`) }));
+        memo: g(`sg-memo-${id}`).value.trim(), disc: roomDiscPct(`sg-disc-${id}`), discNote: roomDiscNote(`sg-discnote-${id}`) }));
 
     const packageRemarks = (sp, type, extra, surcharge, base, extraAmt) => [
       type === 'base90m' ? L.shortTerm(base) : L.baseHours(base),
@@ -614,10 +617,10 @@ window.printQuote = async () => {
       const dStr = d.date ? d.date.replace(/-/g,'.') : dateDisplay;
 
       [
-        { on: aronOn,   sp: SPACE_BY_ID.aron,   start: aronStart,   end: aronEnd,   surcharge: false, memo: aronMemo, disc: aronDisc },
-        { on: sharonOn, sp: SPACE_BY_ID.sharon, start: sharonStart, end: sharonEnd, surcharge: g('sharon-surcharge').checked, memo: sharonMemo, disc: sharonDisc },
-        { on: joshuaOn, sp: SPACE_BY_ID.joshua, start: joshuaStart, end: joshuaEnd, surcharge: false, memo: joshuaMemo, disc: joshuaDisc },
-      ].forEach(({ on, sp, start, end, surcharge, memo, disc }) => {
+        { on: aronOn,   sp: SPACE_BY_ID.aron,   start: aronStart,   end: aronEnd,   surcharge: false, memo: aronMemo, disc: aronDisc, discNote: aronDiscNote },
+        { on: sharonOn, sp: SPACE_BY_ID.sharon, start: sharonStart, end: sharonEnd, surcharge: g('sharon-surcharge').checked, memo: sharonMemo, disc: sharonDisc, discNote: sharonDiscNote },
+        { on: joshuaOn, sp: SPACE_BY_ID.joshua, start: joshuaStart, end: joshuaEnd, surcharge: false, memo: joshuaMemo, disc: joshuaDisc, discNote: joshuaDiscNote },
+      ].forEach(({ on, sp, start, end, surcharge, memo, disc, discNote }) => {
         if (!on) return;
         const { type, extra } = derivePackage(start, end);
         const spaceNm  = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
@@ -629,12 +632,12 @@ window.printQuote = async () => {
         if (disc) roomTotal = applyRoomDisc(roomTotal, disc);
         subtotal += roomTotal;
         rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: memo || purpose,
-          remarks: [packageRemarks(sp, type, extra, surcharge, base, extraAmt), disc ? L.roomDiscount(disc, listPrice) : ''].filter(Boolean).join(' / '), perDateCost: roomTotal });
+          remarks: [packageRemarks(sp, type, extra, surcharge, base, extraAmt), disc ? L.roomDiscount(disc, listPrice, discNote) : ''].filter(Boolean).join(' / '), perDateCost: roomTotal });
       });
 
       // 5층 소그룹실은 방마다 시간이 다를 수 있어(날짜는 공통) 방 하나당 한 행씩 그대로 보여줌
       // (수용인원 칸에서 방 규모를 바로 볼 수 있어 예전처럼 묶지 않아도 알아보기 쉬움)
-      sgSelected.forEach(({ id, start, end, hours, memo, disc }) => {
+      sgSelected.forEach(({ id, start, end, hours, memo, disc, discNote }) => {
         const sp = SPACE_BY_ID[id];
         const spaceNm = lang === 'en' ? (sp.nameEn || sp.name) : sp.name;
         const listPrice = sp.ratePh * hours;
@@ -642,7 +645,7 @@ window.printQuote = async () => {
         subtotal += cost;
         const remarks = (lang === 'en'
           ? `${hours}hr×${comma(sp.ratePh)}=${comma(listPrice)}`
-          : `${hours}시간×${comma(sp.ratePh)}원=${comma(listPrice)}원`) + (disc ? ' / ' + L.roomDiscount(disc, listPrice) : '');
+          : `${hours}시간×${comma(sp.ratePh)}원=${comma(listPrice)}원`) + (disc ? ' / ' + L.roomDiscount(disc, listPrice, discNote) : '');
         rows.push({ date: dStr, time: (start && end) ? `${start}–${end}` : '', space: spaceNm, item: memo || purpose,
           remarks, perDateCost: cost });
       });
@@ -805,6 +808,7 @@ th{background:#1a2533;color:#fff;padding:7px 6px;font-size:13px;font-weight:700;
 td{padding:7px 6px;border:1px solid #ddd;font-size:13px;vertical-align:top;text-align:center;word-break:keep-all;white-space:nowrap;}
 td.left{text-align:left;white-space:normal;}
 td:first-child{white-space:normal;}
+td:nth-child(3){white-space:normal;overflow-wrap:anywhere;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 td.sm{font-size:13px;color:#333;line-height:1.6;word-break:keep-all;}
 /* 방 목록이 많아 비고 칸이 여러 줄로 길어져도, 인쇄 시 그 행이 페이지 경계에서 잘리지 않도록 함 */
@@ -860,11 +864,11 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
     <tr>
       <th style="width:11%">${L.thDate}</th>
       <th style="width:13%">${L.thTime}</th>
-      <th style="width:8%">${L.thSpace}</th>
+      <th style="width:11%">${L.thSpace}</th>
       <th style="width:12%">${L.thItem}</th>
       <th style="width:12%">${L.thSupply}</th>
       <th style="width:10%">${L.thVat}</th>
-      <th style="width:34%">${L.thRemarks}</th>
+      <th style="width:31%">${L.thRemarks}</th>
     </tr>
   </thead>
   <tbody>
@@ -902,11 +906,11 @@ tfoot tr.grand-total td{background:#1a2533;color:#fff;font-weight:900;font-size:
       date: dateVal, dates: quoteDates,
       quoteCategory,
       qCombo: vInfo.type === 'combo' ? {
-        aron:   { on: g('cb-aron').checked, start: g('aron-start').value, end: g('aron-end').value, memo: g('aron-memo').value.trim(), disc: roomDiscPct('aron-disc') },
-        sharon: { on: g('cb-sharon').checked, start: g('sharon-start').value, end: g('sharon-end').value, surcharge: g('sharon-surcharge').checked, memo: g('sharon-memo').value.trim(), disc: roomDiscPct('sharon-disc') },
-        joshua: { on: g('cb-joshua').checked, start: g('joshua-start').value, end: g('joshua-end').value, memo: g('joshua-memo').value.trim(), disc: roomDiscPct('joshua-disc') },
+        aron:   { on: g('cb-aron').checked, start: g('aron-start').value, end: g('aron-end').value, memo: g('aron-memo').value.trim(), disc: roomDiscPct('aron-disc'), discNote: roomDiscNote('aron-discnote') },
+        sharon: { on: g('cb-sharon').checked, start: g('sharon-start').value, end: g('sharon-end').value, surcharge: g('sharon-surcharge').checked, memo: g('sharon-memo').value.trim(), disc: roomDiscPct('sharon-disc'), discNote: roomDiscNote('sharon-discnote') },
+        joshua: { on: g('cb-joshua').checked, start: g('joshua-start').value, end: g('joshua-end').value, memo: g('joshua-memo').value.trim(), disc: roomDiscPct('joshua-disc'), discNote: roomDiscNote('joshua-discnote') },
         sgRooms: SG_ROOM_IDS.filter(id => document.getElementById(`sg-btn-${id}`).classList.contains('active'))
-          .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value, memo: g(`sg-memo-${id}`).value.trim(), disc: roomDiscPct(`sg-disc-${id}`) })),
+          .map(id => ({ id, start: g(`sg-start-${id}`).value, end: g(`sg-end-${id}`).value, memo: g(`sg-memo-${id}`).value.trim(), disc: roomDiscPct(`sg-disc-${id}`), discNote: roomDiscNote(`sg-discnote-${id}`) })),
       } : null,
       qCatering:    document.querySelector('input[name="q-catering"]:checked')?.value || 'none',
       qCateringMemo: g('q-catering-memo')?.value.trim() || '',
@@ -1047,17 +1051,20 @@ function loadQuoteIntoForm(h) {
     document.getElementById('aron-end').value = combo.aron?.end || '';
     document.getElementById('aron-memo').value = combo.aron?.memo || '';
     document.getElementById('aron-disc').value = combo.aron?.disc || '';
+    document.getElementById('aron-discnote').value = combo.aron?.discNote || '';
     document.getElementById('cb-sharon').checked = !!combo.sharon?.on;
     document.getElementById('sharon-start').value = combo.sharon?.start || '';
     document.getElementById('sharon-end').value = combo.sharon?.end || '';
     document.getElementById('sharon-surcharge').checked = !!combo.sharon?.surcharge;
     document.getElementById('sharon-memo').value = combo.sharon?.memo || '';
     document.getElementById('sharon-disc').value = combo.sharon?.disc || '';
+    document.getElementById('sharon-discnote').value = combo.sharon?.discNote || '';
     document.getElementById('cb-joshua').checked = !!combo.joshua?.on;
     document.getElementById('joshua-start').value = combo.joshua?.start || '';
     document.getElementById('joshua-end').value = combo.joshua?.end || '';
     document.getElementById('joshua-memo').value = combo.joshua?.memo || '';
     document.getElementById('joshua-disc').value = combo.joshua?.disc || '';
+    document.getElementById('joshua-discnote').value = combo.joshua?.discNote || '';
     const sgById = Object.fromEntries((combo.sgRooms || []).map(r => [r.id, r]));
     SG_ROOM_IDS.forEach(id => {
       const r = sgById[id];
@@ -1068,6 +1075,7 @@ function loadQuoteIntoForm(h) {
       document.getElementById(`sg-end-${id}`).value = r?.end || '';
       document.getElementById(`sg-memo-${id}`).value = r?.memo || '';
       document.getElementById(`sg-disc-${id}`).value = r?.disc || '';
+      document.getElementById(`sg-discnote-${id}`).value = r?.discNote || '';
     });
   }
 
@@ -1508,6 +1516,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span>~</span>
             <select id="aron-end" onchange="updateCalc()"></select>
             <label class="room-disc">할인 <input type="number" id="aron-disc" min="0" max="100" placeholder="0" oninput="updateCalc()"> %</label>
+            <input type="text" id="aron-discnote" placeholder="할인 명목 (예: 선교사 할인)" style="flex:1 1 100%;min-width:140px">
             <input type="text" id="aron-memo" placeholder="세부 내용 (선택)" oninput="updateCalc()" style="flex:1;min-width:120px">
           </div>
         </div>
@@ -1527,6 +1536,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
               <input type="checkbox" id="sharon-surcharge" onchange="updateCalc()" style="accent-color:var(--amber)"> 시간대 할증 +20%
             </label>
 <label class="room-disc">할인 <input type="number" id="sharon-disc" min="0" max="100" placeholder="0" oninput="updateCalc()"> %</label>
+            <input type="text" id="sharon-discnote" placeholder="할인 명목 (예: 선교사 할인)" style="flex:1 1 100%;min-width:140px">
             <input type="text" id="sharon-memo" placeholder="세부 내용 (선택)" oninput="updateCalc()" style="flex:1;min-width:120px">
           </div>
         </div>
@@ -1543,6 +1553,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 
             <span>~</span>
             <select id="joshua-end" onchange="updateCalc()"></select>
             <label class="room-disc">할인 <input type="number" id="joshua-disc" min="0" max="100" placeholder="0" oninput="updateCalc()"> %</label>
+            <input type="text" id="joshua-discnote" placeholder="할인 명목 (예: 선교사 할인)" style="flex:1 1 100%;min-width:140px">
             <input type="text" id="joshua-memo" placeholder="세부 내용 (선택)" oninput="updateCalc()" style="flex:1;min-width:120px">
           </div>
         </div>
