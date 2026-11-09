@@ -110,7 +110,7 @@ const STR = {
     discountMission: '선교사 할인 50%',
     discountRelated: '유관기관 할인 20%',
     discountCustom: pct => `할인 ${pct}%`,
-    roomDiscount: (pct, list, note) => note ? `할인: ${note} (정가 ${comma(list)}원)` : `할인 ${pct}% 적용 (정가 ${comma(list)}원)`,
+    roomDiscount: (pct, list, note) => note ? `할인: ${note} (정가 ${comma(list)}원)` : `할인 적용 (정가 ${comma(list)}원)`,
     shortTerm: base => `단시간(90분) ${comma(base)}원`,
     baseHours: base => `기본 3시간 ${comma(base)}원`,
     extraHours: (h, amt) => `추가 ${h}시간 ${comma(amt)}원`,
@@ -144,7 +144,7 @@ const STR = {
     discountMission: 'Missionary Discount 50%',
     discountRelated: 'Partner Organization Discount 20%',
     discountCustom: pct => `Discount ${pct}%`,
-    roomDiscount: (pct, list, note) => note ? `Discount: ${note} (list price ${comma(list)})` : `${pct}% off (list price ${comma(list)})`,
+    roomDiscount: (pct, list, note) => note ? `Discount: ${note} (list price ${comma(list)})` : `Discount applied (list price ${comma(list)})`,
     shortTerm: base => `Short-term (90min) KRW ${comma(base)}`,
     baseHours: base => `Base 3 hours KRW ${comma(base)}`,
     extraHours: (h, amt) => `Extra ${h}hr KRW ${comma(amt)}`,
@@ -465,19 +465,19 @@ window.updateCalc = () => {
     const aronPkg = derivePackage(el('aron-start').value, el('aron-end').value);
     const aronPct = roomDiscPct('aron-disc');
     const aronCost = aronOn ? applyRoomDisc(packageCost(aron, aronPkg.type, aronPkg.extra, false), aronPct) : 0;
-    el('cost-aron').textContent = aronOn ? `${comma(aronCost)}원${aronPct ? ` (할인 ${aronPct}%)` : ''}` : '–';
+    el('cost-aron').textContent = aronOn ? `${comma(aronCost)}원${aronPct ? ' (할인 적용)' : ''}` : '–';
 
     const sharonOn = el('cb-sharon').checked;
     const sharonPkg = derivePackage(el('sharon-start').value, el('sharon-end').value);
     const sharonPct = roomDiscPct('sharon-disc');
     const sharonCost = sharonOn ? applyRoomDisc(packageCost(sharon, sharonPkg.type, sharonPkg.extra, el('sharon-surcharge').checked), sharonPct) : 0;
-    el('cost-sharon').textContent = sharonOn ? `${comma(sharonCost)}원${sharonPct ? ` (할인 ${sharonPct}%)` : ''}` : '–';
+    el('cost-sharon').textContent = sharonOn ? `${comma(sharonCost)}원${sharonPct ? ' (할인 적용)' : ''}` : '–';
 
     const joshuaOn = el('cb-joshua').checked;
     const joshuaPkg = derivePackage(el('joshua-start').value, el('joshua-end').value);
     const joshuaPct = roomDiscPct('joshua-disc');
     const joshuaCost = joshuaOn ? applyRoomDisc(packageCost(SPACE_BY_ID.joshua, joshuaPkg.type, joshuaPkg.extra, false), joshuaPct) : 0;
-    el('cost-joshua').textContent = joshuaOn ? `${comma(joshuaCost)}원${joshuaPct ? ` (할인 ${joshuaPct}%)` : ''}` : '–';
+    el('cost-joshua').textContent = joshuaOn ? `${comma(joshuaCost)}원${joshuaPct ? ' (할인 적용)' : ''}` : '–';
 
     let sgCost = 0;
     SG_ROOM_IDS.forEach(id => {
