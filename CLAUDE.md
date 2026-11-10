@@ -332,7 +332,7 @@ recurGroup으로 다시 조회하면 날짜 필터 범위 밖(예: 시작 날짜
 - 배포 시 공개 제외: `firebase.json`의 hosting.ignore (숨김 파일, CLAUDE.md, firestore.rules, tests 등)
 
 ## 셀프 예약 불가 공간 (아이엠홀·지혜홀)
-- `index.html`의 `SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀']` — 일반 사용자 예약 신청 칩(`buildRoomChips()`)에서 제외됨(이름에 "로비"·"탕비실"이 들어간 공간 — 5층 탕비실 등 — 도 `isSelfServiceExcluded()`의 정규식으로 항상 제외, 2026-11-10 탕비실 추가. 신청 칩뿐 아니라 공간 안내·가용성 검색·홈 검색·`venue-spaces.html`에서도 숨김, 관리자 "+ 예약 추가" 모달과 공간 관리에서만 보임. 단 firestore.rules는 방 이름을 검사하지 않아 화면만 막는 것임)
+- `index.html`의 `SELF_SERVICE_EXCLUDED_ROOMS = ['아이엠홀', '지혜홀']` — 일반 사용자 예약 신청 칩(`buildRoomChips()`)에서 제외됨(이름에 "로비"·"탕비실"이 들어간 공간 — 5층 탕비실 등 — 도 `isSelfServiceExcluded()`의 정규식으로 항상 제외, 2026-11-10 탕비실 추가. 신청 칩뿐 아니라 공간 안내·가용성 검색·홈 검색·`venue-spaces.html`에서도 숨김, 관리자 "+ 예약 추가" 모달과 공간 관리에서만 보임. 관리자용 예약 현황(`weekly-calendar.html`)에는 `CATS`의 '5층 탕비실' 분류(5층 소그룹실 바로 아래, 2026-11-10)로 나오고 주간 보기는 왼쪽 목록에 섞여 나옴 — 사용자 보기에는 안 나옴. 단 firestore.rules는 방 이름을 검사하지 않아 화면만 막는 것임)
 - 관리자 전용 예약 등록·수정 모달(`editChipsHtml()`)에는 모든 공간이 그대로 노출되므로, 관리자가 대관 신청·상담 이후 받은 예약을 수동으로 등록 가능
 - 아이엠홀: venue.html 대관 신청 대상에 포함됨(다른 시간제 공간과 함께 선택 가능) — "예약으로 등록"으로 실제 예약 생성 가능. quotation.html 견적 계산에는 아직 아이엠홀 항목이 없어, 견적서는 여전히 관리자가 별도로 작성
 - 지혜홀(숙박): `jihye-apply.html`에서 신청서 접수 → `venue_requests` 컬렉션에 저장 (venue.html 숙박 항목과 동일한 필드 구조: `dateIn`, `nights`, `rooms`, `eventDate`, `eventName`)

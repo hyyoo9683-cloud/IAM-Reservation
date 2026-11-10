@@ -437,9 +437,11 @@ const ADMIN_EMAILS = ['hyyoo9683@gmail.com'];
 let viewerIsAdmin = false; // 관리자 로그인 시에만 담당자·청지기·연락처 표시
 
 const FLOOR5_ROOMS = ['505호','506호','507호','508호','509호','510호','511호'];
-// 1차 분류 순서: 5층 소그룹실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀 → 로비
+// 1차 분류 순서(관리자 보기): 5층 소그룹실 → 5층 탕비실 → 아론홀 → 샤론홀 → 아이엠홀 → 지혜홀 → 로비
+// (5층 탕비실은 일반 사용자에게는 예약·표시되지 않는 관리자 전용 공간 — 이름에 '탕비실'이 들어간 공간이면 모두 이 분류)
 const CATS = [
   { key: '5f',     label: '5층 소그룹실', rooms: FLOOR5_ROOMS, showRoom: true  },
+  { key: 'pantry', label: '5층 탕비실',   match: (room) => /탕비실/.test(room || ''), showRoom: false },
   { key: 'aaron',  label: '아론홀',        rooms: ['아론홀'], showRoom: false },
   { key: 'sharon', label: '샤론홀',        rooms: ['샤론홀'], showRoom: false },
   { key: 'iam',    label: '아이엠홀',      rooms: ['아이엠홀'], showRoom: false },
