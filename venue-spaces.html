@@ -574,7 +574,7 @@ async function load() {
     const snap = await getDocs(collection(db, 'spaces'));
     const list = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
-      .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name) && !/로비|테라스/.test(s.name));
+      .filter(s => s.name && !EXCLUDE_NAMES.includes(s.name) && !/로비|테라스|탕비실/.test(s.name));
 
     // 세미나실(2층 아론홀·6층 샤론홀) / 소그룹실(5층) / 그 외로 분류
     const seminar = list.filter(s => s.floor === '2층' || s.floor === '6층' || ['아론홀', '샤론홀'].includes(s.name));
