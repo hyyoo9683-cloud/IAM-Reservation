@@ -385,7 +385,7 @@
     var bg={r:0,c:0}; try{bg=JSON.parse(localStorage.getItem('iamBadges')||'{}')||bg}catch(e){}
     var bd=function(n){return n>0?'<b class="an-badge">'+n+'</b>':''};
     var ic={dash:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',list:'<line x1="9" y1="7" x2="20" y2="7"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="17" x2="20" y2="17"/><circle cx="4.7" cy="7" r=".9"/><circle cx="4.7" cy="12" r=".9"/><circle cx="4.7" cy="17" r=".9"/>',cal:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><line x1="3.5" y1="9.3" x2="20.5" y2="9.3"/><line x1="8" y1="3" x2="8" y2="6.5"/><line x1="16" y1="3" x2="16" y2="6.5"/>',swap:'<path d="M5 9h13l-3-3"/><path d="M19 15H6l3 3"/>',home:'<path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/>',plus:'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',user:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/>',menu:'<line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/>'};
-    var its=admin?[["오늘","index.html?page=dashboard","dash"],["예약","index.html?page=list","list",0,bg.r],["캘린더","","cal",1],["변경·취소","index.html?page=change-requests","swap",0,bg.c]]:[["홈","index.html?page=home","home"],["현황","","cal",1],["신청","guide.html","plus"],["내 예약","index.html?page=mylist","user"]];
+    var its=admin?[["오늘","index.html?page=dashboard","dash"],["예약","index.html?page=list","list",0,bg.r],["캘린더","index.html?page=public","cal"],["변경·취소","index.html?page=change-requests","swap",0,bg.c]]:[["홈","index.html?page=home","home"],["현황","","cal",1],["신청","guide.html","plus"],["내 예약","index.html?page=mylist","user"]];
     if(login) its.push(["더보기",admin?"index.html?page=dashboard&menu=1":"index.html?page=home&menu=1","menu"]);
     var tb=document.getElementById("tabbar"); if(!tb) return;
     tb.innerHTML=its.map(function(x){return '<a class="tb-i'+(x[3]?' on':'')+'" href="'+(x[1]||"weekly-calendar.html")+'"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ic[x[2]]+'</svg><span>'+x[0]+'</span>'+bd(x[4]||0)+'</a>';}).join("");
@@ -958,7 +958,7 @@ function renderAppNav() {
   const its = admin ? [
     { t: '오늘', h: 'index.html?page=dashboard' },
     { t: '예약', h: 'index.html?page=list' },
-    { t: '캘린더', on: 1 },
+    { t: '캘린더', h: 'index.html?page=public' },
     { t: '변경·취소', h: 'index.html?page=change-requests' }
   ] : [
     { t: '홈', h: 'index.html?page=home' },
