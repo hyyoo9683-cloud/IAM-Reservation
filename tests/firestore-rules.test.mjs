@@ -18,11 +18,15 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(d,'reservations','byname'),{userEmail:'',managerName:'김철수',stewardName:'박영희',stewardTel:'010-1111-2222',status:'확정'});
   await setDoc(doc(d,'publicReservations','mine'),{room:'505호',status:'대기'});
   await setDoc(doc(d,'siteContent','home'),{a:1});
+  await setDoc(doc(d,'reservationRevisions','rev1'),{reservationId:'mine',kind:'수정',changes:[]});
 });
 const KIM='kim@suwoncca.org', ADMIN='hyyoo9683@gmail.com', SUB='sub.admin@gmail.com', RAND='hacker@gmail.com', EXT='ext@gmail.com';
 let pass=0, fail=0;
 const t = async (name, p, ok) => { try { await (ok?assertSucceeds(p):assertFails(p)); pass++; console.log('✅', name);} catch(e){ fail++; console.log('❌', name, e.message);} };
 // 예약
+await t('구성원: 예약 변경 이력 읽기 차단', getDoc(doc(as(KIM),'reservationRevisions','rev1')), false);
+await t('관리자: 예약 변경 이력 읽기', getDoc(doc(as(SUB),'reservationRevisions','rev1')), true);
+await t('관리자: 예약 변경 이력 쓰기 차단(서버 전용)', setDoc(doc(as(ADMIN),'reservationRevisions','rev2'),{a:1}), false);
 await t('비로그인: 예약 원본 읽기 차단', getDocs(collection(as(null),'reservations')), false);
 await t('비로그인: 예약 원본 단건 읽기 차단', getDoc(doc(as(null),'reservations','mine')), false);
 await t('구성원: 예약 원본 전체 읽기 차단', getDocs(collection(as(KIM),'reservations')), false);

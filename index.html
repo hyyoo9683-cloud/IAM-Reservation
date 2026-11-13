@@ -24,7 +24,7 @@ window.esc = window.esc || function (s) { return String(s == null ? '' : s).repl
   import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
   import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-  import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query, where,
+  import { getFirestore, collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, orderBy, query, where, limit,
     onSnapshot, serverTimestamp, increment, deleteField }
     from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
   import { getStorage, ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata }
@@ -56,7 +56,7 @@ window.esc = window.esc || function (s) { return String(s == null ? '' : s).repl
   window._fb = {
     auth, db, storage,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence,
-    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, orderBy, query, where,
+    collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, increment, deleteField, orderBy, query, where, limit,
     ref, uploadBytes, getDownloadURL, listAll, getBytes, getMetadata,
     ALLOWED_DOMAIN, ADMIN_EMAILS
   };
@@ -1025,6 +1025,7 @@ html.show-splash{overflow:hidden}
         <button class="nav-btn nav-sub" onclick="go('orgs')"><span class="icon">🏷</span>기관 관리</button>
         <button class="nav-btn nav-sub" onclick="go('memo')"><span class="icon">📝</span>관리자 메모</button>
         <button class="nav-btn nav-sub" onclick="go('content-editor')"><span class="icon">✏️</span>콘텐츠 편집</button>
+        <button class="nav-btn nav-sub" onclick="openRevisions('')"><span class="icon">🕘</span>변경·삭제 이력 (복구)</button>
         <button class="nav-btn nav-sub" onclick="go('storage-cleanup')"><span class="icon">🗜</span>저장공간 정리</button>
         <a href="push.html" class="nav-btn nav-sub" style="display:flex;text-decoration:none;color:inherit"><span class="icon">🔔</span>알림 설정</a>
       </div>
@@ -2179,6 +2180,23 @@ html.show-splash{overflow:hidden}
           </div>
         </div>
         <div id="memo-list"></div>
+      </div>
+    </div>
+
+    <!-- 관리자: 예약 변경·삭제 이력 (복구) -->
+    <div class="page" id="p-revisions">
+      <div style="max-width:760px">
+        <div class="card">
+          <div class="card-title">예약 변경·삭제 이력</div>
+          <div style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:12px;background:var(--blue-lt);border-radius:8px;padding:10px 12px">
+            예약을 수정하거나 삭제하면 <b>변경 전 내용이 자동으로 기록</b>됩니다(어느 화면에서 바꿨든 동일). 잘못 바꿨다면 아래에서 <b>변경 전 상태로 복구</b>할 수 있습니다.
+            정기 예약을 한 번에 바꾼 경우는 한 묶음으로 보이고 한 번에 복구됩니다. 복구 결과가 다른 확정 예약과 겹치면 복구하지 않습니다.
+            이 기능을 켠 시점 이후의 변경부터 기록됩니다.
+          </div>
+          <div id="rev-filter-note" style="display:none;font-size:12.5px;margin-bottom:10px"></div>
+          <div id="rev-kind-chips" style="display:flex;gap:6px;margin-bottom:12px"></div>
+          <div id="rev-list"></div>
+        </div>
       </div>
     </div>
 
@@ -3572,6 +3590,171 @@ window.runStorageCleanup = async () => {
 // 예약 자체(공간·날짜·시간·담당자·상태 등)는 절대 건드리지 않고, 그 예약의 history 배열만
 // 한 줄 요약으로 줄임 — reservations는 CLAUDE.md 규칙상 삭제·핵심 필드 변경 금지 대상이라
 // "정리"의 범위를 history 필드 하나로만 한정함
+// ── 예약 변경·삭제 이력(복구) ────────────────────────────────────
+// 서버(Cloud Function recordReservationRevision)가 예약 수정·삭제 때마다 reservationRevisions에 변경 전 값을 기록함
+const REV_LABELS = { room: '공간', date: '날짜', start: '시작', end: '종료', people: '인원', purpose: '사용 목적', status: '상태', type: '기관', subOrg: '세부 기관',
+  managerName: '담당자', stewardName: '청지기', stewardTel: '청지기 연락처', userEmail: '신청자 이메일', memo: '추가 요청사항', recurType: '정기 유형', recurTotal: '정기 총 횟수',
+  recurGroup: '정기 묶음', needTV: 'TV', needMic: '마이크', needPantry: '탕비실', needTerrace: '야외테라스', needBoard: '칠판', showName: '공연명',
+  checkinTime: '체크인', checkoutTime: '체크아웃', jihyeRooms: '지혜홀 룸' };
+let revCache = [], revGroups = [], revKind = 'all';
+const revMs = (x) => (x.changedAt && x.changedAt.toMillis ? x.changedAt.toMillis() : 0);
+function revVal(v, missing) {
+  if (missing) return '(없음)';
+  if (v === null || v === '') return '(빈 값)';
+  if (typeof v === 'boolean') return v ? '예' : '아니오';
+  if (Array.isArray(v)) return v.length ? v.map(a => (a && typeof a === 'object') ? JSON.stringify(a) : a).join(', ') : '(빈 값)';
+  if (v && v.toDate) return v.toDate().toLocaleString('ko-KR');
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+function revSame(a, b) { return JSON.stringify(a === undefined ? '__u' : a) === JSON.stringify(b === undefined ? '__u' : b); }
+// 이 이력을 지금 되돌릴 수 있는지: 수정=예약이 있고 변경한 필드가 아직 변경 전 값이 아님, 삭제=지금 그 예약이 없음
+function revPending(it) {
+  const cur = reservations.find(x => x.id === it.reservationId);
+  if (it.kind === '삭제') return !cur;
+  if (!cur) return false;
+  return (it.changes || []).some(ch => !revSame(ch.fromMissing ? undefined : ch.from, cur[ch.k]));
+}
+window.openRevisions = (id) => {
+  window._revFilterId = id || '';
+  closeModal('modal-detail');
+  if (curPage === 'revisions') renderRevisions(); else go('revisions');
+};
+window.setRevKind = (k) => { revKind = k; drawRevisions(); };
+window.renderRevisions = async () => {
+  const el = document.getElementById('rev-list'); if (!el) return;
+  el.innerHTML = '<div style="color:var(--text3);font-size:13px">불러오는 중…</div>';
+  const fid = window._revFilterId || '';
+  const note = document.getElementById('rev-filter-note');
+  if (note) {
+    note.style.display = fid ? '' : 'none';
+    note.innerHTML = fid ? `선택한 예약 1건의 이력만 보는 중입니다. <a href="#" onclick="openRevisions('');return false" style="color:var(--blue);font-weight:700">전체 이력 보기</a>` : '';
+  }
+  try {
+    const col = collection(db, 'reservationRevisions');
+    const q = fid ? query(col, where('reservationId', '==', fid)) : query(col, fb.orderBy('changedAt', 'desc'), fb.limit(300));
+    const snap = await getDocs(q);
+    revCache = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => revMs(b) - revMs(a));
+  } catch (e) {
+    console.error('renderRevisions', e);
+    el.innerHTML = '<div style="color:var(--red);font-size:13px">이력을 불러오지 못했습니다: ' + esc(e.message) + '</div>';
+    return;
+  }
+  drawRevisions();
+};
+function drawRevisions() {
+  const el = document.getElementById('rev-list'); if (!el) return;
+  const chips = document.getElementById('rev-kind-chips');
+  if (chips) chips.innerHTML = [['all', '전체'], ['삭제', '삭제만'], ['수정', '수정만']].map(([k, t]) =>
+    `<button class="btn ${revKind === k ? 'btn-primary' : 'btn-ghost'}" style="padding:5px 12px;font-size:12px" onclick="setRevKind('${k}')">${t}</button>`).join('');
+  const list = revCache.filter(x => revKind === 'all' || x.kind === revKind);
+  // 정기 예약을 한 번에 바꾼 건(같은 정기 묶음·같은 종류·2분 이내)은 한 묶음으로
+  revGroups = [];
+  list.forEach(it => {
+    const g = revGroups[revGroups.length - 1];
+    if (g && it.recurGroup && g.recurGroup === it.recurGroup && g.kind === it.kind && (g.lastMs - revMs(it)) <= 120000) {
+      g.items.push(it); g.lastMs = revMs(it);
+    } else revGroups.push({ kind: it.kind, recurGroup: it.recurGroup || '', items: [it], lastMs: revMs(it) });
+  });
+  if (!revGroups.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:8px 0">기록된 변경·삭제 이력이 없습니다.</div>'; return; }
+  el.innerHTML = revGroups.map((g, gi) => {
+    const first = g.items[0], n = g.items.length;
+    const sm = first.summary || {};
+    const when = revMs(first) ? new Date(revMs(first)).toLocaleString('ko-KR') : '';
+    const dates = g.items.map(i => (i.summary || {}).date).filter(Boolean).sort();
+    const title = n > 1
+      ? `${esc(sm.room || '')} 외 정기 예약 ${n}건 (${esc(dates[0] || '')} ~ ${esc(dates[dates.length - 1] || '')})`
+      : `${esc(sm.room || '')} · ${esc(sm.date || '')} ${esc(sm.start || '')}–${esc(sm.end || '')}`;
+    const sub = [sm.type, sm.purpose, sm.managerName].filter(Boolean).map(esc).join(' · ');
+    let body = '';
+    if (g.kind === '수정') {
+      const ch = (first.changes || []).slice(0, 8);
+      body = ch.map(c => `<div style="font-size:12.5px;line-height:1.6"><b>${esc(REV_LABELS[c.k] || c.k)}</b>: <span style="color:var(--text3)">${esc(revVal(c.from, c.fromMissing))}</span> → ${esc(revVal(c.to, c.toMissing))}</div>`).join('');
+      if ((first.changes || []).length > 8) body += `<div style="font-size:12px;color:var(--text3)">… 외 ${(first.changes || []).length - 8}개 항목</div>`;
+      if (n > 1) body += `<div style="font-size:11.5px;color:var(--text3);margin-top:4px">※ 첫 회차 기준으로 표시했습니다. 나머지 ${n - 1}건도 각 회차의 변경 전 값으로 함께 되돌립니다.</div>`;
+    } else {
+      body = '<div style="font-size:12.5px;color:var(--text2)">삭제된 예약입니다. 복구하면 같은 내용으로 다시 만들어집니다.</div>';
+    }
+    const pend = g.items.filter(revPending).length;
+    let act;
+    if (pend) act = `<button class="btn btn-primary" style="white-space:nowrap" onclick="restoreRevGroup(${gi})">↩ ${n > 1 ? pend + '건 ' : ''}변경 전으로 복구</button>`;
+    else if (g.kind === '삭제') act = '<span style="font-size:12px;color:#3B6D11;font-weight:700">✓ 이미 복구됨</span>';
+    else act = g.items.some(i => !reservations.some(x => x.id === i.reservationId))
+      ? '<span style="font-size:12px;color:var(--text3)">예약이 삭제되어 있습니다 (삭제 이력에서 복구)</span>'
+      : '<span style="font-size:12px;color:#3B6D11;font-weight:700">✓ 이미 변경 전 상태입니다</span>';
+    const badge = g.kind === '삭제'
+      ? '<span style="background:#FCEBEB;color:#A32D2D;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:700">삭제</span>'
+      : '<span style="background:var(--blue-lt);color:var(--blue);border-radius:5px;padding:1px 7px;font-size:11px;font-weight:700">수정</span>';
+    return `<div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:3px">${esc(when)} ${badge}</div>
+        <div style="font-weight:700;font-size:14px">${title}</div>
+        ${sub ? `<div style="font-size:12px;color:var(--text2);margin-bottom:4px">${sub}</div>` : ''}
+        ${body}
+      </div>
+      <div>${act}</div>
+    </div>`;
+  }).join('');
+}
+window.restoreRevGroup = async (gi) => {
+  const g = revGroups[gi]; if (!g) return;
+  if (!curUser || !isAdmin) { T('관리자 로그인이 필요합니다', '#A32D2D'); return; }
+  const items = g.items.filter(revPending);
+  if (!items.length) { T('복구할 내용이 없습니다', '#777'); return; }
+  // 복구 후의 모습을 가상으로 만들어 다른 확정 예약과 겹치는지 먼저 확인(같은 묶음끼리 자리를 바꾸는 경우도 고려)
+  const sim = new Map(reservations.map(r => [r.id, { ...r }]));
+  const plan = [];
+  items.forEach(it => {
+    if (it.kind === '삭제') {
+      const data = { ...(it.before || {}) };
+      sim.set(it.reservationId, { id: it.reservationId, ...data });
+      plan.push({ it, type: 'create', data, touchesSlot: true, newConfirm: false });
+    } else {
+      const cur = sim.get(it.reservationId);
+      const patch = {}; let touches = false, toConfirm = false;
+      (it.changes || []).forEach(ch => {
+        patch[ch.k] = ch.fromMissing ? deleteField() : ch.from;
+        cur[ch.k] = ch.fromMissing ? undefined : ch.from;
+        if (['room', 'date', 'start', 'end', 'status'].includes(ch.k)) touches = true;
+        if (ch.k === 'status' && ch.from === '확정') toConfirm = true;
+      });
+      plan.push({ it, type: 'update', patch, touchesSlot: touches, newConfirm: toConfirm });
+    }
+  });
+  const all = [...sim.values()];
+  const bad = [];
+  plan.forEach(p => {
+    if (!p.touchesSlot) return;
+    const r = sim.get(p.it.reservationId);
+    if (!r || ['반려', '취소'].includes(r.status)) return;
+    const hit = all.find(x => x.id !== r.id && x.room === r.room && x.date === r.date && !(r.end <= x.start || r.start >= x.end) &&
+      (r.status === '확정' ? x.status === '확정' : !['반려', '취소'].includes(x.status)));
+    if (hit) bad.push(`${r.room} ${r.date} ${r.start}–${r.end} (겹치는 예약: ${hit.purpose || hit.type || ''} ${hit.start}–${hit.end})`);
+  });
+  if (bad.length) {
+    alert('복구하면 다른 예약과 시간이 겹쳐서 복구하지 않았습니다. 겹치는 예약을 먼저 정리해 주시기 바랍니다.\n\n' + bad.slice(0, 5).join('\n') + (bad.length > 5 ? `\n… 외 ${bad.length - 5}건` : ''));
+    return;
+  }
+  const mail = plan.some(p => p.newConfirm && (reservations.find(x => x.id === p.it.reservationId) || {}).status !== '확정');
+  if (!confirm(`${items.length}건을 변경 전 상태로 복구합니다.` + (mail ? "\n※ 상태가 '확정'으로 돌아가는 예약은 예약자에게 승인 메일이 다시 발송될 수 있습니다." : '') + '\n계속하시겠습니까?')) return;
+  const entry = { time: nowStr(), msg: '변경·삭제 이력에서 복구 (관리자)' };
+  try {
+    for (let i = 0; i < plan.length; i += 20) {
+      await Promise.all(plan.slice(i, i + 20).map(p => {
+        const id = p.it.reservationId;
+        if (p.type === 'create') return setDoc(doc(db, 'reservations', id), { ...p.data, history: [...(p.data.history || []), entry] });
+        const cur = reservations.find(x => x.id === id) || {};
+        return updateDoc(doc(db, 'reservations', id), { ...p.patch, history: [...(cur.history || []), entry] });
+      }));
+    }
+    T(`${plan.length}건 복구했습니다`);
+    setTimeout(() => { if (curPage === 'revisions') renderRevisions(); }, 1500);
+  } catch (e) {
+    console.error('restoreRevGroup', e);
+    T('복구 실패: ' + e.message, '#A32D2D');
+  }
+};
+
 window.renderHistoryCleanup = async () => {
   const el = document.getElementById('hc-last-run');
   if (!el) return;
@@ -4103,7 +4286,7 @@ window.go = (page) => {
     dashboard: '오늘', list: '예약 목록', 'manage-spaces': '공간 관리', report: '리포트', 'ops-report': '주간 운영 리포트',
     'ext-users': '외부 사용자 관리', blocked: '차단일 관리', orgs: '기관 관리', memo: '관리자 메모', admins: '관리자 관리',
     'login-users': '예약 책임자 관리',
-    'storage-cleanup': '저장공간 정리', 'change-requests': '예약 변경·취소 신청', login: '로그인'
+    'storage-cleanup': '저장공간 정리', revisions: '변경·삭제 이력', 'change-requests': '예약 변경·취소 신청', login: '로그인'
   };
   document.getElementById('page-title').textContent = titles[page] || page;
 
@@ -4156,6 +4339,7 @@ window.go = (page) => {
   if (page === 'orgs')           renderOrgs();
   if (page === 'memo')           renderMemo?.();
   if (page === 'storage-cleanup') { renderStorageCleanup(); renderHistoryCleanup(); }
+  if (page === 'revisions')      renderRevisions();
   if (page === 'change-requests') renderChangeRequests();
 };
 
@@ -6301,7 +6485,7 @@ window.openDetail = (id) => {
       btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
     }
     if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#4C7660" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
-    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-ghost" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
+    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-ghost" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-ghost" onclick="openRevisions('${r.id}')">🕘 변경 이력</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
     if (r.status === '대기' || r.status === '확정') btns += `<button class="btn btn-ghost" style="color:var(--red)" onclick="cancelR('${r.id}',true)">예약 취소</button>`;
@@ -6478,7 +6662,7 @@ window.deleteR = async (id, fromDetail = false) => {
   try {
     await deleteDoc(doc(db, 'reservations', id));
     if (fromDetail) closeModal('modal-detail');
-    T('삭제됐습니다', '#A32D2D');
+    T('삭제됐습니다 — 실수라면 더보기 > 기타 관리 > 변경·삭제 이력에서 복구할 수 있습니다', '#A32D2D');
   } catch (e) {
     console.error('deleteR error:', e);
     T('삭제 실패: ' + e.message, '#A32D2D');

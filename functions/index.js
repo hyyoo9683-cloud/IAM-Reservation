@@ -12,6 +12,7 @@ const {
 const { sendEmail } = require('./lib/resendClient');
 const { claimEmailEvent, markSent, markFailed, markSkipped } = require('./lib/emailLog');
 const { toPublicReservation, PUBLIC_MIRROR_VERSION } = require('./lib/publicReservation');
+const { diffReservation, summarize } = require('./lib/revision');
 const { savePushToken, removePushToken, countPushTokens, sendPushToAdmins, splitPushText } = require('./lib/pushClient');
 
 initializeApp();
@@ -303,6 +304,31 @@ exports.mirrorPublicReservation = onDocumentWritten('reservations/{id}', async (
     return;
   }
   await ref.set(toPublicReservation(after.data()));
+});
+
+// ─────────────────────────────────────────────────────────────
+// 예약 변경 이력 (reservationRevisions) — 잘못 수정·삭제했을 때 되돌리기 위한 기록
+// 예약이 수정되거나 삭제될 때마다 "변경 전 값"을 남긴다(어느 화면·경로에서 바꿨든 서버가 기록).
+//  · 수정: 바뀐 필드만 changes[]에 {k, from, to, fromMissing, toMissing}로 기록 (history·processedAt만 바뀐 건 제외)
+//  · 삭제: 문서 전체(before)를 기록 → 화면에서 같은 id로 다시 만들 수 있음
+// 클라이언트는 관리자만 읽을 수 있고 쓸 수 없다(firestore.rules). 이력은 지우지 않는다.
+// ─────────────────────────────────────────────────────────────
+exports.recordReservationRevision = onDocumentWritten('reservations/{id}', async (event) => {
+  const before = event.data && event.data.before;
+  if (!before || !before.exists) return; // 새로 만든 예약은 기록하지 않음
+  const after = event.data.after;
+  const isDelete = !after || !after.exists;
+  const b = before.data();
+  const changes = isDelete ? [] : diffReservation(b, after.data());
+  if (!isDelete && !changes.length) return;
+  await getFirestore().collection('reservationRevisions').doc(event.id).set({
+    reservationId: event.params.id,
+    kind: isDelete ? '삭제' : '수정',
+    changedAt: FieldValue.serverTimestamp(),
+    summary: summarize(b),
+    recurGroup: b.recurGroup || '',
+    ...(isDelete ? { before: b } : { changes }),
+  });
 });
 
 // 전체 재생성: 관리자가 system/publicMirrorRequest 문서를 쓰면 실행됨

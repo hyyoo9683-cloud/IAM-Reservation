@@ -91,6 +91,7 @@ CDN ES Module 방식 (v11). `index.html` 첫 번째 `<script type="module">` 에
 | `checkouts` | 퇴실 체크 기록 |
 | `allowedUsers` | 외부 허용 사용자 |
 | `eventChecklists` | 행사 체크리스트 (아론홀·샤론홀·아이엠홀 확정 예약은 `event-checklist.html` 접속 시 자동 생성, 문서 id `auto_<예약id>`, `reservationId`·`autoCreated` 필드로 구분) |
+| `reservationRevisions` | 예약 변경·삭제 이력(복구용, 2026-11-13). 서버(Cloud Function `recordReservationRevision`)가 `reservations` 수정·삭제 때마다 자동 기록 — 클라이언트는 관리자만 읽기, 쓰기 불가. 아래 "예약 변경·삭제 이력" 참고 |
 | `loginUsers` | 로그인 이력(예약 책임자 관리). 문서 id=이메일, `name`(실제 로그인 계정 이름)·`firstLoginAt`·`lastLoginAt`·`loginCount` 등 — `trackLoginUser()`가 로그인마다 기록, 예약 목록·상세의 신청자 이메일/실명 표시에도 사용됨(아래 참고) |
 
 ## 예약 데이터 구조 (`reservations`)
@@ -221,6 +222,14 @@ TV·마이크 필요, 탕비실 이용, 칠판 체크된 것만 모아서 날짜
 메모 textarea에 포커스가 가 있는 동안은 Firestore 실시간 갱신에 의한 재렌더링을 스킵함(입력 중인
 내용 유실 방지) — 이 textarea가 `#cr-detail` 안으로 옮겨졌으므로 가드 조건도 `#cr-detail` 기준으로
 확인함.
+
+## 예약 변경·삭제 이력 (복구, 2026-11-13)
+잘못 수정·삭제한 예약을 되돌리기 위한 기능. **서버가 기록**하므로 어느 화면·경로(관리자 수정, 일괄 변경, CSV, 사용자 수정, 삭제)에서 바꿨든 동일하게 남음.
+- `functions/index.js`의 `recordReservationRevision`(`reservations/{id}` onDocumentWritten) → `reservationRevisions/{eventId}`. 수정: `changes[{k, from, to, fromMissing, toMissing}]`(바뀐 필드만, `history`·`processedAt`·`updatedAt`만 바뀐 건 기록 안 함 — `functions/lib/revision.js`의 `diffReservation`), 삭제: `before`(문서 전체). 공통: `reservationId`·`kind`('수정'|'삭제')·`changedAt`·`summary`(공간·날짜·시간·목적 등)·`recurGroup`. 새로 만든 예약은 기록 안 함. 이력은 지우지 않음
+- 규칙: `reservationRevisions`는 관리자만 읽기, 쓰기 불가(`write: if false`, Admin SDK만). 테스트는 `tests/`에 추가
+- 화면: 드로어 '기타 관리 > 🕘 변경·삭제 이력 (복구)'(`go('revisions')`, `renderRevisions()`) — 최근 300건, 전체/삭제만/수정만 칩. 예약 상세의 '🕘 변경 이력' 버튼(`openRevisions(id)`)은 그 예약 1건의 이력만 보여줌. 같은 `recurGroup`·같은 종류·2분 이내의 이력은 한 묶음(정기 예약 일괄 변경 → 한 번에 복구)
+- 복구(`restoreRevGroup`): **수정**은 그때 바꾼 필드만 변경 전 값으로 되돌림(그 뒤 다른 필드를 고친 건 유지), **삭제**는 같은 문서 id로 `setDoc` 재생성. 복구 후의 모습을 가상으로 만들어(같은 묶음끼리 자리 바꾸는 경우 포함) 공간·날짜·시간·상태를 건드리는 건은 다른 예약과 겹치는지 먼저 확인하고, 겹치면 전체를 복구하지 않음. 복구 자체도 새 이력으로 남으므로 되돌릴 수 있음. 복구 시 `history`에 "변경·삭제 이력에서 복구 (관리자)" 추가. 이미 변경 전 상태(수정)·이미 존재(삭제)이면 "이미 복구됨"으로 표시
+- 주의: 상태가 '확정'으로 돌아가는 복구는 승인 메일 트리거(`onReservationUpdated`)가 다시 발송할 수 있음(확인 창에 안내). 삭제된 '대기' 예약을 복구하면 관리자 신규 신청 알림(`onReservationCreated`)이 다시 올 수 있음. 기록은 이 기능을 배포한 시점 이후 변경분부터
 
 ## 예약 목록 검색 (시간대 필터)
 `renderList()`의 검색바에는 이름·공간·기관·기간(날짜 범위) 외에 **시간대 필터**(`#ftime-s`/`#ftime-e`,
