@@ -209,7 +209,6 @@ const SECTIONS = {
     <div class="rail rv">
       ${list.map((p, pi) => programCard(p, pi)).join('')}
     </div>` : past.length ? `
-    ${filled(c('whatson.pastNote')) || state.editing ? m('whatson.pastNote', 'p', 'wo-past-note rv') : ''}
     <div class="rail rv">
       ${past.map((p, pi) => programCard(p, pi, true)).join('')}
     </div>` : m('whatson.empty', 'p', 'empty wo-empty rv')}
