@@ -26,7 +26,7 @@
   --pad:clamp(20px,4vw,64px);
   --max:1440px;
   --ease:cubic-bezier(.2,.7,.1,1);
-  --css-ver:"2026-11-03zefg";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
+  --css-ver:"2026-11-03zefgh";  /* home.js의 CSS_VER와 같게 — 스타일을 바꾸면 둘 다 올릴 것 */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
@@ -280,8 +280,6 @@ section{padding:clamp(80px,11vw,160px) 0}
 .page-events{padding:clamp(24px,3vw,40px) 0 clamp(72px,9vw,120px)}
 .ev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:40px 24px}
 .ev-past-hd{margin-top:clamp(72px,9vw,120px)}
-.card.past .ph{filter:grayscale(.85);opacity:.75}
-.card.past h3{color:#555}
 @media (max-width:1100px){.ev-grid{grid-template-columns:repeat(3,1fr);gap:32px 20px}}
 @media (max-width:640px){.ev-grid{grid-template-columns:1fr 1fr;gap:28px 14px}.ev-grid .card h3{font-size:16px}}
 .page-hist{padding:clamp(56px,7vw,96px) 0 clamp(72px,9vw,120px)}
@@ -963,7 +961,6 @@ body.booting #main,body.booting #footer-slot{visibility:hidden}
   .rent-band .btns{opacity:.6}
 }
 .wo-past-note{font-size:14px;color:var(--mute);margin:-4px 0 18px}
-#whatson .card.past .ph{filter:none;opacity:1}#whatson .card.past h3{color:inherit}
 </style>
 </head>
 <body class="booting">
