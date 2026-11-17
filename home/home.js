@@ -87,8 +87,8 @@ const ARROW = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" strok
 const CHEV_L = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 2 4 7l5 5"/></svg>';
 const CHEV_R = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 2 5 5-5 5"/></svg>';
 
-// 등록된 공연·행사가 없을 때 보여주는 예시 카드 (디자인 시안 v4 그대로) — 관리자 페이지에서
-// 공개 항목을 하나라도 등록하면 이 예시는 사라지고 실제 목록으로 바뀜
+// (지금은 안 씀 — 2026-11-17부터 예정 행사가 없으면 예시 대신 whatson.empty 문구를 보여줌)
+// 예전: 등록된 공연·행사가 없을 때 보여주던 예시 카드 (디자인 시안 v4 그대로)
 const SAMPLE_TABS = ['공연', '예배·집회', '세미나·교육', '가족·어린이'];
 const SAMPLE_PROGRAMS = [
   { c: '공연', k: 'CONCERT', t: '가을,<br>찬양의 밤', g: 'linear-gradient(160deg,#1d2b3a,#0a0f15)', st: '예매중', cat: '공연 · 아이엠홀', title: '가을, 찬양의 밤', date: '2026.11.07 (토) 19:30' },
@@ -198,7 +198,7 @@ const SECTIONS = {
   <div class="wrap">
     <div class="sec-hd rv">
       <h2>${t('whatson.title')}<span class="h2sub" data-k="whatson.sub">${esc(c('whatson.sub'))}</span></h2>
-      <div class="rail-ctl"><button class="rl" aria-label="이전">${CHEV_L}</button><button class="rr" aria-label="다음">${CHEV_R}</button></div>
+      ${list.length ? `<div class="rail-ctl"><button class="rl" aria-label="이전">${CHEV_L}</button><button class="rr" aria-label="다음">${CHEV_R}</button></div>` : ''}
     </div>
     ${list.length ? `
     <div class="tabs rv" role="group" aria-label="분류">
@@ -207,7 +207,7 @@ const SECTIONS = {
     </div>
     <div class="rail rv">
       ${list.map((p, pi) => programCard(p, pi)).join('')}
-    </div>` : sampleRail()}
+    </div>` : m('whatson.empty', 'p', 'empty wo-empty rv')}
     ${filled(c('whatson.moreText')) || state.editing ? `<div class="wo-foot rv"><a ${href('whatson.moreLink')} class="more wo-more" data-k="whatson.moreText">${esc(c('whatson.moreText'))}</a></div>` : ''}
     ${state.editing ? `<p class="edit-hint">공연·행사 목록은 <a href="admin.html#programs">관리자 페이지 › 공연·행사</a>에서 등록·수정합니다.</p>` : ''}
   </div>
