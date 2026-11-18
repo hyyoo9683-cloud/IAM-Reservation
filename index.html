@@ -2638,6 +2638,18 @@ html.show-splash{overflow:hidden}
   </div>
 </div>
 
+<!-- ════════════ 변경·취소 신청 → 예약 연결 찾기 ════════════ -->
+<div class="modal-bg" id="modal-cr-link">
+  <div class="modal" style="max-width:540px;width:94%">
+    <div class="modal-title">연결할 예약 찾기</div>
+    <div id="crl-req" style="font-size:12.5px;color:var(--text2);line-height:1.7;background:var(--bg2);border-radius:8px;padding:9px 12px;margin-bottom:10px"></div>
+    <input type="text" id="crl-q" placeholder="이름·기관·모임명·호수·날짜로 검색 (여러 단어는 띄어쓰기)" oninput="crlSearch()" style="width:100%;margin-bottom:8px">
+    <div id="crl-hint" style="font-size:11.5px;color:var(--text3);margin-bottom:6px"></div>
+    <div id="crl-list" style="max-height:360px;overflow:auto;border:1px solid var(--border2);border-radius:8px"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-ghost" onclick="closeModal('modal-cr-link')">닫기</button></div>
+  </div>
+</div>
+
 <!-- ════════════ 공간 변경 ════════════ -->
 <div class="modal-bg" id="modal-room-change">
   <div class="modal" style="max-width:380px;width:92%">
@@ -3979,8 +3991,9 @@ window.renderChangeReqDetail = () => {
       <button class="btn btn-ghost" style="margin-top:4px;padding:3px 10px;font-size:11px" onclick="event.stopPropagation();setChangeReqNote('${r.id}', document.getElementById('cr-note-${r.id}').value)">💾 메모 저장</button>
     </div>
     <div style="margin-top:10px;font-size:12.5px;color:var(--text2)">신청자: <b>${(r.requesterName||'').replace(/</g,'&lt;')}</b> · ${esc(r.requesterTel||'')}</div>
+    ${crLinkedBlock(r)}
     <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
+      <button class="btn btn-ghost" onclick="jumpToReservationFromRequest('${r.id}')">📋 예약 목록에서 확인</button>
       <button class="btn btn-ghost" style="color:#4C7660" onclick="openChangeSmsModal('${r.id}','sms')">📨 문자</button>
       <button class="btn btn-ghost" style="color:#3B6D11" onclick="openChangeSmsModal('${r.id}','kakao')">💬 카카오</button>
       ${done
@@ -3989,6 +4002,139 @@ window.renderChangeReqDetail = () => {
     </div>
   </div>`;
 };
+
+// ── 변경·취소 신청 ↔ 실제 예약 연결 ─────────────────────────────────
+// 신청서에 적힌 공간·날짜가 실제 예약과 다를 수 있어서, 날짜·공간·이름·모임명이 비슷한 예약을 점수순으로 찾아 보여주고
+// 관리자가 골라 연결함(자동 확정은 하지 않음). 연결하면 changeRequests.linkedReservationId에 저장되어 다시 찾지 않아도 됨.
+const crNorm = (v) => String(v || '').toLowerCase().replace(/[\s\-_.·,()\/]/g, '');
+const crDays = (a, b) => (a && b) ? Math.round((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000) : 999;
+function crScore(res, req) {
+  let sc = 0; const why = [];
+  const dd = Math.abs(crDays(res.date, req.date));
+  if (dd === 0) { sc += 50; why.push('날짜 일치'); } else if (dd <= 1) { sc += 30; why.push('날짜 ±1일'); } else if (dd <= 3) { sc += 15; why.push('날짜 ±3일'); } else if (dd <= 7) sc += 5;
+  const rr = crNorm(res.room), qr = crNorm(req.room);
+  if (rr && qr) { if (rr === qr) { sc += 30; why.push('공간 일치'); } else if (rr.includes(qr) || qr.includes(rr) || (rr.replace(/\D/g, '') && rr.replace(/\D/g, '') === qr.replace(/\D/g, ''))) { sc += 25; why.push('공간 비슷'); } }
+  const names = [req.requesterName, req.managerName].map(crNorm).filter(Boolean);
+  const resNames = [res.managerName, res.stewardName].map(crNorm).filter(Boolean);
+  if (names.some(n => resNames.includes(n))) { sc += 40; why.push('이름 일치'); }
+  else if (names.some(n => resNames.some(m => m.includes(n) || n.includes(m)))) { sc += 20; why.push('이름 비슷'); }
+  const rp = crNorm(req.purpose), pp = crNorm(res.purpose);
+  if (rp && pp) { if (rp === pp || rp.includes(pp) || pp.includes(rp)) { sc += 25; why.push('모임명 일치'); } else {
+    const tk = String(req.purpose).split(/[\s\/,·]+/).map(crNorm).filter(t => t.length >= 2);
+    if (tk.some(t => pp.includes(t))) { sc += 10; why.push('모임명 비슷'); } } }
+  if (req.start && res.start === req.start) sc += 10;
+  return { sc, why };
+}
+function crCandidates(req, q) {
+  const terms = String(q || '').trim().split(/\s+/).map(crNorm).filter(Boolean);
+  let pool = reservations.filter(x => ['대기', '확정'].includes(x.status));
+  if (terms.length) pool = pool.filter(x => { const h = crNorm([x.managerName, x.stewardName, x.type, x.subOrg, x.purpose, x.room, x.date, x.userEmail].join(' ')); return terms.every(t => h.includes(t)); });
+  else pool = pool.filter(x => Math.abs(crDays(x.date, req.date)) <= 60);
+  const scored = pool.map(x => ({ x, ...crScore(x, req) }));
+  // 정기·비정기 묶음은 신청 날짜에 가장 가까운(점수가 높은) 회차 하나만 보여주고 회차 수를 표시
+  const best = new Map();
+  scored.forEach(c => {
+    const key = c.x.recurGroup || c.x.id;
+    const cur = best.get(key);
+    if (!cur) best.set(key, { ...c, n: 1 });
+    else { cur.n++; if (c.sc > cur.sc) { const n = cur.n; Object.assign(cur, c); cur.n = n; } }
+  });
+  return [...best.values()].sort((a, b) => b.sc - a.sc || Math.abs(crDays(a.x.date, req.date)) - Math.abs(crDays(b.x.date, req.date)));
+}
+function crCandHtml(c, reqId, compact) {
+  const x = c.x, strong = c.sc >= 90;
+  return `<div onclick="linkRequestToReservation('${reqId}','${x.id}')" style="padding:9px 12px;border-bottom:1px solid var(--border2);cursor:pointer;${strong ? 'background:#F3F8F4' : ''}">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <b style="font-size:13.5px">${esc(x.date)} ${esc(x.start)}–${esc(x.end)}</b>
+      <span style="font-size:13px;color:var(--brand);font-weight:700">${esc(x.room)}</span>
+      ${strong ? '<span style="font-size:10.5px;font-weight:800;color:#fff;background:var(--brand);border-radius:999px;padding:0 7px">추천</span>' : ''}
+      ${c.n > 1 ? `<span style="font-size:10.5px;color:var(--text3)">🔁 정기 ${c.n}회 중 가장 가까운 회차</span>` : ''}
+      <span style="margin-left:auto;font-size:11px;font-weight:700;color:${x.status === '확정' ? '#3B6D11' : '#854F0B'}">${esc(x.status)}</span>
+    </div>
+    <div style="font-size:12.5px;color:var(--text2);margin-top:2px">${esc(x.purpose || '(목적 없음)')} · ${esc([x.managerName, x.stewardName && x.stewardName !== x.managerName ? x.stewardName : ''].filter(Boolean).join(' / '))}${x.type ? ' · ' + esc(x.type) : ''}</div>
+    ${c.why.length ? `<div style="margin-top:3px;display:flex;gap:4px;flex-wrap:wrap">${c.why.map(w => `<span style="font-size:10.5px;color:var(--brand);border:1px solid #BFD3C7;border-radius:999px;padding:0 7px">${esc(w)}</span>`).join('')}</div>` : ''}
+  </div>`;
+}
+function crLinkedBlock(r) {
+  const box = (inner) => `<div style="margin-top:12px;border:1px solid var(--border);border-radius:10px;padding:12px 14px;background:#FAFBFA">${inner}</div>`;
+  const head = '<div style="font-size:11px;font-weight:800;color:var(--text3);letter-spacing:.04em;margin-bottom:6px">연결된 예약</div>';
+  const res = r.linkedReservationId ? reservations.find(x => x.id === r.linkedReservationId) : null;
+  if (res) {
+    const n = res.recurGroup ? reservations.filter(x => x.recurGroup === res.recurGroup && !['취소', '반려'].includes(x.status) && x.date >= res.date).length : 0;
+    const live = ['대기', '확정'].includes(res.status);
+    return box(`${head}
+      <div style="font-weight:700;font-size:14px">${esc(res.room)} · ${esc(res.date)} ${esc(res.start)}–${esc(res.end)} <span style="font-size:12px;color:${res.status === '확정' ? '#3B6D11' : res.status === '대기' ? '#854F0B' : 'var(--text3)'}">${esc(res.status)}</span></div>
+      <div style="font-size:12.5px;color:var(--text2);margin-top:2px">${esc(res.purpose || '')} · ${esc(res.managerName || '')}${res.recurGroup ? ' · 🔁 ' + esc(res.recurType || '정기') + (n > 1 ? ` (이 회차 이후 ${n}건)` : '') : ''}</div>
+      <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="openDetail('${res.id}')">상세</button>
+        ${live ? `<button class="btn btn-ghost" onclick="crAct('${r.id}','${res.id}','time')">📅 일정 변경</button>
+        <button class="btn btn-ghost" onclick="crAct('${r.id}','${res.id}','room')">🏛 공간 변경</button>
+        <button class="btn btn-amber" onclick="crAct('${r.id}','${res.id}','cancel')">예약 취소</button>` : '<span style="font-size:12px;color:var(--text3);align-self:center">이미 취소·반려된 예약입니다</span>'}
+        <button class="btn btn-ghost" style="font-size:12px;color:var(--text3)" onclick="openCrLink('${r.id}')">다른 예약으로 변경</button>
+        <button class="btn btn-ghost" style="font-size:12px;color:var(--text3)" onclick="unlinkRequest('${r.id}')">연결 해제</button>
+      </div>`);
+  }
+  const sugg = crCandidates(r, '').filter(c => c.sc >= 40).slice(0, 3);
+  return box(`${head}
+    ${r.linkedReservationId ? '<div style="font-size:12.5px;color:var(--red);margin-bottom:6px">연결했던 예약을 찾을 수 없습니다(삭제되었을 수 있습니다). 다시 찾아 주시기 바랍니다.</div>' : '<div style="font-size:12.5px;color:var(--text2);margin-bottom:6px">신청서의 공간·날짜가 실제 예약과 다를 수 있어, 비슷한 예약을 찾아 연결합니다.</div>'}
+    ${sugg.length ? `<div style="border:1px solid var(--border2);border-radius:8px;overflow:hidden;margin-bottom:8px;background:#fff">${sugg.map(c => crCandHtml(c, r.id, true)).join('')}</div><div style="font-size:11px;color:var(--text3);margin-bottom:8px">위 예약을 누르면 이 신청과 연결됩니다.</div>` : '<div style="font-size:12.5px;color:var(--text3);margin-bottom:8px">비슷한 예약을 자동으로 찾지 못했습니다. 직접 검색해 주시기 바랍니다.</div>'}
+    <button class="btn btn-primary" onclick="openCrLink('${r.id}')">🔍 예약 찾기</button>`);
+}
+let _crlReqId = null;
+window.openCrLink = (reqId) => {
+  const r = changeRequests.find(x => x.id === reqId); if (!r) return;
+  _crlReqId = reqId;
+  const time = (r.start || r.end) ? `${r.start || ''}–${r.end || ''}` : '';
+  document.getElementById('crl-req').innerHTML = `<b>${r.requestType === '취소' ? '취소' : '변경'} 신청</b> · ${esc(r.room || '')} · ${esc(r.date || '')} ${esc(time)}<br>신청자 ${esc(r.requesterName || '')}${r.purpose ? ' · 모임명 ' + esc(r.purpose) : ''}`;
+  document.getElementById('crl-q').value = '';
+  crlSearch();
+  openModal('modal-cr-link');
+};
+window.crlSearch = () => {
+  const r = changeRequests.find(x => x.id === _crlReqId); if (!r) return;
+  const q = document.getElementById('crl-q').value;
+  const list = crCandidates(r, q).slice(0, 30);
+  document.getElementById('crl-hint').textContent = q.trim()
+    ? `검색 결과 ${list.length}건 (신청 내용과 비슷한 순)`
+    : `신청 날짜 앞뒤 2개월 안의 예약을 비슷한 순으로 보여줍니다 (${list.length}건). 안 보이면 위에서 검색해 주시기 바랍니다.`;
+  document.getElementById('crl-list').innerHTML = list.length ? list.map(c => crCandHtml(c, r.id)).join('') : '<div style="padding:18px;text-align:center;color:var(--text3);font-size:13px">찾은 예약이 없습니다</div>';
+};
+window.linkRequestToReservation = async (reqId, resId) => {
+  try {
+    await updateDoc(doc(db, 'changeRequests', reqId), { linkedReservationId: resId, linkedAt: serverTimestamp(), linkedBy: curUser?.email || '' });
+    closeModal('modal-cr-link');
+    T('예약과 연결했습니다', '#3B6D11');
+  } catch (e) { T('연결 실패: ' + e.message, '#A32D2D'); }
+};
+window.unlinkRequest = async (reqId) => {
+  try { await updateDoc(doc(db, 'changeRequests', reqId), { linkedReservationId: '' }); } catch (e) { T('해제 실패: ' + e.message, '#A32D2D'); }
+};
+// 연결된 예약에 대한 처리(일정 변경·공간 변경·취소) — 처리하면 신청도 '처리완료'로 표시
+window._crDone = null;
+window.crAct = async (reqId, resId, kind) => {
+  const res = reservations.find(x => x.id === resId); if (!res) return;
+  window._crDone = { reqId, resId, at: Date.now() };
+  if (kind === 'time') return openQuickEdit(resId);
+  if (kind === 'room') return openRoomChange(resId);
+  // 취소: 정기 예약이면 범위를 묻고, 사유를 받은 뒤 처리
+  const pick = await askCancelScope(res);
+  if (!pick) return;
+  const reason = prompt(pick.targets.length > 1 ? `취소 사유 (총 ${pick.targets.length}건 전체 적용):` : '취소 사유:', '');
+  if (reason === null) return;
+  try {
+    await applyCancel(pick.targets, `취소: ${reason || '신청자 요청'} (변경·취소 신청)`, { rejectReason: reason || '신청자 요청' });
+    T(pick.targets.length > 1 ? `${pick.targets.length}건 취소 처리됐습니다` : '취소 처리됐습니다', '#A32D2D');
+    await updateDoc(doc(db, 'changeRequests', reqId), { status: '완료', processedAt: serverTimestamp(), processedBy: curUser?.email || '' });
+    window._crDone = null;
+    if (confirm('취소 처리했습니다. 신청자에게 보낼 안내 문자를 작성하시겠습니까?')) openChangeSmsModal(reqId, 'sms');
+  } catch (e) { T('취소 실패: ' + e.message, '#A32D2D'); }
+};
+// 일정·공간 변경이 저장되면 연결된 신청을 처리완료로 표시(창만 열었다 닫은 경우를 위해 10분 안의 같은 예약만)
+async function crMarkDoneIfLinked(resId) {
+  const d = window._crDone; window._crDone = null;
+  if (!d || d.resId !== resId || Date.now() - d.at > 600000) return;
+  try { await updateDoc(doc(db, 'changeRequests', d.reqId), { status: '완료', processedAt: serverTimestamp(), processedBy: curUser?.email || '' }); } catch (_) {}
+}
 
 window.setChangeReqStatus = async (id, status) => {
   try {
@@ -8858,6 +9004,7 @@ window.saveQuickEdit = async () => {
       history: [...(i.x.history || []), { time: nowStr(), msg: `일정 수정: ${i.date} ${start}–${end}${plan.items.length > 1 ? ' (이후 전체)' : ''}` }]
     })));
     T(plan.items.length > 1 ? `${plan.items.length}건의 일정이 수정되었습니다` : '일정이 수정되었습니다', '#3B6D11');
+    crMarkDoneIfLinked(plan.r.id);
     closeModal('modal-quick-edit');
     closeModal('modal-detail');
     // 확정 예약이면 변경 안내 문자를 바로 작성할 수 있게 안내
@@ -8914,6 +9061,7 @@ window.saveRoomChange = async () => {
       history: [...(i.x.history || []), { time: nowStr(), msg: `공간 변경: ${i.x.room} → ${plan.room} (관리자${plan.items.length > 1 ? ', 이후 전체' : ''})` }]
     })));
     T(plan.bad.length ? `${plan.ok.length}건 ${plan.room}(으)로 변경 (${plan.bad.length}건은 충돌로 유지)` : (plan.ok.length > 1 ? `${plan.ok.length}건을 ${plan.room}(으)로 변경했습니다` : `${plan.room}(으)로 변경했습니다`), '#3B6D11');
+    crMarkDoneIfLinked(plan.r.id);
     closeModal('modal-room-change');
     closeModal('modal-detail');
     const confirmed = plan.ok.filter(i => i.x.status === '확정');
