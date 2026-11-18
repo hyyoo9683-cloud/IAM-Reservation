@@ -3023,6 +3023,15 @@ function noConflict(room, date, start, end, skipId = null, confirmedOnly = false
   return !conflict;
 }
 
+// noConflict와 같은 판정이되, 건너뛸 예약이 여러 건일 때(정기 시리즈 전체를 함께 옮기는 경우 등) 사용
+function noConflictEx(room, date, start, end, skipIds, confirmedOnly = true) {
+  return !reservations.find(r =>
+    !skipIds.has(r.id) && r.room === room && r.date === date &&
+    (confirmedOnly ? r.status === '확정' : !['반려','취소'].includes(r.status)) &&
+    !(end <= r.start || start >= r.end)
+  );
+}
+
 window.openModal  = (id) => document.getElementById(id).classList.add('open');
 window.closeModal = (id) => document.getElementById(id).classList.remove('open');
 window.zoomImg = (url) => { document.getElementById('modal-img-zoom-img').src = url; window.openModal('modal-img-zoom'); };
@@ -6557,6 +6566,10 @@ window.approve = async (id) => {
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
   if (r.room === '공실 희망') { T('먼저 공간을 배정해 주시기 바랍니다 (상세보기 → 공실 배정)', '#A32D2D'); return; }
+  // 같은 공간·시간에 이미 확정된 예약이 있으면 승인하면 중복 예약이 되므로 막음
+  if (!noConflict(r.room, r.date, r.start, r.end, id, true)) {
+    T(`${r.room} ${r.date} ${r.start}–${r.end}에 이미 확정된 예약이 있어 승인할 수 없습니다`, '#A32D2D'); return;
+  }
   try {
     await updateDoc(doc(db, 'reservations', id), {
       status: '확정',
@@ -6583,10 +6596,18 @@ window.approveGroup = async (idsCsv) => {
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const targets = ids.map(id => reservations.find(x => x.id === id)).filter(Boolean);
   const unassigned = targets.filter(r => r.room === '공실 희망');
-  const toApprove  = targets.filter(r => r.room !== '공실 희망');
-  if (!toApprove.length) { T('공간이 배정되지 않아 승인할 수 없습니다. 먼저 공실 배정을 해 주시기 바랍니다.', '#A32D2D'); return; }
-  const confirmMsg = unassigned.length
-    ? `총 ${toApprove.length}건을 승인하시겠습니까? (공간 미배정 ${unassigned.length}건은 제외되고 공실 희망 상태로 남습니다)`
+  const assigned   = targets.filter(r => r.room !== '공실 희망');
+  // 같은 공간·시간에 이미 확정된 예약이 있는 회차는 승인하면 중복 예약이 되므로 제외
+  const clashed    = assigned.filter(r => !noConflict(r.room, r.date, r.start, r.end, r.id, true));
+  const toApprove  = assigned.filter(r => !clashed.includes(r));
+  if (!toApprove.length) {
+    T(clashed.length ? '이미 확정된 예약과 시간이 겹쳐 승인할 수 없습니다' : '공간이 배정되지 않아 승인할 수 없습니다. 먼저 공실 배정을 해 주시기 바랍니다.', '#A32D2D'); return;
+  }
+  const skipNotes = [];
+  if (unassigned.length) skipNotes.push(`공간 미배정 ${unassigned.length}건은 제외되고 공실 희망 상태로 남습니다`);
+  if (clashed.length) skipNotes.push(`이미 확정된 예약과 시간이 겹치는 ${clashed.length}건(${clashed.map(r => r.date.slice(5).replace('-', '/')).join(', ')})은 제외됩니다`);
+  const confirmMsg = skipNotes.length
+    ? `총 ${toApprove.length}건을 승인하시겠습니까? (${skipNotes.join(' / ')})`
     : `총 ${toApprove.length}건을 모두 승인하시겠습니까?`;
   if (!confirm(confirmMsg)) return;
   try {
@@ -6595,8 +6616,9 @@ window.approveGroup = async (idsCsv) => {
       processedAt: serverTimestamp(),
       history: [...(r.history || []), { time: nowStr(), msg: '관리자 승인 (정기예약 일괄)' }]
     })));
-    T(unassigned.length
-      ? `${toApprove.length}건 승인 완료 (공간 미배정 ${unassigned.length}건 제외)`
+    const skippedN = unassigned.length + clashed.length;
+    T(skippedN
+      ? `${toApprove.length}건 승인 완료 (${skippedN}건 제외: ${[unassigned.length ? '공간 미배정 ' + unassigned.length : '', clashed.length ? '시간 겹침 ' + clashed.length : ''].filter(Boolean).join(', ')})`
       : `${toApprove.length}건 승인 완료`, '#3B6D11');
     document.getElementById('approve-msg-id').value = toApprove[0].id;
     openModal('modal-approve-msg');
@@ -7743,7 +7765,40 @@ window.openEditModal = (id, prefill) => {
   closeModal('modal-detail');
   openModal('modal-edit');
 };
+// 수정 화면에서 예약 상태를 '취소'로 바꿔 저장하는 경우: 담당자·연락처·인원 같은 필수 항목이 비어 있거나
+// 시간이 겹쳐도(예: 이미 중복으로 쌓인 예약) 취소는 항상 되어야 하므로, 입력 검증 없이 상태만 바꿈
+async function cancelFromEditModal(rc) {
+  const cu = curUser;
+  if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
+  const allSeries = !!document.getElementById('e-all-series')?.checked && rc.recurGroup;
+  let targets = [rc];
+  if (allSeries) {
+    const fromDate = document.getElementById('e-series-from-date')?.value || rc.date;
+    targets = reservations.filter(x => x.recurGroup === rc.recurGroup && x.status !== '취소' && x.date >= fromDate);
+    if (!targets.length) targets = [rc];
+  }
+  const msg = targets.length > 1
+    ? `정기 예약 ${targets.length}건을 모두 취소 처리합니다.`
+    : '이 예약을 취소 처리합니다.';
+  if (!confirm(msg + '\n(취소할 때는 수정 화면의 다른 입력 내용은 저장되지 않습니다.)\n계속하시겠습니까?')) return;
+  try {
+    await Promise.all(targets.map(x => updateDoc(doc(db, 'reservations', x.id), {
+      status: '취소',
+      history: [...(x.history || []), { time: nowStr(), msg: `예약 취소 (관리자, 수정 화면${targets.length > 1 ? ', 전체 시리즈' : ''})` }]
+    })));
+    T(targets.length > 1 ? `${targets.length}건 취소 처리됐습니다` : '예약이 취소됐습니다', '#A32D2D');
+    closeModal('modal-edit');
+  } catch (e) {
+    console.error('cancelFromEditModal error:', e);
+    T('취소 실패: ' + e.message, '#A32D2D');
+  }
+}
+
 window.submitEdit = async () => {
+  if (editId && isAdmin && document.getElementById('e-status')?.value === '취소') {
+    const rc = reservations.find(x => x.id === editId);
+    if (rc && rc.status !== '취소') { await cancelFromEditModal(rc); return; }
+  }
   const type    = document.getElementById('e-type').value;
   const subOrg  = document.getElementById('e-subtype')?.value || '';
   const manager = document.getElementById('e-manager').value.trim();
@@ -7788,7 +7843,9 @@ window.submitEdit = async () => {
   // 1회성 예약 → 정기 예약 전환(관리자 전용): 회차별 충돌 검사는 아래 전환 처리에서 수행
   const _rEdit = editId ? reservations.find(x => x.id === editId) : null;
   const _isConvert = !!_rEdit && isAdmin && !_rEdit.recurGroup && !isJihye && !!document.getElementById('e-is-recur')?.checked;
-  if (!isMulti && !_editAllSeries && !_isNewRecur && !_isConvert && !(isJihye && editId) && !noConflict(room, date, start, end, editId, true)) {
+  // 저장 후 상태가 취소·반려인 예약(이미 취소된 예약의 메모 수정 등)은 자리를 차지하지 않으므로 충돌 검사 대상이 아님
+  const _inactiveResult = isAdmin && editId && ['취소', '반려'].includes(document.getElementById('e-status')?.value);
+  if (!isMulti && !_editAllSeries && !_isNewRecur && !_isConvert && !(isJihye && editId) && !_inactiveResult && !noConflict(room, date, start, end, editId, true)) {
     T('해당 시간에 이미 확정된 예약이 있습니다', '#A32D2D'); return;
   }
 
@@ -7934,8 +7991,10 @@ window.submitEdit = async () => {
         // 전체 회차에 그대로 적용함(의도적인 일괄 공간 변경으로 간주).
         const roomChanged = room !== r.room;
         const getEffRoom = x => roomChanged ? room : x.room;
-        const conflicted = activeSeries.filter(x => !noConflict(getEffRoom(x), getEffDate(x), start, end, x.id, true));
-        const toUpdate   = activeSeries.filter(x =>  noConflict(getEffRoom(x), getEffDate(x), start, end, x.id, true));
+        // 시리즈 회차들은 함께 옮겨지므로(예: 전체를 하루 뒤로) 옮기기 전 자리에 있는 같은 시리즈 회차는 충돌로 보지 않음
+        const movingIds = new Set(activeSeries.map(x => x.id));
+        const conflicted = activeSeries.filter(x => !noConflictEx(getEffRoom(x), getEffDate(x), start, end, movingIds, true));
+        const toUpdate   = activeSeries.filter(x =>  noConflictEx(getEffRoom(x), getEffDate(x), start, end, movingIds, true));
 
         if (toUpdate.length) {
           await Promise.all(toUpdate.map(x => updateDoc(doc(db, 'reservations', x.id), {
@@ -8613,7 +8672,7 @@ window.checkQuickEditAvail = () => {
   const end   = document.getElementById('qe-end').value;
   if (!date || !start || !end) { el.innerHTML = ''; return; }
   if (start >= end) { el.innerHTML = `<div class="avail-no">✗ 종료 시간이 시작 시간보다 늦어야 합니다</div>`; return; }
-  const confirmedOk = noConflict(r.room, date, start, end, _quickEditId, true);
+  const confirmedOk = ['취소', '반려'].includes(r.status) || noConflict(r.room, date, start, end, _quickEditId, true);
   el.innerHTML = confirmedOk
     ? `<div class="avail-ok">✓ ${esc(r.room)} 사용 가능</div>`
     : `<div class="avail-no">✗ ${esc(r.room)} 확정된 예약 있음</div>`;
@@ -8627,7 +8686,7 @@ window.saveQuickEdit = async () => {
   const end   = document.getElementById('qe-end').value;
   if (!date || !start || !end) { T('날짜와 시간을 모두 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (start >= end) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
-  if (!noConflict(r.room, date, start, end, _quickEditId, true)) {
+  if (!['취소', '반려'].includes(r.status) && !noConflict(r.room, date, start, end, _quickEditId, true)) {
     T(`${r.room}에 이미 확정된 예약이 있어 저장할 수 없습니다`, '#A32D2D');
     return;
   }
