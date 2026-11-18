@@ -1749,6 +1749,7 @@ html.show-splash{overflow:hidden}
         </div>
         <div class="dh-col">
           <section class="dh-sec o2" id="ds-pending"><h2>승인 대기</h2><div id="pending-list"></div></section>
+          <section class="dh-sec o2" id="ds-issues"><h2>확인 필요<small id="issues-count"></small></h2><div id="issues-list"></div></section>
           <section class="dh-sec o3" id="ds-change"><h2>변경·취소 신청</h2><div id="pending-change-list"></div></section>
           <section class="dh-sec o4" id="ds-prep"><h2>준비물 확인<small>TV·마이크·탕비실·칠판 · 3일치</small></h2><div id="today-facility-list"></div></section>
           <section class="dh-sec o5" id="ds-venue"><h2>대관 신청</h2><div id="venue-request-list"></div></section>
@@ -2364,7 +2365,7 @@ html.show-splash{overflow:hidden}
 <!-- ════════════ 선택 일정 변경 후 메시지 선택 모달 ════════════ -->
 <div class="modal-bg" id="modal-reschedule-msg">
   <div class="modal" style="max-width:320px">
-    <div class="modal-title">✅ 일정이 변경됐습니다</div>
+    <div class="modal-title">✅ 예약이 변경됐습니다</div>
     <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6">변경 안내 메시지를 바로 작성하시겠습니까?</p>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-primary" style="justify-content:center" onclick="closeModal('modal-reschedule-msg');openBulkSmsModal('sms','change',lastRescheduleIds)">📨 문자 작성</button>
@@ -2607,6 +2608,10 @@ html.show-splash{overflow:hidden}
   <div class="modal" style="max-width:360px;width:92%">
     <div class="modal-title">일정·시간 수정</div>
     <div id="qe-series-info" style="font-size:11px;color:var(--blue);background:var(--blue-lt);border-radius:7px;padding:8px 12px;margin-bottom:14px"></div>
+    <div id="qe-scope" style="display:none;margin-bottom:14px;font-size:12.5px;line-height:1.9">
+      <label style="display:block;cursor:pointer"><input type="radio" name="qe-scope" value="one" checked onchange="checkQuickEditAvail()"> 이 예약만 변경</label>
+      <label style="display:block;cursor:pointer"><input type="radio" name="qe-scope" value="after" onchange="checkQuickEditAvail()"> <span id="qe-scope-after-label"></span></label>
+    </div>
     <div class="fg"><div class="lbl">날짜 <span class="req">*</span></div><input type="date" id="qe-date" onchange="checkQuickEditAvail()"></div>
     <div class="fl">
       <div class="fg"><div class="lbl">시작 시간 <span class="req">*</span></div><select id="qe-start" onchange="checkQuickEditAvail()"></select></div>
@@ -2629,6 +2634,24 @@ html.show-splash{overflow:hidden}
       <button class="btn btn-ghost" style="justify-content:center;padding:11px" onclick="pickCancelScope('one')">이 예약만 취소</button>
       <button class="btn btn-red" id="cs-after" style="justify-content:center;padding:11px" onclick="pickCancelScope('after')"></button>
       <button class="btn btn-ghost" style="justify-content:center;padding:9px;color:var(--text3)" onclick="pickCancelScope(null)">돌아가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 공간 변경 ════════════ -->
+<div class="modal-bg" id="modal-room-change">
+  <div class="modal" style="max-width:380px;width:92%">
+    <div class="modal-title">공간 변경</div>
+    <div id="rc-info" style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:12px"></div>
+    <div class="fg"><div class="lbl">변경할 공간 <span class="req">*</span></div><select id="rc-room" onchange="checkRoomChange()"></select></div>
+    <div id="rc-scope" style="display:none;margin-bottom:12px;font-size:12.5px;line-height:1.9">
+      <label style="display:block;cursor:pointer"><input type="radio" name="rc-scope" value="one" checked onchange="checkRoomChange()"> 이 예약만 변경</label>
+      <label style="display:block;cursor:pointer"><input type="radio" name="rc-scope" value="after" onchange="checkRoomChange()"> <span id="rc-scope-after-label"></span></label>
+    </div>
+    <div id="rc-avail" style="margin-bottom:4px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-room-change')">취소</button>
+      <button class="btn btn-primary" id="rc-save-btn" onclick="saveRoomChange()">변경</button>
     </div>
   </div>
 </div>
@@ -6500,14 +6523,20 @@ window.openDetail = (id) => {
 
   let btns = '';
   if (isAdmin) {
+    // 동작 중심 버튼: 승인 → 일정 변경 → 공간 변경 → 취소 → 문자, 그 아래에 수정(전체 항목)·추가 예약·이력·삭제
     if (r.status === '대기') {
       // 정기예약이면 배정(assignRoom)과 마찬가지로 승인도 시리즈 전체에 적용
       const seriesIds = r.recurGroup ? reservations.filter(x => x.recurGroup === r.recurGroup).map(x => x.id).join(',') : '';
       const approveAction = r.recurGroup ? `approveGroup('${seriesIds}')` : `approve('${r.id}')`;
-      btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button><button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
+      btns += `<button class="btn btn-green" onclick="${approveAction};closeModal('modal-detail')">승인${r.recurGroup ? ' (정기예약 전체)' : ''}</button>`;
+    }
+    if (r.status === '대기' || r.status === '확정') {
+      btns += `<button class="btn btn-ghost" onclick="openQuickEdit('${r.id}')">📅 일정 변경</button><button class="btn btn-ghost" onclick="openRoomChange('${r.id}')">🏛 공간 변경</button>`;
+      btns += `<button class="btn btn-amber" onclick="rejectR('${r.id}');closeModal('modal-detail')">취소</button>`;
     }
     if (r.status === '확정') btns += `<button class="btn btn-ghost" style="color:#4C7660" onclick="openSmsModal('${r.id}','sms')">📨 문자</button><button class="btn btn-ghost" style="color:#3B6D11" onclick="openSmsModal('${r.id}','kakao')">💬 카카오</button>`;
-    btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button><button class="btn btn-ghost" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-ghost" onclick="openRevisions('${r.id}')">🕘 변경 이력</button><button class="btn btn-red" onclick="deleteR('${r.id}',true)">삭제</button>`;
+    btns += `<div style="flex-basis:100%;height:0"></div>`;
+    btns += `<button class="btn btn-ghost" style="font-size:12px;color:var(--text2)" onclick="openEditModal('${r.id}')">✏️ 전체 수정</button><button class="btn btn-ghost" style="font-size:12px;color:var(--text2)" onclick="reuseReservationInfo('${r.id}')">이 정보로 추가 예약</button><button class="btn btn-ghost" style="font-size:12px;color:var(--text2)" onclick="openRevisions('${r.id}')">🕘 변경 이력</button><button class="btn btn-ghost" style="font-size:12px;color:var(--red)" onclick="deleteR('${r.id}',true)">삭제</button>`;
   } else {
     if (r.status === '대기') btns += `<button class="btn btn-ghost" onclick="openEditModal('${r.id}')">수정</button>`;
     if (r.status === '대기' || r.status === '확정') btns += `<button class="btn btn-ghost" style="color:var(--red)" onclick="cancelR('${r.id}',true)">예약 취소</button>`;
@@ -8255,6 +8284,64 @@ window.submitEdit = async () => {
 };
 
 // ── 페이지 렌더링 ────────────────────────────────────────────────
+// 관리자 '오늘' 화면의 "확인 필요" 카드 — 사고로 이어지기 쉬운 예약을 미리 모아 보여줌
+function renderDashIssues(today) {
+  const box = document.getElementById('issues-list'); if (!box) return;
+  const live = reservations.filter(r => r.date >= today && ['대기', '확정'].includes(r.status));
+  const issues = [];
+  // 1) 같은 공간·시간에 겹친 확정 예약
+  const byKey = {};
+  live.filter(r => r.status === '확정').forEach(r => { (byKey[r.room + '|' + r.date] = byKey[r.room + '|' + r.date] || []).push(r); });
+  Object.values(byKey).forEach(list => {
+    list.sort((a, b) => a.start.localeCompare(b.start));
+    for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+      const a = list[i], b = list[j];
+      if (a.start < b.end && b.start < a.end) issues.push({ kind: '중복', red: true, id: a.id, id2: b.id, rank: 0,
+        title: `${a.room} ${a.date.slice(5).replace('-', '/')}`,
+        desc: `${a.start}–${a.end} ${a.purpose || a.type || ''} ↔ ${b.start}–${b.end} ${b.purpose || b.type || ''}` });
+    }
+  });
+  // 2) 공간이 정해지지 않은 예약(정기 예약은 묶음으로 한 줄)
+  const groupOnce = (arr, kind, red, rank, titleFn, descFn) => {
+    const seen = new Set();
+    arr.forEach(r => {
+      const key = r.recurGroup || r.id; if (seen.has(key)) return; seen.add(key);
+      const same = r.recurGroup ? arr.filter(x => x.recurGroup === r.recurGroup) : [r];
+      issues.push({ kind, red, id: r.id, rank, title: titleFn(r, same.length), desc: descFn(r, same.length) });
+    });
+  };
+  groupOnce(live.filter(r => r.room === '공실 희망'), '공간 미배정', true, 1,
+    (r, n) => `${r.purpose || r.type || '예약'}${n > 1 ? ` (정기 ${n}회)` : ''}`, r => `${r.date} ${r.start}–${r.end} · 공간 배정이 필요합니다`);
+  // 3) 필수 정보 누락 (아이엠홀은 공연명·관객 수로 대체되어 인원·목적은 제외)
+  const miss = r => {
+    const m = [];
+    if (!(r.managerName || '').trim()) m.push('담당자');
+    if (!(r.stewardName || '').trim()) m.push('청지기');
+    if (!(r.stewardTel || '').trim()) m.push('청지기 연락처');
+    if (r.room !== '아이엠홀' && r.room !== '지혜홀') { if (!r.people) m.push('인원'); if (!(r.purpose || '').trim()) m.push('사용 목적'); }
+    return m;
+  };
+  groupOnce(live.filter(r => r.room !== '공실 희망' && miss(r).length), '정보 누락', false, 2,
+    (r, n) => `${r.room} ${r.date.slice(5).replace('-', '/')} ${r.purpose || r.type || ''}${n > 1 ? ` 외 정기 ${n}회` : ''}`, r => `비어 있음: ${miss(r).join(', ')}`);
+  // 4) 이용일이 3일 이내인데 아직 대기 중이거나, 접수 후 3일 넘게 대기 중인 신청
+  const soon = new Date(today + 'T00:00:00'); soon.setDate(soon.getDate() + 3); const soonStr = toDateStr(soon);
+  const old = Date.now() - 3 * 86400000;
+  const stale = live.filter(r => r.status === '대기' && r.room !== '공실 희망' &&
+    (r.date <= soonStr || ((r.createdAt && r.createdAt.toMillis ? r.createdAt.toMillis() : Infinity) < old)));
+  groupOnce(stale, '대기 지연', false, 3,
+    (r, n) => `${r.room} ${r.date.slice(5).replace('-', '/')} ${r.purpose || r.type || ''}${n > 1 ? ` 외 정기 ${n}회` : ''}`,
+    r => (r.date <= soonStr ? '이용일이 임박했는데 아직 승인 대기입니다' : '접수 후 3일이 지나도록 승인 대기입니다'));
+  issues.sort((a, b) => a.rank - b.rank);
+  const cnt = document.getElementById('issues-count'); if (cnt) cnt.textContent = issues.length ? `${issues.length}건` : '';
+  const EMPTY_OK = '<div class="dh-empty">확인이 필요한 예약이 없습니다 ✓</div>';
+  if (!issues.length) { box.innerHTML = EMPTY_OK; return; }
+  const MAX = 8;
+  box.innerHTML = issues.slice(0, MAX).map(i => `<div class="dh-pend chg" onclick="openDetail('${i.id}')">
+      <div class="dh-pend-top"><span class="dh-kind ${i.red ? 'c' : ''}">${esc(i.kind)}</span><b>${esc(i.title)}</b></div>
+      <div class="dh-pend-who">${esc(i.desc)}<span class="dh-go">확인하기 →</span></div>
+    </div>`).join('') + (issues.length > MAX ? `<div class="dh-empty">… 외 ${issues.length - MAX}건</div>` : '');
+}
+
 function renderDashboard() {
   const today = tsToday();
   const EMPTY = t => `<div class="dh-empty">${t}</div>`;
@@ -8382,6 +8469,9 @@ function renderDashboard() {
           <div class="dh-pend-who">신청자 ${esc(r.requesterName||'')} ${esc(r.requesterTel||'')}<span class="dh-go">확인하기 →</span></div>
         </div>`;
       }).join('');
+
+  // ── 확인 필요: 중복 확정·정보 누락·공간 미배정·임박한 대기 (오늘 이후 예약만) ──
+  renderDashIssues(today);
 
   // ── 이번 주(오늘~일요일) 예약: 아이엠홀·아론홀·샤론홀 + TV·마이크 필요한 다른 공간 ──
   const weekDow = new Date().getDay();
@@ -8686,19 +8776,33 @@ window.renderList = function renderList() {
 }
 
 let _quickEditId = null;
+// 같은 묶음(정기·비정기·연박)에서 이 회차부터 이후까지 남은 회차(취소·반려 제외)
+function laterInSeries(r) {
+  if (!r.recurGroup) return [r];
+  return reservations.filter(x => x.recurGroup === r.recurGroup && !['취소', '반려'].includes(x.status) && x.date >= r.date)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start));
+}
+function scopeLabelAfter(r, n) { return `${r.date.slice(5).replace('-', '/')}부터 이후 전체 변경 (${n}건)`; }
+function pickedScope(name) { return document.querySelector(`input[name="${name}"]:checked`)?.value === 'after' ? 'after' : 'one'; }
+
 window.openQuickEdit = (id) => {
   const r = reservations.find(x => x.id === id); if (!r) return;
   _quickEditId = id;
-  // 시리즈 정보 표시
+  // 시리즈 정보 표시 + 적용 범위(이 예약만 / 이 날짜부터 이후 전체)
   const info = document.getElementById('qe-series-info');
+  const scopeBox = document.getElementById('qe-scope');
+  const later = laterInSeries(r);
   if (r.recurGroup) {
     const series = reservations.filter(x => x.recurGroup === r.recurGroup).sort((a,b)=>a.date.localeCompare(b.date));
     const idx = series.findIndex(x => x.id === id) + 1;
-    info.textContent = `🔁 정기 예약 ${r.recurType || ''} · ${idx}/${series.length}회차 — 이 회차의 일정만 변경합니다`;
+    info.textContent = `🔁 정기 예약 ${r.recurType || ''} · ${idx}/${series.length}회차`;
     info.style.display = '';
   } else {
     info.style.display = 'none';
   }
+  scopeBox.style.display = later.length > 1 ? '' : 'none';
+  document.getElementById('qe-scope-after-label').textContent = scopeLabelAfter(r, later.length) + ' — 날짜 변경은 같은 만큼 이동';
+  document.querySelector('input[name="qe-scope"][value="one"]').checked = true;
   document.getElementById('qe-date').value = r.date;
   initTimeSelects('qe-start', 'qe-end');
   document.getElementById('qe-start').value = r.start;
@@ -8706,44 +8810,115 @@ window.openQuickEdit = (id) => {
   document.getElementById('qe-avail').innerHTML = '';
   openModal('modal-quick-edit');
 };
-// 날짜·시간을 바꿀 때마다 같은 실에 이미 확정된 예약과 겹치는지 바로 보여줌
-// (예전엔 이 확인 없이 바로 저장돼서, 다른 확정 예약과 겹치는 줄도 모르고 저장되는 문제가 있었음)
-window.checkQuickEditAvail = () => {
-  const r = reservations.find(x => x.id === _quickEditId);
-  const el = document.getElementById('qe-avail');
-  if (!r || !el) return;
-  const date  = document.getElementById('qe-date').value;
+// 입력값과 범위로 "실제로 바뀔 회차와 새 날짜"를 계산하고, 다른 확정 예약과 겹치는 회차를 찾음 (미리보기·저장 공유)
+function quickEditPlan() {
+  const r = reservations.find(x => x.id === _quickEditId); if (!r) return null;
+  const date = document.getElementById('qe-date').value;
   const start = document.getElementById('qe-start').value;
-  const end   = document.getElementById('qe-end').value;
+  const end = document.getElementById('qe-end').value;
+  if (!date || !start || !end) return null;
+  const targets = pickedScope('qe-scope') === 'after' ? laterInSeries(r) : [r];
+  const deltaDays = Math.round((new Date(date + 'T00:00:00') - new Date(r.date + 'T00:00:00')) / 86400000);
+  const ids = new Set(targets.map(x => x.id));
+  const items = targets.map(x => {
+    let d = date;
+    if (x.id !== r.id) { const dt = new Date(x.date + 'T00:00:00'); dt.setDate(dt.getDate() + deltaDays); d = toDateStr(dt); }
+    return { x, date: d, clash: !['취소', '반려'].includes(x.status) && !noConflictEx(x.room, d, start, end, ids, true) };
+  });
+  return { r, date, start, end, items, bad: items.filter(i => i.clash) };
+}
+// 날짜·시간을 바꿀 때마다 같은 실에 이미 확정된 예약과 겹치는지 바로 보여줌
+window.checkQuickEditAvail = () => {
+  const el = document.getElementById('qe-avail'); if (!el) return;
+  const date = document.getElementById('qe-date').value, start = document.getElementById('qe-start').value, end = document.getElementById('qe-end').value;
   if (!date || !start || !end) { el.innerHTML = ''; return; }
   if (start >= end) { el.innerHTML = `<div class="avail-no">✗ 종료 시간이 시작 시간보다 늦어야 합니다</div>`; return; }
-  const confirmedOk = ['취소', '반려'].includes(r.status) || noConflict(r.room, date, start, end, _quickEditId, true);
-  el.innerHTML = confirmedOk
-    ? `<div class="avail-ok">✓ ${esc(r.room)} 사용 가능</div>`
-    : `<div class="avail-no">✗ ${esc(r.room)} 확정된 예약 있음</div>`;
+  const plan = quickEditPlan(); if (!plan) return;
+  if (!plan.bad.length) {
+    el.innerHTML = `<div class="avail-ok">✓ ${plan.items.length > 1 ? `${plan.items.length}건 모두` : esc(plan.r.room)} 변경 가능</div>`;
+  } else {
+    el.innerHTML = `<div class="avail-no">✗ 확정된 예약과 겹침: ${plan.bad.slice(0, 4).map(i => `${esc(i.x.room)} ${esc(i.date.slice(5).replace('-', '/'))}`).join(', ')}${plan.bad.length > 4 ? ` 외 ${plan.bad.length - 4}건` : ''}</div>`;
+  }
 };
 window.saveQuickEdit = async () => {
   if (!_quickEditId) return;
-  const r = reservations.find(x => x.id === _quickEditId);
-  if (!r) return;
   const date  = document.getElementById('qe-date').value;
   const start = document.getElementById('qe-start').value;
   const end   = document.getElementById('qe-end').value;
   if (!date || !start || !end) { T('날짜와 시간을 모두 입력해 주시기 바랍니다', '#A32D2D'); return; }
   if (start >= end) { T('종료 시간이 시작 시간보다 늦어야 합니다', '#A32D2D'); return; }
-  if (!['취소', '반려'].includes(r.status) && !noConflict(r.room, date, start, end, _quickEditId, true)) {
-    T(`${r.room}에 이미 확정된 예약이 있어 저장할 수 없습니다`, '#A32D2D');
+  const plan = quickEditPlan(); if (!plan) return;
+  if (plan.bad.length) {
+    T(`이미 확정된 예약과 겹쳐 저장할 수 없습니다: ${plan.bad.slice(0, 3).map(i => `${i.x.room} ${i.date.slice(5).replace('-', '/')}`).join(', ')}${plan.bad.length > 3 ? ` 외 ${plan.bad.length - 3}건` : ''}`, '#A32D2D');
     return;
   }
   try {
-    await updateDoc(doc(db, 'reservations', _quickEditId), {
-      date, start, end,
-      history: [...(r.history || []),
-        { time: nowStr(), msg: `일정 수정: ${date} ${start}–${end}` }]
-    });
-    T('일정이 수정되었습니다', '#3B6D11');
+    await Promise.all(plan.items.map(i => updateDoc(doc(db, 'reservations', i.x.id), {
+      date: i.date, start, end,
+      history: [...(i.x.history || []), { time: nowStr(), msg: `일정 수정: ${i.date} ${start}–${end}${plan.items.length > 1 ? ' (이후 전체)' : ''}` }]
+    })));
+    T(plan.items.length > 1 ? `${plan.items.length}건의 일정이 수정되었습니다` : '일정이 수정되었습니다', '#3B6D11');
     closeModal('modal-quick-edit');
+    closeModal('modal-detail');
+    // 확정 예약이면 변경 안내 문자를 바로 작성할 수 있게 안내
+    const confirmed = plan.items.filter(i => i.x.status === '확정');
+    if (confirmed.length && (plan.date !== plan.r.date || start !== plan.r.start || end !== plan.r.end)) {
+      lastRescheduleIds = confirmed.map(i => i.x.id);
+      openModal('modal-reschedule-msg');
+    }
   } catch(e) { T('수정 실패: ' + e.message, '#A32D2D'); }
+};
+
+// ── 공간 변경 ───────────────────────────────────────────────
+let _roomChangeId = null;
+window.openRoomChange = (id) => {
+  const r = reservations.find(x => x.id === id); if (!r) return;
+  _roomChangeId = id;
+  const later = laterInSeries(r);
+  document.getElementById('rc-info').innerHTML = `현재 공간: <b>${esc(r.room)}</b> · ${esc(r.date)} ${esc(r.start)}–${esc(r.end)}${r.recurGroup ? ' · 🔁 ' + esc(r.recurType || '정기') : ''}`;
+  const sel = document.getElementById('rc-room');
+  sel.innerHTML = '<option value="">공간 선택</option>' + spaceSort(spaces).filter(sp => sp.name !== r.room).map(sp => `<option value="${esc(sp.name)}">${esc(sp.name)}</option>`).join('');
+  document.getElementById('rc-scope').style.display = later.length > 1 ? '' : 'none';
+  document.getElementById('rc-scope-after-label').textContent = scopeLabelAfter(r, later.length);
+  document.querySelector('input[name="rc-scope"][value="one"]').checked = true;
+  document.getElementById('rc-avail').innerHTML = '';
+  document.getElementById('rc-save-btn').disabled = true;
+  openModal('modal-room-change');
+};
+function roomChangePlan() {
+  const r = reservations.find(x => x.id === _roomChangeId); if (!r) return null;
+  const room = document.getElementById('rc-room').value;
+  if (!room) return null;
+  const targets = pickedScope('rc-scope') === 'after' ? laterInSeries(r) : [r];
+  const ids = new Set(targets.map(x => x.id));
+  // 대기·확정 모두 "확정된 예약과 겹치는지"로 확인 (승인 때 같은 기준)
+  const items = targets.map(x => ({ x, clash: !noConflictEx(room, x.date, x.start, x.end, ids, true) }));
+  return { r, room, items, ok: items.filter(i => !i.clash), bad: items.filter(i => i.clash) };
+}
+window.checkRoomChange = () => {
+  const el = document.getElementById('rc-avail'), btn = document.getElementById('rc-save-btn');
+  const plan = roomChangePlan();
+  if (!plan) { el.innerHTML = ''; btn.disabled = true; return; }
+  const fmt = a => a.slice(0, 5).map(i => esc(i.x.date.slice(5).replace('-', '/'))).join(', ') + (a.length > 5 ? ` 외 ${a.length - 5}건` : '');
+  if (!plan.bad.length) el.innerHTML = `<div class="avail-ok">✓ ${esc(plan.room)}: ${plan.items.length > 1 ? `전체 ${plan.items.length}건` : '사용'} 가능합니다</div>`;
+  else if (plan.ok.length) el.innerHTML = `<div class="avail-no">✗ ${esc(plan.room)}: ${plan.items.length}건 중 ${plan.ok.length}건만 가능 (충돌: ${fmt(plan.bad)})</div><div style="font-size:11px;color:var(--text3);margin-top:4px">변경을 누르면 가능한 ${plan.ok.length}건만 바뀌고 나머지는 현재 공간으로 남습니다.</div>`;
+  else el.innerHTML = `<div class="avail-no">✗ ${esc(plan.room)}: 확정된 예약과 겹쳐 변경할 수 없습니다 (${fmt(plan.bad)})</div>`;
+  btn.disabled = !plan.ok.length;
+};
+window.saveRoomChange = async () => {
+  const plan = roomChangePlan();
+  if (!plan || !plan.ok.length) return;
+  try {
+    await Promise.all(plan.ok.map(i => updateDoc(doc(db, 'reservations', i.x.id), {
+      room: plan.room,
+      history: [...(i.x.history || []), { time: nowStr(), msg: `공간 변경: ${i.x.room} → ${plan.room} (관리자${plan.items.length > 1 ? ', 이후 전체' : ''})` }]
+    })));
+    T(plan.bad.length ? `${plan.ok.length}건 ${plan.room}(으)로 변경 (${plan.bad.length}건은 충돌로 유지)` : (plan.ok.length > 1 ? `${plan.ok.length}건을 ${plan.room}(으)로 변경했습니다` : `${plan.room}(으)로 변경했습니다`), '#3B6D11');
+    closeModal('modal-room-change');
+    closeModal('modal-detail');
+    const confirmed = plan.ok.filter(i => i.x.status === '확정');
+    if (confirmed.length) { lastRescheduleIds = confirmed.map(i => i.x.id); openModal('modal-reschedule-msg'); }
+  } catch (e) { T('변경 실패: ' + e.message, '#A32D2D'); }
 };
 
 function getSelectedIds() {
