@@ -2620,6 +2620,19 @@ html.show-splash{overflow:hidden}
   </div>
 </div>
 
+<!-- ════════════ 정기 예약 취소 범위 선택 ════════════ -->
+<div class="modal-bg" id="modal-cancel-scope" onclick="if(event.target===this)pickCancelScope(null)">
+  <div class="modal" style="max-width:380px;width:92%">
+    <div class="modal-title">예약 취소</div>
+    <div id="cs-info" style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px"></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-ghost" style="justify-content:center;padding:11px" onclick="pickCancelScope('one')">이 예약만 취소</button>
+      <button class="btn btn-red" id="cs-after" style="justify-content:center;padding:11px" onclick="pickCancelScope('after')"></button>
+      <button class="btn btn-ghost" style="justify-content:center;padding:9px;color:var(--text3)" onclick="pickCancelScope(null)">돌아가기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════ 캘린더 빠른 예약 모달 ════════════ -->
 <div class="modal-bg" id="modal-quick-apply">
   <div class="modal" style="max-width:400px;width:92%">
@@ -6648,32 +6661,35 @@ window.rejectGroup = async (idsCsv) => {
   }
 };
 window.rejectR = async (id) => {
-  const reason = prompt('취소 사유:', '');
-  if (reason === null) return;
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
   const r = reservations.find(x => x.id === id); if (!r) return;
+  // 정기 예약이면 이 예약만 취소할지 전체를 취소할지 먼저 물음
+  const pick = await askCancelScope(r);
+  if (!pick) return;
+  const reason = prompt(pick.targets.length > 1 ? `취소 사유 (총 ${pick.targets.length}건 전체 적용):` : '취소 사유:', '');
+  if (reason === null) return;
   try {
-    await updateDoc(doc(db, 'reservations', id), {
-      status: '취소', rejectReason: reason || '사유 미입력',
-      history: [...(r.history || []), { time: nowStr(), msg: `취소: ${reason || '사유 미입력'}` }]
-    });
-    T('취소 처리됐습니다', '#A32D2D');
+    await applyCancel(pick.targets, `취소: ${reason || '사유 미입력'}`, { rejectReason: reason || '사유 미입력' });
+    T(pick.targets.length > 1 ? `${pick.targets.length}건 취소 처리됐습니다` : '취소 처리됐습니다', '#A32D2D');
   } catch (e) {
     console.error('rejectR error:', e);
     T('취소 실패: ' + e.message, '#A32D2D');
   }
 };
 window.cancelR = async (id, fromDetail = false) => {
-  if (!confirm('예약을 취소하시겠습니까?')) return;
   const cu = curUser; if (!cu) return;
   const r = reservations.find(x => x.id === id); if (!r) return;
+  // 정기 예약이면 범위를 묻고, 아니면 확인만
+  let targets = [r];
+  if (cancelScopeCandidates(r)) {
+    const pick = await askCancelScope(r);
+    if (!pick) return;
+    targets = pick.targets;
+  } else if (!confirm('예약을 취소하시겠습니까?')) return;
   try {
-    await updateDoc(doc(db, 'reservations', id), {
-      status: '취소',
-      history: [...(r.history || []), { time: nowStr(), msg: '예약 취소 (사용자)' }]
-    });
-    T('예약이 취소되었습니다', '#777');
+    await applyCancel(targets, `예약 취소 (${isAdmin ? '관리자' : '사용자'})`);
+    T(targets.length > 1 ? `${targets.length}건이 취소되었습니다` : '예약이 취소되었습니다', '#777');
     if (fromDetail) closeModal('modal-detail');
   } catch(e) { T('취소 실패: ' + e.message, '#A32D2D'); }
 };
@@ -7765,27 +7781,56 @@ window.openEditModal = (id, prefill) => {
   closeModal('modal-detail');
   openModal('modal-edit');
 };
+// ── 정기 예약 취소 범위 묻기 ─────────────────────────────────────
+// 정기·비정기·연박처럼 같은 묶음(recurGroup)에 다른 회차가 남아 있으면 "이 예약만 / 이 회차부터 이후 전체 / 전체"를 물음
+// 돌려주는 값: { targets: [예약...] } 또는 null(돌아가기). 묶음이 아니면 바로 이 예약 하나.
+function cancelScopeCandidates(r) {
+  if (!r.recurGroup) return null;
+  // 취소 범위의 "전체"는 취소를 신청한 이 회차(날짜)부터 이후 회차까지 — 이미 지난 앞 회차는 건드리지 않음
+  const later = reservations.filter(x => x.recurGroup === r.recurGroup && !['취소', '반려'].includes(x.status) && x.date >= r.date);
+  return later.some(x => x.id !== r.id) ? later : null;
+}
+window.pickCancelScope = (v) => {
+  closeModal('modal-cancel-scope');
+  const f = window._cancelScopeResolve; window._cancelScopeResolve = null;
+  if (f) f(v);
+};
+function askCancelScope(r) {
+  const later = cancelScopeCandidates(r);
+  if (!later) return Promise.resolve({ targets: [r] });
+  if (window._cancelScopeResolve) window._cancelScopeResolve(null);
+  return new Promise(resolve => {
+    window._cancelScopeResolve = (v) => {
+      if (!v) return resolve(null);
+      resolve({ targets: v === 'after' ? later : [r] });
+    };
+    document.getElementById('cs-info').innerHTML =
+      `정기·연속 예약입니다 (${esc(r.date)}${r.recurType ? ' · ' + esc(r.recurType) : ''}).<br>어느 범위를 취소하시겠습니까?`;
+    document.getElementById('cs-after').textContent = `${r.date.slice(5).replace('-', '/')}부터 이후 전체 취소 (${later.length}건)`;
+    openModal('modal-cancel-scope');
+  });
+}
+async function applyCancel(targets, msgBase, extra = {}) {
+  await Promise.all(targets.map(x => updateDoc(doc(db, 'reservations', x.id), {
+    status: '취소', ...extra,
+    history: [...(x.history || []), { time: nowStr(), msg: `${msgBase}${targets.length > 1 ? ' (정기 예약 일괄)' : ''}` }]
+  })));
+}
+
 // 수정 화면에서 예약 상태를 '취소'로 바꿔 저장하는 경우: 담당자·연락처·인원 같은 필수 항목이 비어 있거나
-// 시간이 겹쳐도(예: 이미 중복으로 쌓인 예약) 취소는 항상 되어야 하므로, 입력 검증 없이 상태만 바꿈
+// 시간이 겹쳐도(예: 이미 중복으로 쌓인 예약) 취소는 항상 되어야 하므로, 입력 검증 없이 상태만 바꿈.
+// 정기 예약이면 체크박스 없이 "이 예약만 / 전체"를 바로 물음
 async function cancelFromEditModal(rc) {
   const cu = curUser;
   if (!cu) { T('로그인이 필요합니다. 새로고침 후 다시 로그인해 주시기 바랍니다.', '#A32D2D'); return; }
-  const allSeries = !!document.getElementById('e-all-series')?.checked && rc.recurGroup;
   let targets = [rc];
-  if (allSeries) {
-    const fromDate = document.getElementById('e-series-from-date')?.value || rc.date;
-    targets = reservations.filter(x => x.recurGroup === rc.recurGroup && x.status !== '취소' && x.date >= fromDate);
-    if (!targets.length) targets = [rc];
-  }
-  const msg = targets.length > 1
-    ? `정기 예약 ${targets.length}건을 모두 취소 처리합니다.`
-    : '이 예약을 취소 처리합니다.';
-  if (!confirm(msg + '\n(취소할 때는 수정 화면의 다른 입력 내용은 저장되지 않습니다.)\n계속하시겠습니까?')) return;
+  if (cancelScopeCandidates(rc)) {
+    const pick = await askCancelScope(rc);
+    if (!pick) return;
+    targets = pick.targets;
+  } else if (!confirm('이 예약을 취소 처리합니다.\n(취소할 때는 수정 화면의 다른 입력 내용은 저장되지 않습니다.)\n계속하시겠습니까?')) return;
   try {
-    await Promise.all(targets.map(x => updateDoc(doc(db, 'reservations', x.id), {
-      status: '취소',
-      history: [...(x.history || []), { time: nowStr(), msg: `예약 취소 (관리자, 수정 화면${targets.length > 1 ? ', 전체 시리즈' : ''})` }]
-    })));
+    await applyCancel(targets, '예약 취소 (관리자, 수정 화면)');
     T(targets.length > 1 ? `${targets.length}건 취소 처리됐습니다` : '예약이 취소됐습니다', '#A32D2D');
     closeModal('modal-edit');
   } catch (e) {
