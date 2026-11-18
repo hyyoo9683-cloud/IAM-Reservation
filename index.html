@@ -221,6 +221,8 @@ textarea { resize: vertical; min-height: 60px; }
 .cal-bar.pending   { background: var(--amber-lt); color: var(--amber); }
 .cal-bar.mine      { background: var(--red-lt); color: var(--red); border: 1.5px solid var(--red); font-weight: 700; }
 .cal-bar.locked    { cursor: default; }
+.cal-bar.pending   { border: 1.5px dashed var(--amber); }
+.cal-bar.clash     { background: var(--red-lt); color: var(--red); outline: 2px solid var(--red); outline-offset: -1px; font-weight: 800; }
 .legend { display: flex; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--border2); }
 .legend-item { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text2); }
 .legend-dot  { width: 10px; height: 10px; border-radius: 3px; }
@@ -1521,6 +1523,8 @@ html.show-splash{overflow:hidden}
       </div>
       <div class="legend">
         <div class="legend-item"><div class="legend-dot" style="background:#EAF3DE;border:1px solid #3B6D11"></div>확정</div>
+        <div class="legend-item admin-only-legend" id="pub-legend-admin" style="display:none"><div class="legend-dot" style="background:var(--amber-lt);border:1px dashed var(--amber)"></div>승인 대기</div>
+        <div class="legend-item admin-only-legend" id="pub-legend-clash" style="display:none"><div class="legend-dot" style="background:var(--red-lt);border:2px solid var(--red)"></div>시간 겹침 · 빈 칸을 누르면 예약 추가</div>
       </div>
       <div class="cal-wrap">
         <div class="cal-grid">
@@ -4557,6 +4561,22 @@ window.setPubTab = (tab) => {
   Object.keys(PUB_TABS).forEach(k => document.getElementById('pub-tab-' + k)?.classList.toggle('active', k === tab));
   renderPubCal();
 };
+// 관리자 주간표용: 같은 공간·날짜에서 서로 겹치는 확정 예약 id 집합(빨간 표시)
+function pubClashIds(days) {
+  const set = new Set();
+  const dset = new Set(days.map(toDateStr));
+  const by = {};
+  reservations.filter(r => r.status === '확정' && dset.has(r.date)).forEach(r => { (by[r.room + '|' + r.date] = by[r.room + '|' + r.date] || []).push(r); });
+  Object.values(by).forEach(list => { for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    if (list[i].start < list[j].end && list[j].start < list[i].end) { set.add(list[i].id); set.add(list[j].id); } } });
+  return set;
+}
+// 빈 칸을 누르면: 관리자는 그 공간·날짜가 미리 채워진 예약 추가 창, 그 밖에는 빠른 예약 신청
+const pubCellClick = (room, ds) => isAdmin ? `openEditModal(null,{room:'${jsq(room)}',date:'${ds}'})` : `openQuickApply('${esc(room)}','${ds}')`;
+// 관리자는 대기 예약도 함께 보여주고(점선), 겹친 확정 예약은 빨간색으로 표시
+const pubBarCls = (r, mine, clash) => isAdmin ? (clash.has(r.id) ? 'clash' : (r.status === '확정' ? 'confirmed' : 'pending')) : (mine ? 'mine' : 'confirmed');
+const pubBarText = (r, mine) => isAdmin ? `${r.status === '대기' ? '⏳ ' : ''}${esc(r.start)}–${esc(r.end)} ${esc(r.purpose || r.type || '')}` : `${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}`;
+
 function renderPubCal() {
   const tabCfg  = PUB_TABS[pubTab] || PUB_TABS['5f'];
   document.getElementById('pub-cal-title').textContent = tabCfg.label;
@@ -4567,6 +4587,9 @@ function renderPubCal() {
   document.getElementById('pub-week-label').textContent = `${fmt(days[0])} – ${fmt(days[6])}`;
   const dows = ['월', '화', '수', '목', '금', '토', '일'];
   const todayStr = tsToday();
+  const clash = isAdmin ? pubClashIds(days) : new Set();
+  document.querySelectorAll('.admin-only-legend').forEach(e => { e.style.display = isAdmin ? '' : 'none'; });
+  const shown = r => r.status === '확정' || (isAdmin && r.status === '대기');
 
   // 단일 홀(아론홀·샤론홀) — 날짜를 세로(행)로 표시
   if (tabSpaces.length === 1) {
@@ -4580,7 +4603,7 @@ function renderPubCal() {
       const ds = toDateStr(d);
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
+      const res = reservations.filter(r => r.room === sp.name && r.date === ds && shown(r));
       const rowBg = bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '');
       const dateBg = bd ? 'background:#F5F5F5;color:#999' : (isT ? 'background:var(--blue-lt);color:var(--blue)' : '');
       const bdLabel = bd ? `<br><span style="font-size:8px;color:#E24B4A;font-weight:600">🚫 ${esc(bd.reason)}</span>` : '';
@@ -4589,19 +4612,19 @@ function renderPubCal() {
         <td class="room-label" style="${dateBg};white-space:nowrap">
           ${dows[i]} · ${d.getMonth()+1}/${d.getDate()}${bdLabel}
         </td>
-        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
+        <td style="${rowBg};min-height:44px${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="${pubCellClick(sp.name, ds)}"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px">예약불가</div>`;
       } else if (res.length === 0) {
         html += clickable
-          ? `<div style="font-size:10px;color:var(--text3);padding:4px 2px">탭하여 예약</div>`
+          ? `<div style="font-size:10px;color:var(--text3);padding:4px 2px">${isAdmin ? '＋ 예약 추가' : '탭하여 예약'}</div>`
           : `<div style="font-size:10px;color:var(--text3);padding:4px 2px">없음</div>`;
       } else {
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
           const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</span></div>`;
+          html += `<div class="cal-bar ${pubBarCls(r, mine, clash)}${canView ? '' : ' locked'}" style="display:inline-flex;flex-direction:column;margin-right:6px;margin-bottom:3px;align-items:flex-start${canView ? ';cursor:pointer' : ''}"${canView ? ` onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}><span>${pubBarText(r, mine)}</span></div>`;
         });
       }
       html += `</td></tr>`;
@@ -4627,20 +4650,20 @@ function renderPubCal() {
       const ds = toDateStr(d);
       const isT = ds === todayStr;
       const bd = blockedDates.find(b => b.date === ds);
-      const res = reservations.filter(r => r.room === sp.name && r.date === ds && r.status === '확정');
+      const res = reservations.filter(r => r.room === sp.name && r.date === ds && shown(r));
       const clickable = curUser && !bd;
-      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="openQuickApply('${esc(sp.name)}','${ds}')"` : ''}>`;
+      html += `<td style="${bd ? 'background:#F5F5F5' : (isT ? 'background:#F8FBFF' : '')}${clickable ? ';cursor:pointer' : ''}"${clickable ? ` onclick="${pubCellClick(sp.name, ds)}"` : ''}>`;
       if (bd) {
         html += `<div style="font-size:9px;color:#999;padding:3px 2px;text-align:center">예약불가</div>`;
       } else {
         if (res.length === 0 && clickable) {
-          html += `<div style="font-size:9px;color:var(--text3);padding:3px 2px;text-align:center">탭하여 예약</div>`;
+          html += `<div style="font-size:9px;color:var(--text3);padding:3px 2px;text-align:center">${isAdmin ? '＋ 추가' : '탭하여 예약'}</div>`;
         }
         res.sort((a, b) => a.start.localeCompare(b.start)).forEach(r => {
           const ok = r.status === '확정';
           const mine = curUser && sameEmail(r.userEmail, curUser.email);
           const canView = mine || isAdmin;
-          html += `<div class="cal-bar ${mine ? 'mine' : (ok ? 'confirmed' : 'pending')}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${esc(r.start)}–${esc(r.end)} ${mine ? '내 예약' : '예약완료'}</div>`;
+          html += `<div class="cal-bar ${pubBarCls(r, mine, clash)}${canView ? '' : ' locked'}"${canView ? ` style="cursor:pointer" onclick="event.stopPropagation();openDetail('${r.id}')"` : ''}>${pubBarText(r, mine)}</div>`;
         });
       }
       html += `</td>`;
@@ -7946,6 +7969,11 @@ window.openEditModal = (id, prefill) => {
       document.getElementById('e-steward-name').value = prefill.stewardName || '';
       document.getElementById('e-steward-tel').value  = prefill.stewardTel || '';
       document.getElementById('e-user-email').value   = prefill.userEmail || '';
+      // 캘린더 빈 칸에서 넘어온 경우: 공간·날짜(·시간)를 미리 채움
+      if (prefill.date) document.getElementById('e-date').value = prefill.date;
+      if (prefill.start) document.getElementById('e-start').value = prefill.start;
+      if (prefill.end) document.getElementById('e-end').value = prefill.end;
+      if (prefill.room) selEditRoom(prefill.room);
     }
   }
   // 신청자 계정 이메일 칸은 관리자에게만 보이고, 로그인 이력(loginUsers)의 이름·이메일을 자동완성 목록으로 제공
