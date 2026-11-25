@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>주차 등록 관리 — IAM 인트라넷</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--brand:#4C7660;--brand-lt:#E8F0EA;--amber:#854F0B;--amber-lt:#FAEEDA;--red:#A32D2D;--red-lt:#FCEBEB;--ink:#2B2E2C;--border:#DADFDB;--line:rgba(43,46,44,.13);--text2:#585A5C;--text3:#9A968E;--font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+body{font-family:var(--font);background:#fff;color:var(--ink);min-height:100vh;word-break:keep-all;-webkit-font-smoothing:antialiased}
+#login-wrap{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:#fff}
+.login-card{width:340px;max-width:calc(100% - 40px)}
+.login-logo{display:block;height:24px;aspect-ratio:720/167;background:var(--brand);-webkit-mask:url(home/logo-iam.png) left center/contain no-repeat;mask:url(home/logo-iam.png) left center/contain no-repeat;margin-bottom:28px}
+.login-title{font-size:34px;font-weight:800;letter-spacing:-.04em;margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--text2);margin-bottom:26px}
+.login-btn{width:100%;padding:15px;border-radius:999px;border:1px solid var(--brand);cursor:pointer;background:#fff;color:var(--brand);font-size:15px;font-weight:800;font-family:var(--font)}
+.login-btn:hover{background:var(--brand-lt)}
+.login-err{margin-top:10px;font-size:13px;color:var(--red);display:none;padding:10px 12px;background:var(--red-lt);border-radius:10px}
+#app-wrap{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:#fff;border-bottom:1px solid var(--line);height:56px;padding:0 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.tb-mark{display:block;height:22px;aspect-ratio:720/167;background:var(--brand);-webkit-mask:url(home/logo-iam.png) left center/contain no-repeat;mask:url(home/logo-iam.png) left center/contain no-repeat}
+.tb-sep{color:var(--border);font-size:18px}
+.tb-cur{font-size:14px;font-weight:700;color:var(--text2)}
+.tb-right{margin-left:auto;display:flex;gap:8px}
+.pill{font-size:13px;font-weight:700;color:var(--text2);background:none;border:1px solid var(--border);cursor:pointer;font-family:var(--font);padding:6px 14px;border-radius:999px;text-decoration:none}
+.pill:hover{background:var(--brand-lt);color:var(--brand)}
+.content{max-width:980px;margin:0 auto;padding:30px 24px 60px;width:100%}
+.page-title{font-size:40px;font-weight:800;letter-spacing:-.045em;line-height:1.05;margin-bottom:6px}
+.page-sub{font-size:14px;color:var(--text3);margin-bottom:22px}
+.sec{border-top:2px solid var(--ink);padding:16px 2px 8px;margin-bottom:26px}
+.sec h3{font-size:18px;margin-bottom:12px}
+.f{display:grid;grid-template-columns:170px 1fr;gap:12px 16px;align-items:start;font-size:14px}
+.f>label{padding-top:10px;font-weight:700;color:var(--text2)}
+.f input,.f select{font-family:var(--font);font-size:15px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;width:100%;background:#fff;color:var(--ink)}
+.f input.n{width:90px;display:inline-block}
+.hint{font-size:12.5px;color:var(--text3);margin-top:6px;line-height:1.6}
+.btn{font-family:var(--font);font-size:14px;font-weight:800;padding:10px 18px;border-radius:999px;border:1px solid var(--brand);background:var(--brand);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--brand)}
+.btn.warn{background:#fff;color:var(--red);border-color:#E4B8B8}
+.btn:disabled{opacity:.5;cursor:default}
+.status{font-size:13px;margin-left:10px}
+.ok{color:#3B6D11}.bad{color:var(--red)}
+.keybox{background:var(--brand-lt);border-radius:12px;padding:12px 14px;margin-top:10px;font-size:13px;word-break:break-all;user-select:all}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.sum div{background:#f4f6f4;border-radius:12px;padding:12px 14px}
+.sum b{display:block;font-size:26px}
+.sum span{font-size:12.5px;color:var(--text2)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--text3);font-weight:700;font-size:12.5px}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--brand-lt);color:var(--brand);font-weight:700}
+.tag.w{background:var(--amber-lt);color:var(--amber)}
+.tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{padding:7px 16px;border-radius:999px;border:1px solid var(--brand);background:#fff;color:var(--brand);font-weight:800;font-family:var(--font);font-size:13.5px;cursor:pointer}
+.tabs button.on{background:var(--brand);color:#fff}
+@media(max-width:640px){.topbar{padding:0 14px}.content{padding:22px 16px 50px}.page-title{font-size:30px}.f{grid-template-columns:1fr}.f>label{padding-top:0}}
+</style>
+</head>
+<body>
+
+<div id="login-wrap">
+  <div class="login-card">
+    <span class="login-logo" role="img" aria-label="IAM"></span>
+    <div class="login-title">주차 등록 관리</div>
+    <div class="login-sub">IAM 인트라넷 · 관리자 전용</div>
+    <button class="login-btn" onclick="doLogin()">Google로 로그인</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<div id="app-wrap">
+  <div class="topbar">
+    <div class="tb-mark" role="img" aria-label="IAM"></div>
+    <span class="tb-sep">›</span><span class="tb-cur">주차 등록 관리</span>
+    <div class="tb-right">
+      <a class="pill" href="checkouts.html">퇴실 체크 이력</a>
+      <button class="pill" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-title">주차 등록 관리</div>
+    <div class="page-sub">로비 키오스크(<code>kiosk.html</code>)의 설정과 주차 등록 기록입니다.</div>
+
+    <div class="sec">
+      <h3>키오스크 설정</h3>
+      <div class="f">
+        <label>사용</label>
+        <div><select id="c-enabled"><option value="1">켜짐</option><option value="0">끔(점검 안내 표시)</option></select></div>
+
+        <label>주차 등록 링크</label>
+        <div>
+          <input id="c-url" type="password" autocomplete="off" placeholder="https://…">
+          <div class="hint" id="c-url-hint">주차 업체에서 받은 주소를 붙여 넣습니다. 이 값은 서버에만 저장되며, 모임 확인을 통과한 키오스크에만 전달됩니다. 이 화면·저장소·로그에는 다시 표시되지 않습니다.</div>
+        </div>
+
+        <label>표시 방식</label>
+        <div>
+          <select id="c-mode">
+            <option value="iframe">키오스크 화면 안에 열기 (처음 화면 복귀·시간 제한 가능)</option>
+            <option value="redirect">같은 창으로 이동 (화면 안에서 열리지 않을 때)</option>
+          </select>
+          <div class="hint">먼저 “화면 안에 열기”를 시험해 보시고, 주차 사이트가 비어 보이면 “같은 창으로 이동”으로 바꿉니다. 이동 방식은 끝난 뒤 처음 화면으로 자동 복귀하지 않으므로 기기의 유휴 시 재시작 설정이 필요합니다.</div>
+        </div>
+
+        <label>이용 가능 시간대</label>
+        <div>시작 <input class="n" id="c-before" type="number" min="0" max="240"> 분 전부터 · 종료 <input class="n" id="c-after" type="number" min="0" max="240"> 분 후까지</div>
+
+        <label>실패 제한</label>
+        <div>연락처가 <input class="n" id="c-limit" type="number" min="1" max="20"> 번 틀리면 <input class="n" id="c-lock" type="number" min="1" max="120"> 분간 잠금 (모임별)</div>
+
+        <label></label>
+        <div><button class="btn" id="c-save" onclick="saveConfig()">설정 저장</button><span class="status" id="c-status"></span></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h3>키오스크 기기 연결</h3>
+      <div class="hint" style="margin:0 0 10px">키오스크로 쓸 크롬북 한 대에서 아래 설정 주소를 한 번 열면 기기 키가 저장됩니다. 키가 없는 기기(내 폰 등)는 모임 목록도 주차 링크도 받지 못합니다.</div>
+      <button class="btn ghost" onclick="showSetup()">설정 주소 보기</button>
+      <button class="btn warn" onclick="newKey()">새 키 발급 (기존 기기 연결 해제)</button>
+      <div class="keybox" id="keybox" style="display:none"></div>
+      <div class="hint" id="key-hint"></div>
+    </div>
+
+    <div class="sec">
+      <h3>주차 등록 기록</h3>
+      <div class="sum">
+        <div><b id="s-today">–</b><span>오늘 등록 화면 열림</span></div>
+        <div><b id="s-month">–</b><span>이번 달 열림 건수</span></div>
+        <div><b id="s-fail">–</b><span>이번 주 실패·잠김</span></div>
+      </div>
+      <div class="tabs">
+        <button id="t-log" class="on" onclick="setTab('log')">최근 기록</button>
+        <button id="t-sum" onclick="setTab('sum')">이번 달 호실·모임별</button>
+      </div>
+      <div id="v-log"></div>
+      <div id="v-sum" style="display:none"></div>
+      <div class="hint">‘열림’은 모임 확인을 통과해 주차 사이트를 연 횟수입니다. 실제 등록(차량 수)은 주차 업체 쪽 기록과 한 달에 한 번 비교해 보시기 바랍니다. 최근 300건까지 표시합니다.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, getDoc, setDoc, collection, getDocs, query, orderBy, limit, doc, serverTimestamp }
+  from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const ADMIN_EMAILS = ['hyyoo9683@gmail.com'];
+async function isAdminAccount(email) {
+  if (!email) return false;
+  if (ADMIN_EMAILS.includes(email)) return true;
+  try { return (await getDoc(doc(db, 'admins', email))).exists(); } catch (_) { return false; }
+}
+const app = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+const $ = id => document.getElementById(id);
+const p2 = n => String(n).padStart(2, '0');
+let cfg = {};
+let logs = [];
+
+setPersistence(auth, browserLocalPersistence).catch(console.error);
+onAuthStateChanged(auth, async user => {
+  if (!user) { showLogin(); return; }
+  if (!(await isAdminAccount(user.email))) { await signOut(auth); showLoginErr('관리자로 등록된 계정만 이용할 수 있습니다.'); return; }
+  $('login-wrap').style.display = 'none';
+  $('app-wrap').style.display = 'flex';
+  await loadAll();
+});
+function showLogin() { $('login-wrap').style.display = 'flex'; $('app-wrap').style.display = 'none'; }
+function showLoginErr(msg) { const el = $('login-err'); el.textContent = msg; el.style.display = 'block'; showLogin(); }
+window.doLogin = async () => {
+  $('login-err').style.display = 'none';
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { if (e.code !== 'auth/popup-closed-by-user') showLoginErr('로그인 실패. 다시 시도해 주시기 바랍니다.'); }
+};
+window.doLogout = async () => { await signOut(auth); };
+
+async function loadAll() {
+  try {
+    const s = await getDoc(doc(db, 'system', 'kioskConfig'));
+    cfg = s.exists() ? s.data() : {};
+  } catch (e) { cfg = {}; $('c-status').textContent = '설정을 불러오지 못했습니다: ' + e.message; $('c-status').className = 'status bad'; }
+  fillForm();
+  await loadLogs();
+}
+function fillForm() {
+  $('c-enabled').value = cfg.enabled === false ? '0' : '1';
+  $('c-mode').value = cfg.mode === 'redirect' ? 'redirect' : 'iframe';
+  $('c-before').value = cfg.beforeMin ?? 30;
+  $('c-after').value = cfg.afterMin ?? 30;
+  $('c-limit').value = cfg.failLimit ?? 5;
+  $('c-lock').value = cfg.lockMin ?? 5;
+  $('c-url').value = '';
+  $('c-url').placeholder = cfg.parkingUrl ? '저장되어 있습니다 (바꾸려면 새 주소를 입력)' : 'https://…';
+  $('key-hint').textContent = cfg.key ? '기기 키가 발급되어 있습니다.' : '아직 기기 키가 없습니다. “새 키 발급”을 눌러 주시기 바랍니다.';
+}
+const clampN = (id, min, max, def) => { const n = Math.round(Number($(id).value)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
+
+window.saveConfig = async () => {
+  const st = $('c-status'); st.className = 'status'; st.textContent = '저장 중…';
+  const url = $('c-url').value.trim();
+  if (url) { try { if (new URL(url).protocol !== 'https:') throw 0; } catch (_) { st.className = 'status bad'; st.textContent = 'https:// 로 시작하는 주소를 입력해 주시기 바랍니다.'; return; } }
+  const data = {
+    enabled: $('c-enabled').value === '1',
+    mode: $('c-mode').value,
+    beforeMin: clampN('c-before', 0, 240, 30), afterMin: clampN('c-after', 0, 240, 30),
+    failLimit: clampN('c-limit', 1, 20, 5), lockMin: clampN('c-lock', 1, 120, 5),
+    updatedAt: serverTimestamp(),
+  };
+  if (url) data.parkingUrl = url;
+  try {
+    await setDoc(doc(db, 'system', 'kioskConfig'), data, { merge: true });
+    cfg = { ...cfg, ...data, updatedAt: undefined };
+    fillForm();
+    st.className = 'status ok'; st.textContent = '저장되었습니다.';
+  } catch (e) { st.className = 'status bad'; st.textContent = '저장 실패: ' + e.message; }
+};
+
+function randomKey() {
+  const a = new Uint8Array(24); crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+}
+function setupLink(k) { return location.origin + '/kiosk.html?setup=' + encodeURIComponent(k); }
+function showKeyBox(k) {
+  const b = $('keybox'); b.style.display = 'block'; b.textContent = setupLink(k);
+}
+window.showSetup = () => {
+  if (!cfg.key) { $('key-hint').textContent = '아직 기기 키가 없습니다. “새 키 발급”을 눌러 주시기 바랍니다.'; return; }
+  showKeyBox(cfg.key);
+  $('key-hint').textContent = '이 주소를 키오스크로 쓸 기기에서 한 번 열어 주시기 바랍니다. 다른 사람에게 공유하지 마세요.';
+};
+window.newKey = async () => {
+  if (!confirm('새 키를 발급하면 지금 연결된 키오스크 기기는 새 설정 주소로 다시 연결하기 전까지 사용할 수 없습니다. 계속하시겠습니까?')) return;
+  const k = randomKey();
+  try {
+    await setDoc(doc(db, 'system', 'kioskConfig'), { key: k, keyIssuedAt: serverTimestamp() }, { merge: true });
+    cfg.key = k; showKeyBox(k);
+    $('key-hint').textContent = '새 키가 발급되었습니다. 위 주소를 키오스크 기기에서 한 번 열어 주시기 바랍니다.';
+  } catch (e) { $('key-hint').textContent = '발급 실패: ' + e.message; }
+};
+
+async function loadLogs() {
+  try {
+    const snap = await getDocs(query(collection(db, 'parkingLogs'), orderBy('openedAt', 'desc'), limit(300)));
+    logs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) { $('v-log').innerHTML = `<div class="hint bad">불러오기 실패: ${esc(e.message)}</div>`; return; }
+  renderSummary(); renderLog(); renderSum();
+}
+const tsOf = l => (l.openedAt && l.openedAt.toDate) ? l.openedAt.toDate() : null;
+const isOpen = l => l.result === '열림';
+function renderSummary() {
+  const now = new Date();
+  const dayKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+  const monKey = d => `${d.getFullYear()}-${p2(d.getMonth() + 1)}`;
+  const weekAgo = Date.now() - 7 * 86400000;
+  $('s-today').textContent = logs.filter(l => { const t = tsOf(l); return t && isOpen(l) && dayKey(t) === dayKey(now); }).length;
+  $('s-month').textContent = logs.filter(l => { const t = tsOf(l); return t && isOpen(l) && monKey(t) === monKey(now); }).length;
+  $('s-fail').textContent = logs.filter(l => { const t = tsOf(l); return t && !isOpen(l) && t.getTime() >= weekAgo; }).length;
+}
+function renderLog() {
+  if (!logs.length) { $('v-log').innerHTML = '<div class="hint">아직 기록이 없습니다.</div>'; return; }
+  $('v-log').innerHTML = '<table><thead><tr><th>시각</th><th>호실</th><th>모임명</th><th>청지기</th><th>결과</th></tr></thead><tbody>' +
+    logs.map(l => { const t = tsOf(l);
+      return `<tr><td>${t ? `${t.getMonth() + 1}/${t.getDate()} ${p2(t.getHours())}:${p2(t.getMinutes())}` : ''}</td><td>${esc(l.room)}</td><td>${esc(l.meeting)}</td><td>${esc(l.steward)}</td><td><span class="tag${isOpen(l) ? '' : ' w'}">${esc(l.result)}</span></td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+function renderSum() {
+  const now = new Date(), mk = `${now.getFullYear()}-${p2(now.getMonth() + 1)}`;
+  const by = {};
+  logs.forEach(l => { const t = tsOf(l); if (!t || !isOpen(l) || `${t.getFullYear()}-${p2(t.getMonth() + 1)}` !== mk) return;
+    const k = l.room + '\u0000' + l.meeting; by[k] = (by[k] || 0) + 1; });
+  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]);
+  $('v-sum').innerHTML = rows.length
+    ? '<table><thead><tr><th>호실</th><th>모임명</th><th>열림 횟수</th></tr></thead><tbody>' +
+      rows.map(([k, n]) => { const [room, name] = k.split('\u0000'); return `<tr><td>${esc(room)}</td><td>${esc(name)}</td><td>${n}</td></tr>`; }).join('') + '</tbody></table>'
+    : '<div class="hint">이번 달 기록이 없습니다.</div>';
+}
+window.setTab = v => {
+  $('t-log').classList.toggle('on', v === 'log'); $('t-sum').classList.toggle('on', v === 'sum');
+  $('v-log').style.display = v === 'log' ? '' : 'none'; $('v-sum').style.display = v === 'sum' ? '' : 'none';
+};
+</script>
+</body>
+</html>

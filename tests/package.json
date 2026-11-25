@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "cd .. && firebase emulators:exec --only firestore --project demo-iam --config tests/firebase.test.json \"node tests/firestore-rules.test.mjs\""
+    "test": "cd .. && firebase emulators:exec --only firestore --project demo-iam --config tests/firebase.test.json \"node tests/firestore-rules.test.mjs\"",
+    "test:kiosk": "cd .. && firebase emulators:exec --only firestore --project demo-iam --config tests/firebase.test.json \"node tests/kiosk-functions.test.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>주차 등록 — IAM 센터</title>
+<script>
+window.esc = window.esc || function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#4C7660;--gl:#E8F0EA;--ink:#2B2E2C;--mut:#6b706d;--line:#e3e5e3;--red:#b3402a;--font:'Pretendard','Apple SD Gothic Neo','Noto Sans KR',sans-serif}
+html,body{height:100%}
+body{font-family:var(--font);color:var(--ink);background:#fff;word-break:keep-all;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+#app{min-height:100%;display:flex;flex-direction:column}
+.kbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:2px solid var(--ink);flex-shrink:0}
+.kbar .t{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.kbar .t i{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e8c547}
+.kbar .clock{font-size:15px;color:var(--mut);font-variant-numeric:tabular-nums}
+.kbody{flex:1;padding:28px;display:flex;flex-direction:column;max-width:1100px;width:100%;margin:0 auto}
+h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
+.sub{color:var(--mut);margin-bottom:22px;font-size:17px;line-height:1.55}
+.stepper{display:flex;gap:6px;margin-bottom:18px;font-size:13px;color:var(--mut);flex-wrap:wrap}
+.stepper span{padding:4px 10px;border-radius:99px;background:#f0f1f0}
+.stepper span.on{background:var(--g);color:#fff;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.card{border:2px solid var(--ink);border-radius:14px;padding:18px 20px;background:#fff;text-align:left;font:inherit;cursor:pointer;display:block;width:100%;color:inherit}
+.card:active{background:var(--gl);border-color:var(--g)}
+.card .room{font-size:13px;font-weight:700;color:var(--g)}
+.card .nm{font-size:22px;font-weight:800;margin:4px 0;letter-spacing:-.02em;word-break:break-all}
+.card .tm{font-size:15px;color:var(--mut)}
+.empty{border:2px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mut);font-size:17px;line-height:1.8}
+.row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.pad{display:grid;grid-template-columns:repeat(3,88px);gap:10px}
+.pad button{height:72px;font-size:27px;font-weight:700;border-radius:12px;border:2px solid var(--ink);background:#fff;font-family:inherit;cursor:pointer;color:var(--ink)}
+.pad button:active{background:var(--gl)}
+.pad .fn{font-size:15px;color:var(--mut);border-color:var(--line)}
+.dots{display:flex;gap:12px;margin:6px 0 14px}
+.dots span{width:54px;height:64px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800}
+.chosen{background:var(--gl);border-radius:12px;padding:14px 18px;margin-bottom:18px;min-width:260px}
+.chosen .room{font-size:13px;font-weight:700;color:var(--g)}
+.chosen .nm{font-size:20px;font-weight:800}
+.chosen .tm{font-size:14px;color:var(--mut)}
+.msg{min-height:44px;font-size:15px;font-weight:600;color:var(--red);max-width:340px;line-height:1.5}
+.btn{font:inherit;font-size:18px;font-weight:800;padding:16px 26px;border-radius:12px;border:2px solid var(--g);background:var(--g);color:#fff;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--g)}
+.btn.sm{font-size:14px;padding:8px 14px}
+.foot{display:flex;gap:12px;margin-top:auto;padding-top:20px;align-items:center;flex-wrap:wrap}
+.foot .cd{margin-left:auto;font-size:14px;color:var(--mut)}
+.frame-wrap{flex:1;display:flex;flex-direction:column;border:2px solid var(--ink);border-radius:14px;overflow:hidden;min-height:480px;background:#fff}
+.frame-wrap iframe{flex:1;border:0;width:100%;min-height:480px}
+.ok{text-align:center;margin:auto}
+.ok .ck{width:84px;height:84px;border-radius:50%;background:var(--g);color:#fff;font-size:46px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.center{margin:auto;text-align:center;max-width:520px}
+.err{color:var(--red)}
+@media(max-width:600px){.kbody{padding:18px}h2{font-size:24px}.pad{grid-template-columns:repeat(3,76px)}.kbar{padding:12px 16px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="kbar"><div class="t"><i></i>IAM 센터 주차 등록</div><div class="clock" id="clock"></div></div>
+  <div class="kbody" id="body"><div class="center"><p class="sub">불러오는 중…</p></div></div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js';
+
+const app = initializeApp({
+  apiKey:            "AIzaSyCSHQFknw_hsxNMCvrBDer3z0cB4mG347w",
+  authDomain:        "iamreservation.firebaseapp.com",
+  projectId:         "iamreservation",
+  storageBucket:     "iamreservation.firebasestorage.app",
+  messagingSenderId: "634977833386",
+  appId:             "1:634977833386:web:043a9acab5b2b229f75bd3"
+});
+const fns = getFunctions(app);
+const callMeetings = httpsCallable(fns, 'kioskMeetings');
+const callVerify   = httpsCallable(fns, 'kioskVerify');
+
+// ── 기기 키: 관리자가 발급한 설정 주소(kiosk.html?setup=키)를 이 기기에서 한 번 열면 저장됨 ──
+const KEY_STORE = 'iamKioskKey';
+function readKey() { try { return localStorage.getItem(KEY_STORE) || ''; } catch (_) { return ''; } }
+(function applySetup() {
+  const q = new URLSearchParams(location.search);
+  const k = q.get('setup');
+  if (k) {
+    try { localStorage.setItem(KEY_STORE, k); } catch (_) {}
+    history.replaceState(null, '', location.pathname);   // 주소창에 키가 남지 않게
+  }
+})();
+const KEY = readKey();
+
+const $ = id => document.getElementById(id);
+const body = $('body');
+const IDLE_MS = 60 * 1000;      // 선택·입력 화면에서 입력이 없으면 처음으로
+const FRAME_SEC = 120;          // 주차 화면 최대 유지 시간
+let st = { step: 'pick', meetings: [], sel: null, pin: '', busy: false };
+let timers = [];
+function clearTimers() { timers.forEach(clearInterval); timers.forEach(clearTimeout); timers = []; }
+function every(fn, ms) { timers.push(setInterval(fn, ms)); }
+function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+let idleT = null;
+function armIdle() { clearTimeout(idleT); if (st.step === 'pick' || st.step === 'pin') idleT = setTimeout(() => { if (st.step === 'pin') goHome(); }, IDLE_MS); }
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, armIdle, true));
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+function tickClock() {
+  const d = new Date();
+  $('clock').textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+tickClock(); setInterval(tickClock, 15000);
+
+function stepper(n) {
+  const s = ['모임 선택', '본인 확인', '주차 등록', '완료'];
+  return '<div class="stepper">' + s.map((x, i) => `<span class="${i === n ? 'on' : ''}">${i + 1}. ${x}</span>`).join('') + '</div>';
+}
+function errMsg(e) {
+  const m = (e && e.message) || '';
+  if (e && e.code === 'functions/internal') return '일시적인 오류입니다. 잠시 후 다시 시도해 주시기 바랍니다.';
+  if (e && (e.code === 'functions/unavailable' || /network|fetch/i.test(m))) return '인터넷 연결을 확인해 주시기 바랍니다.';
+  return m || '오류가 발생했습니다. 사무실로 문의해 주시기 바랍니다.';
+}
+
+function goHome() { clearTimers(); st = { step: 'pick', meetings: [], sel: null, pin: '', busy: false }; renderPick(true); }
+
+async function renderPick(fresh) {
+  clearTimers(); armIdle();
+  if (!KEY) {
+    body.innerHTML = '<div class="center"><h2>키오스크로 설정되지 않은 기기입니다</h2><p class="sub">관리자 화면(주차 등록 관리)에서 발급한 설정 주소를 이 기기에서 한 번 열어 주시기 바랍니다.</p></div>';
+    return;
+  }
+  if (fresh) body.innerHTML = stepper(0) + '<h2>어느 모임이신가요?</h2><p class="sub">불러오는 중…</p>';
+  try {
+    const { data } = await callMeetings({ key: KEY });
+    if (st.step !== 'pick') return;
+    st.meetings = data.meetings || [];
+    drawPick();
+  } catch (e) {
+    if (st.step !== 'pick') return;
+    body.innerHTML = stepper(0) + `<h2>어느 모임이신가요?</h2><div class="empty err">${esc(errMsg(e))}</div>`;
+  }
+  every(() => { if (st.step === 'pick') renderPick(false); }, 60000);
+}
+function drawPick() {
+  const a = st.meetings;
+  body.innerHTML = stepper(0) + '<h2>어느 모임이신가요?</h2><p class="sub">지금 이용 중인 확정 모임만 표시됩니다.</p>' +
+    (a.length
+      ? '<div class="cards">' + a.map((x, i) => `<button class="card" data-i="${i}"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}</div></button>`).join('') + '</div>'
+      : '<div class="empty">지금 이용할 수 있는 모임이 없습니다.<br>모임 시작 전·후 정해진 시간 동안만 등록할 수 있습니다.<br>문의: 아이엠센터 사무실</div>');
+  body.querySelectorAll('.card').forEach(c => c.onclick = () => { st.sel = st.meetings[+c.dataset.i]; st.pin = ''; st.step = 'pin'; renderPin(''); });
+}
+
+function renderPin(msg) {
+  clearTimers(); armIdle();
+  const x = st.sel;
+  body.innerHTML = stepper(1) + '<h2>청지기 연락처 뒤 4자리를 입력해 주세요</h2><p class="sub">예약하신 청지기님의 휴대전화 번호 끝 4자리입니다.</p>' +
+    `<div class="row"><div><div class="chosen"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}${x.steward ? ' · 청지기 ' + esc(x.steward) : ''}</div></div>
+     <div class="dots" id="dots"></div><div class="msg" id="msg">${esc(msg || '')}</div></div>
+     <div class="pad" id="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="back">지움</button><button data-k="0">0</button><button class="fn" data-k="ok">확인</button></div></div>
+     <div class="foot"><button class="btn ghost" id="back">← 모임 다시 선택</button></div>`;
+  drawDots();
+  $('back').onclick = goHome;
+  $('pad').onclick = e => {
+    const k = e.target.dataset.k; if (k == null || st.busy) return;
+    if (k === 'back') st.pin = st.pin.slice(0, -1);
+    else if (k === 'ok') { submitPin(); return; }
+    else if (st.pin.length < 4) st.pin += k;
+    drawDots();
+    if (st.pin.length === 4 && k !== 'back') submitPin();
+  };
+}
+function drawDots() { $('dots').innerHTML = [0, 1, 2, 3].map(i => `<span>${st.pin[i] ? '●' : ''}</span>`).join(''); }
+
+async function submitPin() {
+  if (st.busy) return;
+  if (st.pin.length < 4) { $('msg').textContent = '4자리를 모두 입력해 주세요.'; return; }
+  st.busy = true; $('msg').style.color = 'var(--mut)'; $('msg').textContent = '확인하는 중…';
+  try {
+    const { data } = await callVerify({ key: KEY, reservationId: st.sel.id, last4: st.pin });
+    st.busy = false;
+    openParking(data);
+  } catch (e) {
+    st.busy = false; st.pin = '';
+    renderPin(errMsg(e));
+    if (e && e.code === 'functions/failed-precondition' && /이용할 수 있는 모임이 아닙니다/.test(e.message || '')) later(goHome, 2500);
+  }
+}
+
+function openParking(info) {
+  clearTimers(); clearTimeout(idleT);
+  if (info.mode === 'redirect') { location.href = info.url; return; }
+  st.step = 'park';
+  let left = FRAME_SEC;
+  body.innerHTML = stepper(2) + '<h2>주차 등록</h2><p class="sub">아래 화면에서 차량번호 뒤 4자리와 입차 날짜를 입력해 차량을 조회한 뒤 “무료 2시간”을 등록해 주세요. 등록이 끝나면 아래 “등록을 마쳤습니다”를 눌러 주세요.</p>' +
+    `<div class="frame-wrap"><iframe id="pf" title="주차 등록" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-same-origin"></iframe></div>
+     <div class="foot"><button class="btn" id="fin">등록을 마쳤습니다</button><button class="btn ghost" id="cancel">처음으로</button>
+     <button class="btn ghost sm" id="fb">화면이 비어 있다면 여기를 눌러 주세요</button><span class="cd" id="cd"></span></div>`;
+  $('pf').src = info.url;
+  $('fin').onclick = renderDone;
+  $('cancel').onclick = goHome;
+  $('fb').onclick = () => { location.href = info.url; };
+  const cd = () => { $('cd').textContent = `${Math.floor(left / 60)}분 ${String(left % 60).padStart(2, '0')}초 후 처음 화면으로 돌아갑니다`; };
+  cd();
+  every(() => { left--; cd(); if (left <= 0) goHome(); }, 1000);
+}
+
+function renderDone() {
+  clearTimers(); st.step = 'done';
+  let left = 10;
+  body.innerHTML = stepper(3) + `<div class="ok"><div class="ck">✓</div><h2>감사합니다</h2><p class="sub">${esc(st.sel.room)} · ${esc(st.sel.name)}<br>모임을 마치고 나가실 때 호실의 퇴실 체크도 부탁드립니다.</p><button class="btn" id="home">처음으로 <span id="cd2">(10)</span></button></div>`;
+  $('home').onclick = goHome;
+  every(() => { left--; const el = $('cd2'); if (el) el.textContent = `(${left})`; if (left <= 0) goHome(); }, 1000);
+}
+
+renderPick(true);
+</script>
+</body>
+</html>

@@ -19,6 +19,9 @@ await env.withSecurityRulesDisabled(async c => {
   await setDoc(doc(d,'publicReservations','mine'),{room:'505호',status:'대기'});
   await setDoc(doc(d,'siteContent','home'),{a:1});
   await setDoc(doc(d,'reservationRevisions','rev1'),{reservationId:'mine',kind:'수정',changes:[]});
+  await setDoc(doc(d,'parkingLogs','p1'),{room:'505호',result:'열림'});
+  await setDoc(doc(d,'system','kioskConfig'),{key:'k',parkingUrl:'https://x'});
+  await setDoc(doc(d,'kioskAttempts','r1'),{fails:2});
 });
 const KIM='kim@suwoncca.org', ADMIN='hyyoo9683@gmail.com', SUB='sub.admin@gmail.com', RAND='hacker@gmail.com', EXT='ext@gmail.com';
 let pass=0, fail=0;
@@ -111,5 +114,15 @@ await t('관리자: 공연 등록', setDoc(doc(as(SUB),'programs','x'),{title:'x
 await t('관리자: 홈페이지 이전 버전 보관', addDoc(collection(as(SUB),'siteContentHistory'),{doc:'homepage',content:{}}), true);
 await t('비로그인: 홈페이지 이전 버전 열람 차단', getDocs(collection(as(null),'siteContentHistory')), false);
 await t('비로그인: 홈페이지 문구 읽기', getDoc(doc(as(null),'siteContent','home')), true);
+// 로비 키오스크 주차 등록(서버 함수 전용 기록)
+await t('관리자: 주차 등록 기록 읽기', getDocs(collection(as(SUB),'parkingLogs')), true);
+await t('구성원: 주차 등록 기록 읽기 차단', getDocs(collection(as(KIM),'parkingLogs')), false);
+await t('비로그인: 주차 등록 기록 읽기 차단', getDocs(collection(as(null),'parkingLogs')), false);
+await t('관리자도 주차 등록 기록 직접 쓰기 차단(서버 전용)', addDoc(collection(as(ADMIN),'parkingLogs'),{room:'x'}), false);
+await t('관리자: 키오스크 설정 읽기·쓰기', setDoc(doc(as(SUB),'system','kioskConfig'),{enabled:true}), true);
+await t('구성원: 키오스크 설정(주차 링크·기기 키) 읽기 차단', getDoc(doc(as(KIM),'system','kioskConfig')), false);
+await t('비로그인: 키오스크 설정 읽기 차단', getDoc(doc(as(null),'system','kioskConfig')), false);
+await t('관리자도 실패 횟수 기록(kioskAttempts) 직접 읽기 차단', getDoc(doc(as(ADMIN),'kioskAttempts','r1')), false);
+await t('비로그인: 실패 횟수 기록 쓰기 차단', setDoc(doc(as(null),'kioskAttempts','r1'),{fails:0}), false);
 console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
 await env.cleanup(); process.exit(fail?1:0);

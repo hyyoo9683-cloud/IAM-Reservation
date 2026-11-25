@@ -368,3 +368,101 @@ exports.rebuildPublicReservations = onDocumentWritten(
     }, { merge: true });
   }
 );
+
+// ─────────────────────────────────────────────────────────────
+// 로비 키오스크(주차 등록) — kiosk.html이 호출. 설정·키·주차 링크는 system/kioskConfig(관리자 전용)에만 있고
+// 이 함수들만 Admin SDK로 읽음. 주차 링크는 "확정 모임 선택 + 청지기 연락처 뒤 4자리"를 통과한 요청에만 돌려줌.
+// ─────────────────────────────────────────────────────────────
+const kiosk = require('./lib/kiosk');
+
+async function loadKioskConfig(key) {
+  const snap = await getFirestore().collection('system').doc('kioskConfig').get();
+  const cfg = kiosk.normalizeConfig(snap.exists ? snap.data() : {});
+  if (!kiosk.keyMatches(key, cfg.key)) {
+    throw new HttpsError('permission-denied', '이 기기는 키오스크로 설정되어 있지 않습니다.');
+  }
+  if (!cfg.enabled) {
+    throw new HttpsError('failed-precondition', '지금은 주차 등록 키오스크를 사용할 수 없습니다. 사무실로 문의해 주시기 바랍니다.');
+  }
+  return cfg;
+}
+
+// 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후)
+exports.kioskMeetings = onCall(async (request) => {
+  const cfg = await loadKioskConfig(request.data && request.data.key);
+  const now = kiosk.kstNow();
+  const snap = await getFirestore().collection('reservations')
+    .where('date', '==', now.date).where('status', '==', '확정').get();
+  const meetings = [];
+  snap.forEach((d) => {
+    const r = d.data();
+    if (!kiosk.isUsableNow(r, now, cfg)) return;
+    meetings.push({
+      id: d.id, room: r.room || '', name: kiosk.meetingTitle(r),
+      start: r.start, end: r.end, steward: kiosk.maskName(r.stewardName),
+    });
+  });
+  meetings.sort((a, b) => (a.start || '').localeCompare(b.start || '') || a.room.localeCompare(b.room, 'ko'));
+  return { meetings: meetings.slice(0, 40), now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
+});
+
+// 모임 선택 + 청지기 연락처 뒤 4자리 확인 → 통과하면 기록 후 주차 링크 반환
+exports.kioskVerify = onCall(async (request) => {
+  const data = request.data || {};
+  const cfg = await loadKioskConfig(data.key);
+  const resId = typeof data.reservationId === 'string' ? data.reservationId : '';
+  const last4 = typeof data.last4 === 'string' ? data.last4 : '';
+  if (!resId || resId.length > 200 || resId.includes('/') || !/^\d{4}$/.test(last4)) {
+    throw new HttpsError('invalid-argument', '모임과 연락처 뒤 4자리를 확인해 주시기 바랍니다.');
+  }
+  const db = getFirestore();
+  const rSnap = await db.collection('reservations').doc(resId).get();
+  const now = kiosk.kstNow();
+  const r = rSnap.exists ? rSnap.data() : null;
+  if (!r || !kiosk.isUsableNow(r, now, cfg)) {
+    throw new HttpsError('failed-precondition', '지금 이용할 수 있는 모임이 아닙니다. 처음 화면에서 다시 선택해 주시기 바랍니다.');
+  }
+  const logBase = {
+    reservationId: resId, room: r.room || '', meeting: kiosk.meetingTitle(r),
+    date: r.date, start: r.start, end: r.end, steward: r.stewardName || '',
+    openedAt: FieldValue.serverTimestamp(),
+  };
+
+  // 연속 실패 잠금 — 모임(예약)별로 계산
+  const attRef = db.collection('kioskAttempts').doc(resId);
+  const expected = kiosk.last4Digits(r.stewardTel);
+  const verdict = await db.runTransaction(async (tx) => {
+    const a = (await tx.get(attRef)).data() || {};
+    const t = Date.now();
+    if (a.lockUntil && a.lockUntil > t) return { code: 'locked', waitMin: Math.ceil((a.lockUntil - t) / 60000) };
+    if (!expected) return { code: 'notel' };
+    if (last4 === expected) { tx.set(attRef, { fails: 0, lockUntil: 0 }); return { code: 'ok' }; }
+    const fails = (a.lockUntil && a.lockUntil <= t ? 0 : (a.fails || 0)) + 1;
+    if (fails >= cfg.failLimit) {
+      tx.set(attRef, { fails: 0, lockUntil: t + cfg.lockMin * 60000 });
+      return { code: 'lock', waitMin: cfg.lockMin };
+    }
+    tx.set(attRef, { fails, lockUntil: 0 });
+    return { code: 'bad', fails, left: cfg.failLimit - fails };
+  });
+
+  if (verdict.code === 'ok') {
+    if (!kiosk.isSafeParkingUrl(cfg.parkingUrl)) {
+      throw new HttpsError('failed-precondition', '주차 등록 링크가 설정되지 않았습니다. 사무실로 문의해 주시기 바랍니다.');
+    }
+    await db.collection('parkingLogs').add({ ...logBase, result: '열림' });
+    return { ok: true, url: cfg.parkingUrl, mode: cfg.mode, meeting: logBase.meeting, room: logBase.room };
+  }
+  if (verdict.code === 'locked') {
+    throw new HttpsError('resource-exhausted', `입력이 여러 번 틀려 잠겨 있습니다. 약 ${verdict.waitMin}분 뒤에 다시 시도하시거나 사무실로 문의해 주시기 바랍니다.`);
+  }
+  if (verdict.code === 'notel') {
+    await db.collection('parkingLogs').add({ ...logBase, result: '연락처 없음' });
+    throw new HttpsError('failed-precondition', '이 예약에 청지기 연락처가 등록되어 있지 않습니다. 사무실로 문의해 주시기 바랍니다.');
+  }
+  await db.collection('parkingLogs').add({ ...logBase, result: verdict.code === 'lock' ? '잠김' : `불일치(${verdict.fails}회)` });
+  if (verdict.code === 'lock') {
+    throw new HttpsError('resource-exhausted', `입력이 ${cfg.failLimit}회 틀려 ${verdict.waitMin}분간 잠겼습니다. 청지기 연락처를 확인하신 뒤 다시 시도하시거나 사무실로 문의해 주시기 바랍니다.`);
+  }
+  throw new HttpsError('permission-denied', `연락처 뒤 4자리가 예약 정보와 다릅니다. (${verdict.fails}/${cfg.failLimit})`);
+});
