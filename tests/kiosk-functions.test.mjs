@@ -24,6 +24,7 @@ await mk('r2', { room: '508호', purpose: '청년부', start: '14:00', end: '16:
 await mk('r3', { room: '아론홀', purpose: '대기건', status: '대기' });
 await mk('r4', { room: '샤론홀', purpose: '내일', date: '2026-11-26' });
 await mk('r5', { room: '506호', purpose: '연락처없음', stewardTel: '' });
+await mk('r7', { room: '아이엠홀', purpose: '공연', stewardTel: '010-0000-1111' });
 await mk('r6', { room: '507호', purpose: '곧 시작', start: '19:55', end: '21:00', stewardTel: '010-0000-7777' });
 
 let x = await call('kioskMeetings', { key: 'wrong' });
@@ -33,6 +34,7 @@ ok('키가 없으면 거부', x.e && x.e.code === 'permission-denied');
 x = await call('kioskMeetings', { key: KEY });
 const names = (x.r && x.r.meetings || []).map(m => m.room + ':' + m.name);
 ok('이용 가능한 확정 모임만 나옴(505호·506호·507호)', JSON.stringify(names.sort()) === JSON.stringify(['505호:수요성경공부', '506호:연락처없음', '507호:곧 시작']));
+ok('아이엠홀 예약은 목록에 안 나옴', !names.some(n => n.startsWith('아이엠홀')));
 ok('청지기 이름은 가려서 내려감', x.r.meetings.find(m => m.room === '505호').steward === '김○○');
 ok('연락처는 응답에 포함되지 않음', !JSON.stringify(x.r).includes('1234') && !JSON.stringify(x.r).includes('5678'));
 
@@ -48,6 +50,8 @@ x = await call('kioskVerify', { key: KEY, reservationId: 'r4', last4: '5678' });
 ok('verify: 다른 날짜 모임 거부', x.e && x.e.code === 'failed-precondition');
 x = await call('kioskVerify', { key: KEY, reservationId: 'nope', last4: '5678' });
 ok('verify: 없는 예약 거부', x.e && x.e.code === 'failed-precondition');
+x = await call('kioskVerify', { key: KEY, reservationId: 'r7', last4: '1111' });
+ok('verify: 아이엠홀 예약은 맞는 번호여도 거부', x.e && x.e.code === 'failed-precondition' && !x.r);
 x = await call('kioskVerify', { key: KEY, reservationId: 'r5', last4: '0000' });
 ok('verify: 청지기 연락처 없는 예약은 거부(링크 안 줌)', x.e && x.e.code === 'failed-precondition' && !x.r);
 

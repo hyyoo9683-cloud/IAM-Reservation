@@ -10,8 +10,8 @@ const KIOSK_DEFAULTS = {
   failLimit: 5,        // 연속 실패 몇 번에 잠글지
   lockMin: 5,          // 잠금 시간(분)
 };
-// 숙박 전용이라 하루 종일 열려 있는 공간은 키오스크 대상에서 제외
-const EXCLUDED_ROOMS = ['지혜홀'];
+// 키오스크 대상에서 제외하는 공간 — 지혜홀(숙박 전용, 하루 종일 열려 있음), 아이엠홀(공연장, 2026-11-25 사용자 요청)
+const EXCLUDED_ROOMS = ['지혜홀', '아이엠홀'];
 
 function num(v, def, min, max) {
   const n = Number(v);

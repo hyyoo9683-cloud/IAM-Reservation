@@ -18,6 +18,7 @@ t('종료 30분 후까지 가능', () => { assert.ok(k.isUsableNow(res(), now(21
 t('확정이 아니면 불가', () => { for (const s of ['대기', '취소', '반려']) assert.ok(!k.isUsableNow(res({ status: s }), now(19, 30), cfg)); });
 t('다른 날짜 예약은 불가', () => assert.ok(!k.isUsableNow(res({ date: '2026-11-26' }), now(19, 30), cfg)));
 t('지혜홀(숙박)은 대상 제외', () => assert.ok(!k.isUsableNow(res({ room: '지혜홀', start: '00:00', end: '23:59' }), now(12, 0), cfg)));
+t('아이엠홀은 대상 제외', () => assert.ok(!k.isUsableNow(res({ room: '아이엠홀' }), now(19, 30), cfg)));
 t('시간 형식이 이상하면 불가', () => assert.ok(!k.isUsableNow(res({ start: '', end: 'x' }), now(19, 30), cfg)));
 t('시간대 설정 변경 반영', () => { const c = k.normalizeConfig({ beforeMin: 0, afterMin: 0 }); assert.ok(!k.isUsableNow(res(), now(18, 59), c)); assert.ok(k.isUsableNow(res(), now(19, 0), c)); assert.ok(k.isUsableNow(res(), now(21, 0), c)); assert.ok(!k.isUsableNow(res(), now(21, 1), c)); });
 t('한국 시간 변환(UTC 15:30 = 다음날 00:30)', () => { const n = k.kstNow(Date.UTC(2026, 10, 24, 15, 30)); assert.equal(n.date, '2026-11-25'); assert.equal(n.minutes, 30); });
