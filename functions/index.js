@@ -462,8 +462,9 @@ exports.kioskCounseling = onCall(async (request) => {
   }
   const db = getFirestore();
   const now = kiosk.kstNow();
-  // 관리자가 담당 목회자 명단(counselPastors)을 등록해 두었으면 사용자가 직접 입력한 성함이 명단과 정확히 같을 때만 통과(명단은 키오스크로 내려가지 않음) — 비어 있으면 어떤 성함이든 통과
-  if (cfg.counselPastors.length && !cfg.counselPastors.includes(pastor)) {
+  // 관리자가 담당 목회자 명단(목회자 counselPastors·사모님 counselSpouses)을 등록해 두었으면 사용자가 직접 입력한 성함이 명단과 정확히 같을 때만 통과(명단은 키오스크로 내려가지 않음) — 비어 있으면 어떤 성함이든 통과
+  const roleCheck = kiosk.counselRoleOf(cfg, pastor);
+  if (!roleCheck.ok) {
     await db.collection('parkingLogs').add({
       category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
       start: '', end: '', steward: pastor, pastor, openedAt: FieldValue.serverTimestamp(), result: '명단에 없음',
@@ -472,7 +473,7 @@ exports.kioskCounseling = onCall(async (request) => {
   }
   const logBase = {
     category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
-    start: '', end: '', steward: pastor, pastor, openedAt: FieldValue.serverTimestamp(),
+    start: '', end: '', steward: pastor, pastor, role: roleCheck.role, openedAt: FieldValue.serverTimestamp(),
   };
   // 호실·날짜별 하루 등록 횟수 — 상한을 넘으면 거부(거부도 기록)
   const countRef = db.collection('kioskCounts').doc(`counsel_${now.date}_${room}`);

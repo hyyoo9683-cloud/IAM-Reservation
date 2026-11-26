@@ -48,4 +48,5 @@ t('지금 예약이 있는 호실: 이용 시간대·확정·대상 호실만, �
 });
 
 t('상담실 명단: 배열·줄바꿈 문자열 모두 정리, 중복·잘못된 이름 제외, 최대 100명', () => { assert.deepEqual(k.cleanPastorList(['홍길동', ' 김  철수 ', '홍길동', '1', '<b>']), ['홍길동', '김 철수']); assert.deepEqual(k.cleanPastorList('홍길동\n김철수, 이영희'), ['홍길동', '김철수', '이영희']); assert.deepEqual(k.cleanPastorList(null), []); assert.equal(k.cleanPastorList(Array.from({ length: 150 }, (_, i) => '가나' + String.fromCharCode(0xAC00 + i))).length, 100); assert.deepEqual(k.normalizeConfig({}).counselPastors, []); assert.deepEqual(k.normalizeConfig({ counselPastors: ['홍길동'] }).counselPastors, ['홍길동']); });
+t('상담실 명단: 목회자·사모님 구분 판정(둘 다 비면 검사 안 함)', () => { assert.deepEqual(k.counselRoleOf({}, '아무개'), { ok: true, role: '' }); const c = k.normalizeConfig({ counselPastors: ['홍길동'], counselSpouses: ['박순희'] }); assert.deepEqual(k.counselRoleOf(c, '홍길동'), { ok: true, role: '목회자' }); assert.deepEqual(k.counselRoleOf(c, '박순희'), { ok: true, role: '사모님' }); assert.equal(k.counselRoleOf(c, '이영희').ok, false); assert.deepEqual(k.counselRoleOf(k.normalizeConfig({ counselSpouses: ['박순희'] }), '홍길동'), { ok: false, role: '' }); });
 console.log(`\n${pass}개 통과`);

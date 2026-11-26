@@ -36,6 +36,7 @@ function normalizeConfig(raw) {
     counselEnabled: c.counselEnabled !== false,
     counselDailyCap: num(c.counselDailyCap, KIOSK_DEFAULTS.counselDailyCap, 0, 200),
     counselPastors: cleanPastorList(c.counselPastors),
+    counselSpouses: cleanPastorList(c.counselSpouses),
     key: typeof c.key === 'string' ? c.key : '',
     parkingUrl: typeof c.parkingUrl === 'string' ? c.parkingUrl.trim() : '',
   };
@@ -126,6 +127,15 @@ function cleanPastorList(raw) {
   return out.slice(0, 100);
 }
 
+// 입력한 성함이 어느 명단에 있는지 — '목회자'·'사모님', 둘 다 비어 있으면 명단 검사를 안 함('' 반환, ok=true), 명단은 있는데 없으면 ok=false
+function counselRoleOf(cfg, name) {
+  const pastors = cfg.counselPastors || [], spouses = cfg.counselSpouses || [];
+  if (!pastors.length && !spouses.length) return { ok: true, role: '' };
+  if (pastors.includes(name)) return { ok: true, role: '목회자' };
+  if (spouses.includes(name)) return { ok: true, role: '사모님' };
+  return { ok: false, role: '' };
+}
+
 function last4Digits(tel) {
   const d = String(tel || '').replace(/\D/g, '');
   return d.length >= 4 ? d.slice(-4) : '';
@@ -146,5 +156,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, activeRoomNames, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName, cleanPastorList,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, activeRoomNames, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName, cleanPastorList, counselRoleOf,
 };
