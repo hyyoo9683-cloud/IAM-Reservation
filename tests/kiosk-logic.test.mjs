@@ -28,4 +28,10 @@ t('이름 가리기', () => { assert.equal(k.maskName('김철수'), '김○○')
 t('모임 제목 우선순위', () => { assert.equal(k.meetingTitle({ showName: '공연', purpose: '목적', type: '기관' }), '공연'); assert.equal(k.meetingTitle({ purpose: '목적', type: '기관' }), '목적'); assert.equal(k.meetingTitle({ type: '기관' }), '기관'); assert.equal(k.meetingTitle({}), '모임'); });
 t('기기 키 비교', () => { assert.ok(k.keyMatches('abc', 'abc')); assert.ok(!k.keyMatches('abd', 'abc')); assert.ok(!k.keyMatches('', '')); assert.ok(!k.keyMatches('abc', '')); assert.ok(!k.keyMatches(undefined, 'abc')); assert.ok(!k.keyMatches('abcd', 'abc')); });
 t('주차 링크는 https만', () => { assert.ok(k.isSafeParkingUrl('https://a.example/x')); assert.ok(!k.isSafeParkingUrl('http://a.example')); assert.ok(!k.isSafeParkingUrl('javascript:alert(1)')); assert.ok(!k.isSafeParkingUrl('')); });
+t('정렬: 505~511호 호수 순 → 그 밖의 공간은 뒤(이름순)', () => {
+  const list = [{ room: '샤론홀', start: '10:00', name: 'a' }, { room: '511호', start: '09:00', name: 'a' }, { room: '505호', start: '19:00', name: 'a' }, { room: '아론홀', start: '10:00', name: 'a' }, { room: '508호', start: '10:00', name: 'a' }, { room: '506호', start: '10:00', name: 'a' }];
+  assert.deepEqual(list.sort(k.compareMeetings).map(x => x.room), ['505호', '506호', '508호', '511호', '샤론홀', '아론홀'].sort((a, b) => k.roomRank(a) - k.roomRank(b) || a.localeCompare(b, 'ko')));
+  assert.deepEqual(list.slice(0, 4).map(x => x.room), ['505호', '506호', '508호', '511호']);
+});
+t('정렬: 같은 호실은 시작 시간순', () => { const l = [{ room: '505호', start: '19:00', name: 'b' }, { room: '505호', start: '10:00', name: 'a' }]; assert.deepEqual(l.sort(k.compareMeetings).map(x => x.start), ['10:00', '19:00']); });
 console.log(`\n${pass}개 통과`);

@@ -69,6 +69,21 @@ function maskName(name) {
   return s.slice(0, 1) + '○'.repeat(Math.max(1, Math.min(3, s.length - 1)));
 }
 
+// 모임 목록 정렬 — 5층 소그룹실(505~511호)을 호수 순으로 먼저, 그 밖의 공간(아론홀·샤론홀 등)은 뒤에 이름순, 같은 공간이면 시작 시간순
+function roomRank(room) {
+  const m = /^(\d{3})호$/.exec(String(room || '').trim());
+  return m ? Number(m[1]) : 100000;
+}
+function compareMeetings(a, b) {
+  const ra = roomRank(a.room), rb = roomRank(b.room);
+  if (ra !== rb) return ra - rb;
+  if (ra === 100000) {
+    const c = String(a.room || '').localeCompare(String(b.room || ''), 'ko');
+    if (c) return c;
+  }
+  return String(a.start || '').localeCompare(String(b.start || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+}
+
 function last4Digits(tel) {
   const d = String(tel || '').replace(/\D/g, '');
   return d.length >= 4 ? d.slice(-4) : '';
@@ -89,5 +104,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings,
 };

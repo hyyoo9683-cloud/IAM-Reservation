@@ -28,9 +28,9 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .card{border:2px solid var(--ink);border-radius:14px;padding:18px 20px;background:#fff;text-align:left;font:inherit;cursor:pointer;display:block;width:100%;color:inherit}
 .card:active{background:var(--gl);border-color:var(--g)}
-.card .room{font-size:13px;font-weight:700;color:var(--g)}
-.card .nm{font-size:22px;font-weight:800;margin:4px 0;letter-spacing:-.02em;word-break:break-all}
-.card .tm{font-size:15px;color:var(--mut)}
+.card .room{font-size:34px;font-weight:800;color:var(--g);letter-spacing:-.03em;line-height:1.1}
+.card .nm{font-size:15px;font-weight:600;margin:8px 0 4px;letter-spacing:-.01em;word-break:break-all;color:var(--ink)}
+.card .tm{font-size:14px;color:var(--mut)}
 .empty{border:2px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mut);font-size:17px;line-height:1.8}
 .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
 .pad{display:grid;grid-template-columns:repeat(3,88px);gap:10px}
@@ -40,8 +40,8 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .dots{display:flex;gap:12px;margin:6px 0 14px}
 .dots span{width:54px;height:64px;border:2px solid var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800}
 .chosen{background:var(--gl);border-radius:12px;padding:14px 18px;margin-bottom:18px;min-width:260px}
-.chosen .room{font-size:13px;font-weight:700;color:var(--g)}
-.chosen .nm{font-size:20px;font-weight:800}
+.chosen .room{font-size:30px;font-weight:800;color:var(--g);letter-spacing:-.03em;line-height:1.1}
+.chosen .nm{font-size:15px;font-weight:600;margin-top:4px}
 .chosen .tm{font-size:14px;color:var(--mut)}
 .msg{min-height:44px;font-size:15px;font-weight:600;color:var(--red);max-width:340px;line-height:1.5}
 .btn{font:inherit;font-size:18px;font-weight:800;padding:16px 26px;border-radius:12px;border:2px solid var(--g);background:var(--g);color:#fff;cursor:pointer}
@@ -124,6 +124,15 @@ function errMsg(e) {
   return m || '오류가 발생했습니다. 사무실로 문의해 주시기 바랍니다.';
 }
 
+// 505~511호를 호수 순으로 먼저, 그 밖의 공간은 뒤에 (서버 정렬과 같은 기준 — 서버가 아직 옛 버전이어도 화면에서 맞춤)
+function roomRank(room) { const m = /^(\d{3})호$/.exec(String(room || '').trim()); return m ? Number(m[1]) : 100000; }
+function compareMeetings(a, b) {
+  const ra = roomRank(a.room), rb = roomRank(b.room);
+  if (ra !== rb) return ra - rb;
+  if (ra === 100000) { const c = String(a.room || '').localeCompare(String(b.room || ''), 'ko'); if (c) return c; }
+  return String(a.start || '').localeCompare(String(b.start || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'ko');
+}
+
 function goHome() { clearTimers(); st = { step: 'pick', meetings: [], sel: null, pin: '', busy: false }; renderPick(true); }
 
 async function renderPick(fresh) {
@@ -136,7 +145,7 @@ async function renderPick(fresh) {
   try {
     const { data } = await callMeetings({ key: KEY });
     if (st.step !== 'pick') return;
-    st.meetings = data.meetings || [];
+    st.meetings = (data.meetings || []).slice().sort(compareMeetings);
     drawPick();
   } catch (e) {
     if (st.step !== 'pick') return;

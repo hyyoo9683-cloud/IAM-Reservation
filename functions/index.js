@@ -402,7 +402,7 @@ exports.kioskMeetings = onCall(async (request) => {
       start: r.start, end: r.end, steward: kiosk.maskName(r.stewardName),
     });
   });
-  meetings.sort((a, b) => (a.start || '').localeCompare(b.start || '') || a.room.localeCompare(b.room, 'ko'));
+  meetings.sort(kiosk.compareMeetings);
   return { meetings: meetings.slice(0, 40), now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
 });
 
