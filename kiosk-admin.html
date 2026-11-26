@@ -202,7 +202,7 @@ function fillForm() {
   $('c-enabled').value = cfg.enabled === false ? '0' : '1';
   $('c-mode').value = cfg.mode === 'redirect' ? 'redirect' : 'iframe';
   $('c-before').value = cfg.beforeMin ?? 30;
-  $('c-after').value = cfg.afterMin ?? 30;
+  $('c-after').value = cfg.afterMin ?? 120;
   $('c-limit').value = cfg.failLimit ?? 5;
   $('c-lock').value = cfg.lockMin ?? 5;
   $('c-url').value = '';
@@ -218,7 +218,7 @@ window.saveConfig = async () => {
   const data = {
     enabled: $('c-enabled').value === '1',
     mode: $('c-mode').value,
-    beforeMin: clampN('c-before', 0, 240, 30), afterMin: clampN('c-after', 0, 240, 30),
+    beforeMin: clampN('c-before', 0, 240, 30), afterMin: clampN('c-after', 0, 240, 120),
     failLimit: clampN('c-limit', 1, 20, 5), lockMin: clampN('c-lock', 1, 120, 5),
     updatedAt: serverTimestamp(),
   };

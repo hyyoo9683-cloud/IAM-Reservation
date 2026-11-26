@@ -35,6 +35,7 @@ x = await call('kioskMeetings', { key: KEY });
 const names = (x.r && x.r.meetings || []).map(m => m.room + ':' + m.name);
 ok('이용 가능한 확정 모임만 나옴(505호·506호·507호)', JSON.stringify(names.sort()) === JSON.stringify(['505호:수요성경공부', '506호:연락처없음', '507호:곧 시작']));
 ok('아이엠홀 예약은 목록에 안 나옴', !names.some(n => n.startsWith('아이엠홀')));
+ok('서버가 종료 후 허용 시간(afterMin)을 함께 내려줌', x.r.afterMin === 30);
 ok('청지기 이름은 가려서 내려감', x.r.meetings.find(m => m.room === '505호').steward === '김○○');
 ok('연락처는 응답에 포함되지 않음', !JSON.stringify(x.r).includes('1234') && !JSON.stringify(x.r).includes('5678'));
 

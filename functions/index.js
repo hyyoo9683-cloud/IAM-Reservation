@@ -403,7 +403,7 @@ exports.kioskMeetings = onCall(async (request) => {
     });
   });
   meetings.sort(kiosk.compareMeetings);
-  return { meetings: meetings.slice(0, 40), now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
+  return { meetings: meetings.slice(0, 40), afterMin: cfg.afterMin, now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
 });
 
 // 모임 선택 + 청지기 연락처 뒤 4자리 확인 → 통과하면 기록 후 주차 링크 반환

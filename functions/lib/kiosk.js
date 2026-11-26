@@ -6,7 +6,7 @@ const KIOSK_DEFAULTS = {
   enabled: true,
   mode: 'iframe',      // 'iframe'(키오스크 화면 안에 열기) | 'redirect'(같은 창으로 이동)
   beforeMin: 30,       // 시작 몇 분 전부터
-  afterMin: 30,        // 종료 몇 분 후까지
+  afterMin: 120,       // 종료 몇 분 후까지 (주차 할인 적용 시간 — 종료 후 2시간)
   failLimit: 5,        // 연속 실패 몇 번에 잠글지
   lockMin: 5,          // 잠금 시간(분)
 };

@@ -11,10 +11,10 @@ const cfg = k.normalizeConfig({});
 const now = (h, m, date = '2026-11-25') => ({ date, minutes: h * 60 + m });
 const res = (o = {}) => ({ status: '확정', room: '505호', date: '2026-11-25', start: '19:00', end: '21:00', ...o });
 
-t('기본 설정값', () => { assert.equal(cfg.beforeMin, 30); assert.equal(cfg.afterMin, 30); assert.equal(cfg.failLimit, 5); assert.equal(cfg.lockMin, 5); assert.equal(cfg.mode, 'iframe'); assert.equal(cfg.enabled, true); });
+t('기본 설정값', () => { assert.equal(cfg.beforeMin, 30); assert.equal(cfg.afterMin, 120); assert.equal(cfg.failLimit, 5); assert.equal(cfg.lockMin, 5); assert.equal(cfg.mode, 'iframe'); assert.equal(cfg.enabled, true); });
 t('설정값 범위 보정', () => { const c = k.normalizeConfig({ beforeMin: 9999, failLimit: 0, lockMin: 'x', mode: 'weird', enabled: false }); assert.equal(c.beforeMin, 240); assert.equal(c.failLimit, 1); assert.equal(c.lockMin, 5); assert.equal(c.mode, 'iframe'); assert.equal(c.enabled, false); });
 t('시작 30분 전부터 가능', () => { assert.ok(k.isUsableNow(res(), now(18, 30), cfg)); assert.ok(!k.isUsableNow(res(), now(18, 29), cfg)); });
-t('종료 30분 후까지 가능', () => { assert.ok(k.isUsableNow(res(), now(21, 30), cfg)); assert.ok(!k.isUsableNow(res(), now(21, 31), cfg)); });
+t('종료 2시간 후까지 가능', () => { assert.ok(k.isUsableNow(res(), now(23, 0), cfg)); assert.ok(!k.isUsableNow(res(), now(23, 1), cfg)); });
 t('확정이 아니면 불가', () => { for (const s of ['대기', '취소', '반려']) assert.ok(!k.isUsableNow(res({ status: s }), now(19, 30), cfg)); });
 t('다른 날짜 예약은 불가', () => assert.ok(!k.isUsableNow(res({ date: '2026-11-26' }), now(19, 30), cfg)));
 t('지혜홀(숙박)은 대상 제외', () => assert.ok(!k.isUsableNow(res({ room: '지혜홀', start: '00:00', end: '23:59' }), now(12, 0), cfg)));
