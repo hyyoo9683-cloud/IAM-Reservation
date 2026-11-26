@@ -118,7 +118,7 @@ x = await call('kioskRooms', { key: KEY });
 ok('호실 목록: 상담실 502~504호는 별도 목록(counselRooms)으로, 일반 rooms에는 없음', x.r && JSON.stringify(x.r.counselRooms) === JSON.stringify(['502호', '503호', '504호']) && !x.r.rooms.includes('502호') && x.r.counselEnabled === true);
 x = await call('kioskMeetings', { key: KEY, room: '502호' });
 ok('상담실을 모임 목록으로 요청하면 비어 있음', x.r && x.r.meetings.length === 0);
-await db.doc('system/kioskConfig').set({ enabled: true, parkingUrl: 'https://parking.example/discount/secret', counselEnabled: true, counselDailyCap: 2 }, { merge: true });
+await db.doc('system/kioskConfig').set({ enabled: true, parkingUrl: 'https://parking.example/discount/secret', counselEnabled: true }, { merge: true });
 x = await call('kioskCounseling', { key: 'wrong', room: '502호', pastor: '홍길동' });
 ok('상담실: 잘못된 기기 키 거부', x.e && x.e.code === 'permission-denied');
 x = await call('kioskCounseling', { key: KEY, room: '505호', pastor: '홍길동' });
@@ -131,25 +131,20 @@ x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: ' 홍  길
 ok('상담실: 성함을 적으면 주차 링크 반환', x.r && x.r.ok && x.r.url === 'https://parking.example/discount/secret' && x.r.room === '502호');
 let cl = (await db.collection('parkingLogs').where('category', '==', '상담실').get()).docs.map(d => d.data());
 ok('상담실: 기록에 호실·목회자 성함·열림이 남고 링크는 없음', cl.length === 1 && cl[0].room === '502호' && cl[0].pastor === '홍 길동' && cl[0].steward === '홍 길동' && cl[0].result === '열림' && !JSON.stringify(cl).includes('parking.example'));
-x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '김철수' });
-ok('상담실: 하루 상한 이내(2번째)는 허용', x.r && x.r.ok);
-x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '이영희' });
-ok('상담실: 호실 하루 상한(2건) 초과는 거부(resource-exhausted)', x.e && x.e.code === 'resource-exhausted' && !x.r);
-x = await call('kioskCounseling', { key: KEY, room: '503호', pastor: '이영희' });
-ok('상담실: 상한은 호실마다 따로 셈(503호는 가능)', x.r && x.r.ok);
+for (const who of ['김철수', '이영희', '박철수']) {
+  x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: who });
+  ok(`상담실: 같은 호실에서 여러 번 등록해도 제한 없음(${who})`, x.r && x.r.ok);
+}
 cl = (await db.collection('parkingLogs').where('category', '==', '상담실').get()).docs.map(d => d.data());
-ok('상담실: 상한 초과 시도도 기록', cl.some(l => l.result === '상한 초과' && l.room === '502호'));
-await db.doc('system/kioskConfig').set({ counselDailyCap: 0 }, { merge: true });
-x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '박철수' });
-ok('상담실: 상한 0이면 제한 없음', x.r && x.r.ok);
+ok('상담실: 등록 횟수만큼 모두 기록(상한 초과 기록 없음)', cl.length === 4 && !cl.some(l => l.result === '상한 초과'));
 await db.doc('system/kioskConfig').set({ counselEnabled: false }, { merge: true });
 x = await call('kioskCounseling', { key: KEY, room: '504호', pastor: '박철수' });
 ok('상담실: 끄면 거부(failed-precondition)', x.e && x.e.code === 'failed-precondition');
 x = await call('kioskRooms', { key: KEY });
 ok('상담실: 끄면 호실 목록에서 counselEnabled=false', x.r && x.r.counselEnabled === false);
-await db.doc('system/kioskConfig').set({ counselEnabled: true, counselDailyCap: 10 }, { merge: true });
+await db.doc('system/kioskConfig').set({ counselEnabled: true }, { merge: true });
 // 상담실 담당 목회자 명단(관리자 등록)
-await db.doc('system/kioskConfig').set({ counselPastors: ['홍길동', '김철수', '홍길동', '12'], counselDailyCap: 0 }, { merge: true });
+await db.doc('system/kioskConfig').set({ counselPastors: ['홍길동', '김철수', '홍길동', '12'] }, { merge: true });
 x = await call('kioskRooms', { key: KEY });
 ok('상담실 명단: 명단은 키오스크로 내려가지 않음(호실 목록 응답에 이름 없음)', x.r && !JSON.stringify(x.r).includes('홍길동') && !JSON.stringify(x.r).includes('김철수') && x.r.counselPastors === undefined);
 x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '이영희' });
@@ -163,7 +158,7 @@ x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '박순희
 ok('상담실 명단: 사모님 명단의 이름도 통과', x.r && x.r.ok);
 cl = (await db.collection('parkingLogs').where('category', '==', '상담실').get()).docs.map(d => d.data());
 ok('상담실 명단: 기록에 목회자/사모님 구분이 남음', cl.some(l => l.pastor === '박순희' && l.role === '사모님') && cl.some(l => l.pastor === '김철수' && l.role === '목회자'));
-await db.doc('system/kioskConfig').set({ counselPastors: [], counselSpouses: [], counselDailyCap: 10 }, { merge: true });
+await db.doc('system/kioskConfig').set({ counselPastors: [], counselSpouses: [] }, { merge: true });
 x = await call('kioskCounseling', { key: KEY, room: '502호', pastor: '이영희' });
 ok('상담실 명단: 명단이 비어 있으면 어떤 성함이든 통과(예전 방식)', x.r && x.r.ok);
 

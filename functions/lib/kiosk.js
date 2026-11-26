@@ -10,7 +10,6 @@ const KIOSK_DEFAULTS = {
   failLimit: 5,        // 연속 실패 몇 번에 잠글지
   lockMin: 5,          // 잠금 시간(분)
   counselEnabled: true, // 상담실(502~504호) 자유 등록 사용 여부
-  counselDailyCap: 10,  // 상담실 호실마다 하루 등록 상한(0이면 제한 없음)
 };
 // 상담실 — 예약을 확인하지 않고 담당 목회자 성함만 적어 등록하는 공간(2026-11-26). 호실 선택 화면의 맨 아래 '상담실' 묶음
 const COUNSEL_ROOMS = ['502호', '503호', '504호'];
@@ -34,7 +33,6 @@ function normalizeConfig(raw) {
     failLimit: num(c.failLimit, KIOSK_DEFAULTS.failLimit, 1, 20),
     lockMin: num(c.lockMin, KIOSK_DEFAULTS.lockMin, 1, 120),
     counselEnabled: c.counselEnabled !== false,
-    counselDailyCap: num(c.counselDailyCap, KIOSK_DEFAULTS.counselDailyCap, 0, 200),
     counselPastors: cleanPastorList(c.counselPastors),
     counselSpouses: cleanPastorList(c.counselSpouses),
     key: typeof c.key === 'string' ? c.key : '',

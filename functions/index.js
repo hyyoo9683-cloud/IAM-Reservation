@@ -447,7 +447,7 @@ exports.kioskMeetings = onCall(async (request) => {
 });
 
 // 상담실(502~504호) — 예약을 확인하지 않고 '모임을 예약한 담당 목회자 성함'만 받아 기록한 뒤 주차 링크를 돌려줌.
-// 대신 호실마다 하루 상한(counselDailyCap)을 두고, 모든 시도를 parkingLogs에 남겨 나중에 상담 시스템과 대조할 수 있게 함
+// 대신 모든 시도를 parkingLogs에 남겨 나중에 상담 시스템과 대조할 수 있게 함(하루 등록 상한은 2026-11-26 사용자 요청으로 삭제)
 exports.kioskCounseling = onCall(async (request) => {
   const data = request.data || {};
   const cfg = await loadKioskConfig(data.key);
@@ -475,18 +475,6 @@ exports.kioskCounseling = onCall(async (request) => {
     category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
     start: '', end: '', steward: pastor, pastor, role: roleCheck.role, openedAt: FieldValue.serverTimestamp(),
   };
-  // 호실·날짜별 하루 등록 횟수 — 상한을 넘으면 거부(거부도 기록)
-  const countRef = db.collection('kioskCounts').doc(`counsel_${now.date}_${room}`);
-  const allowed = await db.runTransaction(async (tx) => {
-    const n = ((await tx.get(countRef)).data() || {}).count || 0;
-    if (cfg.counselDailyCap > 0 && n >= cfg.counselDailyCap) return false;
-    tx.set(countRef, { count: n + 1, room, date: now.date });
-    return true;
-  });
-  if (!allowed) {
-    await db.collection('parkingLogs').add({ ...logBase, result: '상한 초과' });
-    throw new HttpsError('resource-exhausted', `오늘 ${room}의 등록 가능 횟수를 모두 사용했습니다. 사무실로 문의해 주시기 바랍니다.`);
-  }
   await db.collection('parkingLogs').add({ ...logBase, result: '열림' });
   return { ok: true, url: cfg.parkingUrl, mode: cfg.mode, room, meeting: logBase.meeting };
 });
