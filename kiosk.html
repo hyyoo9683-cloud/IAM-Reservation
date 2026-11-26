@@ -165,7 +165,7 @@ function drawPick() {
 function renderPin(msg) {
   clearTimers(); armIdle();
   const x = st.sel;
-  body.innerHTML = stepper(1) + '<h2>청지기 연락처 뒤 4자리를 입력해 주세요</h2><p class="sub">예약하신 청지기님의 휴대전화 번호 끝 4자리입니다.</p>' +
+  body.innerHTML = stepper(1) + '<h2>청지기 연락처 뒤 4자리를 입력해 주세요</h2><p class="sub">예약하신 청지기(대표 사용자)님의 휴대전화 번호 끝 4자리입니다.</p>' +
     `<div class="row"><div><div class="chosen"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}${x.steward ? ' · 청지기 ' + esc(x.steward) : ''}</div></div>
      <div class="dots" id="dots"></div><div class="msg" id="msg">${esc(msg || '')}</div></div>
      <div class="pad" id="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="back">지움</button><button data-k="0">0</button><button class="fn" data-k="ok">확인</button></div></div>
