@@ -469,7 +469,7 @@ exports.kioskCounseling = onCall(async (request) => {
       category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
       start: '', end: '', steward: pastor, pastor, openedAt: FieldValue.serverTimestamp(), result: '명단에 없음',
     });
-    throw new HttpsError('permission-denied', '입력하신 성함이 등록된 담당 목회자와 다릅니다. 성함을 다시 확인해 주시기 바랍니다. 계속 안 되면 사무실로 문의해 주시기 바랍니다.');
+    throw new HttpsError('permission-denied', '입력하신 성함이 등록된 담당 목회자와 다릅니다. 성함을 다시 확인해 주시기 바랍니다.');
   }
   const logBase = {
     category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
