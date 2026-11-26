@@ -29,7 +29,6 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .roombtn{font:inherit;font-size:20px;font-weight:700;letter-spacing:-.02em;border:0;border-radius:12px;padding:18px 8px;cursor:pointer;background:var(--gl);color:#2f5a44}
 .roombtn.g2{background:#F3ECDD;color:#6a5426}
 .roombtn.dim{opacity:.4}
-.legend{font-size:14px;color:var(--mut)}
 .roombtn.g3{background:#ECEBF5;color:#454077}
 .cform{max-width:520px;display:flex;flex-direction:column;gap:12px}
 .cform label{font-size:17px;font-weight:700}
@@ -256,7 +255,7 @@ async function renderRooms() {
     st.counselRooms = data.counselRooms || [];
     st.counselEnabled = data.counselEnabled !== false;
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
-    body.innerHTML = stepper(0) + '<h2>예약 장소 선택</h2><p class="sub">' + discountNote() + (st.activeRooms ? '<br><span class="legend">연하게 표시된 호실은 지금 예약이 없습니다.</span>' : '') + '</p>' +
+    body.innerHTML = stepper(0) + '<h2>예약 장소 선택</h2><p class="sub">' + discountNote() + '</p>' +
       roomGroupsHtml() +
       '<div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>';
     $('back').onclick = goHome;
