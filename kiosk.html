@@ -82,9 +82,6 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .center{margin:auto;text-align:center;max-width:520px}
 .start{margin:auto;text-align:center;max-width:900px;padding:20px 0}
 .start .st{font-size:20px;font-weight:700;letter-spacing:-.02em;color:#4B4F4D;margin:-4px 0 90px}
-.plist{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:6px 0 4px}
-.pbtn{font:inherit;font-size:20px;font-weight:700;border:0;border-radius:999px;padding:14px 26px;cursor:pointer;background:#E9E4F3;color:#4a3d6b}
-.pbtn.on{background:#6B5A9B;color:#fff}
 .btn.big{font-size:28px;padding:26px 64px;border-radius:999px;min-width:320px}
 .err{color:var(--red)}
 @media(max-width:600px){.start .st{font-size:17px}.kbody{padding:18px}h2{font-size:24px}.pad{grid-template-columns:repeat(3,72px);gap:12px}.pad button{width:72px;height:72px}.kbar{padding:12px 16px}}
@@ -133,7 +130,7 @@ const IDLE_MS = 2 * 60 * 1000;  // 모임 선택·연락처 입력 화면에서 
 const PARK_IDLE_SEC = 120;      // 주차 화면: 움직임이 없어진 뒤 이만큼 지나면 처음 화면으로 (움직임이 있으면 다시 처음부터 잼)
 const PARK_WARN_SEC = 30;       // 남은 시간이 이만큼이면 '계속 이용하기' 안내를 띄움
 let parkActivity = null;        // 주차 화면이 열려 있는 동안만 연결되는 '움직임 감지' 함수
-let st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselPastors: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: null };
+let st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: null };
 let timers = [];
 function clearTimers() { timers.forEach(clearInterval); timers.forEach(clearTimeout); timers = []; }
 function every(fn, ms) { timers.push(setInterval(fn, ms)); }
@@ -177,7 +174,7 @@ function compareMeetings(a, b) {
 // 종료 후 몇 분까지 등록할 수 있는지는 서버 설정(afterMin, 기본 120분)을 그대로 안내문에 씀 — 설정을 바꿔도 문구가 어긋나지 않게
 function fmtMin(m) { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; }
 
-function goHome() { parkActivity = null; mtgCache.clear(); clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselPastors: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
+function goHome() { parkActivity = null; mtgCache.clear(); clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
 
 // 처음 화면 — 이용자가 '주차 등록하기'를 눌러야 모임 선택으로 넘어감
 function renderStart() {
@@ -264,7 +261,6 @@ async function renderRooms() {
     st.activeRooms = Array.isArray(data.activeRooms) ? data.activeRooms : null;
     st.counselRooms = data.counselRooms || [];
     st.counselEnabled = data.counselEnabled !== false;
-    st.counselPastors = Array.isArray(data.counselPastors) ? data.counselPastors : [];
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
     body.innerHTML = stepper(0) + '<h2>예약 장소 선택</h2><p class="sub">' + discountNote() + '</p>' +
       roomGroupsHtml() +
@@ -315,32 +311,17 @@ function drawPick() {
 // 3) 상담실 — 예약 확인 없이 '모임을 예약한 담당 목회자 성함'만 적어 등록(기록은 나중에 상담 시스템과 대조하는 자료)
 function renderCounsel(room, msg) {
   clearTimers(); st.step = 'counsel'; st.room = room; armIdle();
-  const list = st.counselPastors || [];   // 관리자가 등록한 담당 목회자 명단 — 있으면 이름을 눌러 고르고, 없으면 직접 입력
-  const field = list.length
-    ? `<label>모임을 예약한 담당 목회자를 선택해 주시기 바랍니다</label>
-       <div class="plist">${list.map((n, i) => `<button type="button" class="pbtn" data-i="${i}">${esc(n)}</button>`).join('')}</div>`
-    : `<label for="pastor">모임을 예약한 담당 목회자 성함을 작성해 주시기 바랍니다</label>
-       <input id="pastor" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 홍길동">`;
   body.innerHTML = stepper(0) + `<h2>${esc(room)} 상담실</h2><p class="sub">사전 예약 이용자만 주차 할인이 가능합니다.</p>` +
-    `<div class="cform">${field}
+    `<div class="cform"><label for="pastor">모임을 예약한 담당 목회자 성함을 작성해 주시기 바랍니다</label>
+     <input id="pastor" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 홍길동">
      <div class="msg" id="msg">${esc(msg || '')}</div>
      <button class="btn" id="cgo">주차 등록하기</button></div>
      <div class="foot"><button class="btn ghost" id="back">← 장소 다시 선택</button></div>`;
   $('back').onclick = renderRooms;
   const input = $('pastor');
-  let picked = '';
-  if (list.length) {
-    $('cgo').disabled = true;
-    body.querySelectorAll('.pbtn').forEach(b => b.onclick = () => {
-      picked = list[+b.dataset.i];
-      body.querySelectorAll('.pbtn').forEach(x => x.classList.toggle('on', x === b));
-      $('cgo').disabled = false; $('msg').textContent = ''; armIdle();
-    });
-  }
   const go = async () => {
     if (st.busy) return;
-    const name = list.length ? picked : input.value.replace(/\s+/g, ' ').trim();
-    if (list.length && !name) { $('msg').style.color = 'var(--red)'; $('msg').textContent = '담당 목회자를 선택해 주시기 바랍니다.'; return; }
+    const name = input.value.replace(/\s+/g, ' ').trim();
     if (!/^[가-힣A-Za-z·. ]{2,20}$/.test(name)) { $('msg').style.color = 'var(--red)'; $('msg').textContent = '성함을 한글 또는 영문 2~20자로 입력해 주시기 바랍니다.'; return; }
     st.busy = true; $('cgo').disabled = true; $('msg').style.color = 'var(--mut)'; $('msg').textContent = '확인하는 중…';
     try {
@@ -354,10 +335,8 @@ function renderCounsel(room, msg) {
     }
   };
   $('cgo').onclick = go;
-  if (input) {
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
-    setTimeout(() => input.focus(), 50);
-  }
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
+  setTimeout(() => input.focus(), 50);
 }
 
 function renderPin(msg) {

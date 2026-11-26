@@ -416,7 +416,7 @@ exports.kioskRooms = onCall(async (request) => {
   return {
     rooms: kiosk.roomChoices(names),
     activeRooms: resSnap ? kiosk.activeRoomNames(reservations, now, cfg) : null,
-    counselRooms: kiosk.COUNSEL_ROOMS.slice(), counselEnabled: cfg.counselEnabled, counselPastors: cfg.counselEnabled ? cfg.counselPastors : [], afterMin: cfg.afterMin,
+    counselRooms: kiosk.COUNSEL_ROOMS.slice(), counselEnabled: cfg.counselEnabled, afterMin: cfg.afterMin,
   };
 });
 
@@ -462,13 +462,13 @@ exports.kioskCounseling = onCall(async (request) => {
   }
   const db = getFirestore();
   const now = kiosk.kstNow();
-  // 관리자가 담당 목회자 명단(counselPastors)을 등록해 두었으면 그 안의 성함만 통과 — 비어 있으면 예전처럼 자유 입력
+  // 관리자가 담당 목회자 명단(counselPastors)을 등록해 두었으면 사용자가 직접 입력한 성함이 명단과 정확히 같을 때만 통과(명단은 키오스크로 내려가지 않음) — 비어 있으면 어떤 성함이든 통과
   if (cfg.counselPastors.length && !cfg.counselPastors.includes(pastor)) {
     await db.collection('parkingLogs').add({
       category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
       start: '', end: '', steward: pastor, pastor, openedAt: FieldValue.serverTimestamp(), result: '명단에 없음',
     });
-    throw new HttpsError('permission-denied', '등록된 담당 목회자가 아닙니다. 사무실로 문의해 주시기 바랍니다.');
+    throw new HttpsError('permission-denied', '입력하신 성함이 등록된 담당 목회자와 다릅니다. 성함을 다시 확인해 주시기 바랍니다. 계속 안 되면 사무실로 문의해 주시기 바랍니다.');
   }
   const logBase = {
     category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
