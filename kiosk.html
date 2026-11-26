@@ -28,6 +28,8 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .roomrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px;max-width:640px}
 .roombtn{font:inherit;font-size:20px;font-weight:700;letter-spacing:-.02em;border:0;border-radius:12px;padding:18px 8px;cursor:pointer;background:var(--gl);color:#2f5a44}
 .roombtn.g2{background:#F3ECDD;color:#6a5426}
+.roombtn.dim{opacity:.4}
+.legend{font-size:14px;color:var(--mut)}
 .roombtn.g3{background:#ECEBF5;color:#454077}
 .cform{max-width:520px;display:flex;flex-direction:column;gap:12px}
 .cform label{font-size:17px;font-weight:700}
@@ -42,8 +44,10 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .rgrp{border:0;border-radius:14px;background:#F4F7F5;overflow:hidden}
 .rname{font-size:24px;font-weight:800;color:#2f5a44;letter-spacing:-.03em;line-height:1.1;padding:14px 18px 10px}
 .rlist{display:flex;flex-direction:column}
-.ritem{display:flex;align-items:baseline;justify-content:space-between;gap:14px;width:100%;text-align:left;font:inherit;color:var(--ink);background:transparent;border:0;border-top:1px solid #E1E8E3;padding:13px 18px;cursor:pointer}
+.ritem{display:flex;align-items:center;justify-content:space-between;gap:14px;width:100%;text-align:left;font:inherit;color:var(--ink);background:transparent;border:0;border-top:1px solid #E1E8E3;padding:13px 18px;cursor:pointer}
 .ritem:active{background:#E3ECE6}
+.ritem .rl{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ritem .rs{font-size:13px;font-weight:500;color:var(--mut)}
 .ritem .rn{font-size:15px;font-weight:600;word-break:break-all}
 .ritem .rt{font-size:14px;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 .empty{border:2px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mut);font-size:17px;line-height:1.8}
@@ -123,7 +127,7 @@ const IDLE_MS = 2 * 60 * 1000;  // 모임 선택·연락처 입력 화면에서 
 const PARK_IDLE_SEC = 120;      // 주차 화면: 움직임이 없어진 뒤 이만큼 지나면 처음 화면으로 (움직임이 있으면 다시 처음부터 잼)
 const PARK_WARN_SEC = 30;       // 남은 시간이 이만큼이면 '계속 이용하기' 안내를 띄움
 let parkActivity = null;        // 주차 화면이 열려 있는 동안만 연결되는 '움직임 감지' 함수
-let st = { step: 'start', rooms: [], counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: null };
+let st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: null };
 let timers = [];
 function clearTimers() { timers.forEach(clearInterval); timers.forEach(clearTimeout); timers = []; }
 function every(fn, ms) { timers.push(setInterval(fn, ms)); }
@@ -164,11 +168,7 @@ function compareMeetings(a, b) {
   return String(a.start || '').localeCompare(String(b.start || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'ko');
 }
 
-// 서버 설정(종료 후 N분)을 그대로 안내문에 씀 — 설정을 바꿔도 문구가 어긋나지 않게
-function fmtMin(m) { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; }
-function afterNote() { return st.afterMin == null ? '' : ` (적용 시간: 모임 종료 시간 이후 ${fmtMin(st.afterMin)}까지)`; }
-
-function goHome() { parkActivity = null; mtgCache.clear(); clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
+function goHome() { parkActivity = null; mtgCache.clear(); clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], activeRooms: null, counselRooms: [], counselEnabled: true, room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
 
 // 처음 화면 — 이용자가 '주차 등록하기'를 눌러야 모임 선택으로 넘어감
 function renderStart() {
@@ -178,12 +178,12 @@ function renderStart() {
     return;
   }
   st.step = 'start';
-  body.innerHTML = '<div class="start"><span class="kicker">모임 이용자 주차 할인</span><h1>주차 등록</h1><p>모임에 참석하신 분은 이곳에서 주차 할인을 등록하실 수 있습니다.<br>아래 버튼을 눌러 시작해 주시기 바랍니다.</p><button class="btn big" id="go">주차 등록하기</button></div>';
+  body.innerHTML = '<div class="start"><span class="kicker">모임 이용자 주차 할인</span><h1>주차등록</h1><p>5층(혹은 6층) 모임 예약 사용자분들은 이곳에서 주차 할인 등록 가능합니다.<br>아래 버튼을 눌러 시작해주세요.</p><button class="btn big" id="go">주차 할인 등록 →</button></div>';
   $('go').onclick = () => renderRooms();
 }
 
 // ── 속도: 호실 목록·모임 목록은 요청을 한 번만 보내고 잠깐 기억해 두며, 함수가 잠들지 않게 미리 깨워 둠 ──
-const ROOMS_TTL = 10 * 60 * 1000;   // 호실 이름 목록은 거의 안 바뀜
+const ROOMS_TTL = 60 * 1000;        // 호실 목록(지금 예약이 있는 호실 표시 포함)은 1분까지만 재사용
 const MTG_TTL = 60 * 1000;          // 모임 목록은 1분까지만 재사용
 let roomsCache = { t: 0, p: null };
 const mtgCache = new Map();         // 호실 이름 → { t, p }
@@ -216,7 +216,7 @@ setInterval(warmAll, 4 * 60 * 1000);
 document.addEventListener('pointerdown', () => { if (Date.now() - lastWarm > 60 * 1000) warmAll(); }, true);
 
 const NOKEY = '<div class="center"><h2>키오스크로 설정되지 않은 기기입니다</h2><p class="sub">관리자 화면(주차 등록 관리)에서 발급한 설정 주소를 이 기기에서 한 번 열어 주시기 바랍니다.</p></div>';
-function discountNote() { return '모임 이용자만 할인 가능합니다.' + afterNote(); }
+function discountNote() { return '모임 이용자만 주차 할인이 가능합니다.'; }
 
 // 호실을 '5층 소그룹실'(505~511호)과 '세미나실'(그 밖의 홀)로 나눠 보여줌
 function roomGroupsHtml() {
@@ -230,7 +230,8 @@ function roomGroupsHtml() {
   const rowsOf = g => g.cls === 'g1'
     ? [g.list.filter(x => num(x.r) <= 507), g.list.filter(x => num(x.r) > 507)].filter(a => a.length)
     : [g.list];
-  const btn = (g, { r, i }) => `<button class="roombtn ${g.cls}" data-i="${i}">${esc(r)}</button>`;
+  const dim = r => (st.activeRooms && !st.activeRooms.includes(r) ? ' dim' : '');   // 지금 예약이 없는 호실은 연하게(누를 수는 있음)
+  const btn = (g, { r, i }) => `<button class="roombtn ${g.cls}${dim(r)}" data-i="${i}">${esc(r)}</button>`;
   let html = groups.filter(g => g.list.length).map(g =>
     `<section class="rgroup"><h3>${g.title}</h3>` +
     rowsOf(g).map(row => `<div class="roomrow">${row.map(x => btn(g, x)).join('')}</div>`).join('') + '</section>').join('');
@@ -246,15 +247,16 @@ function roomGroupsHtml() {
 async function renderRooms() {
   clearTimers(); st.step = 'rooms'; st.room = ''; st.sel = null; armIdle();
   if (!KEY) { body.innerHTML = NOKEY; return; }
-  body.innerHTML = stepper(0) + '<h2>어느 호실을 이용하셨나요?</h2><p class="sub">불러오는 중…</p>';
+  body.innerHTML = stepper(0) + '<h2>예약 장소 선택</h2><p class="sub">불러오는 중…</p>';
   try {
     const data = await fetchRooms();
     if (st.step !== 'rooms') return;
     st.rooms = data.rooms || [];
+    st.activeRooms = Array.isArray(data.activeRooms) ? data.activeRooms : null;
     st.counselRooms = data.counselRooms || [];
     st.counselEnabled = data.counselEnabled !== false;
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
-    body.innerHTML = stepper(0) + '<h2>어느 호실을 이용하셨나요?</h2><p class="sub">' + discountNote() + '</p>' +
+    body.innerHTML = stepper(0) + '<h2>예약 장소 선택</h2><p class="sub">' + discountNote() + (st.activeRooms ? '<br><span class="legend">연하게 표시된 호실은 지금 예약이 없습니다.</span>' : '') + '</p>' +
       roomGroupsHtml() +
       '<div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>';
     $('back').onclick = goHome;
@@ -263,7 +265,7 @@ async function renderRooms() {
     body.querySelectorAll('.roombtn[data-c]').forEach(b => b.onclick = () => renderCounsel(st.counselRooms[+b.dataset.c]));
   } catch (e) {
     if (st.step !== 'rooms') return;
-    body.innerHTML = stepper(0) + `<h2>어느 호실을 이용하셨나요?</h2><div class="empty err">${esc(errMsg(e))}</div><div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>`;
+    body.innerHTML = stepper(0) + `<h2>예약 장소 선택</h2><div class="empty err">${esc(errMsg(e))}</div><div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>`;
     $('back').onclick = goHome;
   }
 }
@@ -292,7 +294,7 @@ function drawPick() {
   body.innerHTML = stepper(0) + '<h2>어느 모임이신가요?</h2><p class="sub">' + discountNote() + '</p>' +
     (a.length
       ? `<div class="rooms one"><div class="rgrp"><div class="rname">${esc(st.room)}</div><div class="rlist">` +
-          a.map((x, i) => `<button class="ritem" data-i="${i}"><span class="rn">${esc(x.name)}</span><span class="rt">${esc(x.start)} – ${esc(x.end)}</span></button>`).join('') +
+          a.map((x, i) => `<button class="ritem" data-i="${i}"><span class="rl"><span class="rn">${esc(x.name)}</span>${x.steward ? `<span class="rs">청지기 ${esc(x.steward)}</span>` : ''}</span><span class="rt">${esc(x.start)} – ${esc(x.end)}</span></button>`).join('') +
           '</div></div></div>'
       : `<div class="empty">${esc(st.room)}에는 지금 이용할 수 있는 모임이 없습니다.<br>모임 시작 전·후 정해진 시간 동안만 등록할 수 있습니다.<br>호실을 잘못 고르셨다면 아래에서 다시 선택해 주시기 바랍니다.<br>문의: 아이엠센터 사무실</div>`) +
     '<div class="foot"><button class="btn ghost" id="back">← 호실 다시 선택</button></div>';
@@ -303,7 +305,7 @@ function drawPick() {
 // 3) 상담실 — 예약 확인 없이 '모임을 예약한 담당 목회자 성함'만 적어 등록(기록은 나중에 상담 시스템과 대조하는 자료)
 function renderCounsel(room, msg) {
   clearTimers(); st.step = 'counsel'; st.room = room; armIdle();
-  body.innerHTML = stepper(0) + `<h2>${esc(room)} 상담실</h2><p class="sub">상담실 이용자만 할인 가능합니다. 등록 기록은 이용 확인에 사용됩니다.</p>` +
+  body.innerHTML = stepper(0) + `<h2>${esc(room)} 상담실</h2><p class="sub">상담실 이용자만 주차 할인이 가능합니다. 등록 기록은 이용 확인에 사용됩니다.</p>` +
     `<div class="cform"><label for="pastor">모임을 예약한 담당 목회자 성함을 작성해 주시기 바랍니다</label>
      <input id="pastor" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 홍길동">
      <div class="msg" id="msg">${esc(msg || '')}</div>
@@ -334,8 +336,8 @@ function renderCounsel(room, msg) {
 function renderPin(msg) {
   clearTimers(); armIdle();
   const x = st.sel;
-  body.innerHTML = stepper(1) + '<h2>청지기 연락처 뒤 4자리를 입력해 주시기 바랍니다</h2><p class="sub">예약하신 청지기(대표 사용자)님의 휴대전화 번호 끝 4자리입니다.</p>' +
-    `<div class="row"><div><div class="chosen"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}</div></div>
+  body.innerHTML = stepper(1) + '<h2>청지기(대표 사용자) 연락처 뒤 4자리를 입력해주세요</h2><p class="sub">이용에 어려움이 있을 경우 문의 바랍니다. (070-7018-1439)</p>' +
+    `<div class="row"><div><div class="chosen"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}${x.steward ? ' · 청지기 ' + esc(x.steward) : ''}</div></div>
      <div class="dots" id="dots"></div><div class="msg" id="msg">${esc(msg || '')}</div></div>
      <div class="pad" id="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="back">지움</button><button data-k="0">0</button><button class="fn" data-k="ok">확인</button></div></div>
      <div class="foot"><button class="btn ghost" id="back">← 모임 다시 선택</button></div>`;
@@ -372,11 +374,10 @@ function openParking(info) {
   if (info.mode === 'redirect') { location.href = info.url; return; }
   st.step = 'park';
   let left = PARK_IDLE_SEC;
-  body.innerHTML = stepper(2) + '<h2>주차 등록</h2><p class="sub">아래 화면에서 차량번호 뒤 4자리와 입차 날짜를 입력해 차량을 조회한 뒤 “무료 2시간”을 등록해 주시기 바랍니다. 등록이 끝나면 아래 “등록을 마쳤습니다”를 눌러 주시기 바랍니다.</p>' +
+  body.innerHTML = stepper(2) + '<h2>주차 등록</h2><p class="sub">아래 화면에서 차량을 조회한 뒤 ‘무료 2시간 할인’을 등록해주세요.<br>모임 인원의 주차 등록이 모두 끝나면 아래 ‘등록 완료’를 눌러주세요.</p>' +
     `<div class="frame-wrap"><iframe id="pf" title="주차 등록" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-same-origin"></iframe></div>
      <div class="warn" id="warn" hidden><span id="warn-t"></span><button class="btn sm" id="keep">계속 이용하기</button></div>
-     <div class="foot"><button class="btn" id="fin">등록을 마쳤습니다</button><button class="btn ghost" id="cancel">처음으로</button>
-     <button class="btn ghost sm" id="fb">화면이 비어 있다면 여기를 눌러 주시기 바랍니다</button><span class="cd" id="cd"></span></div>`;
+     <div class="foot"><button class="btn" id="fin">등록 완료</button><button class="btn ghost" id="cancel">처음으로</button><span class="cd" id="cd"></span></div>`;
   const reset = () => { const wasWarn = left <= PARK_WARN_SEC; left = PARK_IDLE_SEC; if (wasWarn) show(); };
   const show = () => {
     const el = $('cd'); if (!el) return;
@@ -390,7 +391,6 @@ function openParking(info) {
   $('keep').onclick = reset;
   $('fin').onclick = () => { parkActivity = null; renderDone(); };
   $('cancel').onclick = () => { parkActivity = null; goHome(); };
-  $('fb').onclick = () => { location.href = info.url; };
   show();
   every(() => { left--; show(); if (left <= 0) { parkActivity = null; goHome(); } }, 1000);
 }

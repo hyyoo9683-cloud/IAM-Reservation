@@ -65,15 +65,22 @@ function isUsableNow(res, now, cfg) {
   return now.minutes >= s - cfg.beforeMin && now.minutes <= e + cfg.afterMin;
 }
 
+// 지금 이용 가능한 확정 모임이 있는 호실 이름들 — 호실 선택 화면에서 예약이 없는 호실을 연하게 보여주기 위함(모임명·청지기는 포함하지 않음)
+function activeRoomNames(reservations, now, cfg) {
+  const set = new Set();
+  (reservations || []).forEach((r) => { if (isKioskRoom(r.room) && isUsableNow(r, now, cfg)) set.add(String(r.room).trim()); });
+  return Array.from(set).sort((a, b) => roomRank(a) - roomRank(b) || a.localeCompare(b, 'ko'));
+}
+
 function meetingTitle(res) {
   return String(res.showName || res.purpose || res.type || '모임').slice(0, 60);
 }
 
-// 청지기 이름은 앞 글자만 보이게(화면에서 다른 모임 청지기 이름이 그대로 노출되지 않도록)
+// 청지기 이름은 앞 글자만 보이게(예: 김**) — 고른 호실의 모임 목록에만 내려감
 function maskName(name) {
   const s = String(name || '').trim();
   if (!s) return '';
-  return s.slice(0, 1) + '○'.repeat(Math.max(1, Math.min(3, s.length - 1)));
+  return s.slice(0, 1) + '*'.repeat(Math.max(1, Math.min(3, s.length - 1)));
 }
 
 // 모임 목록 정렬 — 5층 소그룹실(505~511호)을 호수 순으로 먼저, 그 밖의 공간(아론홀·샤론홀 등)은 뒤에 이름순, 같은 공간이면 시작 시간순
@@ -130,5 +137,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, activeRoomNames, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName,
 };

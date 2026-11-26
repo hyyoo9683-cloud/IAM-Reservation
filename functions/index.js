@@ -402,15 +402,25 @@ async function loadKioskConfig(key) {
 exports.kioskRooms = onCall(async (request) => {
   const cfg = await loadKioskConfig(request.data && request.data.key);
   if (request.data && request.data.warm) return { warm: true };   // 함수·DB 연결을 미리 깨워 두기 위한 호출(키오스크 화면이 몇 분마다 보냄)
-  let names = [];
-  try {
-    const snap = await getFirestore().collection('spaces').get();
-    snap.forEach((d) => { names.push((d.data() || {}).name); });
-  } catch (e) { console.error('kioskRooms: spaces 읽기 실패', e.message || e); }
-  return { rooms: kiosk.roomChoices(names), counselRooms: kiosk.COUNSEL_ROOMS.slice(), counselEnabled: cfg.counselEnabled, afterMin: cfg.afterMin };
+  const db = getFirestore();
+  const now = kiosk.kstNow();
+  // 호실 이름(공간 관리)과 오늘 확정 예약을 동시에 읽음. 예약은 '어느 호실에 지금 모임이 있는지' 여부(activeRooms)만 만들고 모임명·청지기는 내려보내지 않음
+  const [spacesSnap, resSnap] = await Promise.all([
+    db.collection('spaces').get().catch((e) => { console.error('kioskRooms: spaces 읽기 실패', e.message || e); return null; }),
+    db.collection('reservations').where('date', '==', now.date).where('status', '==', '확정').get().catch((e) => { console.error('kioskRooms: 예약 읽기 실패', e.message || e); return null; }),
+  ]);
+  const names = [];
+  if (spacesSnap) spacesSnap.forEach((d) => { names.push((d.data() || {}).name); });
+  const reservations = [];
+  if (resSnap) resSnap.forEach((d) => { const r = d.data(); reservations.push({ room: r.room, date: r.date, start: r.start, end: r.end, status: r.status }); });
+  return {
+    rooms: kiosk.roomChoices(names),
+    activeRooms: resSnap ? kiosk.activeRoomNames(reservations, now, cfg) : null,
+    counselRooms: kiosk.COUNSEL_ROOMS.slice(), counselEnabled: cfg.counselEnabled, afterMin: cfg.afterMin,
+  };
 });
 
-// 고른 호실에서 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후) — 다른 호실의 모임·청지기 이름은 내려가지 않음
+// 고른 호실에서 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후) — 청지기 이름은 `김**`처럼 가려서만, 다른 호실의 모임은 내려가지 않음
 exports.kioskMeetings = onCall(async (request) => {
   const data = request.data || {};
   if (data.warm) { await loadKioskConfig(data.key); return { warm: true }; }
@@ -429,7 +439,7 @@ exports.kioskMeetings = onCall(async (request) => {
     snap.forEach((d) => {
       const r = d.data();
       if (r.room !== room || !kiosk.isUsableNow(r, now, cfg)) return;
-      meetings.push({ id: d.id, room: r.room || '', name: kiosk.meetingTitle(r), start: r.start, end: r.end });
+      meetings.push({ id: d.id, room: r.room || '', name: kiosk.meetingTitle(r), start: r.start, end: r.end, steward: kiosk.maskName(r.stewardName) });
     });
   }
   meetings.sort(kiosk.compareMeetings);

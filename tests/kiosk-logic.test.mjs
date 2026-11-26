@@ -24,7 +24,7 @@ t('시간대 설정 변경 반영', () => { const c = k.normalizeConfig({ before
 t('한국 시간 변환(UTC 15:30 = 다음날 00:30)', () => { const n = k.kstNow(Date.UTC(2026, 10, 24, 15, 30)); assert.equal(n.date, '2026-11-25'); assert.equal(n.minutes, 30); });
 t('한국 시간 변환(UTC 14:59 = 같은날 23:59)', () => { const n = k.kstNow(Date.UTC(2026, 10, 24, 14, 59)); assert.equal(n.date, '2026-11-24'); assert.equal(n.minutes, 23 * 60 + 59); });
 t('연락처 뒤 4자리', () => { assert.equal(k.last4Digits('010-1234-5678'), '5678'); assert.equal(k.last4Digits('01012345678'), '5678'); assert.equal(k.last4Digits('12'), ''); assert.equal(k.last4Digits(''), ''); assert.equal(k.last4Digits(null), ''); });
-t('이름 가리기', () => { assert.equal(k.maskName('김철수'), '김○○'); assert.equal(k.maskName('김'), '김○'); assert.equal(k.maskName(''), ''); });
+t('이름 가리기', () => { assert.equal(k.maskName('김철수'), '김**'); assert.equal(k.maskName('김'), '김*'); assert.equal(k.maskName(''), ''); });
 t('모임 제목 우선순위', () => { assert.equal(k.meetingTitle({ showName: '공연', purpose: '목적', type: '기관' }), '공연'); assert.equal(k.meetingTitle({ purpose: '목적', type: '기관' }), '목적'); assert.equal(k.meetingTitle({ type: '기관' }), '기관'); assert.equal(k.meetingTitle({}), '모임'); });
 t('기기 키 비교', () => { assert.ok(k.keyMatches('abc', 'abc')); assert.ok(!k.keyMatches('abd', 'abc')); assert.ok(!k.keyMatches('', '')); assert.ok(!k.keyMatches('abc', '')); assert.ok(!k.keyMatches(undefined, 'abc')); assert.ok(!k.keyMatches('abcd', 'abc')); });
 t('주차 링크는 https만', () => { assert.ok(k.isSafeParkingUrl('https://a.example/x')); assert.ok(!k.isSafeParkingUrl('http://a.example')); assert.ok(!k.isSafeParkingUrl('javascript:alert(1)')); assert.ok(!k.isSafeParkingUrl('')); });
@@ -40,4 +40,10 @@ t('호실 목록: 제외 공간만 있어도 기본 목록', () => assert.equal(
 t('상담실: 502~504호만, 일반 호실 목록에서는 빠짐', () => { assert.ok(k.isCounselRoom('502호') && k.isCounselRoom('504호') && !k.isCounselRoom('505호')); assert.deepEqual(k.COUNSEL_ROOMS, ['502호', '503호', '504호']); assert.deepEqual(k.roomChoices(['502호', '503호', '505호', '샤론홀']), ['505호', '샤론홀']); assert.ok(!k.isKioskRoom('503호')); });
 t('상담실: 기본 설정(켜짐·하루 10건)과 범위 보정', () => { assert.equal(cfg.counselEnabled, true); assert.equal(cfg.counselDailyCap, 10); const c = k.normalizeConfig({ counselEnabled: false, counselDailyCap: 9999 }); assert.equal(c.counselEnabled, false); assert.equal(c.counselDailyCap, 200); assert.equal(k.normalizeConfig({ counselDailyCap: 0 }).counselDailyCap, 0); });
 t('목회자 성함 검사: 한글·영문 2~20자, 공백 정리, 숫자·기호·태그 거부', () => { assert.equal(k.cleanPastorName('  홍   길동 '), '홍 길동'); assert.equal(k.cleanPastorName('John Kim'), 'John Kim'); for (const bad of ['', '홍', '홍1', '<b>홍길동</b>', '홍길동; DROP', 'ㅋ'.repeat(21), null, undefined]) assert.equal(k.cleanPastorName(bad), '', String(bad)); });
+t('지금 예약이 있는 호실: 이용 시간대·확정·대상 호실만, 중복 없이 호수 순', () => {
+  const list = [res({ room: '506호' }), res({ room: '505호' }), res({ room: '505호', start: '20:00', end: '21:00' }), res({ room: '508호', start: '10:00', end: '11:00' }), res({ room: '샤론홀', status: '대기' }), res({ room: '아론홀' }), res({ room: '아이엠홀' }), res({ room: '502호' }), res({ room: '샤론홀' })];
+  assert.deepEqual(k.activeRoomNames(list, now(19, 30), cfg), ['505호', '506호', '샤론홀']);
+  assert.deepEqual(k.activeRoomNames([], now(19, 30), cfg), []);
+  assert.deepEqual(k.activeRoomNames(null, now(19, 30), cfg), []);
+});
 console.log(`\n${pass}개 통과`);
