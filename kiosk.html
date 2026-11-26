@@ -404,7 +404,7 @@ function openParking(info) {
 function renderDone() {
   clearTimers(); st.step = 'done';
   let left = 10;
-  body.innerHTML = stepper(3) + `<div class="ok"><div class="ck">✓</div><h2>감사합니다</h2><p class="sub">${esc(st.sel.room)} · ${esc(st.sel.name)}<br>모임을 마치고 나가실 때 호실의 퇴실 체크도 부탁드립니다.</p><button class="btn" id="home">처음으로 <span id="cd2">(10)</span></button></div>`;
+  body.innerHTML = stepper(3) + `<div class="ok"><div class="ck">✓</div><h2>감사합니다</h2><button class="btn" id="home">처음으로 <span id="cd2">(10)</span></button></div>`;
   $('home').onclick = goHome;
   every(() => { left--; const el = $('cd2'); if (el) el.textContent = `(${left})`; if (left <= 0) goHome(); }, 1000);
 }
