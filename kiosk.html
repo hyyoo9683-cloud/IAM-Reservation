@@ -25,7 +25,7 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .stepper{display:flex;gap:6px;margin-bottom:18px;font-size:13px;color:var(--mut);flex-wrap:wrap}
 .stepper span{padding:4px 10px;border-radius:99px;background:#f0f1f0}
 .stepper span.on{background:var(--g);color:#fff;font-weight:700}
-.roomgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.roomrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px;max-width:640px}
 .roombtn{font:inherit;font-size:20px;font-weight:700;letter-spacing:-.02em;border:0;border-radius:12px;padding:18px 8px;cursor:pointer;background:var(--gl);color:#2f5a44}
 .roombtn.g2{background:#F3ECDD;color:#6a5426}
 .roombtn:active{filter:brightness(.92)}
@@ -60,6 +60,8 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .foot .cd{margin-left:auto;font-size:14px;color:var(--mut)}
 .frame-wrap{flex:1;display:flex;flex-direction:column;border:2px solid var(--ink);border-radius:14px;overflow:hidden;min-height:480px;background:#fff}
 .frame-wrap iframe{flex:1;border:0;width:100%;min-height:480px}
+.warn{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#FFF4D6;border-radius:12px;padding:12px 16px;margin-top:12px;font-size:15px;font-weight:600;color:#6a5426}
+.warn[hidden]{display:none}
 .ok{text-align:center;margin:auto}
 .ok .ck{width:84px;height:84px;border-radius:50%;background:var(--g);color:#fff;font-size:46px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
 .center{margin:auto;text-align:center;max-width:520px}
@@ -111,7 +113,9 @@ const KEY = readKey();
 const $ = id => document.getElementById(id);
 const body = $('body');
 const IDLE_MS = 2 * 60 * 1000;  // 모임 선택·연락처 입력 화면에서 2분 동안 아무 조작이 없으면 처음 화면으로
-const FRAME_SEC = 120;          // 주차 화면 최대 유지 시간
+const PARK_IDLE_SEC = 120;      // 주차 화면: 움직임이 없어진 뒤 이만큼 지나면 처음 화면으로 (움직임이 있으면 다시 처음부터 잼)
+const PARK_WARN_SEC = 30;       // 남은 시간이 이만큼이면 '계속 이용하기' 안내를 띄움
+let parkActivity = null;        // 주차 화면이 열려 있는 동안만 연결되는 '움직임 감지' 함수
 let st = { step: 'start', rooms: [], room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: null };
 let timers = [];
 function clearTimers() { timers.forEach(clearInterval); timers.forEach(clearTimeout); timers = []; }
@@ -122,6 +126,10 @@ const IDLE_STEPS = ['rooms', 'pick', 'pin'];
 function armIdle() { clearTimeout(idleT); if (IDLE_STEPS.includes(st.step)) idleT = setTimeout(() => { if (IDLE_STEPS.includes(st.step)) goHome(); }, IDLE_MS); }
 ['pointerdown', 'touchstart', 'keydown'].forEach(ev => document.addEventListener(ev, armIdle, true));
 document.addEventListener('contextmenu', e => e.preventDefault());
+// 주차 화면의 움직임 감지 — 안쪽(업체 페이지)에서 누르거나 입력하면 이 화면은 이벤트를 못 받지만, 처음 누를 때 이 창이 포커스를 잃는(blur) 것은 알 수 있음
+['pointerdown', 'touchstart', 'keydown', 'mousemove', 'wheel'].forEach(ev => document.addEventListener(ev, () => { if (parkActivity) parkActivity(); }, { capture: true, passive: true }));
+window.addEventListener('blur', () => { if (parkActivity) parkActivity(); });
+window.addEventListener('focus', () => { if (parkActivity) parkActivity(); });
 
 function tickClock() {
   const d = new Date();
@@ -153,7 +161,7 @@ function compareMeetings(a, b) {
 function fmtMin(m) { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}시간 ${r}분` : h ? `${h}시간` : `${r}분`; }
 function afterNote() { return st.afterMin == null ? '' : ` (적용 시간: 모임 종료 시간 이후 ${fmtMin(st.afterMin)}까지)`; }
 
-function goHome() { clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
+function goHome() { parkActivity = null; mtgCache.clear(); clearTimers(); clearTimeout(idleT); st = { step: 'start', rooms: [], room: '', meetings: [], sel: null, pin: '', busy: false, afterMin: st.afterMin }; renderStart(); }
 
 // 처음 화면 — 이용자가 '주차 등록하기'를 눌러야 모임 선택으로 넘어감
 function renderStart() {
@@ -167,6 +175,38 @@ function renderStart() {
   $('go').onclick = () => renderRooms();
 }
 
+// ── 속도: 호실 목록·모임 목록은 요청을 한 번만 보내고 잠깐 기억해 두며, 함수가 잠들지 않게 미리 깨워 둠 ──
+const ROOMS_TTL = 10 * 60 * 1000;   // 호실 이름 목록은 거의 안 바뀜
+const MTG_TTL = 60 * 1000;          // 모임 목록은 1분까지만 재사용
+let roomsCache = { t: 0, p: null };
+const mtgCache = new Map();         // 호실 이름 → { t, p }
+function fetchRooms(force) {
+  if (!force && roomsCache.p && Date.now() - roomsCache.t < ROOMS_TTL) return roomsCache.p;
+  const p = callRooms({ key: KEY }).then(r => r.data);
+  roomsCache = { t: Date.now(), p };
+  p.catch(() => { if (roomsCache.p === p) roomsCache = { t: 0, p: null }; });
+  return p;
+}
+function fetchMeetings(room, force) {
+  const c = mtgCache.get(room);
+  if (!force && c && Date.now() - c.t < MTG_TTL) return c.p;
+  const p = callMeetings({ key: KEY, room }).then(r => r.data);
+  mtgCache.set(room, { t: Date.now(), p });
+  p.catch(() => { const cur = mtgCache.get(room); if (cur && cur.p === p) mtgCache.delete(room); });
+  return p;
+}
+// 서버 함수는 한동안 안 쓰면 꺼졌다가 첫 호출 때 몇 초 걸려 켜짐 → 화면이 열려 있는 동안 몇 분마다, 그리고 화면을 처음 만질 때 미리 한 번씩 불러 둠
+let lastWarm = 0;
+function warmAll() {
+  if (!KEY) return;
+  lastWarm = Date.now();
+  fetchRooms(true).catch(() => {});
+  callMeetings({ key: KEY, warm: true }).catch(() => {});
+  callVerify({ key: KEY, warm: true }).catch(() => {});
+}
+setInterval(warmAll, 4 * 60 * 1000);
+document.addEventListener('pointerdown', () => { if (Date.now() - lastWarm > 60 * 1000) warmAll(); }, true);
+
 const NOKEY = '<div class="center"><h2>키오스크로 설정되지 않은 기기입니다</h2><p class="sub">관리자 화면(주차 등록 관리)에서 발급한 설정 주소를 이 기기에서 한 번 열어 주시기 바랍니다.</p></div>';
 function discountNote() { return '모임 이용자만 할인 가능합니다.' + afterNote(); }
 
@@ -177,9 +217,15 @@ function roomGroupsHtml() {
     { title: '세미나실', cls: 'g2', list: [] },
   ];
   st.rooms.forEach((r, i) => (/^5\d{2}호$/.test(r) ? groups[0] : groups[1]).list.push({ r, i }));
+  // 5층 소그룹실은 505~507호 한 줄, 508~511호 한 줄로 나눠 보여줌(나머지는 한 줄)
+  const num = r => Number(String(r).slice(0, 3));
+  const rowsOf = g => g.cls === 'g1'
+    ? [g.list.filter(x => num(x.r) <= 507), g.list.filter(x => num(x.r) > 507)].filter(a => a.length)
+    : [g.list];
+  const btn = (g, { r, i }) => `<button class="roombtn ${g.cls}" data-i="${i}">${esc(r)}</button>`;
   return groups.filter(g => g.list.length).map(g =>
-    `<section class="rgroup"><h3>${g.title}</h3><div class="roomgrid">` +
-    g.list.map(({ r, i }) => `<button class="roombtn ${g.cls}" data-i="${i}">${esc(r)}</button>`).join('') + '</div></section>').join('');
+    `<section class="rgroup"><h3>${g.title}</h3>` +
+    rowsOf(g).map(row => `<div class="roomrow">${row.map(x => btn(g, x)).join('')}</div>`).join('') + '</section>').join('');
 }
 
 // 1) 호실 선택 — 어느 호실에 지금 모임이 있는지는 보이지 않게, 호실 이름만 항상 같은 모양으로 보여줌
@@ -188,7 +234,7 @@ async function renderRooms() {
   if (!KEY) { body.innerHTML = NOKEY; return; }
   body.innerHTML = stepper(0) + '<h2>어느 호실을 이용하셨나요?</h2><p class="sub">불러오는 중…</p>';
   try {
-    const { data } = await callRooms({ key: KEY });
+    const data = await fetchRooms();
     if (st.step !== 'rooms') return;
     st.rooms = data.rooms || [];
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
@@ -196,6 +242,7 @@ async function renderRooms() {
       roomGroupsHtml() +
       '<div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>';
     $('back').onclick = goHome;
+    body.querySelectorAll('.roombtn').forEach(b => b.addEventListener('pointerdown', () => { fetchMeetings(st.rooms[+b.dataset.i]).catch(() => {}); }));
     body.querySelectorAll('.roombtn').forEach(b => b.onclick = () => { st.room = st.rooms[+b.dataset.i]; st.meetings = []; st.step = 'pick'; renderPick(true); });
   } catch (e) {
     if (st.step !== 'rooms') return;
@@ -211,7 +258,7 @@ async function renderPick(fresh) {
   if (!st.room) { renderRooms(); return; }
   if (fresh) body.innerHTML = stepper(0) + `<h2>${esc(st.room)}</h2><p class="sub">불러오는 중…</p>`;
   try {
-    const { data } = await callMeetings({ key: KEY, room: st.room });
+    const data = await fetchMeetings(st.room, !fresh);
     if (st.step !== 'pick') return;
     st.meetings = (data.meetings || []).slice().sort(compareMeetings);
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
@@ -276,18 +323,28 @@ function openParking(info) {
   clearTimers(); clearTimeout(idleT);
   if (info.mode === 'redirect') { location.href = info.url; return; }
   st.step = 'park';
-  let left = FRAME_SEC;
+  let left = PARK_IDLE_SEC;
   body.innerHTML = stepper(2) + '<h2>주차 등록</h2><p class="sub">아래 화면에서 차량번호 뒤 4자리와 입차 날짜를 입력해 차량을 조회한 뒤 “무료 2시간”을 등록해 주세요. 등록이 끝나면 아래 “등록을 마쳤습니다”를 눌러 주세요.</p>' +
     `<div class="frame-wrap"><iframe id="pf" title="주차 등록" referrerpolicy="no-referrer" sandbox="allow-scripts allow-forms allow-same-origin"></iframe></div>
+     <div class="warn" id="warn" hidden><span id="warn-t"></span><button class="btn sm" id="keep">계속 이용하기</button></div>
      <div class="foot"><button class="btn" id="fin">등록을 마쳤습니다</button><button class="btn ghost" id="cancel">처음으로</button>
      <button class="btn ghost sm" id="fb">화면이 비어 있다면 여기를 눌러 주세요</button><span class="cd" id="cd"></span></div>`;
+  const reset = () => { const wasWarn = left <= PARK_WARN_SEC; left = PARK_IDLE_SEC; if (wasWarn) show(); };
+  const show = () => {
+    const el = $('cd'); if (!el) return;
+    el.textContent = `움직임이 없으면 ${Math.floor(left / 60)}분 ${String(left % 60).padStart(2, '0')}초 후 처음 화면으로 돌아갑니다`;
+    const w = $('warn'); w.hidden = left > PARK_WARN_SEC;
+    if (!w.hidden) $('warn-t').textContent = `${left}초 뒤 처음 화면으로 돌아갑니다. 계속 이용하시려면 아래 버튼을 눌러 주세요.`;
+  };
+  parkActivity = reset;                                 // 이 화면을 누르거나 움직이거나 창 포커스가 바뀌면 시간을 처음부터 다시 잼
+  $('pf').addEventListener('load', reset);              // 업체 페이지가 새로 열릴 때마다(조회·선택·등록 단계 이동) 움직임으로 봄
   $('pf').src = info.url;
-  $('fin').onclick = renderDone;
-  $('cancel').onclick = goHome;
+  $('keep').onclick = reset;
+  $('fin').onclick = () => { parkActivity = null; renderDone(); };
+  $('cancel').onclick = () => { parkActivity = null; goHome(); };
   $('fb').onclick = () => { location.href = info.url; };
-  const cd = () => { $('cd').textContent = `${Math.floor(left / 60)}분 ${String(left % 60).padStart(2, '0')}초 후 처음 화면으로 돌아갑니다`; };
-  cd();
-  every(() => { left--; cd(); if (left <= 0) goHome(); }, 1000);
+  show();
+  every(() => { left--; show(); if (left <= 0) { parkActivity = null; goHome(); } }, 1000);
 }
 
 function renderDone() {
@@ -299,6 +356,7 @@ function renderDone() {
 }
 
 renderStart();
+warmAll();
 </script>
 </body>
 </html>

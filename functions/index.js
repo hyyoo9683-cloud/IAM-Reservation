@@ -375,9 +375,20 @@ exports.rebuildPublicReservations = onDocumentWritten(
 // ─────────────────────────────────────────────────────────────
 const kiosk = require('./lib/kiosk');
 
-async function loadKioskConfig(key) {
+// 설정 문서는 인스턴스 메모리에 잠깐(기본 60초) 보관 — 호출마다 Firestore를 한 번 더 읽는 시간을 줄임.
+// 그래서 설정·기기 키를 바꾸거나 키오스크를 끄면 최대 1분 뒤에 반영됨(KIOSK_CONFIG_TTL_MS로 조정, 0이면 캐시 안 씀)
+let kioskCfgCache = { t: 0, data: null };
+async function readKioskConfigDoc() {
+  const ttl = process.env.KIOSK_CONFIG_TTL_MS == null ? 60000 : Number(process.env.KIOSK_CONFIG_TTL_MS);
+  if (ttl > 0 && kioskCfgCache.data && Date.now() - kioskCfgCache.t < ttl) return kioskCfgCache.data;
   const snap = await getFirestore().collection('system').doc('kioskConfig').get();
-  const cfg = kiosk.normalizeConfig(snap.exists ? snap.data() : {});
+  const data = snap.exists ? snap.data() : {};
+  kioskCfgCache = { t: Date.now(), data };
+  return data;
+}
+
+async function loadKioskConfig(key) {
+  const cfg = kiosk.normalizeConfig(await readKioskConfigDoc());
   if (!kiosk.keyMatches(key, cfg.key)) {
     throw new HttpsError('permission-denied', '이 기기는 키오스크로 설정되어 있지 않습니다.');
   }
@@ -390,6 +401,7 @@ async function loadKioskConfig(key) {
 // 호실 선택 화면용 호실 이름 목록 — 어느 호실에 지금 모임이 있는지는 알려주지 않음(공간 관리에 등록된 이름만, 없으면 기본 목록)
 exports.kioskRooms = onCall(async (request) => {
   const cfg = await loadKioskConfig(request.data && request.data.key);
+  if (request.data && request.data.warm) return { warm: true };   // 함수·DB 연결을 미리 깨워 두기 위한 호출(키오스크 화면이 몇 분마다 보냄)
   let names = [];
   try {
     const snap = await getFirestore().collection('spaces').get();
@@ -401,14 +413,19 @@ exports.kioskRooms = onCall(async (request) => {
 // 고른 호실에서 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후) — 다른 호실의 모임·청지기 이름은 내려가지 않음
 exports.kioskMeetings = onCall(async (request) => {
   const data = request.data || {};
-  const cfg = await loadKioskConfig(data.key);
+  if (data.warm) { await loadKioskConfig(data.key); return { warm: true }; }
   const room = typeof data.room === 'string' ? data.room.trim() : '';
-  if (!room || room.length > 60) throw new HttpsError('invalid-argument', '호실을 먼저 선택해 주시기 바랍니다.');
+  if (!room || room.length > 60) { await loadKioskConfig(data.key); throw new HttpsError('invalid-argument', '호실을 먼저 선택해 주시기 바랍니다.'); }
   const now = kiosk.kstNow();
+  // 설정 확인과 오늘 예약 조회를 동시에 시작 — 순서대로 읽는 것보다 한 번 오가는 시간만큼 빠름(키가 틀리면 결과는 버려지고 응답에 쓰이지 않음)
+  const [cfg, snap] = await Promise.all([
+    loadKioskConfig(data.key),
+    kiosk.isKioskRoom(room)
+      ? getFirestore().collection('reservations').where('date', '==', now.date).where('status', '==', '확정').get()
+      : Promise.resolve(null),
+  ]);
   const meetings = [];
-  if (kiosk.isKioskRoom(room)) {
-    const snap = await getFirestore().collection('reservations')
-      .where('date', '==', now.date).where('status', '==', '확정').get();
+  if (snap) {
     snap.forEach((d) => {
       const r = d.data();
       if (r.room !== room || !kiosk.isUsableNow(r, now, cfg)) return;
@@ -423,6 +440,7 @@ exports.kioskMeetings = onCall(async (request) => {
 exports.kioskVerify = onCall(async (request) => {
   const data = request.data || {};
   const cfg = await loadKioskConfig(data.key);
+  if (data.warm) return { warm: true };   // 미리 깨워 두기용 호출 — 기록·검사 없음
   const resId = typeof data.reservationId === 'string' ? data.reservationId : '';
   const last4 = typeof data.last4 === 'string' ? data.last4 : '';
   if (!resId || resId.length > 200 || resId.includes('/') || !/^\d{4}$/.test(last4)) {

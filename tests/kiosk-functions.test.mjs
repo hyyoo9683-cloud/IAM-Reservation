@@ -1,6 +1,7 @@
 // kioskMeetings / kioskVerify 통합 테스트 — Firestore 에뮬레이터 필요: `cd tests && npm run test:kiosk`
 process.env.FIRESTORE_EMULATOR_HOST = '127.0.0.1:8085';
 process.env.GCLOUD_PROJECT = 'demo-iam';
+process.env.KIOSK_CONFIG_TTL_MS = '0';   // 테스트 중 설정을 바꿔 가며 확인하므로 설정 캐시를 끔(캐시 동작은 맨 아래에서 따로 확인)
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 // 시각 고정: 한국 시간 2026-11-25 19:30 (= UTC 10:30)
@@ -108,6 +109,28 @@ await db.doc('system/kioskConfig').set({ enabled: true, parkingUrl: 'http://inse
 await db.doc('kioskAttempts/r6').set({ fails: 0, lockUntil: 0 });
 x = await call('kioskVerify', { key: KEY, reservationId: 'r6', last4: '7777' });
 ok('https가 아닌 링크는 내주지 않음', x.e && x.e.code === 'failed-precondition' && !JSON.stringify(x.e.message).includes('insecure'));
+
+// 미리 깨우기(warm) 호출 — 기록·검사 없이 빠르게 응답하고, 키가 틀리면 거부
+await db.doc('system/kioskConfig').set({ enabled: true, parkingUrl: 'https://parking.example/discount/secret' }, { merge: true });
+const logsBefore = (await db.collection('parkingLogs').get()).size;
+for (const fn of ['kioskRooms', 'kioskMeetings', 'kioskVerify']) {
+  x = await call(fn, { key: KEY, warm: true });
+  ok(`warm: ${fn}는 {warm:true}만 돌려줌`, x.r && x.r.warm === true && Object.keys(x.r).length === 1);
+  x = await call(fn, { key: 'wrong', warm: true });
+  ok(`warm: ${fn}도 키가 틀리면 거부`, x.e && x.e.code === 'permission-denied');
+}
+ok('warm 호출은 주차 기록을 남기지 않음', (await db.collection('parkingLogs').get()).size === logsBefore);
+
+// 설정 캐시 — 캐시가 켜져 있으면 설정을 바꿔도 잠깐 이전 값이 쓰이고, 끄면 바로 반영
+process.env.KIOSK_CONFIG_TTL_MS = '60000';
+await call('kioskRooms', { key: KEY });                        // 캐시에 담음
+await db.doc('system/kioskConfig').set({ enabled: false }, { merge: true });
+x = await call('kioskRooms', { key: KEY });
+ok('설정 캐시: 끔으로 바꿔도 캐시가 남아 있는 동안은 이전 설정으로 응답(최대 1분)', x.r && Array.isArray(x.r.rooms));
+process.env.KIOSK_CONFIG_TTL_MS = '0';
+x = await call('kioskRooms', { key: KEY });
+ok('설정 캐시를 끄면 바뀐 설정이 바로 반영(끔 → 점검 안내)', x.e && x.e.code === 'failed-precondition');
+await db.doc('system/kioskConfig').set({ enabled: true }, { merge: true });
 
 console.log(`\n결과: ${pass}개 통과, ${fail}개 실패`);
 process.exit(fail ? 1 : 0);
