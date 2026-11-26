@@ -304,6 +304,8 @@
   .mc-chip.main { background: var(--brand); color: #fff; font-weight: 700; }
   .mc-more { font-size: 11px; color: var(--text3); padding-left: 4px; }
   .mc-count { display: none; }
+  .mc-tm, .mc-tmore { display: none; }
+  .tm { cursor: pointer; }
   @media (max-width: 640px) {
     #appnav { display: none; }
     .topbar-strip { min-height: 48px; padding-top: max(10px, env(safe-area-inset-top)); font-size: 16px; }
@@ -324,8 +326,10 @@
     .mc-wrap { padding: 0 8px; }
     .mc-cell { min-height: 58px; padding: 4px 2px; align-items: center; }
     .mc-chip, .mc-more { display: none; }
-    .mc-count { display: inline-flex; font-size: 11px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 0 7px; line-height: 17px; }
-    .mc-count.m { background: #2F5A43; }
+    .mc-cell { justify-content: flex-start; gap: 2px; min-height: 84px; }
+    .mc-tm { display: block; width: 100%; border: 0; font-family: inherit; font-size: 10.5px; font-weight: 800; line-height: 1.25; padding: 3px 0; border-radius: 6px; background: var(--blue-lt); color: #2F5A43; font-variant-numeric: tabular-nums; cursor: pointer; text-align: center; }
+    .mc-tm.main { background: var(--brand); color: #fff; }
+    .mc-tmore { display: block; font-size: 10.5px; font-weight: 800; color: var(--text3); }
     #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 150; height: calc(62px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--brand); justify-content: space-around; align-items: center; }
     #tabbar .tb-i { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: rgba(255,255,255,.66); font-size: 11px; font-weight: 700; text-decoration: none; padding: 6px 0; position: relative; }
     #tabbar .tb-i.on { color: #fff; }
@@ -736,7 +740,7 @@ function renderRoomTabs() {
 const confirmedOn = (ds, rooms) => reservations
   .filter(r => rooms.includes(r.room) && r.date === ds && r.status === '확정')
   .sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end));
-const timeChip = (r) => `<span class="tm">${esc(dispStart(r))}–${esc(dispEnd(r))}</span>`;
+const timeChip = (r) => `<span class="tm" role="button" onclick='showSlot(${JSON.stringify(r.id)})'>${esc(dispStart(r))}–${esc(dispEnd(r))}</span>`;
 // 일간: 5층은 호실(505~511호)마다 그 방의 예약 시간을 바로 보여줌
 function userDayHtml(ds) {
   const tab = curUserTab();
@@ -841,7 +845,12 @@ function renderMonth() {
     const chips = items.slice(0, MAXC).map(r =>
       `<div class="mc-chip${isMainEvent(r) ? ' main' : ''}">${esc(dispStart(r))} ${viewerIsAdmin ? esc(r.purpose || r.room) : esc(r.room)}</div>`).join('');
     const more = items.length > MAXC ? `<div class="mc-more">+${items.length - MAXC}건 더</div>` : '';
-    cells += `<div class="${cls}" onclick="jumpToDate('${ds}')"><span class="mc-d">${d.getDate()}</span>${bd ? '<div class="mc-more">🚫 불가</div>' : ''}${chips}${more}${items.length ? `<span class="mc-count${hasMain ? ' m' : ''}">${items.length}</span>` : ''}</div>`;
+    // 핸드폰: 칸 안에 시간만 작게 보여주고, 시간을 누르면 그 예약이 팝업(showSlot) — 칸의 다른 곳을 누르면 그 날 일간 보기
+    const MAXT = 3;
+    const tms = items.slice(0, MAXT).map(r =>
+      `<button type="button" class="mc-tm${isMainEvent(r) ? ' main' : ''}" onclick='event.stopPropagation();showSlot(${JSON.stringify(r.id)})'>${esc(dispStart(r))}</button>`).join('');
+    const tmMore = items.length > MAXT ? `<div class="mc-tmore">+${items.length - MAXT}</div>` : '';
+    cells += `<div class="${cls}" onclick="jumpToDate('${ds}')"><span class="mc-d">${d.getDate()}</span>${bd ? '<div class="mc-more">🚫 불가</div>' : ''}${chips}${more}${tms}${tmMore}</div>`;
   }
   document.getElementById('body').innerHTML =
     `<div class="mc-wrap" style="padding:0"><div class="mc-dow">${DOWS.map((w, i) => `<div class="${i === 0 ? 'su' : ''}">${w}</div>`).join('')}</div><div class="mc-grid">${cells}</div></div>`;
@@ -935,6 +944,18 @@ window.showDetail = (id) => {
     <div class="modal-row"><span class="k">인원</span><span class="v">${esc(r.people)}명</span></div>
     ${iamRows}
     <div class="modal-row"><span class="k">상태</span><span class="v"><span class="status-badge status-${esc(r.status)}">${esc(r.status)}</span></span></div>
+  `;
+  document.getElementById('modal-detail').classList.add('open');
+};
+// 시간(칩)을 눌렀을 때 뜨는 팝업 — 관리자는 전체 상세, 그 밖에는 공개된 정보(공간·일시)만
+window.showSlot = (id) => {
+  const r = reservations.find(x => x.id === id);
+  if (!r) return;
+  if (viewerIsAdmin) { showDetail(id); return; }
+  document.getElementById('detail-content').innerHTML = `
+    <div class="modal-title">예약됨</div>
+    <div class="modal-row"><span class="k">공간</span><span class="v">${esc(r.room)}</span></div>
+    <div class="modal-row"><span class="k">일시</span><span class="v">${esc(r.date)} ${esc(dispStart(r))}–${esc(dispEnd(r))}</span></div>
   `;
   document.getElementById('modal-detail').classList.add('open');
 };
