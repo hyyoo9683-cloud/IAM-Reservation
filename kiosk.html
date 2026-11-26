@@ -25,12 +25,14 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .stepper{display:flex;gap:6px;margin-bottom:18px;font-size:13px;color:var(--mut);flex-wrap:wrap}
 .stepper span{padding:4px 10px;border-radius:99px;background:#f0f1f0}
 .stepper span.on{background:var(--g);color:#fff;font-weight:700}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.card{border:2px solid var(--ink);border-radius:14px;padding:18px 20px;background:#fff;text-align:left;font:inherit;cursor:pointer;display:block;width:100%;color:inherit}
-.card:active{background:var(--gl);border-color:var(--g)}
-.card .room{font-size:34px;font-weight:800;color:var(--g);letter-spacing:-.03em;line-height:1.1}
-.card .nm{font-size:15px;font-weight:600;margin:8px 0 4px;letter-spacing:-.01em;word-break:break-all;color:var(--ink)}
-.card .tm{font-size:14px;color:var(--mut)}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;align-items:start}
+.rgrp{border:2px solid var(--ink);border-radius:14px;background:#fff;overflow:hidden}
+.rname{font-size:34px;font-weight:800;color:var(--g);letter-spacing:-.03em;line-height:1.1;padding:16px 20px 12px}
+.rlist{display:flex;flex-direction:column}
+.ritem{display:flex;align-items:baseline;justify-content:space-between;gap:14px;width:100%;text-align:left;font:inherit;color:var(--ink);background:#fff;border:0;border-top:1px solid var(--line);padding:15px 20px;cursor:pointer}
+.ritem:active{background:var(--gl)}
+.ritem .rn{font-size:16px;font-weight:600;word-break:break-all}
+.ritem .rt{font-size:15px;color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 .empty{border:2px dashed var(--line);border-radius:14px;padding:40px 20px;text-align:center;color:var(--mut);font-size:17px;line-height:1.8}
 .row{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
 .pad{display:grid;grid-template-columns:repeat(3,88px);gap:10px}
@@ -177,11 +179,20 @@ async function renderPick(fresh) {
 }
 function drawPick() {
   const a = st.meetings;
+  // 같은 호실의 예약이 여러 건일 수 있어 호실별로 묶고, 그 안에 예약을 목록(시간순)으로 보여줌
+  const groups = [];
+  a.forEach((x, i) => {
+    let g = groups[groups.length - 1];
+    if (!g || g.room !== x.room) { g = { room: x.room, items: [] }; groups.push(g); }
+    g.items.push({ x, i });
+  });
   body.innerHTML = stepper(0) + '<h2>어느 모임이신가요?</h2><p class="sub">모임 이용자만 할인 가능합니다.' + afterNote() + '</p>' +
     (a.length
-      ? '<div class="cards">' + a.map((x, i) => `<button class="card" data-i="${i}"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}</div></button>`).join('') + '</div>'
+      ? '<div class="rooms">' + groups.map(g => `<div class="rgrp"><div class="rname">${esc(g.room)}</div><div class="rlist">` +
+          g.items.map(({ x, i }) => `<button class="ritem" data-i="${i}"><span class="rn">${esc(x.name)}</span><span class="rt">${esc(x.start)} – ${esc(x.end)}</span></button>`).join('') +
+          '</div></div>').join('') + '</div>'
       : '<div class="empty">지금 이용할 수 있는 모임이 없습니다.<br>모임 시작 전·후 정해진 시간 동안만 등록할 수 있습니다.<br>문의: 아이엠센터 사무실</div>');
-  body.querySelectorAll('.card').forEach(c => c.onclick = () => { st.sel = st.meetings[+c.dataset.i]; st.pin = ''; st.step = 'pin'; renderPin(''); });
+  body.querySelectorAll('.ritem').forEach(c => c.onclick = () => { st.sel = st.meetings[+c.dataset.i]; st.pin = ''; st.step = 'pin'; renderPin(''); });
 }
 
 function renderPin(msg) {
