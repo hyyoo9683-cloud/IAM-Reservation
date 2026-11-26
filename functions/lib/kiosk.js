@@ -35,6 +35,7 @@ function normalizeConfig(raw) {
     lockMin: num(c.lockMin, KIOSK_DEFAULTS.lockMin, 1, 120),
     counselEnabled: c.counselEnabled !== false,
     counselDailyCap: num(c.counselDailyCap, KIOSK_DEFAULTS.counselDailyCap, 0, 200),
+    counselPastors: cleanPastorList(c.counselPastors),
     key: typeof c.key === 'string' ? c.key : '',
     parkingUrl: typeof c.parkingUrl === 'string' ? c.parkingUrl.trim() : '',
   };
@@ -117,6 +118,14 @@ function cleanPastorName(v) {
   return /^[가-힣A-Za-z·. ]{2,20}$/.test(s) ? s : '';
 }
 
+// 관리자가 등록하는 상담실 담당 목회자 명단 — 배열 또는 줄바꿈·쉼표로 나눈 문자열, 잘못된 이름·중복은 버리고 최대 100명
+function cleanPastorList(raw) {
+  const arr = Array.isArray(raw) ? raw : String(raw == null ? '' : raw).split(/[\n,]/);
+  const out = [];
+  arr.forEach((v) => { const n = cleanPastorName(v); if (n && !out.includes(n)) out.push(n); });
+  return out.slice(0, 100);
+}
+
 function last4Digits(tel) {
   const d = String(tel || '').replace(/\D/g, '');
   return d.length >= 4 ? d.slice(-4) : '';
@@ -137,5 +146,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, activeRoomNames, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, activeRoomNames, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName, cleanPastorList,
 };

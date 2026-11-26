@@ -117,6 +117,9 @@ th{color:var(--text3);font-weight:700;font-size:12.5px}
         <div>
           <select id="c-counsel"><option value="1">켜짐</option><option value="0">끔(상담실 버튼 숨김)</option></select>
           <div style="margin-top:8px">호실마다 하루 <input class="n" id="c-cap" type="number" min="0" max="200"> 건까지 (0이면 제한 없음)</div>
+          <div style="margin-top:8px">담당 목회자 명단 (한 줄에 한 명)</div>
+          <textarea id="c-pastors" rows="6" style="width:100%;max-width:320px;font:inherit;padding:8px;box-sizing:border-box" placeholder="홍길동&#10;김철수"></textarea>
+          <div class="hint">명단을 넣으면 키오스크 상담실 화면에서 이 이름을 눌러 고르고, 명단에 없는 이름은 서버가 막습니다. 비워 두면 성함을 직접 입력받습니다(예전 방식). 한글·영문 2~20자만 인정되고 중복은 하나로 합쳐집니다.</div>
           <div class="hint">502~504호 상담실은 예약을 확인하지 않고 담당 목회자 성함만 적어 등록합니다. 상한을 넘으면 그날은 막히고, 모든 등록은 아래 기록에 남아 상담 시스템과 대조할 수 있습니다.</div>
         </div>
 
@@ -214,12 +217,14 @@ function fillForm() {
   $('c-lock').value = cfg.lockMin ?? 5;
   $('c-counsel').value = cfg.counselEnabled === false ? '0' : '1';
   $('c-cap').value = cfg.counselDailyCap ?? 10;
+  $('c-pastors').value = (Array.isArray(cfg.counselPastors) ? cfg.counselPastors : []).join('\n');
   $('c-url').value = '';
   $('c-url').placeholder = cfg.parkingUrl ? '저장되어 있습니다 (바꾸려면 새 주소를 입력)' : 'https://…';
   $('key-hint').textContent = cfg.key ? '기기 키가 발급되어 있습니다.' : '아직 기기 키가 없습니다. “새 키 발급”을 눌러 주시기 바랍니다.';
 }
 const clampN = (id, min, max, def) => { const n = Math.round(Number($(id).value)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
 
+const cleanPastors = (v) => { const out = []; String(v || '').split(/[\n,]/).forEach(x => { const n = x.replace(/\s+/g, ' ').trim(); if (/^[가-힣A-Za-z·. ]{2,20}$/.test(n) && !out.includes(n)) out.push(n); }); return out.slice(0, 100); };
 window.saveConfig = async () => {
   const st = $('c-status'); st.className = 'status'; st.textContent = '저장 중…';
   const url = $('c-url').value.trim();
@@ -230,6 +235,7 @@ window.saveConfig = async () => {
     beforeMin: clampN('c-before', 0, 240, 30), afterMin: clampN('c-after', 0, 240, 120),
     failLimit: clampN('c-limit', 1, 20, 5), lockMin: clampN('c-lock', 1, 120, 5),
     counselEnabled: $('c-counsel').value === '1', counselDailyCap: clampN('c-cap', 0, 200, 10),
+    counselPastors: cleanPastors($('c-pastors').value),
     updatedAt: serverTimestamp(),
   };
   if (url) data.parkingUrl = url;
