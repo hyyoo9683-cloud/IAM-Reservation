@@ -298,7 +298,7 @@ function drawPick() {
       ? `<div class="rooms one"><div class="rgrp"><div class="rname">${esc(st.room)}</div><div class="rlist">` +
           a.map((x, i) => `<button class="ritem" data-i="${i}"><span class="rl"><span class="rn">${esc(x.name)}</span>${x.steward ? `<span class="rs">청지기 ${esc(x.steward)}</span>` : ''}</span><span class="rt">${esc(x.start)} – ${esc(x.end)}</span></button>`).join('') +
           '</div></div></div>'
-      : `<div class="empty">${esc(st.room)}에는 현재 예약 모임이 없습니다.<br>주차 등록은 모임 시간 후 ${fmtMin(st.afterMin == null ? 120 : st.afterMin)} 이내에만 가능합니다.<br>문의: 070-7018-1439(아이엠센터 공간예약)</div>`) +
+      : `<div class="empty">${esc(st.room)}에는 현재 예약 모임이 없습니다.<br>주차 등록은 모임 시간 후 ${fmtMin(st.afterMin == null ? 120 : st.afterMin)} 이내에만 가능합니다.<br>문의: 070-7018-1439(아이엠센터 공간예약) / 카카오톡채널 ‘아이엠센터’</div>`) +
     '<div class="foot"><button class="btn ghost" id="back">← 장소 다시 선택</button></div>';
   $('back').onclick = renderRooms;
   body.querySelectorAll('.ritem').forEach(c => c.onclick = () => { st.sel = st.meetings[+c.dataset.i]; st.pin = ''; st.step = 'pin'; renderPin(''); });
@@ -338,7 +338,7 @@ function renderCounsel(room, msg) {
 function renderPin(msg) {
   clearTimers(); armIdle();
   const x = st.sel;
-  body.innerHTML = stepper(1) + '<h2>청지기(대표 사용자) 연락처 뒤 4자리를 입력해주세요</h2><p class="sub">이용에 어려움이 있을 경우 문의 바랍니다. (070-7018-1439)</p>' +
+  body.innerHTML = stepper(1) + '<h2>청지기(대표 사용자) 연락처 뒤 4자리를 입력해주세요</h2><p class="sub">이용에 어려움이 있을 경우 문의 바랍니다. (070-7018-1439 / 카카오톡채널 ‘아이엠센터’)</p>' +
     `<div class="row"><div><div class="chosen"><div class="room">${esc(x.room)}</div><div class="nm">${esc(x.name)}</div><div class="tm">${esc(x.start)} – ${esc(x.end)}${x.steward ? ' · 청지기 ' + esc(x.steward) : ''}</div></div>
      <div class="dots" id="dots"></div><div class="msg" id="msg">${esc(msg || '')}</div></div>
      <div class="pad" id="pad">${[1,2,3,4,5,6,7,8,9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="fn" data-k="back">지움</button><button data-k="0">0</button><button class="fn" data-k="ok">확인</button></div></div>
