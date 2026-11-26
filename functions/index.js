@@ -407,7 +407,7 @@ exports.kioskRooms = onCall(async (request) => {
     const snap = await getFirestore().collection('spaces').get();
     snap.forEach((d) => { names.push((d.data() || {}).name); });
   } catch (e) { console.error('kioskRooms: spaces 읽기 실패', e.message || e); }
-  return { rooms: kiosk.roomChoices(names), afterMin: cfg.afterMin };
+  return { rooms: kiosk.roomChoices(names), counselRooms: kiosk.COUNSEL_ROOMS.slice(), counselEnabled: cfg.counselEnabled, afterMin: cfg.afterMin };
 });
 
 // 고른 호실에서 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후) — 다른 호실의 모임·청지기 이름은 내려가지 않음
@@ -434,6 +434,42 @@ exports.kioskMeetings = onCall(async (request) => {
   }
   meetings.sort(kiosk.compareMeetings);
   return { meetings: meetings.slice(0, 20), room, afterMin: cfg.afterMin, now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
+});
+
+// 상담실(502~504호) — 예약을 확인하지 않고 '모임을 예약한 담당 목회자 성함'만 받아 기록한 뒤 주차 링크를 돌려줌.
+// 대신 호실마다 하루 상한(counselDailyCap)을 두고, 모든 시도를 parkingLogs에 남겨 나중에 상담 시스템과 대조할 수 있게 함
+exports.kioskCounseling = onCall(async (request) => {
+  const data = request.data || {};
+  const cfg = await loadKioskConfig(data.key);
+  if (data.warm) return { warm: true };
+  if (!cfg.counselEnabled) throw new HttpsError('failed-precondition', '지금은 상담실 주차 등록을 사용할 수 없습니다. 사무실로 문의해 주시기 바랍니다.');
+  const room = typeof data.room === 'string' ? data.room.trim() : '';
+  if (!kiosk.isCounselRoom(room)) throw new HttpsError('invalid-argument', '상담실을 먼저 선택해 주시기 바랍니다.');
+  const pastor = kiosk.cleanPastorName(data.pastor);
+  if (!pastor) throw new HttpsError('invalid-argument', '담당 목회자 성함을 한글 또는 영문 2~20자로 입력해 주시기 바랍니다.');
+  if (!kiosk.isSafeParkingUrl(cfg.parkingUrl)) {
+    throw new HttpsError('failed-precondition', '주차 등록 링크가 설정되지 않았습니다. 사무실로 문의해 주시기 바랍니다.');
+  }
+  const db = getFirestore();
+  const now = kiosk.kstNow();
+  const logBase = {
+    category: '상담실', reservationId: '', room, meeting: '상담실 (자유 등록)', date: now.date,
+    start: '', end: '', steward: pastor, pastor, openedAt: FieldValue.serverTimestamp(),
+  };
+  // 호실·날짜별 하루 등록 횟수 — 상한을 넘으면 거부(거부도 기록)
+  const countRef = db.collection('kioskCounts').doc(`counsel_${now.date}_${room}`);
+  const allowed = await db.runTransaction(async (tx) => {
+    const n = ((await tx.get(countRef)).data() || {}).count || 0;
+    if (cfg.counselDailyCap > 0 && n >= cfg.counselDailyCap) return false;
+    tx.set(countRef, { count: n + 1, room, date: now.date });
+    return true;
+  });
+  if (!allowed) {
+    await db.collection('parkingLogs').add({ ...logBase, result: '상한 초과' });
+    throw new HttpsError('resource-exhausted', `오늘 ${room}의 등록 가능 횟수를 모두 사용했습니다. 사무실로 문의해 주시기 바랍니다.`);
+  }
+  await db.collection('parkingLogs').add({ ...logBase, result: '열림' });
+  return { ok: true, url: cfg.parkingUrl, mode: cfg.mode, room, meeting: logBase.meeting };
 });
 
 // 모임 선택 + 청지기 연락처 뒤 4자리 확인 → 통과하면 기록 후 주차 링크 반환

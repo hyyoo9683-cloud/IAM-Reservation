@@ -9,7 +9,12 @@ const KIOSK_DEFAULTS = {
   afterMin: 120,       // 종료 몇 분 후까지 (주차 할인 적용 시간 — 종료 후 2시간)
   failLimit: 5,        // 연속 실패 몇 번에 잠글지
   lockMin: 5,          // 잠금 시간(분)
+  counselEnabled: true, // 상담실(502~504호) 자유 등록 사용 여부
+  counselDailyCap: 10,  // 상담실 호실마다 하루 등록 상한(0이면 제한 없음)
 };
+// 상담실 — 예약을 확인하지 않고 담당 목회자 성함만 적어 등록하는 공간(2026-11-26). 호실 선택 화면의 맨 아래 '상담실' 묶음
+const COUNSEL_ROOMS = ['502호', '503호', '504호'];
+function isCounselRoom(name) { return COUNSEL_ROOMS.includes(String(name || '').trim()); }
 // 키오스크 대상에서 제외하는 공간 — 지혜홀(숙박 전용, 하루 종일 열려 있음), 아이엠홀(공연장, 2026-11-25 사용자 요청), 아론홀(2026-11-26 사용자 요청 — 세미나실은 샤론홀만)
 const EXCLUDED_ROOMS = ['지혜홀', '아이엠홀', '아론홀'];
 
@@ -28,6 +33,8 @@ function normalizeConfig(raw) {
     afterMin: num(c.afterMin, KIOSK_DEFAULTS.afterMin, 0, 240),
     failLimit: num(c.failLimit, KIOSK_DEFAULTS.failLimit, 1, 20),
     lockMin: num(c.lockMin, KIOSK_DEFAULTS.lockMin, 1, 120),
+    counselEnabled: c.counselEnabled !== false,
+    counselDailyCap: num(c.counselDailyCap, KIOSK_DEFAULTS.counselDailyCap, 0, 200),
     key: typeof c.key === 'string' ? c.key : '',
     parkingUrl: typeof c.parkingUrl === 'string' ? c.parkingUrl.trim() : '',
   };
@@ -87,7 +94,7 @@ function compareMeetings(a, b) {
 // 호실 선택 화면에 보일 수 있는 공간인지 — 제외 공간·로비·탕비실·테라스는 빼고, 호실 이름이 비어 있으면 뺌
 function isKioskRoom(name) {
   const n = String(name || '').trim();
-  return !!n && !EXCLUDED_ROOMS.includes(n) && !/로비|탕비실|테라스/.test(n);
+  return !!n && !EXCLUDED_ROOMS.includes(n) && !isCounselRoom(n) && !/로비|탕비실|테라스/.test(n);
 }
 // 공간 관리(spaces)에 등록된 이름이 없을 때 쓰는 기본 호실 목록
 const FALLBACK_ROOMS = ['505호', '506호', '507호', '508호', '509호', '510호', '511호', '샤론홀'];
@@ -95,6 +102,12 @@ function roomChoices(names) {
   const set = new Set((names || []).map(n => String(n || '').trim()).filter(isKioskRoom));
   const list = set.size ? Array.from(set) : FALLBACK_ROOMS.slice();
   return list.sort((a, b) => roomRank(a) - roomRank(b) || a.localeCompare(b, 'ko'));
+}
+
+// 담당 목회자 성함 정리·검사 — 한글·영문·공백·점만, 2~20자(숫자·기호·태그는 거부)
+function cleanPastorName(v) {
+  const s = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+  return /^[가-힣A-Za-z·. ]{2,20}$/.test(s) ? s : '';
 }
 
 function last4Digits(tel) {
@@ -117,5 +130,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, roomChoices, FALLBACK_ROOMS,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, roomChoices, FALLBACK_ROOMS, COUNSEL_ROOMS, isCounselRoom, cleanPastorName,
 };

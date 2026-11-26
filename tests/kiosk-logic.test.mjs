@@ -37,4 +37,7 @@ t('정렬: 같은 호실은 시작 시간순', () => { const l = [{ room: '505�
 t('호실 목록: 제외 공간·로비·탕비실·테라스를 빼고 중복 없이 호수 순', () => assert.deepEqual(k.roomChoices(['아론홀', '샤론홀', '511호', '505호', '1층 로비', '5층 탕비실', '야외테라스', '지혜홀', '아이엠홀', '505호', '', null]), ['505호', '511호', '샤론홀']));
 t('호실 목록: 등록된 이름이 없으면 기본 목록(505~511호·샤론홀)', () => assert.deepEqual(k.roomChoices([]), ['505호', '506호', '507호', '508호', '509호', '510호', '511호', '샤론홀']));
 t('호실 목록: 제외 공간만 있어도 기본 목록', () => assert.equal(k.roomChoices(['아이엠홀', '지혜홀', '아론홀']).length, 8));
+t('상담실: 502~504호만, 일반 호실 목록에서는 빠짐', () => { assert.ok(k.isCounselRoom('502호') && k.isCounselRoom('504호') && !k.isCounselRoom('505호')); assert.deepEqual(k.COUNSEL_ROOMS, ['502호', '503호', '504호']); assert.deepEqual(k.roomChoices(['502호', '503호', '505호', '샤론홀']), ['505호', '샤론홀']); assert.ok(!k.isKioskRoom('503호')); });
+t('상담실: 기본 설정(켜짐·하루 10건)과 범위 보정', () => { assert.equal(cfg.counselEnabled, true); assert.equal(cfg.counselDailyCap, 10); const c = k.normalizeConfig({ counselEnabled: false, counselDailyCap: 9999 }); assert.equal(c.counselEnabled, false); assert.equal(c.counselDailyCap, 200); assert.equal(k.normalizeConfig({ counselDailyCap: 0 }).counselDailyCap, 0); });
+t('목회자 성함 검사: 한글·영문 2~20자, 공백 정리, 숫자·기호·태그 거부', () => { assert.equal(k.cleanPastorName('  홍   길동 '), '홍 길동'); assert.equal(k.cleanPastorName('John Kim'), 'John Kim'); for (const bad of ['', '홍', '홍1', '<b>홍길동</b>', '홍길동; DROP', 'ㅋ'.repeat(21), null, undefined]) assert.equal(k.cleanPastorName(bad), '', String(bad)); });
 console.log(`\n${pass}개 통과`);

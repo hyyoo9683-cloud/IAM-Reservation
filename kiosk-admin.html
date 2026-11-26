@@ -113,6 +113,13 @@ th{color:var(--text3);font-weight:700;font-size:12.5px}
         <label>실패 제한</label>
         <div>연락처가 <input class="n" id="c-limit" type="number" min="1" max="20"> 번 틀리면 <input class="n" id="c-lock" type="number" min="1" max="120"> 분간 잠금 (모임별)</div>
 
+        <label>상담실 자유 등록</label>
+        <div>
+          <select id="c-counsel"><option value="1">켜짐</option><option value="0">끔(상담실 버튼 숨김)</option></select>
+          <div style="margin-top:8px">호실마다 하루 <input class="n" id="c-cap" type="number" min="0" max="200"> 건까지 (0이면 제한 없음)</div>
+          <div class="hint">502~504호 상담실은 예약을 확인하지 않고 담당 목회자 성함만 적어 등록합니다. 상한을 넘으면 그날은 막히고, 모든 등록은 아래 기록에 남아 상담 시스템과 대조할 수 있습니다.</div>
+        </div>
+
         <label></label>
         <div><button class="btn" id="c-save" onclick="saveConfig()">설정 저장</button><span class="status" id="c-status"></span></div>
       </div>
@@ -140,7 +147,7 @@ th{color:var(--text3);font-weight:700;font-size:12.5px}
       </div>
       <div id="v-log"></div>
       <div id="v-sum" style="display:none"></div>
-      <div class="hint">‘열림’은 모임 확인을 통과해 주차 사이트를 연 횟수입니다. 실제 등록(차량 수)은 주차 업체 쪽 기록과 한 달에 한 번 비교해 보시기 바랍니다. 최근 300건까지 표시합니다.</div>
+      <div class="hint">‘열림’은 모임 확인을 통과해(상담실은 성함 입력 후) 주차 사이트를 연 횟수입니다. 모임명이 ‘상담실 (자유 등록)’인 줄은 예약 확인 없이 등록된 것이라, 월 1회쯤 상담 시스템 예약과 대조해 주시기 바랍니다. 실제 등록(차량 수)은 주차 업체 쪽 기록과 한 달에 한 번 비교해 보시기 바랍니다. 최근 300건까지 표시합니다.</div>
     </div>
   </div>
 </div>
@@ -205,6 +212,8 @@ function fillForm() {
   $('c-after').value = cfg.afterMin ?? 120;
   $('c-limit').value = cfg.failLimit ?? 5;
   $('c-lock').value = cfg.lockMin ?? 5;
+  $('c-counsel').value = cfg.counselEnabled === false ? '0' : '1';
+  $('c-cap').value = cfg.counselDailyCap ?? 10;
   $('c-url').value = '';
   $('c-url').placeholder = cfg.parkingUrl ? '저장되어 있습니다 (바꾸려면 새 주소를 입력)' : 'https://…';
   $('key-hint').textContent = cfg.key ? '기기 키가 발급되어 있습니다.' : '아직 기기 키가 없습니다. “새 키 발급”을 눌러 주시기 바랍니다.';
@@ -220,6 +229,7 @@ window.saveConfig = async () => {
     mode: $('c-mode').value,
     beforeMin: clampN('c-before', 0, 240, 30), afterMin: clampN('c-after', 0, 240, 120),
     failLimit: clampN('c-limit', 1, 20, 5), lockMin: clampN('c-lock', 1, 120, 5),
+    counselEnabled: $('c-counsel').value === '1', counselDailyCap: clampN('c-cap', 0, 200, 10),
     updatedAt: serverTimestamp(),
   };
   if (url) data.parkingUrl = url;
@@ -242,7 +252,7 @@ function showKeyBox(k) {
 window.showSetup = () => {
   if (!cfg.key) { $('key-hint').textContent = '아직 기기 키가 없습니다. “새 키 발급”을 눌러 주시기 바랍니다.'; return; }
   showKeyBox(cfg.key);
-  $('key-hint').textContent = '이 주소를 키오스크로 쓸 기기에서 한 번 열어 주시기 바랍니다. 다른 사람에게 공유하지 마세요.';
+  $('key-hint').textContent = '이 주소를 키오스크로 쓸 기기에서 한 번 열어 주시기 바랍니다. 다른 사람에게 공유하지 마시기 바랍니다.';
 };
 window.newKey = async () => {
   if (!confirm('새 키를 발급하면 지금 연결된 키오스크 기기는 새 설정 주소로 다시 연결하기 전까지 사용할 수 없습니다. 계속하시겠습니까?')) return;
@@ -274,7 +284,7 @@ function renderSummary() {
 }
 function renderLog() {
   if (!logs.length) { $('v-log').innerHTML = '<div class="hint">아직 기록이 없습니다.</div>'; return; }
-  $('v-log').innerHTML = '<table><thead><tr><th>시각</th><th>호실</th><th>모임명</th><th>청지기</th><th>결과</th></tr></thead><tbody>' +
+  $('v-log').innerHTML = '<table><thead><tr><th>시각</th><th>호실</th><th>모임명</th><th>청지기·목회자</th><th>결과</th></tr></thead><tbody>' +
     logs.map(l => { const t = tsOf(l);
       return `<tr><td>${t ? `${t.getMonth() + 1}/${t.getDate()} ${p2(t.getHours())}:${p2(t.getMinutes())}` : ''}</td><td>${esc(l.room)}</td><td>${esc(l.meeting)}</td><td>${esc(l.steward)}</td><td><span class="tag${isOpen(l) ? '' : ' w'}">${esc(l.result)}</span></td></tr>`;
     }).join('') + '</tbody></table>';
