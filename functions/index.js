@@ -387,23 +387,36 @@ async function loadKioskConfig(key) {
   return cfg;
 }
 
-// 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후)
-exports.kioskMeetings = onCall(async (request) => {
+// 호실 선택 화면용 호실 이름 목록 — 어느 호실에 지금 모임이 있는지는 알려주지 않음(공간 관리에 등록된 이름만, 없으면 기본 목록)
+exports.kioskRooms = onCall(async (request) => {
   const cfg = await loadKioskConfig(request.data && request.data.key);
+  let names = [];
+  try {
+    const snap = await getFirestore().collection('spaces').get();
+    snap.forEach((d) => { names.push((d.data() || {}).name); });
+  } catch (e) { console.error('kioskRooms: spaces 읽기 실패', e.message || e); }
+  return { rooms: kiosk.roomChoices(names), afterMin: cfg.afterMin };
+});
+
+// 고른 호실에서 지금 이용 가능한 확정 모임 목록 (시작 N분 전 ~ 종료 N분 후) — 다른 호실의 모임·청지기 이름은 내려가지 않음
+exports.kioskMeetings = onCall(async (request) => {
+  const data = request.data || {};
+  const cfg = await loadKioskConfig(data.key);
+  const room = typeof data.room === 'string' ? data.room.trim() : '';
+  if (!room || room.length > 60) throw new HttpsError('invalid-argument', '호실을 먼저 선택해 주시기 바랍니다.');
   const now = kiosk.kstNow();
-  const snap = await getFirestore().collection('reservations')
-    .where('date', '==', now.date).where('status', '==', '확정').get();
   const meetings = [];
-  snap.forEach((d) => {
-    const r = d.data();
-    if (!kiosk.isUsableNow(r, now, cfg)) return;
-    meetings.push({
-      id: d.id, room: r.room || '', name: kiosk.meetingTitle(r),
-      start: r.start, end: r.end, steward: kiosk.maskName(r.stewardName),
+  if (kiosk.isKioskRoom(room)) {
+    const snap = await getFirestore().collection('reservations')
+      .where('date', '==', now.date).where('status', '==', '확정').get();
+    snap.forEach((d) => {
+      const r = d.data();
+      if (r.room !== room || !kiosk.isUsableNow(r, now, cfg)) return;
+      meetings.push({ id: d.id, room: r.room || '', name: kiosk.meetingTitle(r), start: r.start, end: r.end });
     });
-  });
+  }
   meetings.sort(kiosk.compareMeetings);
-  return { meetings: meetings.slice(0, 40), afterMin: cfg.afterMin, now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
+  return { meetings: meetings.slice(0, 20), room, afterMin: cfg.afterMin, now: `${String(Math.floor(now.minutes / 60)).padStart(2, '0')}:${String(now.minutes % 60).padStart(2, '0')}` };
 });
 
 // 모임 선택 + 청지기 연락처 뒤 4자리 확인 → 통과하면 기록 후 주차 링크 반환

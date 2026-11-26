@@ -84,6 +84,19 @@ function compareMeetings(a, b) {
   return String(a.start || '').localeCompare(String(b.start || '')) || String(a.name || '').localeCompare(String(b.name || ''), 'ko');
 }
 
+// 호실 선택 화면에 보일 수 있는 공간인지 — 제외 공간·로비·탕비실·테라스는 빼고, 호실 이름이 비어 있으면 뺌
+function isKioskRoom(name) {
+  const n = String(name || '').trim();
+  return !!n && !EXCLUDED_ROOMS.includes(n) && !/로비|탕비실|테라스/.test(n);
+}
+// 공간 관리(spaces)에 등록된 이름이 없을 때 쓰는 기본 호실 목록
+const FALLBACK_ROOMS = ['505호', '506호', '507호', '508호', '509호', '510호', '511호', '아론홀', '샤론홀'];
+function roomChoices(names) {
+  const set = new Set((names || []).map(n => String(n || '').trim()).filter(isKioskRoom));
+  const list = set.size ? Array.from(set) : FALLBACK_ROOMS.slice();
+  return list.sort((a, b) => roomRank(a) - roomRank(b) || a.localeCompare(b, 'ko'));
+}
+
 function last4Digits(tel) {
   const d = String(tel || '').replace(/\D/g, '');
   return d.length >= 4 ? d.slice(-4) : '';
@@ -104,5 +117,5 @@ function isSafeParkingUrl(u) {
 
 module.exports = {
   KIOSK_DEFAULTS, EXCLUDED_ROOMS, normalizeConfig, kstNow, toMin, isUsableNow,
-  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings,
+  meetingTitle, maskName, last4Digits, keyMatches, isSafeParkingUrl, roomRank, compareMeetings, isKioskRoom, roomChoices, FALLBACK_ROOMS,
 };
