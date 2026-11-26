@@ -54,6 +54,9 @@ th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertic
 th{color:var(--text3);font-weight:700;font-size:12.5px}
 .tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:999px;background:var(--brand-lt);color:var(--brand);font-weight:700}
 .tag.w{background:var(--amber-lt);color:var(--amber)}
+.mtabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:22px}
+.mtabs button{font-family:var(--font);font-size:16px;font-weight:800;padding:12px 22px;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;color:var(--text3);cursor:pointer}
+.mtabs button.on{color:var(--ink);border-bottom-color:var(--brand)}
 .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
 .tabs button{padding:7px 16px;border-radius:999px;border:1px solid var(--brand);background:#fff;color:var(--brand);font-weight:800;font-family:var(--font);font-size:13.5px;cursor:pointer}
 .tabs button.on{background:var(--brand);color:#fff}
@@ -84,8 +87,32 @@ th{color:var(--text3);font-weight:700;font-size:12.5px}
 
   <div class="content">
     <div class="page-title">주차 등록 관리</div>
-    <div class="page-sub">로비 키오스크(<code>kiosk.html</code>)의 설정과 주차 등록 기록입니다.</div>
+    <div class="page-sub">로비 키오스크(<code>kiosk.html</code>)의 주차 등록 기록과 설정입니다.</div>
 
+    <div class="mtabs" id="mtabs">
+      <button type="button" data-t="log" class="on" onclick="showTab('log')">기록</button>
+      <button type="button" data-t="settings" onclick="showTab('settings')">설정 관리</button>
+    </div>
+
+    <div id="tab-log">
+    <div class="sec">
+      <h3>주차 등록 기록</h3>
+      <div class="sum">
+        <div><b id="s-today">–</b><span>오늘 등록 화면 열림</span></div>
+        <div><b id="s-month">–</b><span>이번 달 열림 건수</span></div>
+        <div><b id="s-fail">–</b><span>이번 주 실패·잠김</span></div>
+      </div>
+      <div class="tabs">
+        <button id="t-log" class="on" onclick="setTab('log')">최근 기록</button>
+        <button id="t-sum" onclick="setTab('sum')">이번 달 호실·모임별</button>
+      </div>
+      <div id="v-log"></div>
+      <div id="v-sum" style="display:none"></div>
+      <div class="hint">‘열림’은 모임 확인을 통과해(상담실은 성함 입력 후) 주차 사이트를 연 횟수입니다. 모임명이 ‘상담실 (자유 등록)’인 줄은 예약 확인 없이 등록된 것이라, 월 1회쯤 상담 시스템 예약과 대조해 주시기 바랍니다. 실제 등록(차량 수)은 주차 업체 쪽 기록과 한 달에 한 번 비교해 보시기 바랍니다. 최근 300건까지 표시합니다.</div>
+    </div>
+    </div>
+
+    <div id="tab-settings" style="display:none">
     <div class="sec">
       <h3>키오스크 설정</h3>
       <div class="f">
@@ -137,21 +164,6 @@ th{color:var(--text3);font-weight:700;font-size:12.5px}
       <div class="keybox" id="keybox" style="display:none"></div>
       <div class="hint" id="key-hint"></div>
     </div>
-
-    <div class="sec">
-      <h3>주차 등록 기록</h3>
-      <div class="sum">
-        <div><b id="s-today">–</b><span>오늘 등록 화면 열림</span></div>
-        <div><b id="s-month">–</b><span>이번 달 열림 건수</span></div>
-        <div><b id="s-fail">–</b><span>이번 주 실패·잠김</span></div>
-      </div>
-      <div class="tabs">
-        <button id="t-log" class="on" onclick="setTab('log')">최근 기록</button>
-        <button id="t-sum" onclick="setTab('sum')">이번 달 호실·모임별</button>
-      </div>
-      <div id="v-log"></div>
-      <div id="v-sum" style="display:none"></div>
-      <div class="hint">‘열림’은 모임 확인을 통과해(상담실은 성함 입력 후) 주차 사이트를 연 횟수입니다. 모임명이 ‘상담실 (자유 등록)’인 줄은 예약 확인 없이 등록된 것이라, 월 1회쯤 상담 시스템 예약과 대조해 주시기 바랍니다. 실제 등록(차량 수)은 주차 업체 쪽 기록과 한 달에 한 번 비교해 보시기 바랍니다. 최근 300건까지 표시합니다.</div>
     </div>
   </div>
 </div>
@@ -225,6 +237,14 @@ function fillForm() {
 }
 const clampN = (id, min, max, def) => { const n = Math.round(Number($(id).value)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : def; };
 
+window.showTab = (t) => {
+  if (t !== 'settings') t = 'log';
+  $('tab-log').style.display = t === 'log' ? '' : 'none';
+  $('tab-settings').style.display = t === 'settings' ? '' : 'none';
+  document.querySelectorAll('#mtabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  try { history.replaceState(null, '', t === 'settings' ? '#settings' : location.pathname + location.search); } catch (_) {}
+};
+if (location.hash === '#settings') showTab('settings');
 const cleanPastors = (v) => { const out = []; String(v || '').split(/[\n,]/).forEach(x => { const n = x.replace(/\s+/g, ' ').trim(); if (/^[가-힣A-Za-z·. ]{2,20}$/.test(n) && !out.includes(n)) out.push(n); }); return out.slice(0, 100); };
 window.saveConfig = async () => {
   const st = $('c-status'); st.className = 'status'; st.textContent = '저장 중…';
