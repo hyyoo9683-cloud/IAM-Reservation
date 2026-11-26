@@ -1017,6 +1017,7 @@ html.show-splash{overflow:hidden}
       <button class="nav-btn" onclick="go('dashboard')"><span class="icon">📊</span>대시보드<span class="nav-badge" id="badge-cnt">0</span></button>
       <button class="nav-btn" onclick="go('list')"><span class="icon">📋</span>예약 목록</button>
       <button class="nav-btn" onclick="go('change-requests')"><span class="icon">🔁</span>변경·취소 신청<span class="nav-badge" id="badge-change-cnt">0</span></button>
+      <button class="nav-btn" onclick="location.href='kiosk-admin.html'"><span class="icon">🚗</span>키오스크 (주차 등록)</button>
       <button class="nav-btn" onclick="go('manage-spaces')"><span class="icon">🏛</span>공간 관리</button>
       <button class="nav-btn" onclick="go('ops-report')"><span class="icon">📧</span>주간 운영 리포트</button>
       <button class="nav-btn" onclick="go('blocked')"><span class="icon">🚫</span>차단일 관리</button>
@@ -11763,7 +11764,8 @@ body.has-appnav .topbar{min-height:46px;border-bottom:1px solid var(--border2);b
       {k:'dashboard',t:'오늘',i:'grid',c:"go('dashboard')"},
       {k:'list',t:'예약',i:'list',c:"go('list')",b:'badge-cnt'},
       {k:'public',t:'캘린더',i:'cal',c:"go('public')"},
-      {k:'change-requests',t:'변경·취소',i:'swap',c:"go('change-requests')",b:'badge-change-cnt'}
+      {k:'change-requests',t:'변경·취소',i:'swap',c:"go('change-requests')",b:'badge-change-cnt'},
+      {k:'kiosk',t:'키오스크',i:'swap',h:'kiosk-admin.html',pc:1}
     ];
     return [
       {k:'home',t:'홈',i:'home',c:"go('home')"},
