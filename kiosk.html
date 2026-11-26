@@ -148,7 +148,7 @@ function tickClock() {
 tickClock(); setInterval(tickClock, 15000);
 
 function stepper(n) {
-  const s = ['호실·모임 선택', '본인 확인', '주차 등록', '완료'];
+  const s = ['장소·모임 선택', '본인 확인', '주차 등록', '완료'];
   return '<div class="stepper">' + s.map((x, i) => `<span class="${i === n ? 'on' : ''}">${i + 1}. ${x}</span>`).join('') + '</div>';
 }
 function errMsg(e) {
@@ -283,7 +283,7 @@ async function renderPick(fresh) {
     drawPick();
   } catch (e) {
     if (st.step !== 'pick') return;
-    body.innerHTML = stepper(0) + `<h2>${esc(st.room)}</h2><div class="empty err">${esc(errMsg(e))}</div><div class="foot"><button class="btn ghost" id="back">← 호실 다시 선택</button></div>`;
+    body.innerHTML = stepper(0) + `<h2>${esc(st.room)}</h2><div class="empty err">${esc(errMsg(e))}</div><div class="foot"><button class="btn ghost" id="back">← 장소 다시 선택</button></div>`;
     $('back').onclick = renderRooms;
   }
   every(() => { if (st.step === 'pick') renderPick(false); }, 60000);
@@ -295,8 +295,8 @@ function drawPick() {
       ? `<div class="rooms one"><div class="rgrp"><div class="rname">${esc(st.room)}</div><div class="rlist">` +
           a.map((x, i) => `<button class="ritem" data-i="${i}"><span class="rl"><span class="rn">${esc(x.name)}</span>${x.steward ? `<span class="rs">청지기 ${esc(x.steward)}</span>` : ''}</span><span class="rt">${esc(x.start)} – ${esc(x.end)}</span></button>`).join('') +
           '</div></div></div>'
-      : `<div class="empty">${esc(st.room)}에는 지금 이용할 수 있는 모임이 없습니다.<br>모임 시작 전·후 정해진 시간 동안만 등록할 수 있습니다.<br>호실을 잘못 고르셨다면 아래에서 다시 선택해 주시기 바랍니다.<br>문의: 아이엠센터 사무실</div>`) +
-    '<div class="foot"><button class="btn ghost" id="back">← 호실 다시 선택</button></div>';
+      : `<div class="empty">${esc(st.room)}에는 지금 이용할 수 있는 모임이 없습니다.<br>모임 시작 전·후 정해진 시간 동안만 등록할 수 있습니다.<br>장소를 잘못 고르셨다면 아래에서 다시 선택해 주시기 바랍니다.<br>문의: 아이엠센터 사무실</div>`) +
+    '<div class="foot"><button class="btn ghost" id="back">← 장소 다시 선택</button></div>';
   $('back').onclick = renderRooms;
   body.querySelectorAll('.ritem').forEach(c => c.onclick = () => { st.sel = st.meetings[+c.dataset.i]; st.pin = ''; st.step = 'pin'; renderPin(''); });
 }
@@ -309,7 +309,7 @@ function renderCounsel(room, msg) {
      <input id="pastor" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="예: 홍길동">
      <div class="msg" id="msg">${esc(msg || '')}</div>
      <button class="btn" id="cgo">주차 등록하기</button></div>
-     <div class="foot"><button class="btn ghost" id="back">← 호실 다시 선택</button></div>`;
+     <div class="foot"><button class="btn ghost" id="back">← 장소 다시 선택</button></div>`;
   $('back').onclick = renderRooms;
   const input = $('pastor');
   const go = async () => {
