@@ -26,6 +26,8 @@ h2{font-size:30px;letter-spacing:-.03em;margin-bottom:6px}
 .stepper span{padding:4px 10px;border-radius:99px;background:#f0f1f0}
 .stepper span.on{background:var(--g);color:#fff;font-weight:700}
 .roomgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.rgroup{margin-bottom:22px}
+.rgroup h3{font-size:16px;font-weight:700;color:var(--mut);margin-bottom:10px;letter-spacing:-.01em}
 .roombtn{font:inherit;font-size:30px;font-weight:800;letter-spacing:-.03em;color:var(--g);background:#fff;border:2px solid var(--ink);border-radius:14px;padding:30px 12px;cursor:pointer}
 .roombtn:active{background:var(--gl);border-color:var(--g)}
 .rooms.one{grid-template-columns:minmax(300px,560px)}
@@ -167,6 +169,18 @@ function renderStart() {
 const NOKEY = '<div class="center"><h2>키오스크로 설정되지 않은 기기입니다</h2><p class="sub">관리자 화면(주차 등록 관리)에서 발급한 설정 주소를 이 기기에서 한 번 열어 주시기 바랍니다.</p></div>';
 function discountNote() { return '모임 이용자만 할인 가능합니다.' + afterNote(); }
 
+// 호실을 '5층 소그룹실'(505~511호)과 '세미나실'(그 밖의 홀)로 나눠 보여줌
+function roomGroupsHtml() {
+  const groups = [
+    { title: '5층 소그룹실', list: [] },
+    { title: '세미나실', list: [] },
+  ];
+  st.rooms.forEach((r, i) => (/^5\d{2}호$/.test(r) ? groups[0] : groups[1]).list.push({ r, i }));
+  return groups.filter(g => g.list.length).map(g =>
+    `<section class="rgroup"><h3>${g.title}</h3><div class="roomgrid">` +
+    g.list.map(({ r, i }) => `<button class="roombtn" data-i="${i}">${esc(r)}</button>`).join('') + '</div></section>').join('');
+}
+
 // 1) 호실 선택 — 어느 호실에 지금 모임이 있는지는 보이지 않게, 호실 이름만 항상 같은 모양으로 보여줌
 async function renderRooms() {
   clearTimers(); st.step = 'rooms'; st.room = ''; st.sel = null; armIdle();
@@ -178,7 +192,7 @@ async function renderRooms() {
     st.rooms = data.rooms || [];
     if (typeof data.afterMin === 'number') st.afterMin = data.afterMin;
     body.innerHTML = stepper(0) + '<h2>어느 호실을 이용하셨나요?</h2><p class="sub">' + discountNote() + '</p>' +
-      '<div class="roomgrid">' + st.rooms.map((r, i) => `<button class="roombtn" data-i="${i}">${esc(r)}</button>`).join('') + '</div>' +
+      roomGroupsHtml() +
       '<div class="foot"><button class="btn ghost" id="back">← 처음으로</button></div>';
     $('back').onclick = goHome;
     body.querySelectorAll('.roombtn').forEach(b => b.onclick = () => { st.room = st.rooms[+b.dataset.i]; st.meetings = []; st.step = 'pick'; renderPick(true); });

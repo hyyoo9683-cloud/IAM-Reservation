@@ -10,8 +10,8 @@ const KIOSK_DEFAULTS = {
   failLimit: 5,        // 연속 실패 몇 번에 잠글지
   lockMin: 5,          // 잠금 시간(분)
 };
-// 키오스크 대상에서 제외하는 공간 — 지혜홀(숙박 전용, 하루 종일 열려 있음), 아이엠홀(공연장, 2026-11-25 사용자 요청)
-const EXCLUDED_ROOMS = ['지혜홀', '아이엠홀'];
+// 키오스크 대상에서 제외하는 공간 — 지혜홀(숙박 전용, 하루 종일 열려 있음), 아이엠홀(공연장, 2026-11-25 사용자 요청), 아론홀(2026-11-26 사용자 요청 — 세미나실은 샤론홀만)
+const EXCLUDED_ROOMS = ['지혜홀', '아이엠홀', '아론홀'];
 
 function num(v, def, min, max) {
   const n = Number(v);
@@ -90,7 +90,7 @@ function isKioskRoom(name) {
   return !!n && !EXCLUDED_ROOMS.includes(n) && !/로비|탕비실|테라스/.test(n);
 }
 // 공간 관리(spaces)에 등록된 이름이 없을 때 쓰는 기본 호실 목록
-const FALLBACK_ROOMS = ['505호', '506호', '507호', '508호', '509호', '510호', '511호', '아론홀', '샤론홀'];
+const FALLBACK_ROOMS = ['505호', '506호', '507호', '508호', '509호', '510호', '511호', '샤론홀'];
 function roomChoices(names) {
   const set = new Set((names || []).map(n => String(n || '').trim()).filter(isKioskRoom));
   const list = set.size ? Array.from(set) : FALLBACK_ROOMS.slice();

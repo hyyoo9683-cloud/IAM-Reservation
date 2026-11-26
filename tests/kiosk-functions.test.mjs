@@ -21,13 +21,14 @@ await db.doc('system/kioskConfig').set({ key: KEY, parkingUrl: 'https://parking.
 const mk = (id, o) => db.doc('reservations/' + id).set({ status: '확정', room: '505호', date: '2026-11-25', start: '19:00', end: '21:00', purpose: '수요성경공부', stewardName: '김철수', stewardTel: '010-1234-5678', ...o });
 await mk('r1', {});
 await mk('r2', { room: '508호', purpose: '청년부', start: '14:00', end: '16:00', stewardTel: '010-9999-4821' });   // 시간 지남
-await mk('r3', { room: '아론홀', purpose: '대기건', status: '대기' });
+await mk('r3', { room: '샤론홀', purpose: '대기건', status: '대기' });
+await mk('r9', { room: '아론홀', purpose: '아론홀 확정', stewardTel: '010-0000-3333' });
 await mk('r4', { room: '샤론홀', purpose: '내일', date: '2026-11-26' });
 await mk('r5', { room: '506호', purpose: '연락처없음', stewardTel: '' });
 await mk('r7', { room: '아이엠홀', purpose: '공연', stewardTel: '010-0000-1111' });
 await mk('r6', { room: '507호', purpose: '곧 시작', start: '19:55', end: '21:00', stewardTel: '010-0000-7777' });
 
-await db.doc('spaces/s1').set({ name: '505호' }); await db.doc('spaces/s2').set({ name: '아론홀' }); await db.doc('spaces/s3').set({ name: '아이엠홀' });
+await db.doc('spaces/s1').set({ name: '505호' }); await db.doc('spaces/s2').set({ name: '아론홀' }); await db.doc('spaces/s7').set({ name: '샤론홀' }); await db.doc('spaces/s3').set({ name: '아이엠홀' });
 await db.doc('spaces/s4').set({ name: '5층 탕비실' }); await db.doc('spaces/s5').set({ name: '지혜홀' }); await db.doc('spaces/s6').set({ name: '511호' });
 await mk('r8', { room: '505호', purpose: '두 번째 모임', start: '20:00', end: '21:00', stewardTel: '010-0000-2222' });
 
@@ -38,7 +39,7 @@ ok('키가 없으면 거부', x.e && x.e.code === 'permission-denied');
 x = await call('kioskRooms', { key: 'wrong' });
 ok('호실 목록도 키가 없으면 거부', x.e && x.e.code === 'permission-denied');
 x = await call('kioskRooms', { key: KEY });
-ok('호실 목록: 공간 관리 이름에서 제외 공간(아이엠홀·지혜홀·탕비실) 빼고 호수 순', x.r && JSON.stringify(x.r.rooms) === JSON.stringify(['505호', '511호', '아론홀']));
+ok('호실 목록: 공간 관리 이름에서 제외 공간(아이엠홀·지혜홀·아론홀·탕비실) 빼고 호수 순 → 샤론홀', x.r && JSON.stringify(x.r.rooms) === JSON.stringify(['505호', '511호', '샤론홀']));
 ok('호실 목록에 모임·사용 중 여부가 포함되지 않음', x.r && !JSON.stringify(x.r).includes('수요성경공부') && Object.keys(x.r).sort().join() === 'afterMin,rooms');
 x = await call('kioskMeetings', { key: KEY });
 ok('호실 없이 모임 목록 요청은 거부', x.e && x.e.code === 'invalid-argument');
@@ -50,10 +51,12 @@ x = await call('kioskMeetings', { key: KEY, room: '506호' });
 ok('506호: 연락처 없는 예약도 목록에는 나옴', x.r && x.r.meetings.length === 1 && x.r.meetings[0].name === '연락처없음');
 x = await call('kioskMeetings', { key: KEY, room: '508호' });
 ok('508호: 시간이 지난 모임은 안 나옴', x.r && x.r.meetings.length === 0);
-x = await call('kioskMeetings', { key: KEY, room: '아론홀' });
-ok('아론홀: 대기 상태 예약은 안 나옴', x.r && x.r.meetings.length === 0);
+x = await call('kioskMeetings', { key: KEY, room: '샤론홀' });
+ok('샤론홀: 대기 상태 예약은 안 나옴', x.r && x.r.meetings.length === 0);
 x = await call('kioskMeetings', { key: KEY, room: '샤론홀' });
 ok('샤론홀: 다른 날짜 예약은 안 나옴', x.r && x.r.meetings.length === 0);
+x = await call('kioskMeetings', { key: KEY, room: '아론홀' });
+ok('아론홀(확정 예약이 있어도)은 키오스크 대상이 아님', x.r && x.r.meetings.length === 0);
 x = await call('kioskMeetings', { key: KEY, room: '아이엠홀' });
 ok('아이엠홀을 직접 요청해도 비어 있음', x.r && x.r.meetings.length === 0);
 x = await call('kioskMeetings', { key: KEY, room: '지혜홀' });
@@ -73,6 +76,8 @@ x = await call('kioskVerify', { key: KEY, reservationId: 'nope', last4: '5678' }
 ok('verify: 없는 예약 거부', x.e && x.e.code === 'failed-precondition');
 x = await call('kioskVerify', { key: KEY, reservationId: 'r7', last4: '1111' });
 ok('verify: 아이엠홀 예약은 맞는 번호여도 거부', x.e && x.e.code === 'failed-precondition' && !x.r);
+x = await call('kioskVerify', { key: KEY, reservationId: 'r9', last4: '3333' });
+ok('verify: 아론홀 예약도 맞는 번호여도 거부', x.e && x.e.code === 'failed-precondition' && !x.r);
 x = await call('kioskVerify', { key: KEY, reservationId: 'r5', last4: '0000' });
 ok('verify: 청지기 연락처 없는 예약은 거부(링크 안 줌)', x.e && x.e.code === 'failed-precondition' && !x.r);
 
